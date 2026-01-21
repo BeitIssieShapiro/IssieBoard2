@@ -8,6 +8,14 @@ const DEFAULT_YAML = `
 backgroundColor: "#E0E0E0"
 debugMode: false
 rows:
+  # System row with special keys
+  - keys:
+      - { type: "settings" }
+      - { type: "backspace", width: 1.5 }
+      - { type: "enter" }
+      - { type: "close" }  # Close button uses ⬇ icon
+  
+  # First letter row
   - keys: 
       - { label: "Q", value: "q" }
       - { label: "W", value: "w" }
@@ -15,18 +23,55 @@ rows:
       - { label: "R", value: "r" }
       - { label: "T", value: "t" }
       - { label: "Y", value: "y" }
-  - keys: 
+      - { label: "U", value: "u" }
+      - { label: "I", value: "i" }
+      - { label: "O", value: "o" }
+      - { label: "P", value: "p" }
+  
+  # Second letter row with offset
+  - keys:
+      - { hidden: true, width: 0.5 }
       - { label: "A", value: "a" }
       - { label: "S", value: "s" }
       - { label: "D", value: "d" }
       - { label: "F", value: "f" }
       - { label: "G", value: "g" }
-  - keys: 
+      - { label: "H", value: "h" }
+      - { label: "J", value: "j" }
+      - { label: "K", value: "k" }
+      - { label: "L", value: "l" }
+  
+  # Third letter row with shift
+  - keys:
+      - { type: "shift", width: 1.5 }
       - { label: "Z", value: "z" }
       - { label: "X", value: "x" }
       - { label: "C", value: "c" }
       - { label: "V", value: "v" }
-      - { label: "SPACE", value: " " } 
+      - { label: "B", value: "b" }
+      - { label: "N", value: "n" }
+      - { label: "M", value: "m" }
+      - { type: "backspace", label: "⌫", width: 1.5 }
+  
+  # Space row
+  - keys:
+      - { label: "123", value: "123", width: 1.5 }
+      - { label: "SPACE", value: " ", width: 5 }
+      - { label: ".", value: "." }
+      - { type: "enter", width: 1.5 }
+
+# Example of advanced features:
+# - type: Special key types (backspace, enter, action, shift, settings, close)
+#   * enter/action: Dynamic based on text field context
+#     - Automatically shows "Search", "Send", "Go", "Next", "Done", etc.
+#     - Hidden if text field doesn't support enter action
+#     - Disabled (grayed out) if action not yet available
+#     - Width excluded from calculations when hidden
+# - width: Button width in units (default 1, can be 0.5, 1.5, 2, etc.)
+# - offset: Left spacing before key (same units as width)
+# - hidden: If true, key occupies space but is invisible
+# - color: Text color (hex format like "#FF0000")
+# - bgColor: Background color (hex format like "#00FF00")
 `;
 
 // --- 2. HELPER: DEEP MERGE (Arrays Replace, Objects Merge) ---
@@ -125,11 +170,12 @@ const App = () => {
       // Save YAML for this Editor
       await DefaultPreference.set('config_yaml', yamlText);
 
-      setStatus("Saved successfully!");
-      Alert.alert("Success", "Configuration saved.");
+      setStatus("Saved successfully! Close and reopen keyboard to see changes.");
+      Alert.alert("Success", "Configuration saved. Close and reopen the keyboard to see changes.");
     } catch (e) {
       setStatus("Error: Invalid YAML syntax");
       Alert.alert("Syntax Error", "Please check your YAML formatting.");
+      console.error("YAML parse error:", e);
     }
   };
 

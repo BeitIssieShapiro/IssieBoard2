@@ -1,97 +1,31 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# IssieBoard
+IssieBoard is a configurable extension keyboard application for iOS that helps users with developmental or motor skill disabilities to acquire typing skills. IssieBoard can help people who have visual impairments, learning disabilities, cerebral palsy, and developmental and mental disabilities.
 
-# Getting Started
+Keyboard Features
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+Control the colors of all the keys in the keyboard, and the letters and text color, including the enter, space, backspace, globe, and dismiss keyboard keys. You can also control the keyboard background color.
+Divide the letters and numbers keys into three sections by row or column and control the colors of each section separately.
+Choose which keyboard keys will be visible.
+Select the keyboard appearance from a set of pre-configured templates.
+Configure a set of special letters and/or numbers, and configure the appearance of this set separately.
 
-## Step 1: Start Metro
+## Architecture
+This project utilizes a Hybrid Architecture designed to overcome the strict memory and performance constraints of system-wide keyboards on both iOS and Android.
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+The Configurator (React Native): The user-facing application is built in React Native, serving as a unified cross-platform editor. It handles the "heavy lifting"—YAML parsing, validation, and theme management—entirely in JavaScript, outputting a lightweight, platform-agnostic JSON configuration.
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+The Data Bridge: Storage is handled via platform-specific shared containers to bridge the gap between the App and the Extension.
 
-```sh
-# Using npm
-npm start
+Android: Writes to SharedPreferences (accessible by the Service).
 
-# OR using Yarn
-yarn start
-```
+iOS: Writes to UserDefaults within an App Group (accessible by the Extension).
 
-## Step 2: Build and run your app
+The Native Engines: The keyboard runtimes are written in 100% Pure Native Code (Kotlin for Android InputMethodService and Swift for iOS UIInputViewController). They are completely decoupled from the React Native Bridge, ensuring instant startup (<50ms) and staying well within strict OS memory limits (critical for the iOS 50MB extension limit).
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
+Dynamic Rendering: Instead of hardcoded layouts, both native engines feature a custom Dynamic View Inflater. This engine reads the cached JSON configuration at runtime to programmatically build the keyboard UI (rows, keys, and styling) using native components (LinearLayout on Android, UIStackView on iOS).
 
-### Android
+Live Synchronization: Both platforms implement reactive listeners (OnSharedPreferenceChangeListener on Android and KVO/NotificationCenter on iOS) to detect configuration changes instantly, allowing the keyboard to "hot-reload" new themes without requiring a crash or restart.
 
-```sh
-# Using npm
-npm run android
+System Integration: The architecture respects platform-specific UI paradigms, automatically handling Edge-to-Edge content and safe area insets (like the Home Indicator on iOS and Gesture Bar on Android) to ensure a seamless fit on modern devices.
 
-# OR using Yarn
-yarn android
-```
-
-### iOS
-
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
-
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
-
-```sh
-bundle install
-```
-
-Then, and every time you update your native dependencies, run:
-
-```sh
-bundle exec pod install
-```
-
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
-
-```sh
-# Using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
-```
-
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
-
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
-
-## Step 3: Modify your app
-
-Now that you have successfully run the app, let's make changes!
-
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
-
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
-
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+Summary: By isolating the configuration logic in React Native and keeping the runtime engines pure native, the app achieves a "Write Once, Configure Everywhere" developer experience while delivering the raw performance and stability required by the operating systems.
