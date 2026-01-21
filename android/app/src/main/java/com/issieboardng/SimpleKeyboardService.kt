@@ -207,6 +207,13 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
         super.onEvaluateInputViewShown()
         return true
     }
+    
+    override fun onStartInputView(info: android.view.inputmethod.EditorInfo?, restarting: Boolean) {
+        super.onStartInputView(info, restarting)
+        // Re-render keyboard when switching to a new input field
+        // This ensures the enter key label and behavior updates appropriately
+        mainLayout?.post { renderKeyboard() }
+    }
 
     // ============================================================================
     // CONFIG MANAGEMENT
@@ -469,7 +476,18 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
             else -> true
         }
         
-        val enterEnabled = !actionDisabled
+        // Always enable enter for critical actions (like URL navigation)
+        // regardless of the NO_ENTER_ACTION flag
+        val enterEnabled = when {
+            // Critical actions should always be enabled
+            action == EditorInfo.IME_ACTION_GO -> true
+            action == EditorInfo.IME_ACTION_SEARCH -> true
+            action == EditorInfo.IME_ACTION_SEND -> true
+            // For multiline, enter is for newlines, always enabled
+            isMultiline -> true
+            // For other actions, respect the disabled flag
+            else -> !actionDisabled
+        }
         
         // Get the action label
         val enterLabel = when {
@@ -874,15 +892,9 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
         }
         
         val action: () -> Unit = {
-            val editorInfo = currentInputEditorInfo
-            val inputType = editorInfo?.inputType ?: 0
-            val isMultiline = (inputType and InputType.TYPE_TEXT_FLAG_MULTI_LINE) != 0
-            
-            if (isMultiline) {
-                currentInputConnection?.commitText("\n", 1)
-            } else {
-                currentInputConnection?.performEditorAction(editorContext.actionId)
-            }
+            // Use the action ID that was determined in analyzeEditorInfo
+            // This ensures we send the correct action (GO, SEARCH, SEND, etc.)
+            currentInputConnection?.performEditorAction(editorContext.actionId)
         }
         return Pair(displayLabel, action)
     }
