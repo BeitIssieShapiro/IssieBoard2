@@ -63,6 +63,25 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
     // ============================================================================
     
     /**
+     * Shift state using sealed class for type safety
+     */
+    sealed class ShiftState {
+        object Inactive : ShiftState()
+        object Active : ShiftState()
+        object Locked : ShiftState()
+        
+        fun toggle(): ShiftState = when (this) {
+            Inactive -> Active
+            Active -> Inactive
+            Locked -> Inactive
+        }
+        
+        fun lock(): ShiftState = Locked
+        fun unlock(): ShiftState = Inactive
+        fun isActive(): Boolean = this != Inactive
+    }
+    
+    /**
      * Represents a complete key configuration
      */
     data class KeyConfig(
@@ -74,8 +93,8 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
         val width: Float = DEFAULT_KEY_WIDTH,
         val offset: Float = DEFAULT_KEY_OFFSET,
         val hidden: Boolean = false,
-        val textColor: String = "",
-        val backgroundColor: String = "",
+        val textColor: Int = Color.BLACK,  // Cached parsed color
+        val backgroundColor: Int = Color.LTGRAY,  // Cached parsed color
         val label: String = "",
         val keysetValue: String = ""
     )
@@ -89,6 +108,24 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
         val hidden: Boolean?,
         val color: String,
         val bgColor: String
+    )
+    
+    /**
+     * Parsed keyset configuration (cached for performance)
+     */
+    data class ParsedKeyset(
+        val id: String,
+        val rows: List<List<KeyConfig>>,
+        val groups: Map<String, GroupTemplate>
+    )
+    
+    /**
+     * Parsed configuration (cached to avoid repeated JSON parsing)
+     */
+    data class ParsedConfig(
+        val backgroundColor: Int,
+        val defaultKeysetId: String,
+        val keysets: Map<String, ParsedKeyset>
     )
     
     /**
@@ -107,11 +144,20 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
     
     private var mainLayout: LinearLayout? = null
     private var currentKeysetId: String = DEFAULT_KEYSET_ID
+    
+    // Cached parsed configuration (Phase 2 optimization)
+    private var parsedConfig: ParsedConfig? = null
+    
+    // Color parsing cache (Phase 2 optimization)
+    private val colorCache = mutableMapOf<String, Int>()
+    
+    // Shift state (Phase 2 optimization: using sealed class)
+    private var shiftState: ShiftState = ShiftState.Inactive
+    private var lastShiftClickTime: Long = 0
+    
+    // Legacy state (kept for backward compatibility during transition)
     private var keysetsMap: Map<String, JSONObject> = emptyMap()
     private var configJson: JSONObject? = null
-    private var shiftActive: Boolean = false
-    private var shiftLocked: Boolean = false
-    private var lastShiftClickTime: Long = 0
 
     // ============================================================================
     // LIFECYCLE
@@ -166,16 +212,20 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
     // CONFIG MANAGEMENT
     // ============================================================================
     
+    /**
+     * Load and parse configuration with caching (Phase 2 optimization)
+     */
     private fun loadConfig() {
         try {
             val prefs = getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
             val configString = prefs.getString(CONFIG_KEY, null) ?: "{}"
             configJson = JSONObject(configString)
             
-            // Load default keyset
-            currentKeysetId = configJson?.optString("defaultKeyset", DEFAULT_KEYSET_ID) ?: DEFAULT_KEYSET_ID
+            // Parse and cache the entire config
+            parsedConfig = parseConfig(configJson!!)
+            currentKeysetId = parsedConfig?.defaultKeysetId ?: DEFAULT_KEYSET_ID
             
-            // Build keysets map for quick lookup
+            // Legacy compatibility: Build keysets map
             val keysetsArray = configJson?.optJSONArray("keysets")
             val tempMap = mutableMapOf<String, JSONObject>()
             
@@ -194,8 +244,157 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
             if (BuildConfig.DEBUG) {
                 Log.e(TAG, "Failed to load config", e)
             }
+            parsedConfig = null
             keysetsMap = emptyMap()
         }
+    }
+    
+    /**
+     * Parse entire configuration into cached structures (Phase 2 optimization)
+     */
+    private fun parseConfig(configJson: JSONObject): ParsedConfig {
+        // Parse background color with caching
+        val bgColorString = configJson.optString("backgroundColor", DEFAULT_BG_COLOR)
+        val backgroundColor = parseColor(bgColorString, Color.parseColor(DEFAULT_BG_COLOR))
+        
+        val defaultKeysetId = configJson.optString("defaultKeyset", DEFAULT_KEYSET_ID)
+        
+        // Parse all keysets
+        val keysets = mutableMapOf<String, ParsedKeyset>()
+        val keysetsArray = configJson.optJSONArray("keysets")
+        
+        if (keysetsArray != null) {
+            for (i in 0 until keysetsArray.length()) {
+                val keysetObj = keysetsArray.optJSONObject(i) ?: continue
+                val keysetId = keysetObj.optString("id", "")
+                if (keysetId.isEmpty()) continue
+                
+                // Parse groups for this keyset
+                val groups = parseGroups(keysetObj)
+                
+                // Parse rows
+                val rows = mutableListOf<List<KeyConfig>>()
+                val rowsArray = keysetObj.optJSONArray("rows")
+                
+                if (rowsArray != null) {
+                    for (j in 0 until rowsArray.length()) {
+                        val rowObj = rowsArray.optJSONObject(j) ?: continue
+                        val keysArray = rowObj.optJSONArray("keys") ?: continue
+                        
+                        val rowKeys = mutableListOf<KeyConfig>()
+                        for (k in 0 until keysArray.length()) {
+                            val keyObj = keysArray.optJSONObject(k) ?: continue
+                            val keyConfig = parseKeyConfigWithColors(keyObj, groups)
+                            rowKeys.add(keyConfig)
+                        }
+                        rows.add(rowKeys)
+                    }
+                }
+                
+                keysets[keysetId] = ParsedKeyset(keysetId, rows, groups)
+            }
+        }
+        
+        return ParsedConfig(backgroundColor, defaultKeysetId, keysets)
+    }
+    
+    /**
+     * Parse groups from keyset with caching
+     */
+    private fun parseGroups(keyset: JSONObject): Map<String, GroupTemplate> {
+        val groups = mutableMapOf<String, GroupTemplate>()
+        val groupsArray = keyset.optJSONArray("groups") ?: return groups
+        
+        for (i in 0 until groupsArray.length()) {
+            val groupObj = groupsArray.optJSONObject(i) ?: continue
+            val itemsArray = groupObj.optJSONArray("items") ?: continue
+            val templateObj = groupObj.optJSONObject("template") ?: continue
+            
+            val template = GroupTemplate(
+                width = if (templateObj.has("width")) templateObj.optDouble("width", 1.0).toFloat() else null,
+                offset = if (templateObj.has("offset")) templateObj.optDouble("offset", 0.0).toFloat() else null,
+                hidden = if (templateObj.has("hidden")) templateObj.optBoolean("hidden", false) else null,
+                color = templateObj.optString("color", ""),
+                bgColor = templateObj.optString("bgColor", "")
+            )
+            
+            // Map each item to the template
+            for (j in 0 until itemsArray.length()) {
+                val item = itemsArray.optString(j, "")
+                if (item.isNotEmpty()) {
+                    groups[item] = template
+                }
+            }
+        }
+        
+        return groups
+    }
+    
+    /**
+     * Parse color with caching (Phase 2 optimization)
+     */
+    private fun parseColor(colorString: String, default: Int): Int {
+        if (colorString.isEmpty()) return default
+        
+        return colorCache.getOrPut(colorString) {
+            try {
+                Color.parseColor(colorString)
+            } catch (e: Exception) {
+                if (BuildConfig.DEBUG) {
+                    Log.w(TAG, "Invalid color: $colorString")
+                }
+                default
+            }
+        }
+    }
+    
+    /**
+     * Parse key config with pre-cached colors (Phase 2 optimization)
+     */
+    private fun parseKeyConfigWithColors(keyObj: JSONObject, groups: Map<String, GroupTemplate>): KeyConfig {
+        val value = keyObj.optString("value", "")
+        val groupTemplate = groups[value]
+        
+        // Parse key properties with group template defaults
+        val caption = keyObj.optString("caption", value)
+        val sValue = keyObj.optString("sValue", value)
+        val sCaption = keyObj.optString("sCaption", "").ifEmpty { 
+            keyObj.optString("sValue", caption)
+        }
+        
+        // Parse and cache colors immediately
+        val textColorString = keyObj.optString("color", "").ifEmpty { groupTemplate?.color ?: "" }
+        val bgColorString = keyObj.optString("bgColor", "").ifEmpty { groupTemplate?.bgColor ?: "" }
+        
+        val textColor = parseColor(textColorString, Color.BLACK)
+        val backgroundColor = parseColor(bgColorString, Color.LTGRAY)
+        
+        return KeyConfig(
+            value = value,
+            caption = caption,
+            sValue = sValue,
+            sCaption = sCaption,
+            type = keyObj.optString("type", ""),
+            width = if (keyObj.has("width")) {
+                keyObj.optDouble("width", DEFAULT_KEY_WIDTH.toDouble()).toFloat()
+            } else {
+                groupTemplate?.width ?: DEFAULT_KEY_WIDTH
+            },
+            offset = if (keyObj.has("offset")) {
+                keyObj.optDouble("offset", DEFAULT_KEY_OFFSET.toDouble()).toFloat()
+            } else {
+                groupTemplate?.offset ?: DEFAULT_KEY_OFFSET
+            },
+            hidden = if (keyObj.has("hidden")) {
+                keyObj.optBoolean("hidden", false)
+            } else {
+                groupTemplate?.hidden ?: false
+            },
+            textColor = textColor,
+            backgroundColor = backgroundColor,
+            label = keyObj.optString("label", ""),
+            keysetValue = keyObj.optString("keysetValue", "")
+        )
     }
     
     private fun findGroupTemplate(value: String, keyset: JSONObject): GroupTemplate? {
@@ -235,11 +434,11 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
     private fun switchKeyset(keysetId: String) {
         if (keysetId.isEmpty()) return
         
-        if (keysetsMap.containsKey(keysetId)) {
+        val config = parsedConfig
+        if (config != null && config.keysets.containsKey(keysetId)) {
             currentKeysetId = keysetId
             // Reset shift state when changing keysets
-            shiftActive = false
-            shiftLocked = false
+            shiftState = ShiftState.Inactive
             renderKeyboard()
         } else if (BuildConfig.DEBUG) {
             Log.w(TAG, "Keyset not found: $keysetId")
@@ -302,47 +501,75 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
         layout.removeAllViews()
 
         // Load config if not already loaded
-        if (configJson == null) {
+        if (parsedConfig == null) {
             loadConfig()
+        }
+
+        val config = parsedConfig
+        if (config == null) {
+            showError(layout, "No config loaded")
+            return
         }
 
         // Get editor context for dynamic key behavior
         val editorContext = analyzeEditorInfo()
 
-        // Parse background color
-        val bgColor = try {
-            val colorString = configJson?.optString("backgroundColor", DEFAULT_BG_COLOR) ?: DEFAULT_BG_COLOR
-            Color.parseColor(colorString)
-        } catch (e: Exception) {
-            if (BuildConfig.DEBUG) {
-                Log.e(TAG, "Failed to parse background color", e)
-            }
-            Color.parseColor(ERROR_BG_COLOR)
-        }
+        // Use cached background color
+        layout.setBackgroundColor(config.backgroundColor)
 
-        layout.setBackgroundColor(bgColor)
-
-        // Get rows from current keyset
-        val currentKeyset = keysetsMap[currentKeysetId]
-        val rowsArray = currentKeyset?.optJSONArray("rows") 
-            ?: configJson?.optJSONArray("rows") // Fallback to old format
-
-        if (rowsArray == null) {
-            showError(layout, "No config loaded")
+        // Get cached keyset
+        val keyset = config.keysets[currentKeysetId]
+        if (keyset == null) {
+            showError(layout, "Keyset not found: $currentKeysetId")
             return
         }
 
         // Calculate baseline width for consistent key sizing
-        val baselineWidth = calculateBaselineWidth(rowsArray, editorContext)
+        val baselineWidth = calculateBaselineWidthFromParsed(keyset.rows, editorContext)
 
-        // Render each row
-        for (i in 0 until rowsArray.length()) {
-            val rowObj = rowsArray.optJSONObject(i) ?: continue
-            val keysArray = rowObj.optJSONArray("keys") ?: continue
-            
+        // Render each row from cached configuration
+        for (rowKeys in keyset.rows) {
             val rowLayout = createRowLayout(baselineWidth)
-            renderRowKeys(rowLayout, keysArray, currentKeyset, editorContext)
+            renderRowKeysFromParsed(rowLayout, rowKeys, editorContext)
             layout.addView(rowLayout)
+        }
+    }
+    
+    /**
+     * Calculate baseline width from parsed config (Phase 2 optimization)
+     */
+    private fun calculateBaselineWidthFromParsed(rows: List<List<KeyConfig>>, editorContext: EditorContext): Float {
+        var maxRowWidth = 0f
+        
+        for (rowKeys in rows) {
+            var rowWidth = 0f
+            for (key in rowKeys) {
+                // Skip enter/action keys if they won't be visible
+                if ((key.type.lowercase() == "enter" || key.type.lowercase() == "action") && !editorContext.enterVisible) {
+                    continue
+                }
+                
+                rowWidth += key.width + key.offset
+            }
+            
+            if (rowWidth > maxRowWidth) {
+                maxRowWidth = rowWidth
+            }
+        }
+        
+        return if (maxRowWidth > 0) maxRowWidth else DEFAULT_BASELINE_WIDTH
+    }
+    
+    /**
+     * Render row keys from parsed config (Phase 2 optimization)
+     */
+    private fun renderRowKeysFromParsed(
+        rowLayout: LinearLayout,
+        rowKeys: List<KeyConfig>,
+        editorContext: EditorContext
+    ) {
+        for (keyConfig in rowKeys) {
+            renderKey(rowLayout, keyConfig, editorContext)
         }
     }
     
@@ -421,6 +648,13 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
             keyObj.optString("sValue", caption)
         }
         
+        // Parse colors (legacy function needs to parse too)
+        val textColorString = keyObj.optString("color", "").ifEmpty { groupTemplate?.color ?: "" }
+        val bgColorString = keyObj.optString("bgColor", "").ifEmpty { groupTemplate?.bgColor ?: "" }
+        
+        val textColor = parseColor(textColorString, Color.BLACK)
+        val backgroundColor = parseColor(bgColorString, Color.LTGRAY)
+        
         return KeyConfig(
             value = value,
             caption = caption,
@@ -442,8 +676,8 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
             } else {
                 groupTemplate?.hidden ?: false
             },
-            textColor = keyObj.optString("color", "").ifEmpty { groupTemplate?.color ?: "" },
-            backgroundColor = keyObj.optString("bgColor", "").ifEmpty { groupTemplate?.bgColor ?: "" },
+            textColor = textColor,
+            backgroundColor = backgroundColor,
             label = keyObj.optString("label", ""),
             keysetValue = keyObj.optString("keysetValue", "")
         )
@@ -464,9 +698,9 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
             rowLayout.addView(createSpacer(key.offset))
         }
         
-        // Determine display caption and value based on shift state
-        val displayCaption = if (shiftActive) key.sCaption else key.caption
-        val displayValue = if (shiftActive) key.sValue else key.value
+        // Determine display caption and value based on shift state (Phase 2: using sealed class)
+        val displayCaption = if (shiftState.isActive()) key.sCaption else key.caption
+        val displayValue = if (shiftState.isActive()) key.sValue else key.value
         
         // Determine label and action based on special types
         val (finalLabel, clickAction) = getKeyBehavior(
@@ -500,8 +734,9 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
             textSize = determineTextSize(key.type, label)
             layoutParams = createKeyLayoutParams(key.width)
             
-            val bgColor = parseKeyBackgroundColor(key)
-            val textColor = parseKeyTextColor(key.textColor)
+            // Use cached colors directly (Phase 2 optimization)
+            val bgColor = getKeyBackgroundColor(key)
+            val textColor = key.textColor
             
             background = createKeyBackground(bgColor)
             setTextColor(textColor)
@@ -541,39 +776,17 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
         }
     }
     
-    private fun parseKeyBackgroundColor(key: KeyConfig): Int {
-        // Special handling for shift button
-        if (key.type.lowercase() == "shift" && shiftActive) {
-            return Color.parseColor(SHIFT_ACTIVE_COLOR)
+    /**
+     * Get key background color with special handling for shift (Phase 2 optimization)
+     */
+    private fun getKeyBackgroundColor(key: KeyConfig): Int {
+        // Special handling for shift button when active
+        if (key.type.lowercase() == "shift" && shiftState.isActive()) {
+            return parseColor(SHIFT_ACTIVE_COLOR, Color.parseColor(SHIFT_ACTIVE_COLOR))
         }
         
-        if (key.backgroundColor.isEmpty()) {
-            return Color.LTGRAY
-        }
-        
-        return try {
-            Color.parseColor(key.backgroundColor)
-        } catch (e: Exception) {
-            if (BuildConfig.DEBUG) {
-                Log.w(TAG, "Invalid background color: ${key.backgroundColor}")
-            }
-            Color.LTGRAY
-        }
-    }
-    
-    private fun parseKeyTextColor(textColor: String): Int {
-        if (textColor.isEmpty()) {
-            return Color.BLACK
-        }
-        
-        return try {
-            Color.parseColor(textColor)
-        } catch (e: Exception) {
-            if (BuildConfig.DEBUG) {
-                Log.w(TAG, "Invalid text color: $textColor")
-            }
-            Color.BLACK
-        }
+        // Return cached color directly
+        return key.backgroundColor
     }
     
     private fun createKeyBackground(color: Int): GradientDrawable {
@@ -592,14 +805,20 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
         }
     }
     
+    /**
+     * Handle shift click with double-click detection (Phase 2: using sealed class)
+     */
     private fun handleShiftClick(clickAction: () -> Unit) {
         val currentTime = System.currentTimeMillis()
         val timeSinceLastClick = currentTime - lastShiftClickTime
         
         if (timeSinceLastClick < DOUBLE_CLICK_THRESHOLD_MS) {
             // Double-click detected - toggle caps lock
-            shiftLocked = !shiftLocked
-            shiftActive = shiftLocked
+            shiftState = if (shiftState is ShiftState.Locked) {
+                ShiftState.Inactive
+            } else {
+                ShiftState.Locked
+            }
             renderKeyboard()
         } else {
             // Single click - use normal action
@@ -676,24 +895,22 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
         return Pair(displayLabel, action)
     }
     
+    /**
+     * Create shift key behavior (Phase 2: using sealed class)
+     */
     private fun createShiftKey(label: String): Pair<String, () -> Unit> {
         val displayLabel = if (label.isNotEmpty()) {
             label
         } else {
-            when {
-                shiftLocked -> "🔒"
-                shiftActive -> "⬆"
-                else -> "⬆"
+            when (shiftState) {
+                is ShiftState.Locked -> "🔒"
+                is ShiftState.Active -> "⬆"
+                is ShiftState.Inactive -> "⬆"
             }
         }
         
         val action: () -> Unit = {
-            if (shiftLocked) {
-                shiftLocked = false
-                shiftActive = false
-            } else {
-                shiftActive = !shiftActive
-            }
+            shiftState = shiftState.toggle()
             renderKeyboard()
         }
         return Pair(displayLabel, action)
@@ -711,6 +928,9 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
         return Pair(displayLabel, action)
     }
     
+    /**
+     * Create regular key behavior (Phase 2: using sealed class)
+     */
     private fun createRegularKey(caption: String, label: String, value: String): Pair<String, () -> Unit> {
         val displayLabel = when {
             caption.isNotEmpty() -> caption
@@ -723,8 +943,8 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
             if (value.isNotEmpty()) {
                 currentInputConnection?.commitText(value, 1)
                 // Auto-reset shift after typing a character (unless locked)
-                if (shiftActive && !shiftLocked) {
-                    shiftActive = false
+                if (shiftState is ShiftState.Active) {
+                    shiftState = ShiftState.Inactive
                     renderKeyboard()
                 }
             }
