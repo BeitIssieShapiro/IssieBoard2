@@ -16,12 +16,19 @@ import android.view.WindowInsets // Needed for Insets
 import android.view.inputmethod.EditorInfo
 import android.text.InputType
 import android.content.Intent
+import android.content.res.Configuration
 import org.json.JSONObject
 
 class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPreferenceChangeListener {
 
     private var mainLayout: LinearLayout? = null
     private val PREFS_FILE = "keyboard_data"
+    private var currentKeysetId: String = "abc" // Default keyset
+    private var keysetsMap: Map<String, org.json.JSONObject> = emptyMap()
+    private var configJson: JSONObject? = null
+    private var shiftActive: Boolean = false // Track shift state
+    private var shiftLocked: Boolean = false // Track caps lock state
+    private var lastShiftClickTime: Long = 0 // For double-click detection
 
     override fun onCreate() {
         super.onCreate()
@@ -64,7 +71,51 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
 
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
         if (key == "config_json") {
+            // Reset to default keyset when config changes
+            loadConfig()
             mainLayout?.post { renderKeyboard() }
+        }
+    }
+    
+    private fun loadConfig() {
+        try {
+            val prefs = getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
+            val configString = prefs.getString("config_json", "{}")
+            configJson = JSONObject(configString)
+            
+            // Load default keyset
+            currentKeysetId = configJson?.optString("defaultKeyset", "abc") ?: "abc"
+            
+            // Build keysets map for quick lookup
+            val keysetsArray = configJson?.optJSONArray("keysets")
+            val tempMap = mutableMapOf<String, JSONObject>()
+            
+            if (keysetsArray != null) {
+                for (i in 0 until keysetsArray.length()) {
+                    val keysetObj = keysetsArray.getJSONObject(i)
+                    val id = keysetObj.optString("id", "")
+                    if (id.isNotEmpty()) {
+                        tempMap[id] = keysetObj
+                    }
+                }
+            }
+            
+            keysetsMap = tempMap
+        } catch (e: Exception) {
+            Log.e("SimpleKeyboardService", "Failed to load config", e)
+            keysetsMap = emptyMap()
+        }
+    }
+    
+    private fun switchKeyset(keysetId: String) {
+        if (keysetsMap.containsKey(keysetId)) {
+            currentKeysetId = keysetId
+            // Reset shift state when changing keysets
+            shiftActive = false
+            shiftLocked = false
+            renderKeyboard()
+        } else {
+            Log.w("SimpleKeyboardService", "Keyset not found: $keysetId")
         }
     }
 
@@ -123,6 +174,11 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
         val layout = mainLayout ?: return
         layout.removeAllViews()
 
+        // Load config if not already loaded
+        if (configJson == null) {
+            loadConfig()
+        }
+
         // Get editor context for dynamic key behavior
         val editorContext = analyzeEditorInfo()
 
@@ -131,15 +187,20 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
         var rowsArray: org.json.JSONArray? = null
         
         try {
-            val prefs = getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
-            val configString = prefs.getString("config_json", "{}")
-            val json = JSONObject(configString)
-            
-            val colorString = json.optString("backgroundColor", "#CCCCCC")
+            val colorString = configJson?.optString("backgroundColor", "#CCCCCC") ?: "#CCCCCC"
             bgColor = Color.parseColor(colorString)
-            rowsArray = json.optJSONArray("rows")
+            
+            // Get rows from current keyset
+            val currentKeyset = keysetsMap[currentKeysetId]
+            rowsArray = currentKeyset?.optJSONArray("rows")
+            
+            // Fallback to old format if keysets not found
+            if (rowsArray == null) {
+                rowsArray = configJson?.optJSONArray("rows")
+            }
             
         } catch (e: Exception) {
+            Log.e("SimpleKeyboardService", "Failed to parse config", e)
             bgColor = Color.RED 
         }
 
@@ -184,12 +245,16 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
                 val rowObj = rowsArray.getJSONObject(i)
                 val keysArray = rowObj.optJSONArray("keys") ?: continue
 
+                // Determine row height based on orientation
+                val isLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+                val rowHeight = if (isLandscape) 100 else 150 // Smaller in landscape
+                
                 // Row Container
                 val rowLayout = LinearLayout(this).apply {
                     orientation = LinearLayout.HORIZONTAL
                     layoutParams = LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
-                        150 // Fixed height per row (approx 50-60dp)
+                        rowHeight
                     )
                     // Add horizontal padding for margins at start and end of row
                     setPadding(16, 0, 16, 0)
@@ -202,14 +267,22 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
                     val keyObj = keysArray.getJSONObject(j)
                     
                     // Parse key properties
-                    val label = keyObj.optString("label", "")
                     val value = keyObj.optString("value", "")
+                    val caption = keyObj.optString("caption", value) // Default caption is value
+                    val sValue = keyObj.optString("sValue", value) // Shift value defaults to value
+                    // sCaption should default to sValue if not specified, not caption
+                    val sCaption = keyObj.optString("sCaption", "").ifEmpty { 
+                        keyObj.optString("sValue", caption)
+                    }
                     val type = keyObj.optString("type", "")
                     val width = keyObj.optDouble("width", 1.0).toFloat()
                     val offset = keyObj.optDouble("offset", 0.0).toFloat()
                     val hidden = keyObj.optBoolean("hidden", false)
                     val textColor = keyObj.optString("color", "")
                     val backgroundColor = keyObj.optString("bgColor", "")
+                    
+                    // Support old "label" property for backward compatibility
+                    val label = keyObj.optString("label", "")
                     
                     // Skip enter/action keys if not visible (don't render at all)
                     if ((type.lowercase() == "enter" || type.lowercase() == "action") && !editorContext.enterVisible) {
@@ -226,8 +299,17 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
                         rowLayout.addView(spacer)
                     }
                     
+                    // Get keysetValue for keyset switcher
+                    val keysetValue = keyObj.optString("keysetValue", "")
+                    
+                    // Determine display caption and value based on shift state
+                    val displayCaption = if (shiftActive) sCaption else caption
+                    val displayValue = if (shiftActive) sValue else value
+                    
                     // Determine label and action based on special types
-                    val (finalLabel, clickAction) = getKeyBehavior(type, label, value, editorContext)
+                    val (finalLabel, clickAction) = getKeyBehavior(
+                        type, label, displayCaption, displayValue, editorContext
+                    )
                     
                     // Create button (or invisible spacer if hidden)
                     if (hidden) {
@@ -242,8 +324,12 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
                         // Visible key: create button
                         val keyButton = Button(this).apply {
                             text = finalLabel
-                            // Increase text size for better visibility, especially for icons
-                            textSize = 18f
+                            // Increase text size - larger for special keys with single character
+                            textSize = when {
+                                type.lowercase() == "shift" -> 36f  // Always large for shift
+                                (type.lowercase() == "enter" || type.lowercase() == "action") && finalLabel.length <= 1 -> 36f  // Large only for single char (↵)
+                                else -> 18f
+                            }
                             layoutParams = LinearLayout.LayoutParams(
                                 0, LinearLayout.LayoutParams.MATCH_PARENT, width
                             ).apply {
@@ -255,7 +341,10 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
                             }
                             
                             // Parse colors with defaults
-                            val bgColorParsed = if (backgroundColor.isNotEmpty()) {
+                            // For shift button, use highlighted color when active
+                            val bgColorParsed = if (type.lowercase() == "shift" && shiftActive) {
+                                Color.parseColor("#4CAF50") // Green when shift is active
+                            } else if (backgroundColor.isNotEmpty()) {
                                 try {
                                     Color.parseColor(backgroundColor)
                                 } catch (e: Exception) {
@@ -289,18 +378,37 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
                             // Remove default button padding
                             setPadding(8, 8, 8, 8)
                             
-                            // Handle enabled/disabled state for enter/action keys
-                            val keyEnabled = if (type.lowercase() == "enter" || type.lowercase() == "action") {
-                                editorContext.enterEnabled
-                            } else {
-                                true
+                            // Handle enabled/disabled state for enter/action keys only
+                            val keyEnabled = when (type.lowercase()) {
+                                "enter", "action" -> editorContext.enterEnabled
+                                else -> true
                             }
                             
                             isEnabled = keyEnabled
                             alpha = if (keyEnabled) 1.0f else 0.4f // Dim disabled keys
                             
                             setOnClickListener {
-                                if (keyEnabled) {
+                                // Handle double-click for shift to lock
+                                if (type.lowercase() == "shift") {
+                                    val currentTime = System.currentTimeMillis()
+                                    val timeSinceLastClick = currentTime - lastShiftClickTime
+                                    
+                                    if (timeSinceLastClick < 500) { // Double-click within 500ms
+                                        // Double-click detected - toggle caps lock
+                                        shiftLocked = !shiftLocked
+                                        shiftActive = shiftLocked
+                                        renderKeyboard()
+                                    } else {
+                                        // Single click - use normal action
+                                        clickAction()
+                                    }
+                                    
+                                    lastShiftClickTime = currentTime
+                                } else if (type.lowercase() == "keyset" && keysetValue.isNotEmpty()) {
+                                    // Handle keyset switching
+                                    switchKeyset(keysetValue)
+                                } else {
+                                    // Normal click action
                                     clickAction()
                                 }
                             }
@@ -319,7 +427,7 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
         }
     }
     
-    private fun getKeyBehavior(type: String, label: String, value: String, editorContext: EditorContext): Pair<String, () -> Unit> {
+    private fun getKeyBehavior(type: String, label: String, caption: String, value: String, editorContext: EditorContext): Pair<String, () -> Unit> {
         return when (type.lowercase()) {
             "backspace" -> {
                 val displayLabel = label.ifEmpty { "⌫" }
@@ -336,17 +444,52 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
                 } else {
                     editorContext.enterLabel.ifEmpty { "↵" }
                 }
-                val action: () -> Unit = { 
-                    currentInputConnection?.performEditorAction(editorContext.actionId)
+                val action: () -> Unit = {
+                    val editorInfo = currentInputEditorInfo
+                    val inputType = editorInfo?.inputType ?: 0
+                    val isMultiline = (inputType and InputType.TYPE_TEXT_FLAG_MULTI_LINE) != 0
+                    
+                    if (isMultiline) {
+                        // For multiline, insert newline
+                        currentInputConnection?.commitText("\n", 1)
+                    } else {
+                        // For single-line, perform editor action
+                        currentInputConnection?.performEditorAction(editorContext.actionId)
+                    }
                     Unit
                 }
                 Pair(displayLabel, action)
             }
-            "shift" -> {
-                val displayLabel = label.ifEmpty { "⇧" }
+            "keyset" -> {
+                // Keyset switcher - gets keysetValue from key config
+                val displayLabel = label.ifEmpty { "⌨" }
                 val action: () -> Unit = {
-                    // TODO: Implement shift functionality for case switching
-                    Log.d("SimpleKeyboardService", "Shift pressed")
+                    // keysetValue will be passed separately
+                    Log.d("SimpleKeyboardService", "Keyset button pressed")
+                }
+                Pair(displayLabel, action)
+            }
+            "shift" -> {
+                // Show different icon based on state
+                val displayLabel = if (label.isNotEmpty()) {
+                    label
+                } else {
+                    when {
+                        shiftLocked -> "🔒"  // Lock icon for caps lock
+                        shiftActive -> "⬆"  // Up arrow for shift active
+                        else -> "⬆"         // Up arrow for shift inactive
+                    }
+                }
+                val action: () -> Unit = {
+                    if (shiftLocked) {
+                        // If locked, unlock
+                        shiftLocked = false
+                        shiftActive = false
+                    } else {
+                        // Toggle shift
+                        shiftActive = !shiftActive
+                    }
+                    renderKeyboard() // Re-render to show shifted keys
                 }
                 Pair(displayLabel, action)
             }
@@ -368,16 +511,23 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
                 Pair(displayLabel, action)
             }
             else -> {
-                // Regular key: use provided label and value
-                // If both label and value are empty, use "?" as fallback
+                // Regular key: use caption or label for display, value for output
+                // Note: caption and value parameters are already shift-adjusted
+                // Priority: caption > label > value
                 val displayLabel = when {
+                    caption.isNotEmpty() -> caption
                     label.isNotEmpty() -> label
                     value.isNotEmpty() -> value
                     else -> "?"
                 }
                 val action: () -> Unit = { 
+                    // Use the shift-adjusted value
                     currentInputConnection?.commitText(value, 1)
-                    Unit
+                    // Auto-reset shift after typing a character (unless locked)
+                    if (shiftActive && !shiftLocked) {
+                        shiftActive = false
+                        renderKeyboard()
+                    }
                 }
                 Pair(displayLabel, action)
             }

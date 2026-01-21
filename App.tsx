@@ -7,71 +7,200 @@ import yaml from 'js-yaml';
 const DEFAULT_YAML = `
 backgroundColor: "#E0E0E0"
 debugMode: false
-rows:
-  # System row with special keys
-  - keys:
-      - { type: "settings" }
-      - { type: "backspace", width: 1.5 }
-      - { type: "enter" }
-      - { type: "close" }  # Close button uses ⬇ icon
-  
-  # First letter row
-  - keys: 
-      - { label: "Q", value: "q" }
-      - { label: "W", value: "w" }
-      - { label: "E", value: "e" }
-      - { label: "R", value: "r" }
-      - { label: "T", value: "t" }
-      - { label: "Y", value: "y" }
-      - { label: "U", value: "u" }
-      - { label: "I", value: "i" }
-      - { label: "O", value: "o" }
-      - { label: "P", value: "p" }
-  
-  # Second letter row with offset
-  - keys:
-      - { hidden: true, width: 0.5 }
-      - { label: "A", value: "a" }
-      - { label: "S", value: "s" }
-      - { label: "D", value: "d" }
-      - { label: "F", value: "f" }
-      - { label: "G", value: "g" }
-      - { label: "H", value: "h" }
-      - { label: "J", value: "j" }
-      - { label: "K", value: "k" }
-      - { label: "L", value: "l" }
-  
-  # Third letter row with shift
-  - keys:
-      - { type: "shift", width: 1.5 }
-      - { label: "Z", value: "z" }
-      - { label: "X", value: "x" }
-      - { label: "C", value: "c" }
-      - { label: "V", value: "v" }
-      - { label: "B", value: "b" }
-      - { label: "N", value: "n" }
-      - { label: "M", value: "m" }
-      - { type: "backspace", label: "⌫", width: 1.5 }
-  
-  # Space row
-  - keys:
-      - { label: "123", value: "123", width: 1.5 }
-      - { label: "SPACE", value: " ", width: 5 }
-      - { label: ".", value: "." }
-      - { type: "enter", width: 1.5 }
+defaultKeyset: "abc"
 
-# Example of advanced features:
-# - type: Special key types (backspace, enter, action, shift, settings, close)
-#   * enter/action: Dynamic based on text field context
-#     - Automatically shows "Search", "Send", "Go", "Next", "Done", etc.
-#     - Hidden if text field doesn't support enter action
-#     - Disabled (grayed out) if action not yet available
-#     - Width excluded from calculations when hidden
-# - width: Button width in units (default 1, can be 0.5, 1.5, 2, etc.)
-# - offset: Left spacing before key (same units as width)
-# - hidden: If true, key occupies space but is invisible
-# - color: Text color (hex format like "#FF0000")
-# - bgColor: Background color (hex format like "#00FF00")
+keysets:
+  # Letters keyset (abc)
+  - id: "abc"
+    rows:
+      # System row
+      - keys:
+          - { type: "settings" }
+          - { type: "backspace", width: 1.5 }
+          - { type: "enter" }
+          - { type: "close" }
+      
+      # First letter row
+      - keys: 
+          - { value: "q", sValue: "Q" }
+          - { value: "w", sValue: "W" }
+          - { value: "e", sValue: "E" }
+          - { value: "r", sValue: "R" }
+          - { value: "t", sValue: "T" }
+          - { value: "y", sValue: "Y" }
+          - { value: "u", sValue: "U" }
+          - { value: "i", sValue: "I" }
+          - { value: "o", sValue: "O" }
+          - { value: "p", sValue: "P" }
+      
+      # Second letter row with offset
+      - keys:
+          - { hidden: true, width: 0.5 }
+          - { value: "a", sValue: "A" }
+          - { value: "s", sValue: "S" }
+          - { value: "d", sValue: "D" }
+          - { value: "f", sValue: "F" }
+          - { value: "g", sValue: "G" }
+          - { value: "h", sValue: "H" }
+          - { value: "j", sValue: "J" }
+          - { value: "k", sValue: "K" }
+          - { value: "l", sValue: "L" }
+      
+      # Third letter row with shift
+      - keys:
+          - { type: "shift", width: 1.5, caption: "⇧" }
+          - { value: "z", sValue: "Z" }
+          - { value: "x", sValue: "X" }
+          - { value: "c", sValue: "C" }
+          - { value: "v", sValue: "V" }
+          - { value: "b", sValue: "B" }
+          - { value: "n", sValue: "N" }
+          - { value: "m", sValue: "M" }
+          - { type: "backspace", label: "⌫", width: 1.5 }
+      
+      # Space row with keyset switcher
+      - keys:
+          - { type: "keyset", keysetValue: "123", label: "123", width: 1.5 }
+          - { caption: "SPACE", value: " ", width: 5 }
+          - { value: ".", sValue: "," }
+          - { type: "enter", width: 1.5 }
+  
+  # Numbers keyset (123)
+  - id: "123"
+    rows:
+      # System row
+      - keys:
+          - { type: "settings" }
+          - { type: "backspace", width: 1.5 }
+          - { type: "enter" }
+          - { type: "close" }
+      
+      # First number row
+      - keys:
+          - { label: "1", value: "1" }
+          - { label: "2", value: "2" }
+          - { label: "3", value: "3" }
+          - { label: "4", value: "4" }
+          - { label: "5", value: "5" }
+          - { label: "6", value: "6" }
+          - { label: "7", value: "7" }
+          - { label: "8", value: "8" }
+          - { label: "9", value: "9" }
+          - { label: "0", value: "0" }
+      
+      # Second row with common symbols
+      - keys:
+          - { label: "-", value: "-" }
+          - { label: "/", value: "/" }
+          - { label: ":", value: ":" }
+          - { label: ";", value: ";" }
+          - { label: "(", value: "(" }
+          - { label: ")", value: ")" }
+          - { label: "$", value: "$" }
+          - { label: "&", value: "&" }
+          - { label: "@", value: "@" }
+          - { label: '"', value: '"' }
+      
+      # Third row with more symbols
+      - keys:
+          - { type: "keyset", keysetValue: "#+=", label: "#+=", width: 1.5 }
+          - { label: ".", value: "." }
+          - { label: ",", value: "," }
+          - { label: "?", value: "?" }
+          - { label: "!", value: "!" }
+          - { label: "'", value: "'" }
+          - { type: "backspace", label: "⌫", width: 2.5 }
+      
+      # Space row with keyset switcher
+      - keys:
+          - { type: "keyset", keysetValue: "abc", label: "ABC", width: 1.5 }
+          - { label: "SPACE", value: " ", width: 5 }
+          - { label: ".", value: "." }
+          - { type: "enter", width: 1.5 }
+  
+  # Symbols keyset (#+=)
+  - id: "#+="
+    rows:
+      # System row
+      - keys:
+          - { type: "settings" }
+          - { type: "backspace", width: 1.5 }
+          - { type: "enter" }
+          - { type: "close" }
+      
+      # First symbol row
+      - keys:
+          - { label: "[", value: "[" }
+          - { label: "]", value: "]" }
+          - { label: "{", value: "{" }
+          - { label: "}", value: "}" }
+          - { label: "#", value: "#" }
+          - { label: "%", value: "%" }
+          - { label: "^", value: "^" }
+          - { label: "*", value: "*" }
+          - { label: "+", value: "+" }
+          - { label: "=", value: "=" }
+      
+      # Second symbol row
+      - keys:
+          - { label: "_", value: "_" }
+          - { label: "\\\\", value: "\\\\" }
+          - { label: "|", value: "|" }
+          - { label: "~", value: "~" }
+          - { label: "<", value: "<" }
+          - { label: ">", value: ">" }
+          - { label: "€", value: "€" }
+          - { label: "£", value: "£" }
+          - { label: "¥", value: "¥" }
+          - { label: "•", value: "•" }
+      
+      # Third symbol row
+      - keys:
+          - { type: "keyset", keysetValue: "123", label: "123", width: 1.5 }
+          - { label: ".", value: "." }
+          - { label: ",", value: "," }
+          - { label: "?", value: "?" }
+          - { label: "!", value: "!" }
+          - { label: "'", value: "'" }
+          - { type: "backspace", label: "⌫", width: 2.5 }
+      
+      # Space row with keyset switcher
+      - keys:
+          - { type: "keyset", keysetValue: "abc", label: "ABC", width: 1.5 }
+          - { label: "SPACE", value: " ", width: 5 }
+          - { label: ".", value: "." }
+          - { type: "enter", width: 1.5 }
+
+# Keyset Configuration:
+# - keysets: Array of keyboard layouts
+# - id: Unique identifier for the keyset
+# - defaultKeyset: Which keyset to show initially
+# - type: "keyset" - Special key to switch between keysets
+# - keysetValue: Target keyset id to switch to
+#
+# Special key types:
+# - keyset: Switch to different keyset (requires keysetValue)
+# - shift: Toggle shift mode (uppercase/lowercase)
+# - backspace, enter, action, settings, close
+# - enter/action: Dynamic based on text field context
+#
+# Key properties (NEW SYSTEM):
+# - value: Text to insert (required for regular keys)
+# - caption: Text displayed on key (optional, defaults to value)
+# - sValue: Text to insert when shift is active (optional, defaults to value)
+# - sCaption: Text displayed when shift is active (optional, defaults to caption)
+# - label: Legacy property, still supported (caption takes priority)
+#
+# Other properties:
+# - width: Button width in units (default 1)
+# - offset: Left spacing before key
+# - hidden: Occupies space but invisible
+# - color: Text color (hex format)
+# - bgColor: Background color (hex format)
+#
+# Example: { value: "a", sValue: "A" }
+#   - Shows "a" normally, "A" when shifted
+#   - Outputs "a" normally, "A" when shifted
 `;
 
 // --- 2. HELPER: DEEP MERGE (Arrays Replace, Objects Merge) ---
