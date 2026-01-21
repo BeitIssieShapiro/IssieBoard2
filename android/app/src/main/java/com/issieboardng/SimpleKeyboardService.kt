@@ -77,6 +77,15 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
         }
     }
     
+    // Data class for group template
+    data class GroupTemplate(
+        val width: Float?,
+        val offset: Float?,
+        val hidden: Boolean?,
+        val color: String,
+        val bgColor: String
+    )
+    
     private fun loadConfig() {
         try {
             val prefs = getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
@@ -105,6 +114,36 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
             Log.e("SimpleKeyboardService", "Failed to load config", e)
             keysetsMap = emptyMap()
         }
+    }
+    
+    private fun findGroupTemplate(value: String, keyset: JSONObject): GroupTemplate? {
+        try {
+            val groupsArray = keyset.optJSONArray("groups") ?: return null
+            
+            for (i in 0 until groupsArray.length()) {
+                val groupObj = groupsArray.getJSONObject(i)
+                val itemsArray = groupObj.optJSONArray("items") ?: continue
+                
+                // Check if value is in this group's items
+                for (j in 0 until itemsArray.length()) {
+                    val item = itemsArray.getString(j)
+                    if (item == value) {
+                        // Found matching group, parse template
+                        val templateObj = groupObj.optJSONObject("template") ?: return null
+                        return GroupTemplate(
+                            width = if (templateObj.has("width")) templateObj.optDouble("width", 1.0).toFloat() else null,
+                            offset = if (templateObj.has("offset")) templateObj.optDouble("offset", 0.0).toFloat() else null,
+                            hidden = if (templateObj.has("hidden")) templateObj.optBoolean("hidden", false) else null,
+                            color = templateObj.optString("color", ""),
+                            bgColor = templateObj.optString("bgColor", "")
+                        )
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.w("SimpleKeyboardService", "Error finding group template", e)
+        }
+        return null
     }
     
     private fun switchKeyset(keysetId: String) {
@@ -266,155 +305,49 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
                 for (j in 0 until keysArray.length()) {
                     val keyObj = keysArray.getJSONObject(j)
                     
-                    // Parse key properties
+                    // Regular key parsing
                     val value = keyObj.optString("value", "")
-                    val caption = keyObj.optString("caption", value) // Default caption is value
-                    val sValue = keyObj.optString("sValue", value) // Shift value defaults to value
-                    // sCaption should default to sValue if not specified, not caption
+                    
+                    // Try to find group template for this key's value
+                    val currentKeyset = keysetsMap[currentKeysetId]
+                    val groupTemplate = if (value.isNotEmpty() && currentKeyset != null) {
+                        findGroupTemplate(value, currentKeyset)
+                    } else {
+                        null
+                    }
+                    
+                    // Parse key properties, using group template as defaults
+                    val caption = keyObj.optString("caption", value)
+                    val sValue = keyObj.optString("sValue", value)
                     val sCaption = keyObj.optString("sCaption", "").ifEmpty { 
                         keyObj.optString("sValue", caption)
                     }
                     val type = keyObj.optString("type", "")
-                    val width = keyObj.optDouble("width", 1.0).toFloat()
-                    val offset = keyObj.optDouble("offset", 0.0).toFloat()
-                    val hidden = keyObj.optBoolean("hidden", false)
-                    val textColor = keyObj.optString("color", "")
-                    val backgroundColor = keyObj.optString("bgColor", "")
-                    
-                    // Support old "label" property for backward compatibility
+                    val width = if (keyObj.has("width")) {
+                        keyObj.optDouble("width", 1.0).toFloat()
+                    } else {
+                        groupTemplate?.width ?: 1.0f
+                    }
+                    val offset = if (keyObj.has("offset")) {
+                        keyObj.optDouble("offset", 0.0).toFloat()
+                    } else {
+                        groupTemplate?.offset ?: 0.0f
+                    }
+                    val hidden = if (keyObj.has("hidden")) {
+                        keyObj.optBoolean("hidden", false)
+                    } else {
+                        groupTemplate?.hidden ?: false
+                    }
+                    val textColor = keyObj.optString("color", "").ifEmpty { groupTemplate?.color ?: "" }
+                    val backgroundColor = keyObj.optString("bgColor", "").ifEmpty { groupTemplate?.bgColor ?: "" }
                     val label = keyObj.optString("label", "")
-                    
-                    // Skip enter/action keys if not visible (don't render at all)
-                    if ((type.lowercase() == "enter" || type.lowercase() == "action") && !editorContext.enterVisible) {
-                        continue
-                    }
-                    
-                    // Add offset spacer if needed
-                    if (offset > 0) {
-                        val spacer = View(this).apply {
-                            layoutParams = LinearLayout.LayoutParams(
-                                0, LinearLayout.LayoutParams.MATCH_PARENT, offset
-                            )
-                        }
-                        rowLayout.addView(spacer)
-                    }
-                    
-                    // Get keysetValue for keyset switcher
                     val keysetValue = keyObj.optString("keysetValue", "")
                     
-                    // Determine display caption and value based on shift state
-                    val displayCaption = if (shiftActive) sCaption else caption
-                    val displayValue = if (shiftActive) sValue else value
-                    
-                    // Determine label and action based on special types
-                    val (finalLabel, clickAction) = getKeyBehavior(
-                        type, label, displayCaption, displayValue, editorContext
+                    // Render this key
+                    renderKey(
+                        rowLayout, value, caption, sValue, sCaption, type, width, offset,
+                        hidden, textColor, backgroundColor, label, keysetValue, editorContext
                     )
-                    
-                    // Create button (or invisible spacer if hidden)
-                    if (hidden) {
-                        // Hidden key: add spacer to occupy space
-                        val spacer = View(this).apply {
-                            layoutParams = LinearLayout.LayoutParams(
-                                0, LinearLayout.LayoutParams.MATCH_PARENT, width
-                            )
-                        }
-                        rowLayout.addView(spacer)
-                    } else {
-                        // Visible key: create button
-                        val keyButton = Button(this).apply {
-                            text = finalLabel
-                            // Increase text size - larger for special keys with single character
-                            textSize = when {
-                                type.lowercase() == "shift" -> 36f  // Always large for shift
-                                (type.lowercase() == "enter" || type.lowercase() == "action") && finalLabel.length <= 1 -> 36f  // Large only for single char (↵)
-                                else -> 18f
-                            }
-                            layoutParams = LinearLayout.LayoutParams(
-                                0, LinearLayout.LayoutParams.MATCH_PARENT, width
-                            ).apply {
-                                // Add margins between keys for clear separation
-                                marginStart = 8
-                                marginEnd = 8
-                                topMargin = 6
-                                bottomMargin = 6
-                            }
-                            
-                            // Parse colors with defaults
-                            // For shift button, use highlighted color when active
-                            val bgColorParsed = if (type.lowercase() == "shift" && shiftActive) {
-                                Color.parseColor("#4CAF50") // Green when shift is active
-                            } else if (backgroundColor.isNotEmpty()) {
-                                try {
-                                    Color.parseColor(backgroundColor)
-                                } catch (e: Exception) {
-                                    Log.w("SimpleKeyboardService", "Invalid background color: $backgroundColor")
-                                    Color.LTGRAY
-                                }
-                            } else {
-                                Color.LTGRAY // Default button color
-                            }
-                            
-                            val textColorParsed = if (textColor.isNotEmpty()) {
-                                try {
-                                    Color.parseColor(textColor)
-                                } catch (e: Exception) {
-                                    Log.w("SimpleKeyboardService", "Invalid text color: $textColor")
-                                    Color.BLACK
-                                }
-                            } else {
-                                Color.BLACK // Default text color
-                            }
-                            
-                            // Create a rounded rectangle drawable for ALL buttons
-                            val drawable = GradientDrawable().apply {
-                                shape = GradientDrawable.RECTANGLE
-                                setColor(bgColorParsed)
-                                cornerRadius = 8f // Rounded corners
-                            }
-                            background = drawable
-                            setTextColor(textColorParsed)
-                            
-                            // Remove default button padding
-                            setPadding(8, 8, 8, 8)
-                            
-                            // Handle enabled/disabled state for enter/action keys only
-                            val keyEnabled = when (type.lowercase()) {
-                                "enter", "action" -> editorContext.enterEnabled
-                                else -> true
-                            }
-                            
-                            isEnabled = keyEnabled
-                            alpha = if (keyEnabled) 1.0f else 0.4f // Dim disabled keys
-                            
-                            setOnClickListener {
-                                // Handle double-click for shift to lock
-                                if (type.lowercase() == "shift") {
-                                    val currentTime = System.currentTimeMillis()
-                                    val timeSinceLastClick = currentTime - lastShiftClickTime
-                                    
-                                    if (timeSinceLastClick < 500) { // Double-click within 500ms
-                                        // Double-click detected - toggle caps lock
-                                        shiftLocked = !shiftLocked
-                                        shiftActive = shiftLocked
-                                        renderKeyboard()
-                                    } else {
-                                        // Single click - use normal action
-                                        clickAction()
-                                    }
-                                    
-                                    lastShiftClickTime = currentTime
-                                } else if (type.lowercase() == "keyset" && keysetValue.isNotEmpty()) {
-                                    // Handle keyset switching
-                                    switchKeyset(keysetValue)
-                                } else {
-                                    // Normal click action
-                                    clickAction()
-                                }
-                            }
-                        }
-                        rowLayout.addView(keyButton)
-                    }
                 }
                 layout.addView(rowLayout)
             }
@@ -424,6 +357,152 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
                 textSize = 20f
             }
             layout.addView(errorText)
+        }
+    }
+    
+    private fun renderKey(
+        rowLayout: LinearLayout,
+        value: String,
+        caption: String,
+        sValue: String,
+        sCaption: String,
+        type: String,
+        width: Float,
+        offset: Float,
+        hidden: Boolean,
+        textColor: String,
+        backgroundColor: String,
+        label: String,
+        keysetValue: String,
+        editorContext: EditorContext
+    ) {
+        // Skip enter/action keys if not visible (don't render at all)
+        if ((type.lowercase() == "enter" || type.lowercase() == "action") && !editorContext.enterVisible) {
+            return
+        }
+        
+        // Add offset spacer if needed
+        if (offset > 0) {
+            val spacer = View(this).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.MATCH_PARENT, offset
+                )
+            }
+            rowLayout.addView(spacer)
+        }
+        
+        // Determine display caption and value based on shift state
+        val displayCaption = if (shiftActive) sCaption else caption
+        val displayValue = if (shiftActive) sValue else value
+        
+        // Determine label and action based on special types
+        val (finalLabel, clickAction) = getKeyBehavior(
+            type, label, displayCaption, displayValue, editorContext
+        )
+        
+        // Create button (or invisible spacer if hidden)
+        if (hidden) {
+            // Hidden key: add spacer to occupy space
+            val spacer = View(this).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.MATCH_PARENT, width
+                )
+            }
+            rowLayout.addView(spacer)
+        } else {
+            // Visible key: create button
+            val keyButton = Button(this).apply {
+                text = finalLabel
+                // Increase text size - larger for special keys with single character
+                textSize = when {
+                    type.lowercase() == "shift" -> 36f  // Always large
+                    (type.lowercase() == "enter" || type.lowercase() == "action") && finalLabel.length <= 1 -> 36f
+                    else -> 18f
+                }
+                layoutParams = LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.MATCH_PARENT, width
+                ).apply {
+                    // Add margins between keys for clear separation
+                    marginStart = 8
+                    marginEnd = 8
+                    topMargin = 6
+                    bottomMargin = 6
+                }
+                
+                // Parse colors with defaults
+                // For shift button, use highlighted color when active
+                val bgColorParsed = if (type.lowercase() == "shift" && shiftActive) {
+                    Color.parseColor("#4CAF50") // Green when shift is active
+                } else if (backgroundColor.isNotEmpty()) {
+                    try {
+                        Color.parseColor(backgroundColor)
+                    } catch (e: Exception) {
+                        Log.w("SimpleKeyboardService", "Invalid background color: $backgroundColor")
+                        Color.LTGRAY
+                    }
+                } else {
+                    Color.LTGRAY // Default button color
+                }
+                
+                val textColorParsed = if (textColor.isNotEmpty()) {
+                    try {
+                        Color.parseColor(textColor)
+                    } catch (e: Exception) {
+                        Log.w("SimpleKeyboardService", "Invalid text color: $textColor")
+                        Color.BLACK
+                    }
+                } else {
+                    Color.BLACK // Default text color
+                }
+                
+                // Create a rounded rectangle drawable for ALL buttons
+                val drawable = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    setColor(bgColorParsed)
+                    cornerRadius = 8f // Rounded corners
+                }
+                background = drawable
+                setTextColor(textColorParsed)
+                
+                // Remove default button padding
+                setPadding(8, 8, 8, 8)
+                
+                // Handle enabled/disabled state for enter/action keys only
+                val keyEnabled = when (type.lowercase()) {
+                    "enter", "action" -> editorContext.enterEnabled
+                    else -> true
+                }
+                
+                isEnabled = keyEnabled
+                alpha = if (keyEnabled) 1.0f else 0.4f // Dim disabled keys
+                
+                setOnClickListener {
+                    // Handle double-click for shift to lock
+                    if (type.lowercase() == "shift") {
+                        val currentTime = System.currentTimeMillis()
+                        val timeSinceLastClick = currentTime - lastShiftClickTime
+                        
+                        if (timeSinceLastClick < 500) { // Double-click within 500ms
+                            // Double-click detected - toggle caps lock
+                            shiftLocked = !shiftLocked
+                            shiftActive = shiftLocked
+                            renderKeyboard()
+                        } else {
+                            // Single click - use normal action
+                            clickAction()
+                        }
+                        
+                        lastShiftClickTime = currentTime
+                    } else if (type.lowercase() == "keyset" && keysetValue.isNotEmpty()) {
+                        // Handle keyset switching
+                        switchKeyset(keysetValue)
+                    } else {
+                        // Normal click action
+                        clickAction()
+                    }
+                }
+            }
+            rowLayout.addView(keyButton)
         }
     }
     

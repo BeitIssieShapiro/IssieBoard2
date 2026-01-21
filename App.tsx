@@ -144,7 +144,7 @@ keysets:
       # Second symbol row
       - keys:
           - { label: "_", value: "_" }
-          - { label: "\\\\", value: "\\\\" }
+          - { label: "\\", value: "\\" }
           - { label: "|", value: "|" }
           - { label: "~", value: "~" }
           - { label: "<", value: "<" }
@@ -197,6 +197,39 @@ keysets:
 # - hidden: Occupies space but invisible
 # - color: Text color (hex format)
 # - bgColor: Background color (hex format)
+#
+# Key Groups (NEW):
+# Define groups separately with templates that apply to matching keys.
+# Keys that match the group's items will inherit the template properties.
+#
+# Format:
+# keysets:
+#   - id: "abc"
+#     groups:
+#       - items: ["a", "b", "c"]
+#         template:
+#           color: "#FF0000"
+#           bgColor: "#00FF00"
+#           width: 0.5
+#           hidden: false
+#     rows:
+#       - keys:
+#           - { value: "a" }  # Will inherit red text, green bg, width 0.5
+#           - { value: "b" }  # Will inherit red text, green bg, width 0.5
+#           - { value: "d" }  # Not in group, uses defaults
+#
+# Keys can override group template properties:
+#   - { value: "a", bgColor: "#0000FF" }  # Blue bg (overrides green)
+#
+# Multiple groups example:
+# groups:
+#   - items: ["q", "w", "e", "r", "t"]
+#     template:
+#       bgColor: "#4CAF50"
+#   - items: ["1", "2", "3"]
+#     template:
+#       color: "#FFFFFF"
+#       bgColor: "#2196F3"
 #
 # Example: { value: "a", sValue: "A" }
 #   - Shows "a" normally, "A" when shifted
