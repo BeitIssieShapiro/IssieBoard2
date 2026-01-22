@@ -11,6 +11,10 @@
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		5326AF4A4DECB80A70586DB4 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 		6A1E33652F22091300035455 /* IssieBoard.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6A1E335E2F22091300035455 /* IssieBoard.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		6A1E336F2F220FCA00035455 /* KeyboardPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A1E336D2F220FCA00035455 /* KeyboardPreferences.swift */; };
+		6A1E33702F220FCA00035455 /* KeyboardPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A1E336D2F220FCA00035455 /* KeyboardPreferences.swift */; };
+		6A1E33722F2216ED00035455 /* KeyboardPreferencesModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 6A1E33712F2216ED00035455 /* KeyboardPreferencesModule.m */; };
+		6A1E33752F22170C00035455 /* KeyboardPreferencesModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A1E33742F22170B00035455 /* KeyboardPreferencesModule.swift */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 /* End PBXBuildFile section */
@@ -48,6 +52,11 @@
 		5709B34CF0A7D63546082F79 /* Pods-IssieBoardNG.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-IssieBoardNG.release.xcconfig"; path = "Target Support Files/Pods-IssieBoardNG/Pods-IssieBoardNG.release.xcconfig"; sourceTree = "<group>"; };
 		5DCACB8F33CDC322A6C60F78 /* libPods-IssieBoardNG.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-IssieBoardNG.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		6A1E335E2F22091300035455 /* IssieBoard.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = IssieBoard.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		6A1E336B2F220E8700035455 /* IssieBoardNG.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = IssieBoardNG.entitlements; path = IssieBoardNG/IssieBoardNG.entitlements; sourceTree = "<group>"; };
+		6A1E336D2F220FCA00035455 /* KeyboardPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardPreferences.swift; sourceTree = "<group>"; };
+		6A1E33712F2216ED00035455 /* KeyboardPreferencesModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = KeyboardPreferencesModule.m; path = IssieBoardNG/KeyboardPreferencesModule.m; sourceTree = "<group>"; };
+		6A1E33732F2216F000035455 /* IssieBoardNG-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "IssieBoardNG-Bridging-Header.h"; sourceTree = "<group>"; };
+		6A1E33742F22170B00035455 /* KeyboardPreferencesModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KeyboardPreferencesModule.swift; path = IssieBoardNG/KeyboardPreferencesModule.swift; sourceTree = "<group>"; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = IssieBoardNG/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = IssieBoardNG/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
@@ -89,11 +98,15 @@
 		13B07FAE1A68108700A75B9A /* IssieBoardNG */ = {
 			isa = PBXGroup;
 			children = (
+				6A1E336B2F220E8700035455 /* IssieBoardNG.entitlements */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				761780EC2CA45674006654EE /* AppDelegate.swift */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
+				6A1E33712F2216ED00035455 /* KeyboardPreferencesModule.m */,
+				6A1E33742F22170B00035455 /* KeyboardPreferencesModule.swift */,
+				6A1E33732F2216F000035455 /* IssieBoardNG-Bridging-Header.h */,
 			);
 			name = IssieBoardNG;
 			sourceTree = "<group>";
@@ -105,6 +118,14 @@
 				5DCACB8F33CDC322A6C60F78 /* libPods-IssieBoardNG.a */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		6A1E336E2F220FCA00035455 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				6A1E336D2F220FCA00035455 /* KeyboardPreferences.swift */,
+			);
+			path = Shared;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -120,6 +141,7 @@
 				13B07FAE1A68108700A75B9A /* IssieBoardNG */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				6A1E335F2F22091300035455 /* IssieBoard */,
+				6A1E336E2F220FCA00035455 /* Shared */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				BBD78D7AC51CEA395F1C20DB /* Pods */,
@@ -205,7 +227,7 @@
 				LastUpgradeCheck = 1210;
 				TargetAttributes = {
 					13B07F861A680F5B00A75B9A = {
-						LastSwiftMigration = 1120;
+						LastSwiftMigration = 2620;
 					};
 					6A1E335D2F22091300035455 = {
 						CreatedOnToolsVersion = 26.2;
@@ -339,7 +361,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6A1E33722F2216ED00035455 /* KeyboardPreferencesModule.m in Sources */,
 				761780ED2CA45674006654EE /* AppDelegate.swift in Sources */,
+				6A1E33702F220FCA00035455 /* KeyboardPreferences.swift in Sources */,
+				6A1E33752F22170C00035455 /* KeyboardPreferencesModule.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -347,6 +372,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6A1E336F2F220FCA00035455 /* KeyboardPreferences.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -367,7 +393,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = IssieBoardNG/IssieBoardNG.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = SKNJT9TD9G;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = IssieBoardNG/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
@@ -383,6 +411,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = IssieBoardNG;
+				SWIFT_OBJC_BRIDGING_HEADER = "IssieBoardNG-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
@@ -395,7 +424,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = IssieBoardNG/IssieBoardNG.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = SKNJT9TD9G;
 				INFOPLIST_FILE = IssieBoardNG/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -410,6 +441,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = IssieBoardNG;
+				SWIFT_OBJC_BRIDGING_HEADER = "IssieBoardNG-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
 			};
@@ -425,9 +457,11 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_ENTITLEMENTS = IssieBoard/IssieBoard.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = SKNJT9TD9G;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -468,10 +502,12 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_ENTITLEMENTS = IssieBoard/IssieBoard.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = SKNJT9TD9G;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;

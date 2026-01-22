@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, Button, Text, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
-import DefaultPreference from 'react-native-default-preference';
+import { View, TextInput, Button, Text, StyleSheet, Alert, ActivityIndicator, ScrollView, Platform } from 'react-native';
+import KeyboardPreferences from './src/native/KeyboardPreferences';
 
 // Import keyboard and profile files
 import enKeyboard from './keyboards/en.json';
@@ -85,25 +85,32 @@ const App = () => {
   useEffect(() => {
     const initSettings = async () => {
       try {
-        await DefaultPreference.setName('keyboard_data');
-        
-        // Check if user has a saved profile selection
-        const savedProfile = await DefaultPreference.get('selected_profile');
-        const profileToLoad = savedProfile || 'default';
-        
-        setSelectedProfile(profileToLoad);
+        // Get saved profile (platform-specific implementation)
+        const savedProfile = (await KeyboardPreferences.getCurrentProfile()) || 'default';
+        setSelectedProfile(savedProfile);
         
         // Build configuration from profile
-        const profile = PROFILES[profileToLoad as keyof typeof PROFILES];
+        const profile = PROFILES[savedProfile as keyof typeof PROFILES];
         const config = buildConfiguration(profile);
         
         // Convert to JSON string for display
         setConfigJson(JSON.stringify(config, null, 2));
         
-        // Save to Android keyboard
-        await DefaultPreference.set('config_json', JSON.stringify(config));
+        // Save to keyboard (platform-specific implementation)
+        const setProfileResult = await KeyboardPreferences.setCurrentProfile(savedProfile);
+        const setConfigResult = await KeyboardPreferences.setKeyboardConfigObject(config);
         
-        setStatus(`Loaded profile: ${profile.name}`);
+        console.log(`✅ ${Platform.OS}: Configuration loaded and saved`);
+        console.log('  Set profile result:', setProfileResult);
+        console.log('  Set config result:', setConfigResult);
+        
+        // Check if native module is working
+        if (Platform.OS === 'ios' && !setProfileResult.success) {
+          console.warn('⚠️ iOS native module not available. See console for setup instructions.');
+          setStatus(`Loaded profile: ${profile.name} (${Platform.OS}) - Native module not connected`);
+        } else {
+          setStatus(`Loaded profile: ${profile.name} (${Platform.OS})`);
+        }
       } catch (e) {
         console.error('Initialization error', e);
         setStatus('Error loading configuration');
@@ -127,12 +134,12 @@ const App = () => {
       // Update display
       setConfigJson(JSON.stringify(config, null, 2));
       
-      // Save to Android keyboard
-      await DefaultPreference.setName('keyboard_data');
-      await DefaultPreference.set('config_json', JSON.stringify(config));
-      await DefaultPreference.set('selected_profile', profileId);
+      // Save to keyboard (platform-specific implementation)
+      await KeyboardPreferences.setCurrentProfile(profileId);
+      await KeyboardPreferences.setKeyboardConfigObject(config);
+      console.log(`✅ ${Platform.OS}: Switched to ${profile.name}`);
       
-      setStatus(`Switched to: ${profile.name}`);
+      setStatus(`Switched to: ${profile.name} (${Platform.OS})`);
       Alert.alert('Success', `Profile changed to "${profile.name}". Close and reopen the keyboard to see changes.`);
     } catch (e) {
       console.error('Profile switch error:', e);
@@ -148,10 +155,11 @@ const App = () => {
       // Parse and validate JSON
       const parsedConfig = JSON.parse(configJson);
       
-      await DefaultPreference.setName('keyboard_data');
-      await DefaultPreference.set('config_json', JSON.stringify(parsedConfig));
+      // Save (platform-specific implementation)
+      await KeyboardPreferences.setKeyboardConfigObject(parsedConfig);
+      console.log(`✅ ${Platform.OS}: Custom config saved`);
       
-      setStatus('Custom configuration saved successfully!');
+      setStatus(`Custom configuration saved successfully! (${Platform.OS})`);
       Alert.alert('Success', 'Configuration saved. Close and reopen the keyboard to see changes.');
     } catch (e) {
       setStatus('Error: Invalid JSON');
