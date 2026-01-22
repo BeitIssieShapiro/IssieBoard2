@@ -42,6 +42,13 @@ class KeyboardViewController: UIInputViewController {
         loadPreferences()
     }
     
+    override func textWillChange(_ textInput: UITextInput?) {
+        super.textWillChange(textInput)
+        // Re-render keyboard when text input changes (e.g., switching fields)
+        // This updates the enter key label
+        renderKeyboard()
+    }
+    
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
         stopObservingPreferences()
@@ -124,6 +131,52 @@ class KeyboardViewController: UIInputViewController {
             keyboardView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             keyboardView.heightAnchor.constraint(greaterThanOrEqualToConstant: 300)
         ])
+    }
+    
+    // MARK: - Editor Context Analysis
+    
+    func analyzeEditorContext() -> (enterVisible: Bool, enterLabel: String, enterAction: Int) {
+        guard let textDocumentProxy = textDocumentProxy as UITextDocumentProxy? else {
+            return (true, "↵", UIReturnKeyType.default.rawValue)
+        }
+        
+        // Get keyboard type and return key type
+        let keyboardType = textDocumentProxy.keyboardType ?? .default
+        let returnKeyType = textDocumentProxy.returnKeyType ?? .default
+        
+        // Determine enter label based on return key type
+        let enterLabel: String
+        switch returnKeyType {
+        case .search:
+            enterLabel = "Search"
+        case .go:
+            enterLabel = "Go"
+        case .send:
+            enterLabel = "Send"
+        case .next:
+            enterLabel = "Next"
+        case .done:
+            enterLabel = "Done"
+        case .continue:
+            enterLabel = "Continue"
+        case .join:
+            enterLabel = "Join"
+        case .route:
+            enterLabel = "Route"
+        case .emergencyCall:
+            enterLabel = "Call"
+        case .google:
+            enterLabel = "Google"
+        case .yahoo:
+            enterLabel = "Yahoo"
+        default:
+            enterLabel = "↵"
+        }
+        
+        // Enter is always visible unless explicitly hidden by config
+        let enterVisible = true
+        
+        return (enterVisible, enterLabel, returnKeyType.rawValue)
     }
     
     // MARK: - Rendering
@@ -298,6 +351,9 @@ class KeyboardViewController: UIInputViewController {
         // Display text based on shift state
         let displayText = shiftState.isActive() ? key.sCaption : key.caption
         
+        // Get editor context for dynamic enter key
+        let editorContext = analyzeEditorContext()
+        
         // Determine final text with fallbacks including default labels for special keys
         let finalText: String
         if !key.label.isEmpty {
@@ -312,7 +368,7 @@ class KeyboardViewController: UIInputViewController {
             case "backspace":
                 finalText = "⌫"
             case "enter", "action":
-                finalText = "↵"
+                finalText = editorContext.enterLabel
             case "shift":
                 finalText = shiftState.isActive() ? "⇧" : "⬆"
             case "settings":
