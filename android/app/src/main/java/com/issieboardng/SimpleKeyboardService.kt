@@ -927,6 +927,7 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
             "settings" -> createSettingsKey(key.label)
             "close" -> createCloseKey(key.label)
             "language" -> createLanguageKey(key.label)
+            "next-keyboard" -> createNextKeyboardKey(key.label)
             else -> createRegularKey(caption, key.label, value, key.nikkud)
         }
     }
@@ -1010,6 +1011,20 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
     private fun createCloseKey(label: String): Pair<String, () -> Unit> {
         val displayLabel = label.ifEmpty { "⬇" }
         val action: () -> Unit = { requestHideSelf(0) }
+        return Pair(displayLabel, action)
+    }
+    
+    /**
+     * Create next-keyboard key behavior
+     * Switches to the next system keyboard
+     */
+    private fun createNextKeyboardKey(label: String): Pair<String, () -> Unit> {
+        val displayLabel = label.ifEmpty { "🌐" }
+        val action: () -> Unit = {
+            // Switch to next system keyboard
+            val inputMethodManager = getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+            inputMethodManager.switchToNextInputMethod(window?.window?.attributes?.token, false)
+        }
         return Pair(displayLabel, action)
     }
     

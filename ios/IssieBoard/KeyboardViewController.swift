@@ -321,6 +321,8 @@ class KeyboardViewController: UIInputViewController {
                 finalText = "⬇"
             case "language":
                 finalText = "🌐"
+            case "next-keyboard":
+                finalText = "🌐"
             case "nikkud":
                 finalText = "◌ָ"
             case "space":
@@ -444,6 +446,9 @@ class KeyboardViewController: UIInputViewController {
             
         case "language":
             switchLanguage()
+            
+        case "next-keyboard":
+            advanceToNextInputMode()
             
         default:
             // Check if this key has nikkud and nikkud mode is active

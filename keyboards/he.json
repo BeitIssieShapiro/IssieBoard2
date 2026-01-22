@@ -293,7 +293,8 @@
         {
           "keys": [
             { "type": "keyset", "keysetValue": "123", "label": "123", "width": 1.5 },
-            { "caption": "רווח", "value": " ", "width": 5 },
+            { "type": "next-keyboard", "width": 1 },
+            { "caption": "רווח", "value": " ", "width": 4 },
             { "value": ".", "sValue": "," },
             { "type": "enter", "width": 1.5 }
           ]
@@ -345,7 +346,8 @@
         {
           "keys": [
             { "type": "keyset", "keysetValue": "abc", "label": "אבג", "width": 1.5 },
-            { "caption": "רווח", "value": " ", "width": 5 },
+            { "type": "next-keyboard", "width": 1 },
+            { "caption": "רווח", "value": " ", "width": 4 },
             { "value": "." },
             { "type": "enter", "width": 1.5 }
           ]
@@ -397,7 +399,8 @@
         {
           "keys": [
             { "type": "keyset", "keysetValue": "abc", "label": "אבג", "width": 1.5 },
-            { "caption": "רווח", "value": " ", "width": 5 },
+            { "type": "next-keyboard", "width": 1 },
+            { "caption": "רווח", "value": " ", "width": 4 },
             { "value": "." },
             { "type": "enter", "width": 1.5 }
           ]
