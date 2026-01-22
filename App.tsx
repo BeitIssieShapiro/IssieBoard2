@@ -30,6 +30,8 @@ const buildConfiguration = (profile: any): any => {
     defaultKeyset: profile.defaultKeyset || 'abc',
     keysets: [],
     groups: profile.groups || [],
+    keyboards: profile.keyboards || [],
+    defaultKeyboard: profile.defaultKeyboard || (profile.keyboards && profile.keyboards[0]) || 'en',
   };
 
   // Load all keyboards specified in the profile
