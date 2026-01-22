@@ -1,0 +1,165 @@
+{
+  "id": "ar",
+  "name": "Arabic",
+  "keysets": [
+    {
+      "id": "abc",
+      "rows": [
+        {
+          "keys": [
+            { "value": "ض" },
+            { "value": "ص" },
+            { "value": "ث" },
+            { "value": "ق" },
+            { "value": "ف" },
+            { "value": "غ" },
+            { "value": "ع" },
+            { "value": "ه" },
+            { "value": "خ" },
+            { "value": "ح" }
+          ]
+        },
+        {
+          "keys": [
+            { "hidden": true, "width": 0.5 },
+            { "value": "ش" },
+            { "value": "س" },
+            { "value": "ي" },
+            { "value": "ب" },
+            { "value": "ل" },
+            { "value": "ا" },
+            { "value": "ت" },
+            { "value": "ن" },
+            { "value": "م" }
+          ]
+        },
+        {
+          "keys": [
+            { "type": "shift", "width": 1.5 },
+            { "value": "ء" },
+            { "value": "ؤ" },
+            { "value": "ر" },
+            { "value": "ى" },
+            { "value": "ة" },
+            { "value": "و" },
+            { "value": "ز" },
+            { "value": "ظ" },
+            { "type": "backspace", "width": 1.5 }
+          ]
+        },
+        {
+          "keys": [
+            { "type": "keyset", "keysetValue": "123", "label": "123", "width": 1.5 },
+            { "caption": "مسافة", "value": " ", "width": 5 },
+            { "value": ".", "sValue": "،" },
+            { "type": "enter", "width": 1.5 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "123",
+      "rows": [
+        {
+          "keys": [
+            { "value": "١" },
+            { "value": "٢" },
+            { "value": "٣" },
+            { "value": "٤" },
+            { "value": "٥" },
+            { "value": "٦" },
+            { "value": "٧" },
+            { "value": "٨" },
+            { "value": "٩" },
+            { "value": "٠" }
+          ]
+        },
+        {
+          "keys": [
+            { "value": "-" },
+            { "value": "/" },
+            { "value": ":" },
+            { "value": "؛" },
+            { "value": "(" },
+            { "value": ")" },
+            { "value": "$" },
+            { "value": "&" },
+            { "value": "@" },
+            { "value": "\"" }
+          ]
+        },
+        {
+          "keys": [
+            { "type": "keyset", "keysetValue": "#+=", "label": "#+=", "width": 1.5 },
+            { "value": "." },
+            { "value": "،" },
+            { "value": "؟" },
+            { "value": "!" },
+            { "value": "'" },
+            { "type": "backspace", "width": 2.5 }
+          ]
+        },
+        {
+          "keys": [
+            { "type": "keyset", "keysetValue": "abc", "label": "أبج", "width": 1.5 },
+            { "caption": "مسافة", "value": " ", "width": 5 },
+            { "value": "." },
+            { "type": "enter", "width": 1.5 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "#+=",
+      "rows": [
+        {
+          "keys": [
+            { "value": "[" },
+            { "value": "]" },
+            { "value": "{" },
+            { "value": "}" },
+            { "value": "#" },
+            { "value": "%" },
+            { "value": "^" },
+            { "value": "*" },
+            { "value": "+" },
+            { "value": "=" }
+          ]
+        },
+        {
+          "keys": [
+            { "value": "_" },
+            { "value": "\\" },
+            { "value": "|" },
+            { "value": "~" },
+            { "value": "<" },
+            { "value": ">" },
+            { "value": "€" },
+            { "value": "£" },
+            { "value": "¥" },
+            { "value": "•" }
+          ]
+        },
+        {
+          "keys": [
+            { "type": "keyset", "keysetValue": "123", "label": "123", "width": 1.5 },
+            { "value": "." },
+            { "value": "،" },
+            { "value": "؟" },
+            { "value": "!" },
+            { "value": "'" },
+            { "type": "backspace", "width": 2.5 }
+          ]
+        },
+        {
+          "keys": [
+            { "type": "keyset", "keysetValue": "abc", "label": "أبج", "width": 1.5 },
+            { "caption": "مسافة", "value": " ", "width": 5 },
+            { "value": "." },
+            { "type": "enter", "width": 1.5 }
+          ]
+        }
+      ]
+    }
+  ]
+}

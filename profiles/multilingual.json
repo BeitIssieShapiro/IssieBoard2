@@ -1,0 +1,69 @@
+{
+  "id": "multilingual",
+  "name": "Multilingual Profile (EN/HE/AR)",
+  "version": "1.0.0",
+  "keyboards": ["en", "he", "ar"],
+  "defaultKeyboard": "en",
+  "defaultKeyset": "abc",
+  "backgroundColor": "#E0E0E0",
+  "systemRow": {
+    "enabled": true,
+    "keys": [
+      { "type": "language" },
+      { "type": "settings" },
+      { "type": "backspace", "width": 1.5 },
+      { "type": "enter" },
+      { "type": "close" }
+    ]
+  },
+  "groups": [
+    {
+      "name": "vowels",
+      "items": ["a", "e", "i", "o", "u"],
+      "template": {
+        "color": "#000000",
+        "bgColor": "#B3E5FC"
+      }
+    },
+    {
+      "name": "consonants",
+      "items": ["b", "c", "d", "f", "g", "h", "j", "k", "l", "m", "n", "p", "q", "r", "s", "t", "v", "w", "x", "y", "z"],
+      "template": {
+        "color": "#000000",
+        "bgColor": "#FFFFFF"
+      }
+    },
+    {
+      "name": "hebrew_letters",
+      "items": ["א", "ב", "ג", "ד", "ה", "ו", "ז", "ח", "ט", "י", "כ", "ך", "ל", "מ", "ם", "נ", "ן", "ס", "ע", "פ", "ף", "צ", "ץ", "ק", "ר", "ש", "ת"],
+      "template": {
+        "color": "#000000",
+        "bgColor": "#FFF9C4"
+      }
+    },
+    {
+      "name": "arabic_letters",
+      "items": ["ا", "ب", "ت", "ث", "ج", "ح", "خ", "د", "ذ", "ر", "ز", "س", "ش", "ص", "ض", "ط", "ظ", "ع", "غ", "ف", "ق", "ك", "ل", "م", "ن", "ه", "و", "ي", "ء", "ؤ", "ى", "ة"],
+      "template": {
+        "color": "#000000",
+        "bgColor": "#C8E6C9"
+      }
+    },
+    {
+      "name": "numbers",
+      "items": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"],
+      "template": {
+        "color": "#000000",
+        "bgColor": "#E8E8E8"
+      }
+    },
+    {
+      "name": "punctuation",
+      "items": [".", ",", "?", "!", "'", "\"", "-", "/", ":", ";", "(", ")", "،", "؛", "؟"],
+      "template": {
+        "color": "#000000",
+        "bgColor": "#D0D0D0"
+      }
+    }
+  ]
+}

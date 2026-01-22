@@ -155,6 +155,10 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
     private var shiftState: ShiftState = ShiftState.Inactive
     private var lastShiftClickTime: Long = 0
     
+    // Language cycling state
+    private var availableKeyboardIds: List<String> = emptyList()
+    private var currentKeyboardIndex: Int = 0
+    
     // Legacy state (kept for backward compatibility during transition)
     private var keysetsMap: Map<String, JSONObject> = emptyMap()
     private var configJson: JSONObject? = null
@@ -818,7 +822,24 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
     private fun handleKeyClick(key: KeyConfig, clickAction: () -> Unit) {
         when (key.type.lowercase()) {
             "shift" -> handleShiftClick(clickAction)
-            "keyset" -> if (key.keysetValue.isNotEmpty()) switchKeyset(key.keysetValue)
+            "keyset" -> if (key.keysetValue.isNotEmpty()) {
+                // When switching keysets (abc <-> 123 <-> #+=), stay in the same language
+                // Extract the keyboard prefix from current keyset ID (e.g., "he_abc" -> "he")
+                val keyboardPrefix = if (currentKeysetId.contains("_")) {
+                    currentKeysetId.substringBefore("_")
+                } else {
+                    "" // First keyboard has no prefix
+                }
+                
+                // Build target keyset ID with same keyboard prefix
+                val targetKeysetId = if (keyboardPrefix.isNotEmpty()) {
+                    "${keyboardPrefix}_${key.keysetValue}"
+                } else {
+                    key.keysetValue
+                }
+                
+                switchKeyset(targetKeysetId)
+            }
             else -> clickAction()
         }
     }
@@ -872,6 +893,7 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
             "shift" -> createShiftKey(label)
             "settings" -> createSettingsKey(label)
             "close" -> createCloseKey(label)
+            "language" -> createLanguageKey(label)
             else -> createRegularKey(caption, label, value)
         }
     }
@@ -937,6 +959,58 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
     private fun createCloseKey(label: String): Pair<String, () -> Unit> {
         val displayLabel = label.ifEmpty { "⬇" }
         val action: () -> Unit = { requestHideSelf(0) }
+        return Pair(displayLabel, action)
+    }
+    
+    /**
+     * Create language switcher key behavior
+     * Cycles through different keyboard layouts (languages)
+     */
+    private fun createLanguageKey(label: String): Pair<String, () -> Unit> {
+        // Get the display label - globe icon or custom label
+        val displayLabel = label.ifEmpty { "🌐" }
+        
+        val action: () -> Unit = {
+            val config = parsedConfig
+            if (config != null && config.keysets.isNotEmpty()) {
+                // Get all keyset IDs
+                val allKeysetIds = config.keysets.keys.toList()
+                Log.d(TAG, "Language switch: All keysets: ${allKeysetIds.joinToString()}")
+                Log.d(TAG, "Language switch: Current keyset: $currentKeysetId")
+                
+                // Determine the keyset type (abc, 123, or #+=)
+                val currentKeysetType = when {
+                    currentKeysetId.endsWith("_abc") -> "abc"
+                    currentKeysetId.endsWith("_123") -> "123"
+                    currentKeysetId.endsWith("_#+=") -> "#+="
+                    currentKeysetId == "abc" -> "abc"
+                    currentKeysetId == "123" -> "123"
+                    currentKeysetId == "#+=" -> "#+="
+                    else -> "abc"  // fallback
+                }
+                
+                // Find all keysets of the same type across different keyboards
+                val sameTypeKeysets = allKeysetIds.filter { keysetId ->
+                    keysetId == currentKeysetType || keysetId.endsWith("_$currentKeysetType")
+                }
+                
+                Log.d(TAG, "Language switch: Same type keysets ($currentKeysetType): ${sameTypeKeysets.joinToString()}")
+                
+                if (sameTypeKeysets.size > 1) {
+                    // Find current position in this list
+                    val currentIndex = sameTypeKeysets.indexOf(currentKeysetId)
+                    
+                    // Move to next keyboard (cycle)
+                    val nextIndex = (currentIndex + 1) % sameTypeKeysets.size
+                    val nextKeysetId = sameTypeKeysets[nextIndex]
+                    
+                    Log.d(TAG, "Language switch: Switching from $currentKeysetId to $nextKeysetId")
+                    switchKeyset(nextKeysetId)
+                } else {
+                    Log.d(TAG, "Language switch: Only one keyboard available for type $currentKeysetType")
+                }
+            }
+        }
         return Pair(displayLabel, action)
     }
     

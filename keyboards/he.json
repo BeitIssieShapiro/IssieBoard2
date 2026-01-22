@@ -1,0 +1,165 @@
+{
+  "id": "he",
+  "name": "Hebrew",
+  "keysets": [
+    {
+      "id": "abc",
+      "rows": [
+        {
+          "keys": [
+            { "value": "ק" },
+            { "value": "ר" },
+            { "value": "א" },
+            { "value": "ט" },
+            { "value": "ו" },
+            { "value": "ן" },
+            { "value": "ם" },
+            { "value": "פ" },
+            { "value": "ש" },
+            { "value": "ד" }
+          ]
+        },
+        {
+          "keys": [
+            { "hidden": true, "width": 0.5 },
+            { "value": "ף" },
+            { "value": "ך" },
+            { "value": "ל" },
+            { "value": "ח" },
+            { "value": "י" },
+            { "value": "ע" },
+            { "value": "כ" },
+            { "value": "ג" },
+            { "value": "ה" }
+          ]
+        },
+        {
+          "keys": [
+            { "type": "shift", "width": 1.5 },
+            { "value": "ץ" },
+            { "value": "ת" },
+            { "value": "צ" },
+            { "value": "מ" },
+            { "value": "נ" },
+            { "value": "ב" },
+            { "value": "ס" },
+            { "value": "ז" },
+            { "type": "backspace", "width": 1.5 }
+          ]
+        },
+        {
+          "keys": [
+            { "type": "keyset", "keysetValue": "123", "label": "123", "width": 1.5 },
+            { "caption": "רווח", "value": " ", "width": 5 },
+            { "value": ".", "sValue": "," },
+            { "type": "enter", "width": 1.5 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "123",
+      "rows": [
+        {
+          "keys": [
+            { "value": "1" },
+            { "value": "2" },
+            { "value": "3" },
+            { "value": "4" },
+            { "value": "5" },
+            { "value": "6" },
+            { "value": "7" },
+            { "value": "8" },
+            { "value": "9" },
+            { "value": "0" }
+          ]
+        },
+        {
+          "keys": [
+            { "value": "-" },
+            { "value": "/" },
+            { "value": ":" },
+            { "value": ";" },
+            { "value": "(" },
+            { "value": ")" },
+            { "value": "₪" },
+            { "value": "&" },
+            { "value": "@" },
+            { "value": "\"" }
+          ]
+        },
+        {
+          "keys": [
+            { "type": "keyset", "keysetValue": "#+=", "label": "#+=", "width": 1.5 },
+            { "value": "." },
+            { "value": "," },
+            { "value": "?" },
+            { "value": "!" },
+            { "value": "'" },
+            { "type": "backspace", "width": 2.5 }
+          ]
+        },
+        {
+          "keys": [
+            { "type": "keyset", "keysetValue": "abc", "label": "אבג", "width": 1.5 },
+            { "caption": "רווח", "value": " ", "width": 5 },
+            { "value": "." },
+            { "type": "enter", "width": 1.5 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "#+=",
+      "rows": [
+        {
+          "keys": [
+            { "value": "[" },
+            { "value": "]" },
+            { "value": "{" },
+            { "value": "}" },
+            { "value": "#" },
+            { "value": "%" },
+            { "value": "^" },
+            { "value": "*" },
+            { "value": "+" },
+            { "value": "=" }
+          ]
+        },
+        {
+          "keys": [
+            { "value": "_" },
+            { "value": "\\" },
+            { "value": "|" },
+            { "value": "~" },
+            { "value": "<" },
+            { "value": ">" },
+            { "value": "€" },
+            { "value": "£" },
+            { "value": "¥" },
+            { "value": "•" }
+          ]
+        },
+        {
+          "keys": [
+            { "type": "keyset", "keysetValue": "123", "label": "123", "width": 1.5 },
+            { "value": "." },
+            { "value": "," },
+            { "value": "?" },
+            { "value": "!" },
+            { "value": "'" },
+            { "type": "backspace", "width": 2.5 }
+          ]
+        },
+        {
+          "keys": [
+            { "type": "keyset", "keysetValue": "abc", "label": "אבג", "width": 1.5 },
+            { "caption": "רווח", "value": " ", "width": 5 },
+            { "value": "." },
+            { "type": "enter", "width": 1.5 }
+          ]
+        }
+      ]
+    }
+  ]
+}

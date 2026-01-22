@@ -1,313 +1,112 @@
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, Button, Text, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, TextInput, Button, Text, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import DefaultPreference from 'react-native-default-preference';
-import yaml from 'js-yaml';
 
-// --- 1. THE DEFAULT CONFIGURATION ---
-const DEFAULT_YAML = `
-backgroundColor: "#E0E0E0"
-debugMode: false
-defaultKeyset: "abc"
+// Import keyboard and profile files
+import enKeyboard from './keyboards/en.json';
+import heKeyboard from './keyboards/he.json';
+import arKeyboard from './keyboards/ar.json';
+import defaultProfile from './profiles/default.json';
+import multilingualProfile from './profiles/multilingual.json';
 
-keysets:
-  # Letters keyset (abc)
-  - id: "abc"
-    rows:
-      # System row
-      - keys:
-          - { type: "settings" }
-          - { type: "backspace", width: 1.5 }
-          - { type: "enter" }
-          - { type: "close" }
-      
-      # First letter row
-      - keys: 
-          - { value: "q", sValue: "Q" }
-          - { value: "w", sValue: "W" }
-          - { value: "e", sValue: "E" }
-          - { value: "r", sValue: "R" }
-          - { value: "t", sValue: "T" }
-          - { value: "y", sValue: "Y" }
-          - { value: "u", sValue: "U" }
-          - { value: "i", sValue: "I" }
-          - { value: "o", sValue: "O" }
-          - { value: "p", sValue: "P" }
-      
-      # Second letter row with offset
-      - keys:
-          - { hidden: true, width: 0.5 }
-          - { value: "a", sValue: "A" }
-          - { value: "s", sValue: "S" }
-          - { value: "d", sValue: "D" }
-          - { value: "f", sValue: "F" }
-          - { value: "g", sValue: "G" }
-          - { value: "h", sValue: "H" }
-          - { value: "j", sValue: "J" }
-          - { value: "k", sValue: "K" }
-          - { value: "l", sValue: "L" }
-      
-      # Third letter row with shift
-      - keys:
-          - { type: "shift", width: 1.5, caption: "⇧" }
-          - { value: "z", sValue: "Z" }
-          - { value: "x", sValue: "X" }
-          - { value: "c", sValue: "C" }
-          - { value: "v", sValue: "V" }
-          - { value: "b", sValue: "B" }
-          - { value: "n", sValue: "N" }
-          - { value: "m", sValue: "M" }
-          - { type: "backspace", label: "⌫", width: 1.5 }
-      
-      # Space row with keyset switcher
-      - keys:
-          - { type: "keyset", keysetValue: "123", label: "123", width: 1.5 }
-          - { caption: "SPACE", value: " ", width: 5 }
-          - { value: ".", sValue: "," }
-          - { type: "enter", width: 1.5 }
-  
-  # Numbers keyset (123)
-  - id: "123"
-    rows:
-      # System row
-      - keys:
-          - { type: "settings" }
-          - { type: "backspace", width: 1.5 }
-          - { type: "enter" }
-          - { type: "close" }
-      
-      # First number row
-      - keys:
-          - { label: "1", value: "1" }
-          - { label: "2", value: "2" }
-          - { label: "3", value: "3" }
-          - { label: "4", value: "4" }
-          - { label: "5", value: "5" }
-          - { label: "6", value: "6" }
-          - { label: "7", value: "7" }
-          - { label: "8", value: "8" }
-          - { label: "9", value: "9" }
-          - { label: "0", value: "0" }
-      
-      # Second row with common symbols
-      - keys:
-          - { label: "-", value: "-" }
-          - { label: "/", value: "/" }
-          - { label: ":", value: ":" }
-          - { label: ";", value: ";" }
-          - { label: "(", value: "(" }
-          - { label: ")", value: ")" }
-          - { label: "$", value: "$" }
-          - { label: "&", value: "&" }
-          - { label: "@", value: "@" }
-          - { label: '"', value: '"' }
-      
-      # Third row with more symbols
-      - keys:
-          - { type: "keyset", keysetValue: "#+=", label: "#+=", width: 1.5 }
-          - { label: ".", value: "." }
-          - { label: ",", value: "," }
-          - { label: "?", value: "?" }
-          - { label: "!", value: "!" }
-          - { label: "'", value: "'" }
-          - { type: "backspace", label: "⌫", width: 2.5 }
-      
-      # Space row with keyset switcher
-      - keys:
-          - { type: "keyset", keysetValue: "abc", label: "ABC", width: 1.5 }
-          - { label: "SPACE", value: " ", width: 5 }
-          - { label: ".", value: "." }
-          - { type: "enter", width: 1.5 }
-  
-  # Symbols keyset (#+=)
-  - id: "#+="
-    rows:
-      # System row
-      - keys:
-          - { type: "settings" }
-          - { type: "backspace", width: 1.5 }
-          - { type: "enter" }
-          - { type: "close" }
-      
-      # First symbol row
-      - keys:
-          - { label: "[", value: "[" }
-          - { label: "]", value: "]" }
-          - { label: "{", value: "{" }
-          - { label: "}", value: "}" }
-          - { label: "#", value: "#" }
-          - { label: "%", value: "%" }
-          - { label: "^", value: "^" }
-          - { label: "*", value: "*" }
-          - { label: "+", value: "+" }
-          - { label: "=", value: "=" }
-      
-      # Second symbol row
-      - keys:
-          - { label: "_", value: "_" }
-          - { label: "\\", value: "\\" }
-          - { label: "|", value: "|" }
-          - { label: "~", value: "~" }
-          - { label: "<", value: "<" }
-          - { label: ">", value: ">" }
-          - { label: "€", value: "€" }
-          - { label: "£", value: "£" }
-          - { label: "¥", value: "¥" }
-          - { label: "•", value: "•" }
-      
-      # Third symbol row
-      - keys:
-          - { type: "keyset", keysetValue: "123", label: "123", width: 1.5 }
-          - { label: ".", value: "." }
-          - { label: ",", value: "," }
-          - { label: "?", value: "?" }
-          - { label: "!", value: "!" }
-          - { label: "'", value: "'" }
-          - { type: "backspace", label: "⌫", width: 2.5 }
-      
-      # Space row with keyset switcher
-      - keys:
-          - { type: "keyset", keysetValue: "abc", label: "ABC", width: 1.5 }
-          - { label: "SPACE", value: " ", width: 5 }
-          - { label: ".", value: "." }
-          - { type: "enter", width: 1.5 }
+// Available keyboards and profiles
+const KEYBOARDS = {
+  'en': enKeyboard,
+  'he': heKeyboard,
+  'ar': arKeyboard,
+};
 
-# Keyset Configuration:
-# - keysets: Array of keyboard layouts
-# - id: Unique identifier for the keyset
-# - defaultKeyset: Which keyset to show initially
-# - type: "keyset" - Special key to switch between keysets
-# - keysetValue: Target keyset id to switch to
-#
-# Special key types:
-# - keyset: Switch to different keyset (requires keysetValue)
-# - shift: Toggle shift mode (uppercase/lowercase)
-# - backspace, enter, action, settings, close
-# - enter/action: Dynamic based on text field context
-#
-# Key properties (NEW SYSTEM):
-# - value: Text to insert (required for regular keys)
-# - caption: Text displayed on key (optional, defaults to value)
-# - sValue: Text to insert when shift is active (optional, defaults to value)
-# - sCaption: Text displayed when shift is active (optional, defaults to caption)
-# - label: Legacy property, still supported (caption takes priority)
-#
-# Other properties:
-# - width: Button width in units (default 1)
-# - offset: Left spacing before key
-# - hidden: Occupies space but invisible
-# - color: Text color (hex format)
-# - bgColor: Background color (hex format)
-#
-# Key Groups (NEW):
-# Define groups separately with templates that apply to matching keys.
-# Keys that match the group's items will inherit the template properties.
-#
-# Format:
-# keysets:
-#   - id: "abc"
-#     groups:
-#       - items: ["a", "b", "c"]
-#         template:
-#           color: "#FF0000"
-#           bgColor: "#00FF00"
-#           width: 0.5
-#           hidden: false
-#     rows:
-#       - keys:
-#           - { value: "a" }  # Will inherit red text, green bg, width 0.5
-#           - { value: "b" }  # Will inherit red text, green bg, width 0.5
-#           - { value: "d" }  # Not in group, uses defaults
-#
-# Keys can override group template properties:
-#   - { value: "a", bgColor: "#0000FF" }  # Blue bg (overrides green)
-#
-# Multiple groups example:
-# groups:
-#   - items: ["q", "w", "e", "r", "t"]
-#     template:
-#       bgColor: "#4CAF50"
-#   - items: ["1", "2", "3"]
-#     template:
-#       color: "#FFFFFF"
-#       bgColor: "#2196F3"
-#
-# Example: { value: "a", sValue: "A" }
-#   - Shows "a" normally, "A" when shifted
-#   - Outputs "a" normally, "A" when shifted
-`;
+const PROFILES = {
+  'default': defaultProfile,
+  'multilingual': multilingualProfile,
+};
 
-// --- 2. HELPER: DEEP MERGE (Arrays Replace, Objects Merge) ---
-// We don't want to mix "QWERTY" keys with "DVORAK" keys index-by-index.
-// If the user defines 'rows', we use theirs entirely.
-const deepMerge = (target: any, source: any): any => {
-  if (typeof target !== 'object' || target === null) {
-    return source !== undefined ? source : target;
-  }
-  
-  if (Array.isArray(target)) {
-    // CRITICAL: If it's an array (like rows/keys), use the USER'S version (source)
-    // if it exists, otherwise keep default (target). Do not merge arrays.
-    return Array.isArray(source) ? source : target;
-  }
+/**
+ * Merge profile with keyboards to create the final configuration
+ */
+const buildConfiguration = (profile: any): any => {
+  const config: any = {
+    backgroundColor: profile.backgroundColor || '#E0E0E0',
+    defaultKeyset: profile.defaultKeyset || 'abc',
+    keysets: [],
+    groups: profile.groups || [],
+  };
 
-  const result = { ...target };
-  
-  // Merge source keys into target
-  if (source && typeof source === 'object') {
-    Object.keys(source).forEach(key => {
-      if (typeof source[key] === 'object' && source[key] !== null && !Array.isArray(source[key])) {
-        // Recursive merge for nested objects
-        result[key] = deepMerge(result[key], source[key]);
-      } else {
-        // Simple override for primitives or arrays
-        result[key] = source[key];
+  // Load all keyboards specified in the profile
+  let isFirstKeyboard = true;
+  for (const keyboardId of profile.keyboards) {
+    const keyboard = KEYBOARDS[keyboardId as keyof typeof KEYBOARDS];
+    if (!keyboard) {
+      console.warn(`Keyboard "${keyboardId}" not found`);
+      continue;
+    }
+
+    // Add system row to each keyset if enabled in profile
+    // Give each keyset a unique ID by prefixing with keyboard ID
+    const keysets = keyboard.keysets.map((keyset: any) => {
+      const rows = [...keyset.rows];
+      
+      // Prepend system row if enabled
+      if (profile.systemRow?.enabled) {
+        rows.unshift({ keys: profile.systemRow.keys });
       }
+
+      // Create unique keyset ID: keyboardId_keysetId
+      // For first keyboard, keep original ID for backwards compatibility
+      const uniqueKeysetId = isFirstKeyboard ? keyset.id : `${keyboardId}_${keyset.id}`;
+
+      return {
+        ...keyset,
+        id: uniqueKeysetId,
+        rows,
+      };
     });
+
+    // Update defaultKeyset if this is the first keyboard
+    if (isFirstKeyboard && keysets.length > 0) {
+      config.defaultKeyset = keysets[0].id;
+      isFirstKeyboard = false;
+    }
+
+    // Add all keysets from this keyboard to the config
+    config.keysets.push(...keysets);
   }
-  
-  return result;
+
+  return config;
 };
 
 const App = () => {
-  const [yamlText, setYamlText] = useState("");
-  const [status, setStatus] = useState("Initializing...");
+  const [selectedProfile, setSelectedProfile] = useState('default');
+  const [configJson, setConfigJson] = useState('');
+  const [status, setStatus] = useState('Initializing...');
   const [loading, setLoading] = useState(true);
 
-  // --- 3. LOAD & MERGE ON STARTUP ---
+  // Load configuration on startup
   useEffect(() => {
     const initSettings = async () => {
       try {
         await DefaultPreference.setName('keyboard_data');
         
-        // A. Load Defaults
-        const defaultObj = yaml.load(DEFAULT_YAML);
+        // Check if user has a saved profile selection
+        const savedProfile = await DefaultPreference.get('selected_profile');
+        const profileToLoad = savedProfile || 'default';
         
-        // B. Load Saved User Data (The raw YAML string)
-        const savedString = await DefaultPreference.get('config_yaml');
+        setSelectedProfile(profileToLoad);
         
-        let finalObj = defaultObj;
-
-        if (savedString) {
-          try {
-            const savedObj = yaml.load(savedString);
-            // C. MERGE: Default + Saved = Final
-            finalObj = deepMerge(defaultObj, savedObj);
-            setStatus("Merged existing settings with defaults");
-          } catch (parseError) {
-            console.warn("Saved YAML was corrupt, using default", parseError);
-            setStatus("Saved config corrupt, reset to default");
-          }
-        } else {
-          setStatus("Loaded default template");
-        }
-
-        // D. Convert back to YAML string for the editor
-        // yaml.dump creates a clean, formatted string
-        setYamlText(yaml.dump(finalObj));
+        // Build configuration from profile
+        const profile = PROFILES[profileToLoad as keyof typeof PROFILES];
+        const config = buildConfiguration(profile);
         
+        // Convert to JSON string for display
+        setConfigJson(JSON.stringify(config, null, 2));
+        
+        // Save to Android keyboard
+        await DefaultPreference.set('config_json', JSON.stringify(config));
+        
+        setStatus(`Loaded profile: ${profile.name}`);
       } catch (e) {
-        console.error("Storage error", e);
-        setYamlText(DEFAULT_YAML);
+        console.error('Initialization error', e);
+        setStatus('Error loading configuration');
       } finally {
         setLoading(false);
       }
@@ -316,28 +115,48 @@ const App = () => {
     initSettings();
   }, []);
 
-  const saveConfig = async () => {
+  const switchProfile = async (profileId: string) => {
     try {
-      setStatus("Saving...");
+      setStatus('Switching profile...');
+      setSelectedProfile(profileId);
       
-      // Parse editor text
-      const parsedObj = yaml.load(yamlText);
-      const jsonString = JSON.stringify(parsedObj);
-
-      await DefaultPreference.setName('keyboard_data'); 
+      // Build configuration from selected profile
+      const profile = PROFILES[profileId as keyof typeof PROFILES];
+      const config = buildConfiguration(profile);
       
-      // Save JSON for Android
-      await DefaultPreference.set('config_json', jsonString);
+      // Update display
+      setConfigJson(JSON.stringify(config, null, 2));
       
-      // Save YAML for this Editor
-      await DefaultPreference.set('config_yaml', yamlText);
-
-      setStatus("Saved successfully! Close and reopen keyboard to see changes.");
-      Alert.alert("Success", "Configuration saved. Close and reopen the keyboard to see changes.");
+      // Save to Android keyboard
+      await DefaultPreference.setName('keyboard_data');
+      await DefaultPreference.set('config_json', JSON.stringify(config));
+      await DefaultPreference.set('selected_profile', profileId);
+      
+      setStatus(`Switched to: ${profile.name}`);
+      Alert.alert('Success', `Profile changed to "${profile.name}". Close and reopen the keyboard to see changes.`);
     } catch (e) {
-      setStatus("Error: Invalid YAML syntax");
-      Alert.alert("Syntax Error", "Please check your YAML formatting.");
-      console.error("YAML parse error:", e);
+      console.error('Profile switch error:', e);
+      setStatus('Error switching profile');
+      Alert.alert('Error', 'Failed to switch profile');
+    }
+  };
+
+  const saveCustomConfig = async () => {
+    try {
+      setStatus('Saving custom configuration...');
+      
+      // Parse and validate JSON
+      const parsedConfig = JSON.parse(configJson);
+      
+      await DefaultPreference.setName('keyboard_data');
+      await DefaultPreference.set('config_json', JSON.stringify(parsedConfig));
+      
+      setStatus('Custom configuration saved successfully!');
+      Alert.alert('Success', 'Configuration saved. Close and reopen the keyboard to see changes.');
+    } catch (e) {
+      setStatus('Error: Invalid JSON');
+      Alert.alert('Syntax Error', 'Please check your JSON formatting.');
+      console.error('JSON parse error:', e);
     }
   };
 
@@ -350,44 +169,168 @@ const App = () => {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Keyboard Config</Text>
+    <ScrollView style={styles.container}>
+      <Text style={styles.header}>Keyboard Configuration</Text>
       
-      <TextInput
-        style={styles.input}
-        multiline
-        value={yamlText}
-        onChangeText={setYamlText}
-        autoCapitalize="none"
-        autoCorrect={false}
-        textAlignVertical="top"
-      />
-      
+      {/* Profile Selector */}
+      <View style={styles.profileSection}>
+        <Text style={styles.sectionTitle}>Select Profile:</Text>
+        <View style={styles.profileButtons}>
+          {Object.entries(PROFILES).map(([id, profile]) => (
+            <Button
+              key={id}
+              title={profile.name}
+              onPress={() => switchProfile(id)}
+              color={selectedProfile === id ? '#4CAF50' : '#2196F3'}
+            />
+          ))}
+        </View>
+        <Text style={styles.profileInfo}>
+          Current: {PROFILES[selectedProfile as keyof typeof PROFILES].name}
+        </Text>
+      </View>
+
+      {/* Keyboards in Current Profile */}
+      <View style={styles.keyboardsSection}>
+        <Text style={styles.sectionTitle}>Keyboards in This Profile:</Text>
+        <Text style={styles.keyboardsList}>
+          {PROFILES[selectedProfile as keyof typeof PROFILES].keyboards
+            .map((kbId: string) => KEYBOARDS[kbId as keyof typeof KEYBOARDS]?.name || kbId)
+            .join(', ')}
+        </Text>
+      </View>
+
+      {/* JSON Editor */}
+      <View style={styles.editorSection}>
+        <Text style={styles.sectionTitle}>Generated Configuration (Advanced):</Text>
+        <Text style={styles.helpText}>
+          You can manually edit the JSON below if needed. Changes will override the profile.
+        </Text>
+        <TextInput
+          style={styles.input}
+          multiline
+          value={configJson}
+          onChangeText={setConfigJson}
+          autoCapitalize="none"
+          autoCorrect={false}
+          textAlignVertical="top"
+        />
+      </View>
+
+      {/* Action Buttons */}
       <View style={styles.footer}>
         <Text style={styles.status}>{status}</Text>
-        <Button title="Save & Sync" onPress={saveConfig} />
+        <Button title="Save Custom Configuration" onPress={saveCustomConfig} />
       </View>
-    </View>
+
+      {/* Help Text */}
+      <View style={styles.helpSection}>
+        <Text style={styles.helpTitle}>📚 About Profiles</Text>
+        <Text style={styles.helpText}>
+          • Profiles combine keyboards with styling{'\n'}
+          • Switch profiles to change keyboards and themes{'\n'}
+          • Edit keyboards/ folder to add new languages{'\n'}
+          • Edit profiles/ folder to create custom themes{'\n'}
+          • See keyboards/README.md for details
+        </Text>
+      </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, paddingTop: 50, backgroundColor: '#f5f5f5' },
-  centered: { justifyContent: 'center', alignItems: 'center' },
-  header: { fontSize: 24, fontWeight: 'bold', marginBottom: 15, color: '#333' },
-  input: { 
+  container: { 
     flex: 1, 
+    padding: 20, 
+    paddingTop: 50, 
+    backgroundColor: '#f5f5f5' 
+  },
+  centered: { 
+    justifyContent: 'center', 
+    alignItems: 'center' 
+  },
+  header: { 
+    fontSize: 24, 
+    fontWeight: 'bold', 
+    marginBottom: 20, 
+    color: '#333',
+    textAlign: 'center'
+  },
+  profileSection: {
+    marginBottom: 20,
+    padding: 15,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+  },
+  profileButtons: {
+    flexDirection: 'row',
+    gap: 10,
+    marginVertical: 10,
+    flexWrap: 'wrap',
+  },
+  profileInfo: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 5,
+  },
+  keyboardsSection: {
+    marginBottom: 20,
+    padding: 15,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+  },
+  keyboardsList: {
+    fontSize: 14,
+    color: '#333',
+    marginTop: 5,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 5,
+  },
+  editorSection: {
+    marginBottom: 20,
+  },
+  input: { 
+    height: 300,
     borderColor: '#999', 
     borderWidth: 1, 
     borderRadius: 8,
+    marginTop: 10,
     marginBottom: 20, 
     padding: 15, 
     backgroundColor: '#fff',
     fontFamily: 'monospace',
-    fontSize: 14,
+    fontSize: 12,
   },
-  footer: { marginBottom: 10 },
-  status: { textAlign: 'center', marginBottom: 10, color: '#666', fontSize: 12 }
+  footer: { 
+    marginBottom: 20 
+  },
+  status: { 
+    textAlign: 'center', 
+    marginBottom: 10, 
+    color: '#666', 
+    fontSize: 12 
+  },
+  helpSection: {
+    marginBottom: 30,
+    padding: 15,
+    backgroundColor: '#E3F2FD',
+    borderRadius: 8,
+  },
+  helpTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1976D2',
+    marginBottom: 10,
+  },
+  helpText: {
+    fontSize: 12,
+    color: '#666',
+    lineHeight: 18,
+  },
 });
 
 export default App;
