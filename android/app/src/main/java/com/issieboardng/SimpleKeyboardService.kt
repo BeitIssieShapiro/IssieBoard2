@@ -82,6 +82,14 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
     }
     
     /**
+     * Nikkud/Tashkeel option for a key
+     */
+    data class NikkudOption(
+        val value: String,
+        val caption: String
+    )
+    
+    /**
      * Represents a complete key configuration
      */
     data class KeyConfig(
@@ -96,7 +104,8 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
         val textColor: Int = Color.BLACK,  // Cached parsed color
         val backgroundColor: Int = Color.LTGRAY,  // Cached parsed color
         val label: String = "",
-        val keysetValue: String = ""
+        val keysetValue: String = "",
+        val nikkud: List<NikkudOption> = emptyList()  // Nikkud/diacritics options
     )
     
     /**
@@ -154,6 +163,9 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
     // Shift state (Phase 2 optimization: using sealed class)
     private var shiftState: ShiftState = ShiftState.Inactive
     private var lastShiftClickTime: Long = 0
+    
+    // Nikkud state (for Hebrew/Arabic diacritics)
+    private var nikkudActive: Boolean = false
     
     // Language cycling state
     private var availableKeyboardIds: List<String> = emptyList()
@@ -380,6 +392,21 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
         val textColor = parseColor(textColorString, Color.BLACK)
         val backgroundColor = parseColor(bgColorString, Color.LTGRAY)
         
+        // Parse nikkud options if present
+        val nikkudList = mutableListOf<NikkudOption>()
+        val nikkudArray = keyObj.optJSONArray("nikkud")
+        if (nikkudArray != null) {
+            for (i in 0 until nikkudArray.length()) {
+                val nikkudObj = nikkudArray.optJSONObject(i) ?: continue
+                val nikkudValue = nikkudObj.optString("value", "")
+                val nikkudCaption = nikkudObj.optString("caption", "").ifEmpty { nikkudValue }
+                nikkudList.add(NikkudOption(
+                    value = nikkudValue,
+                    caption = nikkudCaption
+                ))
+            }
+        }
+        
         return KeyConfig(
             value = value,
             caption = caption,
@@ -404,7 +431,8 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
             textColor = textColor,
             backgroundColor = backgroundColor,
             label = keyObj.optString("label", ""),
-            keysetValue = keyObj.optString("keysetValue", "")
+            keysetValue = keyObj.optString("keysetValue", ""),
+            nikkud = nikkudList
         )
     }
     
@@ -726,7 +754,7 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
         
         // Determine label and action based on special types
         val (finalLabel, clickAction) = getKeyBehavior(
-            key.type, key.label, displayCaption, displayValue, editorContext
+            key, displayCaption, displayValue, editorContext
         )
         
         // Create button or invisible spacer if hidden
@@ -799,12 +827,17 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
     }
     
     /**
-     * Get key background color with special handling for shift (Phase 2 optimization)
+     * Get key background color with special handling for shift and nikkud (Phase 2 optimization)
      */
     private fun getKeyBackgroundColor(key: KeyConfig): Int {
         // Special handling for shift button when active
         if (key.type.lowercase() == "shift" && shiftState.isActive()) {
             return parseColor(SHIFT_ACTIVE_COLOR, Color.parseColor(SHIFT_ACTIVE_COLOR))
+        }
+        
+        // Special handling for nikkud button when active
+        if (key.type.lowercase() == "nikkud" && nikkudActive) {
+            return parseColor("#FFD700", Color.parseColor("#FFD700"))  // Gold when active
         }
         
         // Return cached color directly
@@ -880,21 +913,21 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
     // ============================================================================
     
     private fun getKeyBehavior(
-        type: String, 
-        label: String, 
+        key: KeyConfig,
         caption: String, 
         value: String, 
         editorContext: EditorContext
     ): Pair<String, () -> Unit> {
-        return when (type.lowercase()) {
-            "backspace" -> createBackspaceKey(label)
-            "enter", "action" -> createEnterKey(label, editorContext)
-            "keyset" -> createKeysetKey(label)
-            "shift" -> createShiftKey(label)
-            "settings" -> createSettingsKey(label)
-            "close" -> createCloseKey(label)
-            "language" -> createLanguageKey(label)
-            else -> createRegularKey(caption, label, value)
+        return when (key.type.lowercase()) {
+            "backspace" -> createBackspaceKey(key.label)
+            "enter", "action" -> createEnterKey(key.label, editorContext)
+            "keyset" -> createKeysetKey(key.label)
+            "shift" -> createShiftKey(key.label)
+            "nikkud" -> createNikkudKey(key.label)
+            "settings" -> createSettingsKey(key.label)
+            "close" -> createCloseKey(key.label)
+            "language" -> createLanguageKey(key.label)
+            else -> createRegularKey(caption, key.label, value, key.nikkud)
         }
     }
     
@@ -946,6 +979,24 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
         val action: () -> Unit = {
             shiftState = shiftState.toggle()
             renderKeyboard()
+        }
+        return Pair(displayLabel, action)
+    }
+    
+    /**
+     * Create nikkud toggle key behavior
+     * Toggles nikkud/diacritics mode for Hebrew and Arabic keyboards
+     */
+    private fun createNikkudKey(label: String): Pair<String, () -> Unit> {
+        val displayLabel = if (label.isNotEmpty()) {
+            label
+        } else {
+            if (nikkudActive) "◌ָ" else "◌"  // With/without nikkud indicator
+        }
+        
+        val action: () -> Unit = {
+            nikkudActive = !nikkudActive
+            renderKeyboard()  // Re-render to show active state
         }
         return Pair(displayLabel, action)
     }
@@ -1015,9 +1066,9 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
     }
     
     /**
-     * Create regular key behavior (Phase 2: using sealed class)
+     * Create regular key behavior with nikkud support (Phase 2: using sealed class)
      */
-    private fun createRegularKey(caption: String, label: String, value: String): Pair<String, () -> Unit> {
+    private fun createRegularKey(caption: String, label: String, value: String, nikkudOptions: List<NikkudOption>): Pair<String, () -> Unit> {
         val displayLabel = when {
             caption.isNotEmpty() -> caption
             label.isNotEmpty() -> label
@@ -1026,7 +1077,10 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
         }
         
         val action: () -> Unit = { 
-            if (value.isNotEmpty()) {
+            if (nikkudActive && nikkudOptions.isNotEmpty()) {
+                // Show popup with nikkud options
+                showNikkudPopup(nikkudOptions)
+            } else if (value.isNotEmpty()) {
                 currentInputConnection?.commitText(value, 1)
                 // Auto-reset shift after typing a character (unless locked)
                 if (shiftState is ShiftState.Active) {
@@ -1036,6 +1090,111 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
             }
         }
         return Pair(displayLabel, action)
+    }
+    
+    /**
+     * Show custom popup with nikkud/diacritics options
+     * Displays as an overlay on top of the keyboard
+     */
+    private fun showNikkudPopup(options: List<NikkudOption>) {
+        val popupLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(40, 40, 40, 40)
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                setColor(Color.parseColor("#F5F5F5"))
+                cornerRadius = 16f
+                setStroke(2, Color.parseColor("#999999"))
+            }
+        }
+        
+        // Calculate how many items per row (split into 2 rows)
+        val itemsPerRow = (options.size + 1) / 2
+        
+        // Create first row
+        val firstRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            gravity = android.view.Gravity.CENTER
+        }
+        
+        // Create second row
+        val secondRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = 20
+            }
+            gravity = android.view.Gravity.CENTER
+        }
+        
+        // Create popup window
+        val popupWindow = android.widget.PopupWindow(
+            popupLayout,
+            (resources.displayMetrics.widthPixels * 0.9).toInt(),
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            true  // focusable - allows dismissal on outside touch
+        )
+        
+        // Add buttons to rows
+        options.forEachIndexed { index, option ->
+            val button = Button(this).apply {
+                text = option.caption
+                textSize = 28f
+                layoutParams = LinearLayout.LayoutParams(
+                    0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    1f
+                ).apply {
+                    marginStart = 10
+                    marginEnd = 10
+                }
+                setPadding(20, 30, 20, 30)
+                
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    setColor(Color.parseColor("#FFFFFF"))
+                    cornerRadius = 12f
+                    setStroke(2, Color.parseColor("#CCCCCC"))
+                }
+                
+                setOnClickListener {
+                    val selectedValue = if (index < itemsPerRow) {
+                        options[index].value
+                    } else {
+                        options[itemsPerRow + (index - itemsPerRow)].value
+                    }
+                    currentInputConnection?.commitText(selectedValue, 1)
+                    // Don't auto-deactivate nikkud mode - keep it locked until user manually toggles it off
+                    popupWindow.dismiss()
+                }
+            }
+            
+            if (index < itemsPerRow) {
+                firstRow.addView(button)
+            } else {
+                secondRow.addView(button)
+            }
+        }
+        
+        popupLayout.addView(firstRow)
+        popupLayout.addView(secondRow)
+        
+        // Show popup at center of keyboard
+        mainLayout?.let { layout ->
+            popupWindow.elevation = 20f
+            popupWindow.isOutsideTouchable = true  // Dismiss on outside touch
+            popupWindow.isFocusable = true  // Allow dismissal
+            popupWindow.setBackgroundDrawable(null)  // Needed for dismissal to work
+            
+            // Show at center of keyboard
+            popupWindow.showAtLocation(layout, android.view.Gravity.CENTER, 0, 0)
+        }
     }
     
     private fun openSettings() {

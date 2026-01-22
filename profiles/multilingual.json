@@ -9,6 +9,7 @@
   "systemRow": {
     "enabled": true,
     "keys": [
+      { "type": "nikkud" },
       { "type": "language" },
       { "type": "settings" },
       { "type": "backspace", "width": 1.5 },
