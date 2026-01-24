@@ -1,9 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, Button, Text, StyleSheet, Alert, ActivityIndicator, ScrollView, Platform, TouchableOpacity } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Button,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import SaveProfileModal from './components/SaveProfileModal';
 import KeyboardPreferences from './src/native/KeyboardPreferences';
 import { useLocalization } from './src/localization';
 import { KeyboardPreview } from './src/components/KeyboardPreview';
+import {
+  KeyboardConfig,
+  KeyboardDefinition,
+  KeysetConfig,
+  ProfileDefinition,
+  SavedProfile,
+  StoredConfig,
+} from './types';
 
 // Import keyboard and profile files
 import enKeyboard from './keyboards/en.json';
@@ -12,19 +31,20 @@ import arKeyboard from './keyboards/ar.json';
 import defaultProfile from './profiles/default.json';
 import multilingualProfile from './profiles/multilingual.json';
 
-interface SavedProfile {
-  name: string;
-  key: string;
-}
+// Type guard to check if a stored config needs building
+const needsBuilding = (config: StoredConfig): config is ProfileDefinition => {
+  return config.keyboards !== undefined &&
+         (!('keysets' in config) || !config.keysets || config.keysets.length === 0);
+};
 
 // Available keyboards and profiles
-const KEYBOARDS = {
+const KEYBOARDS: Record<string, KeyboardDefinition> = {
   'en': enKeyboard,
   'he': heKeyboard,
   'ar': arKeyboard,
 };
 
-const PROFILES = {
+const PROFILES: Record<string, ProfileDefinition> = {
   'default': defaultProfile,
   'multilingual': multilingualProfile,
 };
@@ -32,8 +52,8 @@ const PROFILES = {
 /**
  * Merge profile with keyboards to create the final configuration
  */
-const buildConfiguration = (profile: any): any => {
-  const config: any = {
+const buildConfiguration = (profile: ProfileDefinition): KeyboardConfig => {
+  const config: KeyboardConfig = {
     backgroundColor: profile.backgroundColor || '#E0E0E0',
     defaultKeyset: profile.defaultKeyset || 'abc',
     keysets: [],
@@ -45,7 +65,7 @@ const buildConfiguration = (profile: any): any => {
   // Load all keyboards specified in the profile
   let isFirstKeyboard = true;
   for (const keyboardId of profile.keyboards) {
-    const keyboard = KEYBOARDS[keyboardId as keyof typeof KEYBOARDS];
+    const keyboard = KEYBOARDS[keyboardId];
     if (!keyboard) {
       console.warn(`Keyboard "${keyboardId}" not found`);
       continue;
@@ -53,7 +73,7 @@ const buildConfiguration = (profile: any): any => {
 
     // Add system row to each keyset if enabled in profile
     // Give each keyset a unique ID by prefixing with keyboard ID
-    const keysets = keyboard.keysets.map((keyset: any) => {
+    const keysets = keyboard.keysets.map((keyset: KeysetConfig): KeysetConfig => {
       const rows = [...keyset.rows];
 
       // Prepend system row if enabled
@@ -102,10 +122,11 @@ const App = () => {
     const initSettings = async () => {
       try {
         // Load saved custom profiles list
+        let savedList: SavedProfile[] = [];
         const savedListJson = await KeyboardPreferences.getProfile('saved_list');
         if (savedListJson) {
           try {
-            const savedList = JSON.parse(savedListJson);
+            savedList = JSON.parse(savedListJson);
             setSavedProfiles(savedList);
           } catch (e) {
             console.warn('Failed to parse saved profiles list:', e);
@@ -113,18 +134,49 @@ const App = () => {
         }
 
         // Get saved profile (platform-specific implementation)
-        const savedProfile = (await KeyboardPreferences.getCurrentProfile()) || 'default';
-        setSelectedProfile(savedProfile);
+        const savedProfileId = (await KeyboardPreferences.getCurrentProfile()) || 'default';
+        setSelectedProfile(savedProfileId);
 
-        // Build configuration from profile
-        const profile = PROFILES[savedProfile as keyof typeof PROFILES];
-        const config = buildConfiguration(profile);
+        // Load configuration - check built-in profiles first, then saved custom profiles
+        let config: KeyboardConfig;
+        let profileName: string;
+        const builtInProfile = PROFILES[savedProfileId];
+
+        if (builtInProfile) {
+          // Built-in profile: build configuration from profile definition
+          config = buildConfiguration(builtInProfile);
+          profileName = builtInProfile.name;
+        } else {
+          // Custom profile: load from storage
+          const storedConfig = await KeyboardPreferences.getProfileObject(savedProfileId) as StoredConfig | null;
+
+          // Find the profile name from savedList (already parsed above)
+          const savedProfileInfo = savedList.find(p => p.key === savedProfileId);
+          profileName = savedProfileInfo?.name || strings.custom;
+
+          if (storedConfig) {
+            // Check if config needs to be built (has keyboards array but no keysets)
+            if (needsBuilding(storedConfig)) {
+              console.log(`Building configuration for saved profile "${profileName}"`);
+              config = buildConfiguration(storedConfig);
+            } else {
+              config = storedConfig;
+            }
+          } else {
+            // Fallback to default if custom profile not found
+            console.warn(`Saved profile "${savedProfileId}" not found, falling back to default`);
+            const fallbackProfile = PROFILES['default'];
+            config = buildConfiguration(fallbackProfile);
+            profileName = fallbackProfile.name;
+            setSelectedProfile('default');
+          }
+        }
 
         // Convert to JSON string for display
         setConfigJson(JSON.stringify(config, null, 2));
 
         // Save to keyboard (platform-specific implementation)
-        const setProfileResult = await KeyboardPreferences.setCurrentProfile(savedProfile);
+        const setProfileResult = await KeyboardPreferences.setCurrentProfile(savedProfileId);
         const setConfigResult = await KeyboardPreferences.setKeyboardConfigObject(config);
 
         console.log(`✅ ${Platform.OS}: Configuration loaded and saved`);
@@ -134,9 +186,9 @@ const App = () => {
         // Check if native module is working
         if (Platform.OS === 'ios' && !setProfileResult.success) {
           console.warn('⚠️ iOS native module not available. See console for setup instructions.');
-          setStatus(`${strings.loadedProfile} ${profile.name} - ${strings.nativeModuleNotConnected}`);
+          setStatus(`${strings.loadedProfile} ${profileName} - ${strings.nativeModuleNotConnected}`);
         } else {
-          setStatus(`${strings.loadedProfile} ${profile.name}`);
+          setStatus(`${strings.loadedProfile} ${profileName}`);
         }
       } catch (e) {
         console.error('Initialization error', e);
@@ -152,18 +204,13 @@ const App = () => {
   /**
    * Shared logic to apply a configuration and update the UI
    */
-  const applyConfiguration = async (config: any, profileName: string, profileId?: string) => {
+  const applyConfiguration = async (config: KeyboardConfig, profileName: string, profileId: string) => {
     // Update display
     setConfigJson(JSON.stringify(config, null, 2));
 
     // Save to keyboard (platform-specific implementation)
-    if (profileId) {
-      await KeyboardPreferences.setCurrentProfile(profileId);
-      setSelectedProfile(profileId);
-    } else {
-      // For custom profiles, clear the built-in profile selection
-      setSelectedProfile('');
-    }
+    await KeyboardPreferences.setCurrentProfile(profileId);
+    setSelectedProfile(profileId);
     await KeyboardPreferences.setKeyboardConfigObject(config);
 
     console.log(`✅ ${Platform.OS}: Applied configuration "${profileName}"`);
@@ -174,7 +221,7 @@ const App = () => {
       setStatus(strings.switchingProfile);
 
       // Build configuration from selected profile
-      const profile = PROFILES[profileId as keyof typeof PROFILES];
+      const profile = PROFILES[profileId];
       const config = buildConfiguration(profile);
 
       await applyConfiguration(config, profile.name, profileId);
@@ -196,8 +243,8 @@ const App = () => {
       JSON.parse(newValue);
       setJsonValidationError(null);
       setLastValidConfig(newValue);
-    } catch (e: any) {
-      setJsonValidationError(e.message || 'Invalid JSON');
+    } catch (e) {
+      setJsonValidationError(e instanceof Error ? e.message : 'Invalid JSON');
     }
   };
 
@@ -220,7 +267,7 @@ const App = () => {
 
     try {
       setStatus(strings.savingConfiguration);
-      const parsedConfig = JSON.parse(configJson);
+      const parsedConfig = JSON.parse(configJson) as StoredConfig;
       const key = `custom_${Date.now()}`;
 
       // Save the config with unique key
@@ -247,17 +294,20 @@ const App = () => {
   const loadSavedProfile = async (profile: SavedProfile) => {
     try {
       setStatus(strings.loadingProfile);
-      let config = await KeyboardPreferences.getProfileObject(profile.key);
+      const storedConfig = await KeyboardPreferences.getProfileObject(profile.key) as StoredConfig | null;
 
-      if (config) {
+      if (storedConfig) {
         // Check if config needs to be built (has keyboards array but no keysets)
         // This handles profiles that were saved as partial profiles
-        if (config.keyboards && (!config.keysets || config.keysets.length === 0)) {
+        let config: KeyboardConfig;
+        if (needsBuilding(storedConfig)) {
           console.log(`Building configuration for saved profile "${profile.name}"`);
-          config = buildConfiguration(config);
+          config = buildConfiguration(storedConfig);
+        } else {
+          config = storedConfig;
         }
 
-        await applyConfiguration(config, profile.name);
+        await applyConfiguration(config, profile.name, profile.key);
 
         setStatus(`${strings.loadedProfile} ${profile.name}`);
         Alert.alert(strings.success, `"${profile.name}" ${strings.profileLoaded} ${strings.closeAndReopenKeyboard}`);
@@ -309,7 +359,7 @@ const App = () => {
     if (!editingProfile) return;
 
     try {
-      const parsedConfig = JSON.parse(configJson);
+      const parsedConfig = JSON.parse(configJson) as StoredConfig;
 
       // Save the updated config
       await KeyboardPreferences.setProfileObject(parsedConfig, editingProfile.key);
@@ -327,7 +377,7 @@ const App = () => {
   const cancelEditing = () => {
     setEditingProfile(null);
     // Reload the current profile to reset the JSON editor
-    const profile = PROFILES[selectedProfile as keyof typeof PROFILES];
+    const profile = PROFILES[selectedProfile];
     if (profile) {
       const config = buildConfiguration(profile);
       setConfigJson(JSON.stringify(config, null, 2));
@@ -425,7 +475,7 @@ const App = () => {
           )}
 
           <Text style={styles.profileInfo}>
-            {strings.current} {PROFILES[selectedProfile as keyof typeof PROFILES]?.name || savedProfiles.find(p => p.key === selectedProfile)?.name || strings.custom}
+            {strings.current} {PROFILES[selectedProfile]?.name || savedProfiles.find(p => p.key === selectedProfile)?.name || strings.custom}
           </Text>
         </View>
 
@@ -433,17 +483,17 @@ const App = () => {
         <View style={styles.keyboardsSection}>
           <Text style={styles.sectionTitle}>{strings.keyboardsInProfile}</Text>
           <Text style={styles.keyboardsList}>
-            {PROFILES[selectedProfile as keyof typeof PROFILES]?.keyboards
-              ?.map((kbId: string) => KEYBOARDS[kbId as keyof typeof KEYBOARDS]?.name || kbId)
+            {PROFILES[selectedProfile]?.keyboards
+              ?.map((kbId) => KEYBOARDS[kbId]?.name || kbId)
               .join(', ') || strings.customConfiguration}
           </Text>
         </View>
 
         {/* Live Keyboard Preview */}
         <View style={styles.previewSection}>
-          <Text style={styles.sectionTitle}>🎹 {strings.keyboardPreview || 'Keyboard Preview'}</Text>
+          <Text style={styles.sectionTitle}>🎹 {strings.keyboardPreview}</Text>
           <Text style={styles.helpText}>
-            {strings.previewHelpText || 'Live preview of your keyboard. Tap keys to test!'}
+            {strings.previewHelpText}
           </Text>
           <View style={styles.previewContainer}>
             <KeyboardPreview
@@ -452,7 +502,6 @@ const App = () => {
               configJson={configJson}
               onKeyPress={(event) => {
                 const { type, value } = event.nativeEvent;
-                console.log('Preview key pressed:', type, value);
               }}
             />
           </View>
