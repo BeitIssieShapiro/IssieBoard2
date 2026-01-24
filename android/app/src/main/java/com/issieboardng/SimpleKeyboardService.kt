@@ -1108,13 +1108,25 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
     }
     
     /**
-     * Show custom popup with nikkud/diacritics options
-     * Displays as an overlay on top of the keyboard
+     * Show custom popup with nikkud/diacritics options using flex-wrap layout
+     * Displays as an overlay on top of the keyboard with RTL support
+     * Forces 2 rows if more than 6 items
      */
     private fun showNikkudPopup(options: List<NikkudOption>) {
+        // Force 2 rows if more than 6 items
+        val itemsPerRow = if (options.size > 6) (options.size + 1) / 2 else options.size
+        val buttonSize = 140
+        val spacing = 20
+        val padding = 40
+        
+        // Calculate popup height
+        val numRows = if (options.size > itemsPerRow) 2 else 1
+        val popupHeight = numRows * buttonSize + (numRows - 1) * spacing + 2 * padding
+        
+        // Create container
         val popupLayout = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(40, 40, 40, 40)
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(padding, padding, padding, padding)
             background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
                 setColor(Color.parseColor("#F5F5F5"))
@@ -1123,53 +1135,27 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
             }
         }
         
-        // Calculate how many items per row (split into 2 rows)
-        val itemsPerRow = (options.size + 1) / 2
-        
-        // Create first row
-        val firstRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-            gravity = android.view.Gravity.CENTER
-        }
-        
-        // Create second row
-        val secondRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                topMargin = 20
-            }
-            gravity = android.view.Gravity.CENTER
-        }
-        
-        // Create popup window
+        // Create popup window with explicit height
         val popupWindow = android.widget.PopupWindow(
             popupLayout,
             (resources.displayMetrics.widthPixels * 0.9).toInt(),
-            LinearLayout.LayoutParams.WRAP_CONTENT,
-            true  // focusable - allows dismissal on outside touch
+            popupHeight,
+            true
         )
         
-        // Add buttons to rows
-        options.forEachIndexed { index, option ->
+        // Add buttons
+        options.forEach { option ->
             val button = Button(this).apply {
                 text = option.caption
                 textSize = 28f
                 layoutParams = LinearLayout.LayoutParams(
-                    0,
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    1f
+                    buttonSize,
+                    buttonSize  // Fixed height
                 ).apply {
-                    marginStart = 10
-                    marginEnd = 10
+                    marginStart = spacing / 2
+                    marginEnd = spacing / 2
                 }
-                setPadding(20, 30, 20, 30)
+                setPadding(0, 0, 0, 0)
                 
                 background = GradientDrawable().apply {
                     shape = GradientDrawable.RECTANGLE
@@ -1179,35 +1165,64 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
                 }
                 
                 setOnClickListener {
-                    val selectedValue = if (index < itemsPerRow) {
-                        options[index].value
-                    } else {
-                        options[itemsPerRow + (index - itemsPerRow)].value
-                    }
-                    currentInputConnection?.commitText(selectedValue, 1)
-                    // Don't auto-deactivate nikkud mode - keep it locked until user manually toggles it off
+                    currentInputConnection?.commitText(option.value, 1)
                     popupWindow.dismiss()
                 }
             }
             
-            if (index < itemsPerRow) {
-                firstRow.addView(button)
-            } else {
-                secondRow.addView(button)
-            }
+            popupLayout.addView(button)
         }
         
-        popupLayout.addView(firstRow)
-        popupLayout.addView(secondRow)
+        // Custom layout for RTL 2-row positioning
+        popupLayout.viewTreeObserver.addOnGlobalLayoutListener(object : android.view.ViewTreeObserver.OnGlobalLayoutListener {
+            override fun onGlobalLayout() {
+                popupLayout.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                
+                var currentRow = 0
+                var currentY = padding
+                
+                for (i in 0 until popupLayout.childCount) {
+                    val child = popupLayout.getChildAt(i)
+                    
+                    val row = i / itemsPerRow
+                    val col = i % itemsPerRow
+                    
+                    if (row != currentRow) {
+                        currentRow = row
+                        currentY += buttonSize + spacing
+                    }
+                    
+                    // Calculate buttons in this row
+                    val buttonsInThisRow = if (row == 0) {
+                        minOf(itemsPerRow, popupLayout.childCount)
+                    } else {
+                        popupLayout.childCount - itemsPerRow
+                    }
+                    
+                    val rowWidth = buttonsInThisRow * buttonSize + (buttonsInThisRow - 1) * spacing
+                    val rowStartX = (popupLayout.width - rowWidth) / 2
+                    
+                    // Position RTL
+                    val reversedCol = buttonsInThisRow - 1 - col
+                    val x = rowStartX + reversedCol * (buttonSize + spacing)
+                    
+                    child.layout(
+                        x,
+                        currentY,
+                        x + buttonSize,
+                        currentY + buttonSize
+                    )
+                }
+            }
+        })
         
-        // Show popup at center of keyboard
+        // Show popup - use a proper anchor to prevent keyboard dismissal
         mainLayout?.let { layout ->
             popupWindow.elevation = 20f
-            popupWindow.isOutsideTouchable = true  // Dismiss on outside touch
-            popupWindow.isFocusable = true  // Allow dismissal
-            popupWindow.setBackgroundDrawable(null)  // Needed for dismissal to work
-            
-            // Show at center of keyboard
+            popupWindow.isOutsideTouchable = true
+            popupWindow.isFocusable = false  // Changed to false to prevent keyboard dismissal
+            popupWindow.inputMethodMode = android.widget.PopupWindow.INPUT_METHOD_NOT_NEEDED
+            popupWindow.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.TRANSPARENT))
             popupWindow.showAtLocation(layout, android.view.Gravity.CENTER, 0, 0)
         }
     }

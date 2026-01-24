@@ -7,279 +7,866 @@
       "rows": [
         {
           "keys": [
-            { "value": "ض", "nikkud": [
-              { "value": "ضَ" },
-              { "value": "ضِ" },
-              { "value": "ضُ" },
-              { "value": "ضْ" },
-              { "value": "ضّ" },
-              { "value": "ضً" },
-              { "value": "ضٍ" },
-              { "value": "ضٌ" }
-            ]},
-            { "value": "ص", "nikkud": [
-              { "value": "صَ" },
-              { "value": "صِ" },
-              { "value": "صُ" },
-              { "value": "صْ" },
-              { "value": "صّ" },
-              { "value": "صً" },
-              { "value": "صٍ" },
-              { "value": "صٌ" }
-            ]},
-            { "value": "ث", "nikkud": [
-              { "value": "ثَ" },
-              { "value": "ثِ" },
-              { "value": "ثُ" },
-              { "value": "ثْ" },
-              { "value": "ثّ" },
-              { "value": "ثً" },
-              { "value": "ثٍ" },
-              { "value": "ثٌ" }
-            ]},
-            { "value": "ق", "nikkud": [
-              { "value": "قَ" },
-              { "value": "قِ" },
-              { "value": "قُ" },
-              { "value": "قْ" },
-              { "value": "قّ" },
-              { "value": "قً" },
-              { "value": "قٍ" },
-              { "value": "قٌ" }
-            ]},
-            { "value": "ف", "nikkud": [
-              { "value": "فَ" },
-              { "value": "فِ" },
-              { "value": "فُ" },
-              { "value": "فْ" },
-              { "value": "فّ" },
-              { "value": "فً" },
-              { "value": "فٍ" },
-              { "value": "فٌ" }
-            ]},
-            { "value": "غ", "nikkud": [
-              { "value": "غَ" },
-              { "value": "غِ" },
-              { "value": "غُ" },
-              { "value": "غْ" },
-              { "value": "غّ" },
-              { "value": "غً" },
-              { "value": "غٍ" },
-              { "value": "غٌ" }
-            ]},
-            { "value": "ع", "nikkud": [
-              { "value": "عَ" },
-              { "value": "عِ" },
-              { "value": "عُ" },
-              { "value": "عْ" },
-              { "value": "عّ" },
-              { "value": "عً" },
-              { "value": "عٍ" },
-              { "value": "عٌ" }
-            ]},
-            { "value": "ه", "nikkud": [
-              { "value": "هَ" },
-              { "value": "هِ" },
-              { "value": "هُ" },
-              { "value": "هْ" },
-              { "value": "هّ" },
-              { "value": "هً" },
-              { "value": "هٍ" },
-              { "value": "هٌ" }
-            ]},
-            { "value": "خ", "nikkud": [
-              { "value": "خَ" },
-              { "value": "خِ" },
-              { "value": "خُ" },
-              { "value": "خْ" },
-              { "value": "خّ" },
-              { "value": "خً" },
-              { "value": "خٍ" },
-              { "value": "خٌ" }
-            ]},
-            { "value": "ح", "nikkud": [
-              { "value": "حَ" },
-              { "value": "حِ" },
-              { "value": "حُ" },
-              { "value": "حْ" },
-              { "value": "حّ" },
-              { "value": "حً" },
-              { "value": "حٍ" },
-              { "value": "حٌ" }
-            ]}
+            {
+              "value": "ض",
+              "nikkud": [
+                {
+                  "value": "ض"
+                },
+                {
+                  "value": "ضَ"
+                },
+                {
+                  "value": "ضِ"
+                },
+                {
+                  "value": "ضُ"
+                },
+                {
+                  "value": "ضْ"
+                },
+                {
+                  "value": "ضّ"
+                },
+                {
+                  "value": "ضً"
+                },
+                {
+                  "value": "ضٍ"
+                },
+                {
+                  "value": "ضٌ"
+                }
+              ]
+            },
+            {
+              "value": "ص",
+              "nikkud": [
+                {
+                  "value": "ص"
+                },
+                {
+                  "value": "صَ"
+                },
+                {
+                  "value": "صِ"
+                },
+                {
+                  "value": "صُ"
+                },
+                {
+                  "value": "صْ"
+                },
+                {
+                  "value": "صّ"
+                },
+                {
+                  "value": "صً"
+                },
+                {
+                  "value": "صٍ"
+                },
+                {
+                  "value": "صٌ"
+                }
+              ]
+            },
+            {
+              "value": "ث",
+              "nikkud": [
+                {
+                  "value": "ث"
+                },
+                {
+                  "value": "ثَ"
+                },
+                {
+                  "value": "ثِ"
+                },
+                {
+                  "value": "ثُ"
+                },
+                {
+                  "value": "ثْ"
+                },
+                {
+                  "value": "ثّ"
+                },
+                {
+                  "value": "ثً"
+                },
+                {
+                  "value": "ثٍ"
+                },
+                {
+                  "value": "ثٌ"
+                }
+              ]
+            },
+            {
+              "value": "ق",
+              "nikkud": [
+                {
+                  "value": "ق"
+                },
+                {
+                  "value": "قَ"
+                },
+                {
+                  "value": "قِ"
+                },
+                {
+                  "value": "قُ"
+                },
+                {
+                  "value": "قْ"
+                },
+                {
+                  "value": "قّ"
+                },
+                {
+                  "value": "قً"
+                },
+                {
+                  "value": "قٍ"
+                },
+                {
+                  "value": "قٌ"
+                }
+              ]
+            },
+            {
+              "value": "ف",
+              "nikkud": [
+                {
+                  "value": "ف"
+                },
+                {
+                  "value": "فَ"
+                },
+                {
+                  "value": "فِ"
+                },
+                {
+                  "value": "فُ"
+                },
+                {
+                  "value": "فْ"
+                },
+                {
+                  "value": "فّ"
+                },
+                {
+                  "value": "فً"
+                },
+                {
+                  "value": "فٍ"
+                },
+                {
+                  "value": "فٌ"
+                }
+              ]
+            },
+            {
+              "value": "غ",
+              "nikkud": [
+                {
+                  "value": "غ"
+                },
+                {
+                  "value": "غَ"
+                },
+                {
+                  "value": "غِ"
+                },
+                {
+                  "value": "غُ"
+                },
+                {
+                  "value": "غْ"
+                },
+                {
+                  "value": "غّ"
+                },
+                {
+                  "value": "غً"
+                },
+                {
+                  "value": "غٍ"
+                },
+                {
+                  "value": "غٌ"
+                }
+              ]
+            },
+            {
+              "value": "ع",
+              "nikkud": [
+                {
+                  "value": "ع"
+                },
+                {
+                  "value": "عَ"
+                },
+                {
+                  "value": "عِ"
+                },
+                {
+                  "value": "عُ"
+                },
+                {
+                  "value": "عْ"
+                },
+                {
+                  "value": "عّ"
+                },
+                {
+                  "value": "عً"
+                },
+                {
+                  "value": "عٍ"
+                },
+                {
+                  "value": "عٌ"
+                }
+              ]
+            },
+            {
+              "value": "ه",
+              "nikkud": [
+                {
+                  "value": "ه"
+                },
+                {
+                  "value": "هَ"
+                },
+                {
+                  "value": "هِ"
+                },
+                {
+                  "value": "هُ"
+                },
+                {
+                  "value": "هْ"
+                },
+                {
+                  "value": "هّ"
+                },
+                {
+                  "value": "هً"
+                },
+                {
+                  "value": "هٍ"
+                },
+                {
+                  "value": "هٌ"
+                }
+              ]
+            },
+            {
+              "value": "خ",
+              "nikkud": [
+                {
+                  "value": "خ"
+                },
+                {
+                  "value": "خَ"
+                },
+                {
+                  "value": "خِ"
+                },
+                {
+                  "value": "خُ"
+                },
+                {
+                  "value": "خْ"
+                },
+                {
+                  "value": "خّ"
+                },
+                {
+                  "value": "خً"
+                },
+                {
+                  "value": "خٍ"
+                },
+                {
+                  "value": "خٌ"
+                }
+              ]
+            },
+            {
+              "value": "ح",
+              "nikkud": [
+                {
+                  "value": "ح"
+                },
+                {
+                  "value": "حَ"
+                },
+                {
+                  "value": "حِ"
+                },
+                {
+                  "value": "حُ"
+                },
+                {
+                  "value": "حْ"
+                },
+                {
+                  "value": "حّ"
+                },
+                {
+                  "value": "حً"
+                },
+                {
+                  "value": "حٍ"
+                },
+                {
+                  "value": "حٌ"
+                }
+              ]
+            }
           ]
         },
         {
           "keys": [
-            { "hidden": true, "width": 0.5 },
-            { "value": "ش", "nikkud": [
-              { "value": "شَ" },
-              { "value": "شِ" },
-              { "value": "شُ" },
-              { "value": "شْ" },
-              { "value": "شّ" },
-              { "value": "شً" },
-              { "value": "شٍ" },
-              { "value": "شٌ" }
-            ]},
-            { "value": "س", "nikkud": [
-              { "value": "سَ" },
-              { "value": "سِ" },
-              { "value": "سُ" },
-              { "value": "سْ" },
-              { "value": "سّ" },
-              { "value": "سً" },
-              { "value": "سٍ" },
-              { "value": "سٌ" }
-            ]},
-            { "value": "ي", "nikkud": [
-              { "value": "يَ" },
-              { "value": "يِ" },
-              { "value": "يُ" },
-              { "value": "يْ" },
-              { "value": "يّ" },
-              { "value": "يً" },
-              { "value": "يٍ" },
-              { "value": "يٌ" }
-            ]},
-            { "value": "ب", "nikkud": [
-              { "value": "بَ" },
-              { "value": "بِ" },
-              { "value": "بُ" },
-              { "value": "بْ" },
-              { "value": "بّ" },
-              { "value": "بً" },
-              { "value": "بٍ" },
-              { "value": "بٌ" }
-            ]},
-            { "value": "ل", "nikkud": [
-              { "value": "لَ" },
-              { "value": "لِ" },
-              { "value": "لُ" },
-              { "value": "لْ" },
-              { "value": "لّ" },
-              { "value": "لً" },
-              { "value": "لٍ" },
-              { "value": "لٌ" }
-            ]},
-            { "value": "ا", "nikkud": [
-              { "value": "أَ" },
-              { "value": "إِ" },
-              { "value": "أُ" },
-              { "value": "آ" },
-              { "value": "ـا" },
-              { "value": "اً" },
-              { "value": "ٱ" }
-            ]},
-            { "value": "ت", "nikkud": [
-              { "value": "تَ" },
-              { "value": "تِ" },
-              { "value": "تُ" },
-              { "value": "تْ" },
-              { "value": "تّ" },
-              { "value": "تً" },
-              { "value": "تٍ" },
-              { "value": "تٌ" }
-            ]},
-            { "value": "ن", "nikkud": [
-              { "value": "نَ" },
-              { "value": "نِ" },
-              { "value": "نُ" },
-              { "value": "نْ" },
-              { "value": "نّ" },
-              { "value": "نً" },
-              { "value": "نٍ" },
-              { "value": "نٌ" }
-            ]},
-            { "value": "م", "nikkud": [
-              { "value": "مَ" },
-              { "value": "مِ" },
-              { "value": "مُ" },
-              { "value": "مْ" },
-              { "value": "مّ" },
-              { "value": "مً" },
-              { "value": "مٍ" },
-              { "value": "مٌ" }
-            ]}
+            {
+              "hidden": true,
+              "width": 0.5
+            },
+            {
+              "value": "ش",
+              "nikkud": [
+                {
+                  "value": "ش"
+                },
+                {
+                  "value": "شَ"
+                },
+                {
+                  "value": "شِ"
+                },
+                {
+                  "value": "شُ"
+                },
+                {
+                  "value": "شْ"
+                },
+                {
+                  "value": "شّ"
+                },
+                {
+                  "value": "شً"
+                },
+                {
+                  "value": "شٍ"
+                },
+                {
+                  "value": "شٌ"
+                }
+              ]
+            },
+            {
+              "value": "س",
+              "nikkud": [
+                {
+                  "value": "س"
+                },
+                {
+                  "value": "سَ"
+                },
+                {
+                  "value": "سِ"
+                },
+                {
+                  "value": "سُ"
+                },
+                {
+                  "value": "سْ"
+                },
+                {
+                  "value": "سّ"
+                },
+                {
+                  "value": "سً"
+                },
+                {
+                  "value": "سٍ"
+                },
+                {
+                  "value": "سٌ"
+                }
+              ]
+            },
+            {
+              "value": "ي",
+              "nikkud": [
+                {
+                  "value": "ي"
+                },
+                {
+                  "value": "يَ"
+                },
+                {
+                  "value": "يِ"
+                },
+                {
+                  "value": "يُ"
+                },
+                {
+                  "value": "يْ"
+                },
+                {
+                  "value": "يّ"
+                },
+                {
+                  "value": "يً"
+                },
+                {
+                  "value": "يٍ"
+                },
+                {
+                  "value": "يٌ"
+                }
+              ]
+            },
+            {
+              "value": "ب",
+              "nikkud": [
+                {
+                  "value": "ب"
+                },
+                {
+                  "value": "بَ"
+                },
+                {
+                  "value": "بِ"
+                },
+                {
+                  "value": "بُ"
+                },
+                {
+                  "value": "بْ"
+                },
+                {
+                  "value": "بّ"
+                },
+                {
+                  "value": "بً"
+                },
+                {
+                  "value": "بٍ"
+                },
+                {
+                  "value": "بٌ"
+                }
+              ]
+            },
+            {
+              "value": "ل",
+              "nikkud": [
+                {
+                  "value": "ل"
+                },
+                {
+                  "value": "لَ"
+                },
+                {
+                  "value": "لِ"
+                },
+                {
+                  "value": "لُ"
+                },
+                {
+                  "value": "لْ"
+                },
+                {
+                  "value": "لّ"
+                },
+                {
+                  "value": "لً"
+                },
+                {
+                  "value": "لٍ"
+                },
+                {
+                  "value": "لٌ"
+                }
+              ]
+            },
+            {
+              "value": "ا",
+              "nikkud": [
+                {
+                  "value": "ا"
+                },
+                {
+                  "value": "أَ"
+                },
+                {
+                  "value": "إِ"
+                },
+                {
+                  "value": "أُ"
+                },
+                {
+                  "value": "آ"
+                },
+                {
+                  "value": "ـا"
+                },
+                {
+                  "value": "اً"
+                },
+                {
+                  "value": "ٱ"
+                }
+              ]
+            },
+            {
+              "value": "ت",
+              "nikkud": [
+                {
+                  "value": "ت"
+                },
+                {
+                  "value": "تَ"
+                },
+                {
+                  "value": "تِ"
+                },
+                {
+                  "value": "تُ"
+                },
+                {
+                  "value": "تْ"
+                },
+                {
+                  "value": "تّ"
+                },
+                {
+                  "value": "تً"
+                },
+                {
+                  "value": "تٍ"
+                },
+                {
+                  "value": "تٌ"
+                }
+              ]
+            },
+            {
+              "value": "ن",
+              "nikkud": [
+                {
+                  "value": "ن"
+                },
+                {
+                  "value": "نَ"
+                },
+                {
+                  "value": "نِ"
+                },
+                {
+                  "value": "نُ"
+                },
+                {
+                  "value": "نْ"
+                },
+                {
+                  "value": "نّ"
+                },
+                {
+                  "value": "نً"
+                },
+                {
+                  "value": "نٍ"
+                },
+                {
+                  "value": "نٌ"
+                }
+              ]
+            },
+            {
+              "value": "م",
+              "nikkud": [
+                {
+                  "value": "م"
+                },
+                {
+                  "value": "مَ"
+                },
+                {
+                  "value": "مِ"
+                },
+                {
+                  "value": "مُ"
+                },
+                {
+                  "value": "مْ"
+                },
+                {
+                  "value": "مّ"
+                },
+                {
+                  "value": "مً"
+                },
+                {
+                  "value": "مٍ"
+                },
+                {
+                  "value": "مٌ"
+                }
+              ]
+            }
           ]
         },
         {
           "keys": [
-            { "type": "shift", "width": 1.5 },
-            { "value": "ء", "nikkud": [
-              { "value": "ءَ" },
-              { "value": "ءِ" },
-              { "value": "ءُ" }
-            ]},
-            { "value": "ؤ", "nikkud": [
-              { "value": "ؤَ" },
-              { "value": "ؤِ" },
-              { "value": "ؤُ" }
-            ]},
-            { "value": "ر", "nikkud": [
-              { "value": "رَ" },
-              { "value": "رِ" },
-              { "value": "رُ" },
-              { "value": "رْ" },
-              { "value": "رّ" },
-              { "value": "رً" },
-              { "value": "رٍ" },
-              { "value": "رٌ" }
-            ]},
-            { "value": "ى", "nikkud": [
-              { "value": "ىَ" },
-              { "value": "ىِ" },
-              { "value": "ىُ" },
-              { "value": "ىْ" },
-              { "value": "ىّ" },
-              { "value": "ىً" }
-            ]},
-            { "value": "ة", "nikkud": [
-              { "value": "ةَ" },
-              { "value": "ةِ" },
-              { "value": "ةُ" },
-              { "value": "ةً" }
-            ]},
-            { "value": "و", "nikkud": [
-              { "value": "وَ" },
-              { "value": "وِ" },
-              { "value": "وُ" },
-              { "value": "وْ" },
-              { "value": "وّ" },
-              { "value": "وً" },
-              { "value": "وٍ" },
-              { "value": "وٌ" }
-            ]},
-            { "value": "ز", "nikkud": [
-              { "value": "زَ" },
-              { "value": "زِ" },
-              { "value": "زُ" },
-              { "value": "زْ" },
-              { "value": "زّ" },
-              { "value": "زً" },
-              { "value": "زٍ" },
-              { "value": "زٌ" }
-            ]},
-            { "value": "ظ", "nikkud": [
-              { "value": "ظَ" },
-              { "value": "ظِ" },
-              { "value": "ظُ" },
-              { "value": "ظْ" },
-              { "value": "ظّ" },
-              { "value": "ظً" },
-              { "value": "ظٍ" },
-              { "value": "ظٌ" }
-            ]},
-            { "type": "backspace", "width": 1.5 }
+            {
+              "type": "shift",
+              "width": 1.5
+            },
+            {
+              "value": "ء",
+              "nikkud": [
+                {
+                  "value": "ء"
+                },
+                {
+                  "value": "ءَ"
+                },
+                {
+                  "value": "ءِ"
+                },
+                {
+                  "value": "ءُ"
+                }
+              ]
+            },
+            {
+              "value": "ؤ",
+              "nikkud": [
+                {
+                  "value": "ؤ"
+                },
+                {
+                  "value": "ؤَ"
+                },
+                {
+                  "value": "ؤِ"
+                },
+                {
+                  "value": "ؤُ"
+                }
+              ]
+            },
+            {
+              "value": "ر",
+              "nikkud": [
+                {
+                  "value": "ر"
+                },
+                {
+                  "value": "رَ"
+                },
+                {
+                  "value": "رِ"
+                },
+                {
+                  "value": "رُ"
+                },
+                {
+                  "value": "رْ"
+                },
+                {
+                  "value": "رّ"
+                },
+                {
+                  "value": "رً"
+                },
+                {
+                  "value": "رٍ"
+                },
+                {
+                  "value": "رٌ"
+                }
+              ]
+            },
+            {
+              "value": "ى",
+              "nikkud": [
+                {
+                  "value": "ى"
+                },
+                {
+                  "value": "ىَ"
+                },
+                {
+                  "value": "ىِ"
+                },
+                {
+                  "value": "ىُ"
+                },
+                {
+                  "value": "ىْ"
+                },
+                {
+                  "value": "ىّ"
+                },
+                {
+                  "value": "ىً"
+                }
+              ]
+            },
+            {
+              "value": "ة",
+              "nikkud": [
+                {
+                  "value": "ة"
+                },
+                {
+                  "value": "ةَ"
+                },
+                {
+                  "value": "ةِ"
+                },
+                {
+                  "value": "ةُ"
+                },
+                {
+                  "value": "ةً"
+                }
+              ]
+            },
+            {
+              "value": "و",
+              "nikkud": [
+                {
+                  "value": "و"
+                },
+                {
+                  "value": "وَ"
+                },
+                {
+                  "value": "وِ"
+                },
+                {
+                  "value": "وُ"
+                },
+                {
+                  "value": "وْ"
+                },
+                {
+                  "value": "وّ"
+                },
+                {
+                  "value": "وً"
+                },
+                {
+                  "value": "وٍ"
+                },
+                {
+                  "value": "وٌ"
+                }
+              ]
+            },
+            {
+              "value": "ز",
+              "nikkud": [
+                {
+                  "value": "ز"
+                },
+                {
+                  "value": "زَ"
+                },
+                {
+                  "value": "زِ"
+                },
+                {
+                  "value": "زُ"
+                },
+                {
+                  "value": "زْ"
+                },
+                {
+                  "value": "زّ"
+                },
+                {
+                  "value": "زً"
+                },
+                {
+                  "value": "زٍ"
+                },
+                {
+                  "value": "زٌ"
+                }
+              ]
+            },
+            {
+              "value": "ظ",
+              "nikkud": [
+                {
+                  "value": "ظ"
+                },
+                {
+                  "value": "ظَ"
+                },
+                {
+                  "value": "ظِ"
+                },
+                {
+                  "value": "ظُ"
+                },
+                {
+                  "value": "ظْ"
+                },
+                {
+                  "value": "ظّ"
+                },
+                {
+                  "value": "ظً"
+                },
+                {
+                  "value": "ظٍ"
+                },
+                {
+                  "value": "ظٌ"
+                }
+              ]
+            },
+            {
+              "type": "backspace",
+              "width": 1.5
+            }
           ]
         },
         {
           "keys": [
-            { "type": "keyset", "keysetValue": "123", "label": "123", "width": 1.5 },
-            { "type": "next-keyboard", "width": 1 },
-            { "caption": "مسافة", "value": " ", "width": 4 },
-            { "value": ".", "sValue": "،" },
-            { "type": "enter", "width": 1.5 }
+            {
+              "type": "keyset",
+              "keysetValue": "123",
+              "label": "123",
+              "width": 1.5
+            },
+            {
+              "type": "next-keyboard",
+              "width": 1
+            },
+            {
+              "caption": "مسافة",
+              "value": " ",
+              "width": 4
+            },
+            {
+              "value": ".",
+              "sValue": "،"
+            },
+            {
+              "type": "enter",
+              "width": 1.5
+            }
           ]
         }
       ]
@@ -289,50 +876,125 @@
       "rows": [
         {
           "keys": [
-            { "value": "١" },
-            { "value": "٢" },
-            { "value": "٣" },
-            { "value": "٤" },
-            { "value": "٥" },
-            { "value": "٦" },
-            { "value": "٧" },
-            { "value": "٨" },
-            { "value": "٩" },
-            { "value": "٠" }
+            {
+              "value": "١"
+            },
+            {
+              "value": "٢"
+            },
+            {
+              "value": "٣"
+            },
+            {
+              "value": "٤"
+            },
+            {
+              "value": "٥"
+            },
+            {
+              "value": "٦"
+            },
+            {
+              "value": "٧"
+            },
+            {
+              "value": "٨"
+            },
+            {
+              "value": "٩"
+            },
+            {
+              "value": "٠"
+            }
           ]
         },
         {
           "keys": [
-            { "value": "-" },
-            { "value": "/" },
-            { "value": ":" },
-            { "value": "؛" },
-            { "value": "(" },
-            { "value": ")" },
-            { "value": "$" },
-            { "value": "&" },
-            { "value": "@" },
-            { "value": "\"" }
+            {
+              "value": "-"
+            },
+            {
+              "value": "/"
+            },
+            {
+              "value": ":"
+            },
+            {
+              "value": "؛"
+            },
+            {
+              "value": "("
+            },
+            {
+              "value": ")"
+            },
+            {
+              "value": "$"
+            },
+            {
+              "value": "&"
+            },
+            {
+              "value": "@"
+            },
+            {
+              "value": "\""
+            }
           ]
         },
         {
           "keys": [
-            { "type": "keyset", "keysetValue": "#+=", "label": "#+=", "width": 1.5 },
-            { "value": "." },
-            { "value": "،" },
-            { "value": "؟" },
-            { "value": "!" },
-            { "value": "'" },
-            { "type": "backspace", "width": 2.5 }
+            {
+              "type": "keyset",
+              "keysetValue": "#+=",
+              "label": "#+=",
+              "width": 1.5
+            },
+            {
+              "value": "."
+            },
+            {
+              "value": "،"
+            },
+            {
+              "value": "؟"
+            },
+            {
+              "value": "!"
+            },
+            {
+              "value": "'"
+            },
+            {
+              "type": "backspace",
+              "width": 2.5
+            }
           ]
         },
         {
           "keys": [
-            { "type": "keyset", "keysetValue": "abc", "label": "أبج", "width": 1.5 },
-            { "type": "next-keyboard", "width": 1 },
-            { "caption": "مسافة", "value": " ", "width": 4 },
-            { "value": "." },
-            { "type": "enter", "width": 1.5 }
+            {
+              "type": "keyset",
+              "keysetValue": "abc",
+              "label": "أبج",
+              "width": 1.5
+            },
+            {
+              "type": "next-keyboard",
+              "width": 1
+            },
+            {
+              "caption": "مسافة",
+              "value": " ",
+              "width": 4
+            },
+            {
+              "value": "."
+            },
+            {
+              "type": "enter",
+              "width": 1.5
+            }
           ]
         }
       ]
@@ -342,50 +1004,125 @@
       "rows": [
         {
           "keys": [
-            { "value": "[" },
-            { "value": "]" },
-            { "value": "{" },
-            { "value": "}" },
-            { "value": "#" },
-            { "value": "%" },
-            { "value": "^" },
-            { "value": "*" },
-            { "value": "+" },
-            { "value": "=" }
+            {
+              "value": "["
+            },
+            {
+              "value": "]"
+            },
+            {
+              "value": "{"
+            },
+            {
+              "value": "}"
+            },
+            {
+              "value": "#"
+            },
+            {
+              "value": "%"
+            },
+            {
+              "value": "^"
+            },
+            {
+              "value": "*"
+            },
+            {
+              "value": "+"
+            },
+            {
+              "value": "="
+            }
           ]
         },
         {
           "keys": [
-            { "value": "_" },
-            { "value": "\\" },
-            { "value": "|" },
-            { "value": "~" },
-            { "value": "<" },
-            { "value": ">" },
-            { "value": "€" },
-            { "value": "£" },
-            { "value": "¥" },
-            { "value": "•" }
+            {
+              "value": "_"
+            },
+            {
+              "value": "\\"
+            },
+            {
+              "value": "|"
+            },
+            {
+              "value": "~"
+            },
+            {
+              "value": "<"
+            },
+            {
+              "value": ">"
+            },
+            {
+              "value": "€"
+            },
+            {
+              "value": "£"
+            },
+            {
+              "value": "¥"
+            },
+            {
+              "value": "•"
+            }
           ]
         },
         {
           "keys": [
-            { "type": "keyset", "keysetValue": "123", "label": "123", "width": 1.5 },
-            { "value": "." },
-            { "value": "،" },
-            { "value": "؟" },
-            { "value": "!" },
-            { "value": "'" },
-            { "type": "backspace", "width": 2.5 }
+            {
+              "type": "keyset",
+              "keysetValue": "123",
+              "label": "123",
+              "width": 1.5
+            },
+            {
+              "value": "."
+            },
+            {
+              "value": "،"
+            },
+            {
+              "value": "؟"
+            },
+            {
+              "value": "!"
+            },
+            {
+              "value": "'"
+            },
+            {
+              "type": "backspace",
+              "width": 2.5
+            }
           ]
         },
         {
           "keys": [
-            { "type": "keyset", "keysetValue": "abc", "label": "أبج", "width": 1.5 },
-            { "type": "next-keyboard", "width": 1 },
-            { "caption": "مسافة", "value": " ", "width": 4 },
-            { "value": "." },
-            { "type": "enter", "width": 1.5 }
+            {
+              "type": "keyset",
+              "keysetValue": "abc",
+              "label": "أبج",
+              "width": 1.5
+            },
+            {
+              "type": "next-keyboard",
+              "width": 1
+            },
+            {
+              "caption": "مسافة",
+              "value": " ",
+              "width": 4
+            },
+            {
+              "value": "."
+            },
+            {
+              "type": "enter",
+              "width": 1.5
+            }
           ]
         }
       ]

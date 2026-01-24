@@ -536,15 +536,12 @@ class KeyboardViewController: UIInputViewController {
         overlay.tag = 999
         view.addSubview(overlay)
         
-        // Calculate grid layout (2 rows like Android)
-        let itemsPerRow = (nikkudOptions.count + 1) / 2
         let buttonSize: CGFloat = 60
         let spacing: CGFloat = 12
         let padding: CGFloat = 20
+        let maxWidth: CGFloat = view.bounds.width * 0.9
         
-        let pickerWidth = CGFloat(itemsPerRow) * buttonSize + CGFloat(itemsPerRow - 1) * spacing + padding * 2
-        let pickerHeight: CGFloat = 2 * buttonSize + spacing + padding * 2
-        
+        // Create picker container
         let picker = UIView()
         picker.backgroundColor = UIColor.systemGray6
         picker.layer.cornerRadius = 16
@@ -553,22 +550,24 @@ class KeyboardViewController: UIInputViewController {
         picker.layer.shadowOpacity = 0.3
         picker.layer.shadowRadius = 8
         
-        overlay.addSubview(picker)
-        picker.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            picker.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
-            picker.centerYAnchor.constraint(equalTo: overlay.centerYAnchor),
-            picker.widthAnchor.constraint(equalToConstant: pickerWidth),
-            picker.heightAnchor.constraint(equalToConstant: pickerHeight)
-        ])
+        // Create flex container for RTL layout
+        let flexContainer = UIView()
         
-        // Add buttons in 2 rows
+        picker.addSubview(flexContainer)
+        
+        // First pass: collect buttons into rows
+        // Force 2 rows if more than 6 items
+        let itemsPerRow = nikkudOptions.count > 6 ? (nikkudOptions.count + 1) / 2 : nikkudOptions.count
+        var rows: [[UIButton]] = [[]]
+        
         for (index, option) in nikkudOptions.enumerated() {
             let value = option["value"] ?? ""
             let caption = option["caption"] ?? value
             
-            let row = index / itemsPerRow
-            let col = index % itemsPerRow
+            // Force new row after itemsPerRow items
+            if index > 0 && index % itemsPerRow == 0 {
+                rows.append([])
+            }
             
             let button = UIButton(type: .system)
             button.setTitle(caption, for: .normal)
@@ -580,12 +579,42 @@ class KeyboardViewController: UIInputViewController {
             button.addTarget(self, action: #selector(nikkudOptionTapped(_:)), for: .touchUpInside)
             button.accessibilityIdentifier = value
             
-            let x = padding + CGFloat(col) * (buttonSize + spacing)
-            let y = padding + CGFloat(row) * (buttonSize + spacing)
-            
-            picker.addSubview(button)
-            button.frame = CGRect(x: x, y: y, width: buttonSize, height: buttonSize)
+            rows[rows.count - 1].append(button)
         }
+        
+        // Second pass: position buttons RTL, centered per row
+        var currentY: CGFloat = 0
+        var maxRowWidth: CGFloat = 0
+        
+        for row in rows {
+            let rowWidth = CGFloat(row.count) * buttonSize + CGFloat(row.count - 1) * spacing
+            maxRowWidth = max(maxRowWidth, rowWidth)
+            
+            // Position buttons RTL (right to left)
+            for (index, button) in row.enumerated() {
+                let reversedIndex = row.count - 1 - index  // Reverse for RTL
+                let x = CGFloat(reversedIndex) * (buttonSize + spacing)
+                button.frame = CGRect(x: x, y: currentY, width: buttonSize, height: buttonSize)
+                flexContainer.addSubview(button)
+            }
+            
+            currentY += buttonSize + spacing
+        }
+        
+        // Calculate final container size
+        let containerWidth = maxRowWidth
+        let containerHeight = currentY - spacing  // Remove last spacing
+        
+        flexContainer.frame = CGRect(x: padding, y: padding, width: containerWidth, height: containerHeight)
+        
+        overlay.addSubview(picker)
+        picker.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            picker.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
+            picker.centerYAnchor.constraint(equalTo: overlay.centerYAnchor),
+            picker.widthAnchor.constraint(equalToConstant: containerWidth + 2 * padding),
+            picker.heightAnchor.constraint(equalToConstant: containerHeight + 2 * padding)
+        ])
         
         // Tap overlay to dismiss
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(dismissNikkudPicker))
