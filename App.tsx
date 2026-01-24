@@ -357,7 +357,7 @@ const App = () => {
           <View style={styles.profileButtons}>
             {Object.entries(PROFILES).map(([id, profile]) => (
               <Button
-                key={id}
+                key={`${id}-${selectedProfile}`}
                 title={profile.name}
                 onPress={() => switchProfile(id)}
                 color={selectedProfile === id ? '#4CAF50' : '#2196F3'}
