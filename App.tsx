@@ -447,7 +447,7 @@ const App = () => {
           </Text>
           <View style={styles.previewContainer}>
             <KeyboardPreview
-              key={`${selectedProfile}-${configJson.length}`} // Force re-render on profile/config change
+              key={selectedProfile}
               style={styles.preview}
               configJson={configJson}
               onKeyPress={(event) => {

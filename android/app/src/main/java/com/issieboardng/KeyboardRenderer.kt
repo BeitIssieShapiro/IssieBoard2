@@ -18,7 +18,9 @@ import org.json.JSONObject
 class KeyboardRenderer(
     private val context: Context,
     private val isPreview: Boolean = false,
-    private val onKeyPress: ((SimpleKeyboardService.KeyConfig) -> Unit)? = null
+    private val onKeyPress: ((SimpleKeyboardService.KeyConfig) -> Unit)? = null,
+    private val onNikkudSelected: ((String) -> Unit)? = null,
+    private val onRequestRerender: (() -> Unit)? = null
 ) {
     
     companion object {
@@ -70,6 +72,8 @@ class KeyboardRenderer(
         currentKeysetId: String,
         editorContext: SimpleKeyboardService.EditorContext? = null
     ) {
+        lastContainer = container // Store for popup anchoring
+        
         container.removeAllViews()
         container.setBackgroundColor(config.backgroundColor)
         
@@ -247,7 +251,7 @@ class KeyboardRenderer(
             alpha = if (keyEnabled) 1.0f else 0.4f
             
             setOnClickListener {
-                onKeyPress?.invoke(key)
+                handleKeyClick(key, this)
             }
         }
     }
@@ -274,6 +278,32 @@ class KeyboardRenderer(
         return key.backgroundColor
     }
     
+    /**
+     * Handle key click - processes special keys and regular key presses
+     */
+    private fun handleKeyClick(key: SimpleKeyboardService.KeyConfig, keyView: View) {
+        when (key.type.lowercase()) {
+            "shift" -> {
+                shiftState = shiftState.toggle()
+                onRequestRerender?.invoke()
+            }
+            "nikkud" -> {
+                nikkudActive = !nikkudActive
+                onRequestRerender?.invoke()
+            }
+            else -> {
+                // For regular keys, check if nikkud popup should be shown
+                if (nikkudActive && key.nikkud.isNotEmpty()) {
+                    // NOW we have the specific key view to anchor to!
+                    showNikkudPopup(key.nikkud, keyView)
+                } else {
+                    // Let the parent handle the key press (typing, backspace, etc.)
+                    onKeyPress?.invoke(key)
+                }
+            }
+        }
+    }
+    
     fun parseColor(colorString: String, default: Int): Int {
         if (colorString.isEmpty()) return default
         
@@ -289,6 +319,9 @@ class KeyboardRenderer(
         }
     }
     
+    // Store the last container for popup anchoring
+    private var lastContainer: LinearLayout? = null
+    
     private fun showError(layout: LinearLayout, message: String) {
         val errorText = TextView(context).apply {
             text = message
@@ -296,4 +329,118 @@ class KeyboardRenderer(
         }
         layout.addView(errorText)
     }
+    
+    
+    /**
+     * Shows a popup floating exactly above the pressed key.
+     * Uses showAsDropDown with isClippingEnabled = false to escape React Native bounds.
+     */
+    fun showNikkudPopup(options: List<SimpleKeyboardService.NikkudOption>, anchorView: android.view.View) {
+        val context = anchorView.context
+        val buttonSize = 140
+        val spacing = 20
+        val padding = 30
+
+        // 1. Calculate Rows (Force 2 rows if many items)
+        val itemsPerRow = if (options.size > 5) (options.size + 1) / 2 else options.size
+        
+        // 2. Create Main Container (Vertical)
+        val mainLayout = android.widget.LinearLayout(context).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(padding, padding, padding, padding)
+            background = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+                setColor(android.graphics.Color.parseColor("#F0F0F0")) // Light Gray
+                cornerRadius = 20f
+                setStroke(2, android.graphics.Color.parseColor("#AAAAAA"))
+            }
+            elevation = 20f
+        }
+
+        // 3. Build Rows Dynamically
+        val rows = options.chunked(itemsPerRow)
+        rows.forEachIndexed { rowIndex, rowOptions ->
+            val rowLayout = android.widget.LinearLayout(context).apply {
+                orientation = android.widget.LinearLayout.HORIZONTAL
+                layoutParams = android.widget.LinearLayout.LayoutParams(
+                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    if (rowIndex > 0) topMargin = spacing
+                }
+            }
+            
+            rowOptions.forEachIndexed { colIndex, option ->
+                val button = android.widget.Button(context).apply {
+                    text = option.caption
+                    textSize = 24f
+                    setTextColor(android.graphics.Color.BLACK)
+                    background = android.graphics.drawable.GradientDrawable().apply {
+                        setColor(android.graphics.Color.WHITE)
+                        cornerRadius = 12f
+                    }
+                    layoutParams = android.widget.LinearLayout.LayoutParams(buttonSize, buttonSize).apply {
+                        if (colIndex > 0) marginStart = spacing
+                    }
+                    
+                    // Click Handler
+                    setOnClickListener {
+                        onNikkudSelected?.invoke(option.value)
+                        (mainLayout.tag as? android.widget.PopupWindow)?.dismiss()
+                    }
+                }
+                rowLayout.addView(button)
+            }
+            mainLayout.addView(rowLayout)
+        }
+
+        // 4. Create PopupWindow
+        val popupWindow = android.widget.PopupWindow(
+            mainLayout,
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+            true
+        ).apply {
+            isOutsideTouchable = true
+            // CRITICAL: Must be true to intercept outside touches, but use INPUT_METHOD_NOT_NEEDED to keep keyboard open
+            isFocusable = true
+            // CRITICAL: This allows the popup to extend beyond screen/view bounds
+            isClippingEnabled = false 
+            setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+            elevation = 24f
+            // CRITICAL: Prevents keyboard from closing
+            inputMethodMode = android.widget.PopupWindow.INPUT_METHOD_NOT_NEEDED
+            // CRITICAL: Make it modal so touches outside dismiss popup without triggering underlying keys
+            setTouchInterceptor { view, event ->
+                if (event.action == android.view.MotionEvent.ACTION_OUTSIDE) {
+                    dismiss()
+                    true // Consume the event
+                } else {
+                    false // Let normal touch handling proceed
+                }
+            }
+        }
+        mainLayout.tag = popupWindow // Self-reference for dismiss
+
+        // 5. Measure Layout to calculate offsets
+        mainLayout.measure(
+            android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED),
+            android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED)
+        )
+        val popupWidth = mainLayout.measuredWidth
+        val popupHeight = mainLayout.measuredHeight
+
+        // 6. Calculate Position (Center Horizontally over key, Place Vertically above key)
+        val xOffset = (anchorView.width / 2) - (popupWidth / 2)
+        val yOffset = -popupHeight - (anchorView.height / 4)
+
+        // 7. Show It
+        try {
+            // showAsDropDown anchors relative to the 'anchorView' (the key)
+            popupWindow.showAsDropDown(anchorView, xOffset, yOffset)
+        } catch (e: Exception) {
+            Log.e(logTag, "Popup failed", e)
+        }
+    }
+    
 }

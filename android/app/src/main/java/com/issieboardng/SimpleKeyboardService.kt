@@ -213,7 +213,11 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
         renderer = KeyboardRenderer(
             context = this,
             isPreview = false,
-            onKeyPress = { key -> handleKeyPress(key) }
+            onKeyPress = { key -> handleKeyPress(key) },
+            onNikkudSelected = { value ->
+                currentInputConnection?.commitText(value, 1)
+            },
+            onRequestRerender = { renderKeyboard() }
         )
 
         renderKeyboard()
@@ -573,8 +577,7 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
         val editorContext = analyzeEditorInfo()
 
         // Use shared renderer - this is the ONLY rendering code needed!
-        renderer.shiftState = shiftState
-        renderer.nikkudActive = nikkudActive
+        // Renderer maintains its own state (shiftState, nikkudActive)
         renderer.renderKeyboard(layout, config, currentKeysetId, editorContext)
     }
     
@@ -598,21 +601,20 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
                 
                 if (timeSinceLastClick < DOUBLE_CLICK_THRESHOLD_MS) {
                     // Double-click: toggle caps lock
-                    shiftState = if (shiftState is ShiftState.Locked) {
+                    renderer.shiftState = if (renderer.shiftState is ShiftState.Locked) {
                         ShiftState.Inactive
                     } else {
                         ShiftState.Locked
                     }
                 } else {
                     // Single click: toggle
-                    shiftState = shiftState.toggle()
+                    renderer.shiftState = renderer.shiftState.toggle()
                 }
                 lastShiftClickTime = currentTime
                 renderKeyboard()
             }
             "nikkud" -> {
-                nikkudActive = !nikkudActive
-                renderKeyboard()
+                // Handled by renderer
             }
             "keyset" -> {
                 if (key.keysetValue.isNotEmpty()) {
@@ -668,18 +670,14 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
                 inputMethodManager.switchToNextInputMethod(window?.window?.attributes?.token, false)
             }
             else -> {
-                // Regular key
-                if (nikkudActive && key.nikkud.isNotEmpty()) {
-                    showNikkudPopup(key.nikkud)
-                } else {
-                    val value = if (shiftState.isActive()) key.sValue else key.value
-                    if (value.isNotEmpty()) {
-                        currentInputConnection?.commitText(value, 1)
-                        // Auto-reset shift after typing (unless locked)
-                        if (shiftState is ShiftState.Active) {
-                            shiftState = ShiftState.Inactive
-                            renderKeyboard()
-                        }
+                // Regular key - handled by renderer (including nikkud popup)
+                val value = if (renderer.shiftState.isActive()) key.sValue else key.value
+                if (value.isNotEmpty()) {
+                    currentInputConnection?.commitText(value, 1)
+                    // Auto-reset shift after typing (unless locked)
+                    if (renderer.shiftState is ShiftState.Active) {
+                        renderer.shiftState = ShiftState.Inactive
+                        renderKeyboard()
                     }
                 }
             }
@@ -1183,6 +1181,7 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
     
     /**
      * Create regular key behavior with nikkud support (Phase 2: using sealed class)
+     * Nikkud popup is now handled by KeyboardRenderer
      */
     private fun createRegularKey(caption: String, label: String, value: String, nikkudOptions: List<NikkudOption>): Pair<String, () -> Unit> {
         val displayLabel = when {
@@ -1193,139 +1192,18 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
         }
         
         val action: () -> Unit = { 
-            if (nikkudActive && nikkudOptions.isNotEmpty()) {
-                // Show popup with nikkud options
-                showNikkudPopup(nikkudOptions)
-            } else if (value.isNotEmpty()) {
+            // Nikkud popup is now handled by KeyboardRenderer.handleKeyClick()
+            // This action is only called for regular text input
+            if (value.isNotEmpty()) {
                 currentInputConnection?.commitText(value, 1)
                 // Auto-reset shift after typing a character (unless locked)
-                if (shiftState is ShiftState.Active) {
-                    shiftState = ShiftState.Inactive
+                if (renderer.shiftState is ShiftState.Active) {
+                    renderer.shiftState = ShiftState.Inactive
                     renderKeyboard()
                 }
             }
         }
         return Pair(displayLabel, action)
-    }
-    
-    /**
-     * Show custom popup with nikkud/diacritics options using flex-wrap layout
-     * Displays as an overlay on top of the keyboard with RTL support
-     * Forces 2 rows if more than 6 items
-     */
-    private fun showNikkudPopup(options: List<NikkudOption>) {
-        // Force 2 rows if more than 6 items
-        val itemsPerRow = if (options.size > 6) (options.size + 1) / 2 else options.size
-        val buttonSize = 140
-        val spacing = 20
-        val padding = 40
-        
-        // Calculate popup height
-        val numRows = if (options.size > itemsPerRow) 2 else 1
-        val popupHeight = numRows * buttonSize + (numRows - 1) * spacing + 2 * padding
-        
-        // Create container
-        val popupLayout = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            setPadding(padding, padding, padding, padding)
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                setColor(Color.parseColor("#F5F5F5"))
-                cornerRadius = 16f
-                setStroke(2, Color.parseColor("#999999"))
-            }
-        }
-        
-        // Create popup window with explicit height
-        val popupWindow = android.widget.PopupWindow(
-            popupLayout,
-            (resources.displayMetrics.widthPixels * 0.9).toInt(),
-            popupHeight,
-            true
-        )
-        
-        // Add buttons
-        options.forEach { option ->
-            val button = Button(this).apply {
-                text = option.caption
-                textSize = 28f
-                layoutParams = LinearLayout.LayoutParams(
-                    buttonSize,
-                    buttonSize  // Fixed height
-                ).apply {
-                    marginStart = spacing / 2
-                    marginEnd = spacing / 2
-                }
-                setPadding(0, 0, 0, 0)
-                
-                background = GradientDrawable().apply {
-                    shape = GradientDrawable.RECTANGLE
-                    setColor(Color.parseColor("#FFFFFF"))
-                    cornerRadius = 12f
-                    setStroke(2, Color.parseColor("#CCCCCC"))
-                }
-                
-                setOnClickListener {
-                    currentInputConnection?.commitText(option.value, 1)
-                    popupWindow.dismiss()
-                }
-            }
-            
-            popupLayout.addView(button)
-        }
-        
-        // Custom layout for RTL 2-row positioning
-        popupLayout.viewTreeObserver.addOnGlobalLayoutListener(object : android.view.ViewTreeObserver.OnGlobalLayoutListener {
-            override fun onGlobalLayout() {
-                popupLayout.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                
-                var currentRow = 0
-                var currentY = padding
-                
-                for (i in 0 until popupLayout.childCount) {
-                    val child = popupLayout.getChildAt(i)
-                    
-                    val row = i / itemsPerRow
-                    val col = i % itemsPerRow
-                    
-                    if (row != currentRow) {
-                        currentRow = row
-                        currentY += buttonSize + spacing
-                    }
-                    
-                    // Calculate buttons in this row
-                    val buttonsInThisRow = if (row == 0) {
-                        minOf(itemsPerRow, popupLayout.childCount)
-                    } else {
-                        popupLayout.childCount - itemsPerRow
-                    }
-                    
-                    val rowWidth = buttonsInThisRow * buttonSize + (buttonsInThisRow - 1) * spacing
-                    val rowStartX = (popupLayout.width - rowWidth) / 2
-                    
-                    // Position RTL
-                    val reversedCol = buttonsInThisRow - 1 - col
-                    val x = rowStartX + reversedCol * (buttonSize + spacing)
-                    
-                    child.layout(
-                        x,
-                        currentY,
-                        x + buttonSize,
-                        currentY + buttonSize
-                    )
-                }
-            }
-        })
-        
-        // Show popup - use a proper anchor to prevent keyboard dismissal
-        mainLayout?.let { layout ->
-            popupWindow.elevation = 20f
-            popupWindow.isOutsideTouchable = true
-            popupWindow.isFocusable = false  // Changed to false to prevent keyboard dismissal
-            popupWindow.inputMethodMode = android.widget.PopupWindow.INPUT_METHOD_NOT_NEEDED
-            popupWindow.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.TRANSPARENT))
-            popupWindow.showAtLocation(layout, android.view.Gravity.CENTER, 0, 0)
-        }
     }
     
     private fun openSettings() {
