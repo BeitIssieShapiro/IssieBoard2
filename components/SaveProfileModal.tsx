@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
+import { useLocalization } from "../src/localization";
 
 interface SaveProfileModalProps {
     showSaveModal: boolean;
@@ -8,6 +9,7 @@ interface SaveProfileModalProps {
 }
 
 const SaveProfileModal = ({showSaveModal, onClose, onSave} : SaveProfileModalProps) => {
+  const { strings } = useLocalization();
   const [newProfileName, setNewProfileName] = useState('');
 
   if (!showSaveModal) return null;
@@ -21,23 +23,23 @@ const SaveProfileModal = ({showSaveModal, onClose, onSave} : SaveProfileModalPro
     >
       <View style={styles.overlay}>
         <View style={styles.dialog}>
-          <Text style={styles.title}>Save Profile</Text>
-          <Text style={styles.message}>Enter a name for this profile</Text>
+          <Text style={styles.title}>{strings.saveProfile || 'Save Profile'}</Text>
+          <Text style={styles.message}>{strings.enterProfileNamePrompt || 'Enter a name for this profile'}</Text>
           <TextInput
             style={styles.input}
             value={newProfileName}
             onChangeText={setNewProfileName}
-            placeholder="Profile name"
+            placeholder={strings.profileNamePlaceholder || 'Profile name'}
             autoFocus
           />
           <View style={styles.divider} />
           <View style={styles.buttons}>
             <TouchableOpacity style={styles.button} onPress={onClose}>
-              <Text style={styles.buttonText}>Cancel</Text>
+              <Text style={styles.buttonText}>{strings.cancel}</Text>
             </TouchableOpacity>
             <View style={styles.buttonDivider} />
             <TouchableOpacity style={styles.button} onPress={() => onSave(newProfileName)}>
-              <Text style={[styles.buttonText, styles.saveText]}>Save</Text>
+              <Text style={[styles.buttonText, styles.saveText]}>{strings.save || 'Save'}</Text>
             </TouchableOpacity>
           </View>
         </View>

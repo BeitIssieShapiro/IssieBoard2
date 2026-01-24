@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, TextInput, Button, Text, StyleSheet, Alert, ActivityIndicator, ScrollView, Platform, TouchableOpacity } from 'react-native';
 import SaveProfileModal from './components/SaveProfileModal';
 import KeyboardPreferences from './src/native/KeyboardPreferences';
+import { useLocalization } from './src/localization';
 
 // Import keyboard and profile files
 import enKeyboard from './keyboards/en.json';
@@ -84,9 +85,10 @@ const buildConfiguration = (profile: any): any => {
 };
 
 const App = () => {
+  const { strings } = useLocalization();
   const [selectedProfile, setSelectedProfile] = useState('default');
   const [configJson, setConfigJson] = useState('');
-  const [status, setStatus] = useState('Initializing...');
+  const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
   const [savedProfiles, setSavedProfiles] = useState<SavedProfile[]>([]);
   const [showSaveModal, setShowSaveModal] = useState(false);
@@ -129,13 +131,13 @@ const App = () => {
         // Check if native module is working
         if (Platform.OS === 'ios' && !setProfileResult.success) {
           console.warn('⚠️ iOS native module not available. See console for setup instructions.');
-          setStatus(`Loaded profile: ${profile.name} (${Platform.OS}) - Native module not connected`);
+          setStatus(`${strings.loadedProfile} ${profile.name} - ${strings.nativeModuleNotConnected}`);
         } else {
-          setStatus(`Loaded profile: ${profile.name} (${Platform.OS})`);
+          setStatus(`${strings.loadedProfile} ${profile.name}`);
         }
       } catch (e) {
         console.error('Initialization error', e);
-        setStatus('Error loading configuration');
+        setStatus(strings.errorLoadingConfiguration);
       } finally {
         setLoading(false);
       }
@@ -146,27 +148,27 @@ const App = () => {
 
   const switchProfile = async (profileId: string) => {
     try {
-      setStatus('Switching profile...');
+      setStatus(strings.switchingProfile);
       setSelectedProfile(profileId);
-      
+
       // Build configuration from selected profile
       const profile = PROFILES[profileId as keyof typeof PROFILES];
       const config = buildConfiguration(profile);
-      
+
       // Update display
       setConfigJson(JSON.stringify(config, null, 2));
-      
+
       // Save to keyboard (platform-specific implementation)
       await KeyboardPreferences.setCurrentProfile(profileId);
       await KeyboardPreferences.setKeyboardConfigObject(config);
       console.log(`✅ ${Platform.OS}: Switched to ${profile.name}`);
-      
-      setStatus(`Switched to: ${profile.name} (${Platform.OS})`);
-      Alert.alert('Success', `Profile changed to "${profile.name}". Close and reopen the keyboard to see changes.`);
+
+      setStatus(`${strings.switchedTo} ${profile.name}`);
+      Alert.alert(strings.success, `${strings.profileChangedTo} "${profile.name}". ${strings.closeAndReopenKeyboard}`);
     } catch (e) {
       console.error('Profile switch error:', e);
-      setStatus('Error switching profile');
-      Alert.alert('Error', 'Failed to switch profile');
+      setStatus(strings.errorSwitchingProfile);
+      Alert.alert(strings.error, strings.failedToSwitchProfile);
     }
   };
 
@@ -176,19 +178,19 @@ const App = () => {
       JSON.parse(configJson);
       setShowSaveModal(true);
     } catch (e) {
-      Alert.alert('Syntax Error', 'Please check your JSON formatting before saving.');
+      Alert.alert(strings.syntaxError, strings.checkJsonFormatting);
     }
   };
 
   const handleSaveWithName = async (profileName: string) => {
     const name = profileName.trim();
     if (!name) {
-      Alert.alert('Error', 'Please enter a profile name');
+      Alert.alert(strings.error, strings.enterProfileName);
       return;
     }
 
     try {
-      setStatus('Saving custom configuration...');
+      setStatus(strings.savingConfiguration);
       const parsedConfig = JSON.parse(configJson);
       const key = `custom_${Date.now()}`;
 
@@ -205,45 +207,45 @@ const App = () => {
       console.log(`✅ ${Platform.OS}: Custom config "${name}" saved`);
 
       setShowSaveModal(false);
-      setStatus(`Saved profile: ${name} (${Platform.OS})`);
-      Alert.alert('Success', `Profile "${name}" saved! Close and reopen the keyboard to see changes.`);
+      setStatus(`${strings.profileSaved} ${name}`);
+      Alert.alert(strings.success, `"${name}" ${strings.profileSaved} ${strings.closeAndReopenKeyboard}`);
     } catch (e) {
       console.error('Save error:', e);
-      Alert.alert('Error', 'Failed to save profile');
+      Alert.alert(strings.error, strings.failedToSaveProfile);
     }
   };
 
   const loadSavedProfile = async (profile: SavedProfile) => {
     try {
-      setStatus('Loading saved profile...');
+      setStatus(strings.loadingProfile);
       const config = await KeyboardPreferences.getProfileObject(profile.key);
       if (config) {
         setConfigJson(JSON.stringify(config, null, 2));
         await KeyboardPreferences.setKeyboardConfigObject(config);
         setSelectedProfile(profile.key); // Clear built-in profile selection
-        setStatus(`Loaded: ${profile.name} (${Platform.OS})`);
-        Alert.alert('Success', `Profile "${profile.name}" loaded. Close and reopen the keyboard to see changes.`);
+        setStatus(`${strings.loadedProfile} ${profile.name}`);
+        Alert.alert(strings.success, `"${profile.name}" ${strings.profileLoaded} ${strings.closeAndReopenKeyboard}`);
       } else {
-        Alert.alert('Error', 'Profile not found');
+        Alert.alert(strings.error, strings.profileNotFound);
       }
     } catch (e) {
       console.error('Load error:', e);
-      Alert.alert('Error', 'Failed to load profile');
+      Alert.alert(strings.error, strings.failedToLoadProfile);
     }
   };
 
   const showProfileMenu = (profile: SavedProfile) => {
     Alert.alert(
       profile.name,
-      'What would you like to do?',
+      strings.whatWouldYouLikeToDo,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: strings.cancel, style: 'cancel' },
         {
-          text: 'Edit',
+          text: strings.edit,
           onPress: () => startEditingProfile(profile),
         },
         {
-          text: 'Delete',
+          text: strings.delete,
           style: 'destructive',
           onPress: () => confirmDeleteProfile(profile),
         },
@@ -257,13 +259,13 @@ const App = () => {
       if (config) {
         setConfigJson(JSON.stringify(config, null, 2));
         setEditingProfile(profile);
-        setStatus(`Editing: ${profile.name}`);
+        setStatus(`${strings.editing} ${profile.name}`);
       } else {
-        Alert.alert('Error', 'Profile not found');
+        Alert.alert(strings.error, strings.profileNotFound);
       }
     } catch (e) {
       console.error('Edit error:', e);
-      Alert.alert('Error', 'Failed to load profile for editing');
+      Alert.alert(strings.error, strings.failedToLoadForEditing);
     }
   };
 
@@ -277,11 +279,11 @@ const App = () => {
       await KeyboardPreferences.setProfileObject(parsedConfig, editingProfile.key);
       await KeyboardPreferences.setKeyboardConfigObject(parsedConfig);
 
-      setStatus(`Saved changes to: ${editingProfile.name}`);
-      Alert.alert('Success', `Profile "${editingProfile.name}" updated. Close and reopen the keyboard to see changes.`);
+      setStatus(`${strings.savedChangesTo} ${editingProfile.name}`);
+      Alert.alert(strings.success, `"${editingProfile.name}" ${strings.profileUpdated} ${strings.closeAndReopenKeyboard}`);
       setEditingProfile(null);
     } catch (e) {
-      Alert.alert('Syntax Error', 'Please check your JSON formatting.');
+      Alert.alert(strings.syntaxError, strings.checkJsonFormatting);
       console.error('Save edit error:', e);
     }
   };
@@ -294,17 +296,17 @@ const App = () => {
       const config = buildConfiguration(profile);
       setConfigJson(JSON.stringify(config, null, 2));
     }
-    setStatus('Edit cancelled');
+    setStatus(strings.editCancelled);
   };
 
   const confirmDeleteProfile = (profile: SavedProfile) => {
     Alert.alert(
-      'Delete Profile',
-      `Are you sure you want to delete "${profile.name}"?`,
+      strings.deleteProfile,
+      `${strings.confirmDelete} "${profile.name}"?`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: strings.cancel, style: 'cancel' },
         {
-          text: 'Delete',
+          text: strings.delete,
           style: 'destructive',
           onPress: () => deleteSavedProfile(profile),
         },
@@ -319,11 +321,11 @@ const App = () => {
       await KeyboardPreferences.setProfile(JSON.stringify(newList), 'saved_list');
       setSavedProfiles(newList);
 
-      setStatus(`Deleted: ${profile.name}`);
+      setStatus(`${strings.deleted} ${profile.name}`);
       console.log(`✅ ${Platform.OS}: Deleted profile "${profile.name}"`);
     } catch (e) {
       console.error('Delete error:', e);
-      Alert.alert('Error', 'Failed to delete profile');
+      Alert.alert(strings.error, strings.failedToDeleteProfile);
     }
   };
 
@@ -346,11 +348,11 @@ const App = () => {
       />
 
       <ScrollView style={styles.container}>
-        <Text style={styles.header}>Keyboard Configuration</Text>
+        <Text style={styles.header}>{strings.keyboardConfiguration}</Text>
 
         {/* Profile Selector */}
         <View style={styles.profileSection}>
-          <Text style={styles.sectionTitle}>Built-in Profiles:</Text>
+          <Text style={styles.sectionTitle}>{strings.builtInProfiles}</Text>
           <View style={styles.profileButtons}>
             {Object.entries(PROFILES).map(([id, profile]) => (
               <Button
@@ -365,8 +367,8 @@ const App = () => {
           {/* Saved Custom Profiles */}
           {savedProfiles.length > 0 && (
             <>
-              <Text style={[styles.sectionTitle, { marginTop: 15 }]}>Saved Profiles:</Text>
-              <Text style={styles.hintText}>Long-press for options</Text>
+              <Text style={[styles.sectionTitle, { marginTop: 15 }]}>{strings.savedProfiles}</Text>
+              <Text style={styles.hintText}>{strings.longPressForOptions}</Text>
               <View style={styles.profileButtons}>
                 {savedProfiles.map((profile) => (
                   <TouchableOpacity
@@ -387,17 +389,17 @@ const App = () => {
           )}
 
           <Text style={styles.profileInfo}>
-            Current: {PROFILES[selectedProfile as keyof typeof PROFILES]?.name || savedProfiles.find(p => p.key === selectedProfile)?.name || 'Custom'}
+            {strings.current} {PROFILES[selectedProfile as keyof typeof PROFILES]?.name || savedProfiles.find(p => p.key === selectedProfile)?.name || strings.custom}
           </Text>
         </View>
 
         {/* Keyboards in Current Profile */}
         <View style={styles.keyboardsSection}>
-          <Text style={styles.sectionTitle}>Keyboards in This Profile:</Text>
+          <Text style={styles.sectionTitle}>{strings.keyboardsInProfile}</Text>
           <Text style={styles.keyboardsList}>
             {PROFILES[selectedProfile as keyof typeof PROFILES]?.keyboards
               ?.map((kbId: string) => KEYBOARDS[kbId as keyof typeof KEYBOARDS]?.name || kbId)
-              .join(', ') || 'Custom configuration'}
+              .join(', ') || strings.customConfiguration}
           </Text>
         </View>
 
@@ -405,13 +407,13 @@ const App = () => {
         <View style={styles.editorSection}>
           <Text style={styles.sectionTitle}>
             {editingProfile
-              ? `Editing: ${editingProfile.name}`
-              : 'Generated Configuration (Advanced):'}
+              ? `${strings.editing} ${editingProfile.name}`
+              : strings.generatedConfiguration}
           </Text>
           <Text style={styles.helpText}>
             {editingProfile
-              ? 'Make your changes below and tap "Save Changes" when done.'
-              : 'You can manually edit the JSON below if needed. Changes will override the profile.'}
+              ? strings.editingHelpText
+              : strings.editorHelpText}
           </Text>
           <TextInput
             style={styles.input}
@@ -430,27 +432,21 @@ const App = () => {
           {editingProfile ? (
             <View style={styles.editButtons}>
               <View style={styles.editButtonWrapper}>
-                <Button title="Cancel" onPress={cancelEditing} color="#666" />
+                <Button title={strings.cancel} onPress={cancelEditing} color="#666" />
               </View>
               <View style={styles.editButtonWrapper}>
-                <Button title="Save Changes" onPress={saveEditedProfile} color="#4CAF50" />
+                <Button title={strings.saveChanges} onPress={saveEditedProfile} color="#4CAF50" />
               </View>
             </View>
           ) : (
-            <Button title="Save Custom Configuration" onPress={saveCustomConfig} />
+            <Button title={strings.saveCustomConfiguration} onPress={saveCustomConfig} />
           )}
         </View>
 
         {/* Help Text */}
         <View style={styles.helpSection}>
-          <Text style={styles.helpTitle}>📚 About Profiles</Text>
-          <Text style={styles.helpText}>
-            • Profiles combine keyboards with styling{'\n'}
-            • Switch profiles to change keyboards and themes{'\n'}
-            • Edit keyboards/ folder to add new languages{'\n'}
-            • Edit profiles/ folder to create custom themes{'\n'}
-            • See keyboards/README.md for details
-          </Text>
+          <Text style={styles.helpTitle}>📚 {strings.aboutProfiles}</Text>
+          <Text style={styles.helpText}>{strings.helpText}</Text>
         </View>
     </ScrollView>
     </>
