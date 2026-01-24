@@ -102,10 +102,11 @@ const App = () => {
     const initSettings = async () => {
       try {
         // Load saved custom profiles list
+        let savedList: SavedProfile[] = [];
         const savedListJson = await KeyboardPreferences.getProfile('saved_list');
         if (savedListJson) {
           try {
-            const savedList = JSON.parse(savedListJson);
+            savedList = JSON.parse(savedListJson);
             setSavedProfiles(savedList);
           } catch (e) {
             console.warn('Failed to parse saved profiles list:', e);
@@ -113,18 +114,47 @@ const App = () => {
         }
 
         // Get saved profile (platform-specific implementation)
-        const savedProfile = (await KeyboardPreferences.getCurrentProfile()) || 'default';
-        setSelectedProfile(savedProfile);
+        const savedProfileId = (await KeyboardPreferences.getCurrentProfile()) || 'default';
+        setSelectedProfile(savedProfileId);
 
-        // Build configuration from profile
-        const profile = PROFILES[savedProfile as keyof typeof PROFILES];
-        const config = buildConfiguration(profile);
+        // Load configuration - check built-in profiles first, then saved custom profiles
+        let config;
+        let profileName: string;
+        const builtInProfile = PROFILES[savedProfileId as keyof typeof PROFILES];
+
+        if (builtInProfile) {
+          // Built-in profile: build configuration from profile definition
+          config = buildConfiguration(builtInProfile);
+          profileName = builtInProfile.name;
+        } else {
+          // Custom profile: load from storage
+          config = await KeyboardPreferences.getProfileObject(savedProfileId);
+
+          // Find the profile name from savedList (already parsed above)
+          const savedProfileInfo = savedList.find(p => p.key === savedProfileId);
+          profileName = savedProfileInfo?.name || strings.custom;
+
+          if (config) {
+            // Check if config needs to be built (has keyboards array but no keysets)
+            if (config.keyboards && (!config.keysets || config.keysets.length === 0)) {
+              console.log(`Building configuration for saved profile "${profileName}"`);
+              config = buildConfiguration(config);
+            }
+          } else {
+            // Fallback to default if custom profile not found
+            console.warn(`Saved profile "${savedProfileId}" not found, falling back to default`);
+            const fallbackProfile = PROFILES['default'];
+            config = buildConfiguration(fallbackProfile);
+            profileName = fallbackProfile.name;
+            setSelectedProfile('default');
+          }
+        }
 
         // Convert to JSON string for display
         setConfigJson(JSON.stringify(config, null, 2));
 
         // Save to keyboard (platform-specific implementation)
-        const setProfileResult = await KeyboardPreferences.setCurrentProfile(savedProfile);
+        const setProfileResult = await KeyboardPreferences.setCurrentProfile(savedProfileId);
         const setConfigResult = await KeyboardPreferences.setKeyboardConfigObject(config);
 
         console.log(`✅ ${Platform.OS}: Configuration loaded and saved`);
@@ -134,9 +164,9 @@ const App = () => {
         // Check if native module is working
         if (Platform.OS === 'ios' && !setProfileResult.success) {
           console.warn('⚠️ iOS native module not available. See console for setup instructions.');
-          setStatus(`${strings.loadedProfile} ${profile.name} - ${strings.nativeModuleNotConnected}`);
+          setStatus(`${strings.loadedProfile} ${profileName} - ${strings.nativeModuleNotConnected}`);
         } else {
-          setStatus(`${strings.loadedProfile} ${profile.name}`);
+          setStatus(`${strings.loadedProfile} ${profileName}`);
         }
       } catch (e) {
         console.error('Initialization error', e);
