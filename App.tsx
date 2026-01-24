@@ -3,6 +3,7 @@ import { View, TextInput, Button, Text, StyleSheet, Alert, ActivityIndicator, Sc
 import SaveProfileModal from './components/SaveProfileModal';
 import KeyboardPreferences from './src/native/KeyboardPreferences';
 import { useLocalization } from './src/localization';
+import { KeyboardPreview } from './src/components/KeyboardPreview';
 
 // Import keyboard and profile files
 import enKeyboard from './keyboards/en.json';
@@ -403,6 +404,30 @@ const App = () => {
           </Text>
         </View>
 
+        {/* Live Keyboard Preview (Android only for now) */}
+        {Platform.OS === 'android' && (
+          <View style={styles.previewSection}>
+            <Text style={styles.sectionTitle}>🎹 {strings.keyboardPreview || 'Keyboard Preview'}</Text>
+            <Text style={styles.helpText}>
+              {strings.previewHelpText || 'Live preview of your keyboard. Tap keys to test!'}
+            </Text>
+            <View style={styles.previewContainer}>
+              <KeyboardPreview
+                style={{
+                  width: '100%',
+                  height: 250,
+                  backgroundColor: '#FF0000', // Red background to debug visibility
+                }}
+                configJson={configJson}
+                onKeyPress={(event) => {
+                  const { type, value } = event.nativeEvent;
+                  console.log('Preview key pressed:', type, value);
+                }}
+              />
+            </View>
+          </View>
+        )}
+
         {/* JSON Editor */}
         <View style={styles.editorSection}>
           <Text style={styles.sectionTitle}>
@@ -568,6 +593,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     lineHeight: 18,
+  },
+  previewSection: {
+    marginBottom: 20,
+    padding: 15,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+  },
+  previewContainer: {
+    marginTop: 10,
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  preview: {
+    height: 250,
   },
 });
 

@@ -154,22 +154,22 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
     private var mainLayout: LinearLayout? = null
     private var currentKeysetId: String = DEFAULT_KEYSET_ID
     
+    // Shared renderer and parser
+    private lateinit var renderer: KeyboardRenderer
+    private lateinit var configParser: KeyboardConfigParser
+    
     // Cached parsed configuration (Phase 2 optimization)
     private var parsedConfig: ParsedConfig? = null
     
-    // Color parsing cache (Phase 2 optimization)
-    private val colorCache = mutableMapOf<String, Int>()
-    
-    // Shift state (Phase 2 optimization: using sealed class)
+    // Keyboard state
     private var shiftState: ShiftState = ShiftState.Inactive
-    private var lastShiftClickTime: Long = 0
-    
-    // Nikkud state (for Hebrew/Arabic diacritics)
     private var nikkudActive: Boolean = false
     
-    // Language cycling state
-    private var availableKeyboardIds: List<String> = emptyList()
-    private var currentKeyboardIndex: Int = 0
+    // Color parsing cache
+    private val colorCache = mutableMapOf<String, Int>()
+    
+    // Double-click detection for shift
+    private var lastShiftClickTime: Long = 0
     
     // Legacy state (kept for backward compatibility during transition)
     private var keysetsMap: Map<String, JSONObject> = emptyMap()
@@ -207,6 +207,14 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
         } else {
             mainLayout?.fitsSystemWindows = true
         }
+
+        // Initialize shared components
+        configParser = KeyboardConfigParser(this)
+        renderer = KeyboardRenderer(
+            context = this,
+            isPreview = false,
+            onKeyPress = { key -> handleKeyPress(key) }
+        )
 
         renderKeyboard()
         return mainLayout!!
@@ -548,7 +556,6 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
 
     private fun renderKeyboard() {
         val layout = mainLayout ?: return
-        layout.removeAllViews()
 
         // Load config if not already loaded
         if (parsedConfig == null) {
@@ -557,6 +564,7 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
 
         val config = parsedConfig
         if (config == null) {
+            layout.removeAllViews()
             showError(layout, "No config loaded")
             return
         }
@@ -564,24 +572,117 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
         // Get editor context for dynamic key behavior
         val editorContext = analyzeEditorInfo()
 
-        // Use cached background color
-        layout.setBackgroundColor(config.backgroundColor)
-
-        // Get cached keyset
-        val keyset = config.keysets[currentKeysetId]
-        if (keyset == null) {
-            showError(layout, "Keyset not found: $currentKeysetId")
-            return
-        }
-
-        // Calculate baseline width for consistent key sizing
-        val baselineWidth = calculateBaselineWidthFromParsed(keyset.rows, editorContext)
-
-        // Render each row from cached configuration
-        for (rowKeys in keyset.rows) {
-            val rowLayout = createRowLayout(baselineWidth)
-            renderRowKeysFromParsed(rowLayout, rowKeys, editorContext)
-            layout.addView(rowLayout)
+        // Use shared renderer - this is the ONLY rendering code needed!
+        renderer.shiftState = shiftState
+        renderer.nikkudActive = nikkudActive
+        renderer.renderKeyboard(layout, config, currentKeysetId, editorContext)
+    }
+    
+    /**
+     * Handle key press from renderer callback
+     * This is called by KeyboardRenderer when a key is pressed
+     */
+    private fun handleKeyPress(key: KeyConfig) {
+        val editorContext = analyzeEditorInfo()
+        
+        when (key.type.lowercase()) {
+            "backspace" -> {
+                currentInputConnection?.deleteSurroundingText(1, 0)
+            }
+            "enter", "action" -> {
+                currentInputConnection?.performEditorAction(editorContext.actionId)
+            }
+            "shift" -> {
+                val currentTime = System.currentTimeMillis()
+                val timeSinceLastClick = currentTime - lastShiftClickTime
+                
+                if (timeSinceLastClick < DOUBLE_CLICK_THRESHOLD_MS) {
+                    // Double-click: toggle caps lock
+                    shiftState = if (shiftState is ShiftState.Locked) {
+                        ShiftState.Inactive
+                    } else {
+                        ShiftState.Locked
+                    }
+                } else {
+                    // Single click: toggle
+                    shiftState = shiftState.toggle()
+                }
+                lastShiftClickTime = currentTime
+                renderKeyboard()
+            }
+            "nikkud" -> {
+                nikkudActive = !nikkudActive
+                renderKeyboard()
+            }
+            "keyset" -> {
+                if (key.keysetValue.isNotEmpty()) {
+                    val keyboardPrefix = if (currentKeysetId.contains("_")) {
+                        currentKeysetId.substringBefore("_")
+                    } else {
+                        ""
+                    }
+                    
+                    val targetKeysetId = if (keyboardPrefix.isNotEmpty()) {
+                        "${keyboardPrefix}_${key.keysetValue}"
+                    } else {
+                        key.keysetValue
+                    }
+                    
+                    switchKeyset(targetKeysetId)
+                }
+            }
+            "settings" -> {
+                openSettings()
+            }
+            "close" -> {
+                requestHideSelf(0)
+            }
+            "language" -> {
+                val config = parsedConfig
+                if (config != null && config.keysets.isNotEmpty()) {
+                    val allKeysetIds = config.keysets.keys.toList()
+                    val currentKeysetType = when {
+                        currentKeysetId.endsWith("_abc") -> "abc"
+                        currentKeysetId.endsWith("_123") -> "123"
+                        currentKeysetId.endsWith("_#+=") -> "#+="
+                        currentKeysetId == "abc" -> "abc"
+                        currentKeysetId == "123" -> "123"
+                        currentKeysetId == "#+=" -> "#+="
+                        else -> "abc"
+                    }
+                    
+                    val sameTypeKeysets = allKeysetIds.filter { keysetId ->
+                        keysetId == currentKeysetType || keysetId.endsWith("_$currentKeysetType")
+                    }
+                    
+                    if (sameTypeKeysets.size > 1) {
+                        val currentIndex = sameTypeKeysets.indexOf(currentKeysetId)
+                        val nextIndex = (currentIndex + 1) % sameTypeKeysets.size
+                        val nextKeysetId = sameTypeKeysets[nextIndex]
+                        switchKeyset(nextKeysetId)
+                    }
+                }
+            }
+            "next-keyboard" -> {
+                val inputMethodManager = getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                inputMethodManager.switchToNextInputMethod(window?.window?.attributes?.token, false)
+            }
+            else -> {
+                // Regular key
+                if (nikkudActive && key.nikkud.isNotEmpty()) {
+                    showNikkudPopup(key.nikkud)
+                } else {
+                    val value = if (shiftState.isActive()) key.sValue else key.value
+                    if (value.isNotEmpty()) {
+                        currentInputConnection?.commitText(value, 1)
+                        // Auto-reset shift after typing (unless locked)
+                        if (shiftState is ShiftState.Active) {
+                            shiftState = ShiftState.Inactive
+                            renderKeyboard()
+                        }
+                    }
+                }
+            }
         }
     }
     
