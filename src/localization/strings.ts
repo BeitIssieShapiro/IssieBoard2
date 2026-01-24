@@ -14,6 +14,8 @@ export interface Strings {
   // Keyboards Section
   keyboardsInProfile: string;
   customConfiguration: string;
+  keyboardPreview: string;
+  previewHelpText: string;
 
   // Editor Section
   editing: string;
@@ -88,6 +90,8 @@ const en: Strings = {
   // Keyboards Section
   keyboardsInProfile: 'Keyboards in This Profile:',
   customConfiguration: 'Custom configuration',
+  keyboardPreview: 'Keyboard Preview',
+  previewHelpText: 'Live preview of your keyboard. Tap keys to test!',
 
   // Editor Section
   editing: 'Editing:',
@@ -162,6 +166,8 @@ const he: Strings = {
   // Keyboards Section
   keyboardsInProfile: 'מקלדות בפרופיל זה:',
   customConfiguration: 'הגדרה מותאמת אישית',
+  keyboardPreview: 'תצוגה מקדימה של המקלדת',
+  previewHelpText: 'תצוגה מקדימה של המקלדת. לחץ על כפתורים כדי לבדוק!',
 
   // Editor Section
   editing: 'עריכה:',
@@ -236,6 +242,8 @@ const ar: Strings = {
   // Keyboards Section
   keyboardsInProfile: 'لوحات المفاتيح في هذا الملف:',
   customConfiguration: 'إعداد مخصص',
+  keyboardPreview: 'عرض معاينة لوحة المفاتيح',
+  previewHelpText: 'عرض معاينة لوحة المفاتيح. اضغط على المفاتيح للاختبار!',
 
   // Editor Section
   editing: 'تحرير:',

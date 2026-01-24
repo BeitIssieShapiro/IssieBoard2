@@ -436,9 +436,9 @@ const App = () => {
 
         {/* Live Keyboard Preview */}
         <View style={styles.previewSection}>
-          <Text style={styles.sectionTitle}>🎹 {strings.keyboardPreview || 'Keyboard Preview'}</Text>
+          <Text style={styles.sectionTitle}>🎹 {strings.keyboardPreview}</Text>
           <Text style={styles.helpText}>
-            {strings.previewHelpText || 'Live preview of your keyboard. Tap keys to test!'}
+            {strings.previewHelpText}
           </Text>
           <View style={styles.previewContainer}>
             <KeyboardPreview
