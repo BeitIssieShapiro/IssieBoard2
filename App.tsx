@@ -152,18 +152,13 @@ const App = () => {
   /**
    * Shared logic to apply a configuration and update the UI
    */
-  const applyConfiguration = async (config: any, profileName: string, profileId?: string) => {
+  const applyConfiguration = async (config: any, profileName: string, profileId: string) => {
     // Update display
     setConfigJson(JSON.stringify(config, null, 2));
 
     // Save to keyboard (platform-specific implementation)
-    if (profileId) {
-      await KeyboardPreferences.setCurrentProfile(profileId);
-      setSelectedProfile(profileId);
-    } else {
-      // For custom profiles, clear the built-in profile selection
-      setSelectedProfile('');
-    }
+    await KeyboardPreferences.setCurrentProfile(profileId);
+    setSelectedProfile(profileId);
     await KeyboardPreferences.setKeyboardConfigObject(config);
 
     console.log(`✅ ${Platform.OS}: Applied configuration "${profileName}"`);
@@ -252,12 +247,12 @@ const App = () => {
       if (config) {
         // Check if config needs to be built (has keyboards array but no keysets)
         // This handles profiles that were saved as partial profiles
-        if (config.keyboards && (!config.keysets || config.keysets.length === 0)) {
+        if (config?.keyboards && (!config.keysets || config.keysets.length === 0)) {
           console.log(`Building configuration for saved profile "${profile.name}"`);
           config = buildConfiguration(config);
         }
 
-        await applyConfiguration(config, profile.name);
+        await applyConfiguration(config, profile.name, profile.key);
 
         setStatus(`${strings.loadedProfile} ${profile.name}`);
         Alert.alert(strings.success, `"${profile.name}" ${strings.profileLoaded} ${strings.closeAndReopenKeyboard}`);
@@ -452,7 +447,6 @@ const App = () => {
               configJson={configJson}
               onKeyPress={(event) => {
                 const { type, value } = event.nativeEvent;
-                console.log('Preview key pressed:', type, value);
               }}
             />
           </View>
