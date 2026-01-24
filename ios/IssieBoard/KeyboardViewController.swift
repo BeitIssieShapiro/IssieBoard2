@@ -25,12 +25,16 @@ class KeyboardViewController: UIInputViewController {
     private let fontSize: CGFloat = 18
     private let largeFontSize: CGFloat = 24
     
+    // Layout tracking to prevent infinite loops
+    private var lastRenderedWidth: CGFloat = 0
+    
     // MARK: - Lifecycle
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
         print("🚀 KeyboardViewController viewDidLoad")
+        print("📐 viewDidLoad: view.bounds = \(view.bounds)")
         
         setupKeyboard()
         loadPreferences()
@@ -39,7 +43,32 @@ class KeyboardViewController: UIInputViewController {
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        print("📐 viewWillAppear: view.bounds = \(view.bounds)")
         loadPreferences()
+    }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        let currentWidth = view.bounds.width
+        print("📐 viewDidLayoutSubviews: view.bounds = \(view.bounds), lastRenderedWidth = \(lastRenderedWidth)")
+        
+        // Only re-render if width has actually changed (prevents infinite loop)
+        if parsedConfig != nil && abs(currentWidth - lastRenderedWidth) > 1 {
+            print("📐 Width changed from \(lastRenderedWidth) to \(currentWidth), re-rendering")
+            renderKeyboard()
+        }
+    }
+    
+    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        super.viewWillTransition(to: size, with: coordinator)
+        print("📐 viewWillTransition: new size = \(size), lastRenderedWidth = \(lastRenderedWidth)")
+        
+        coordinator.animate(alongsideTransition: { _ in
+            print("📐 viewWillTransition animate: view.bounds = \(self.view.bounds)")
+        }, completion: { _ in
+            print("📐 viewWillTransition completion: view.bounds = \(self.view.bounds)")
+            // Re-render after rotation completes (viewDidLayoutSubviews will handle this)
+        })
     }
     
     override func textWillChange(_ textInput: UITextInput?) {
@@ -182,7 +211,12 @@ class KeyboardViewController: UIInputViewController {
     // MARK: - Rendering
     
     func renderKeyboard() {
+        let currentWidth = view.bounds.width
         print("🎨 Rendering keyboard from JSON...")
+        print("📐 renderKeyboard: view.bounds.width = \(currentWidth), keyboardView.bounds.width = \(keyboardView?.bounds.width ?? 0), lastRenderedWidth = \(lastRenderedWidth)")
+        
+        // Update last rendered width
+        lastRenderedWidth = currentWidth
         
         keyboardView.subviews.forEach { $0.removeFromSuperview() }
         

@@ -3,35 +3,38 @@ import React
 
 /**
  * iOS keyboard preview component for React Native
- * Renders the keyboard layout using shared KeyboardRenderer
+ * Thin wrapper around KeyboardRenderer - renderer handles all UI logic
  */
 @objc(KeyboardPreviewView)
-class KeyboardPreviewView: UIView, KeyboardRendererDelegate {
+class KeyboardPreviewView: UIView {
     
     // MARK: - Properties
     
     private let renderer: KeyboardRenderer
-    private let preferences = KeyboardPreferences()
     private var parsedConfig: KeyboardConfig?
-    private var currentKeysetId: String = "abc"
     
-    // Event callback
-    @objc var onKeyPress: RCTDirectEventBlock?
+    // Event callback for React Native
+    @objc var onKeyPress: RCTBubblingEventBlock?
+    
+    // Layout tracking to prevent infinite loops
+    private var lastRenderedWidth: CGFloat = 0
     
     // MARK: - Initialization
     
     override init(frame: CGRect) {
-        // Create renderer first
+        // Create renderer - it manages all keyboard logic
         self.renderer = KeyboardRenderer(isPreview: true)
         
         super.init(frame: frame)
         
-        // Set self as delegate after super.init
-        renderer.keyPressDelegate = self
-        
         backgroundColor = UIColor(red: 0.82, green: 0.82, blue: 0.82, alpha: 1.0)
         
-        print("📱 KeyboardPreviewView initialized")
+        // Set up renderer callbacks - only for FINAL key output
+        renderer.onKeyPress = { [weak self] key in
+            self?.emitKeyPress(key)
+        }
+        
+        print("📱 KeyboardPreviewView initialized with frame: \(frame)")
     }
     
     required init?(coder: NSCoder) {
@@ -63,16 +66,10 @@ class KeyboardPreviewView: UIView, KeyboardRendererDelegate {
             let decoder = JSONDecoder()
             parsedConfig = try decoder.decode(KeyboardConfig.self, from: jsonData)
             
-            if let defaultKeyset = parsedConfig?.defaultKeyset {
-                currentKeysetId = defaultKeyset
-            }
-            
             print("✅ Config parsed: keysets=\(parsedConfig?.keysets.map { $0.id }.joined(separator: ", ") ?? "none")")
             
-            // Render on main thread
-            DispatchQueue.main.async { [weak self] in
-                self?.renderKeyboard()
-            }
+            // Render immediately
+            renderKeyboard()
         } catch {
             print("❌ Failed to parse config: \(error)")
         }
@@ -84,68 +81,37 @@ class KeyboardPreviewView: UIView, KeyboardRendererDelegate {
             return
         }
         
-        print("🎨 Rendering preview keyboard")
+        let currentWidth = bounds.width
+        print("🎨 Preview: Rendering keyboard, width = \(currentWidth), lastRenderedWidth = \(lastRenderedWidth)")
         
-        // Use shared renderer (no editor context in preview)
+        // Update last rendered width
+        lastRenderedWidth = currentWidth
+        
+        // Renderer handles everything - just pass config and container
+        // Don't pass currentKeysetId - renderer maintains its own internal state
         renderer.renderKeyboard(
             in: self,
             config: config,
-            currentKeysetId: currentKeysetId,
-            editorContext: nil
+            currentKeysetId: renderer.currentKeysetId.isEmpty ? (config.defaultKeyset ?? "abc") : renderer.currentKeysetId,
+            editorContext: nil  // No editor context in preview
         )
     }
     
-    // MARK: - KeyboardRendererDelegate
+    // MARK: - Key Press Output to React Native
     
-    func keyboardRenderer(_ renderer: KeyboardRenderer, didPressKey key: ParsedKey) {
-        handleKeyPress(key)
-    }
-    
-    // MARK: - Key Press Handling
-    
-    private func handleKeyPress(_ key: ParsedKey) {
-        print("🔘 Preview key pressed: type=\(key.type), value=\(key.value)")
+    private func emitKeyPress(_ key: ParsedKey) {
+        print("🔘 Preview key output: type=\(key.type), value=\(key.value)")
         
         // Emit event to React Native
         if let onKeyPress = onKeyPress {
             let event: [String: Any] = [
                 "type": key.type,
-                "value": renderer.shiftState.isActive() ? key.sValue : key.value,
+                "value": key.value,
                 "label": key.label,
                 "hasNikkud": !key.nikkud.isEmpty
             ]
             onKeyPress(event)
         }
-        
-        // Handle state-changing keys
-        switch key.type.lowercased() {
-        case "shift":
-            renderer.shiftState = renderer.shiftState.toggle()
-            renderKeyboard()
-            
-        case "nikkud":
-            renderer.nikkudActive = !renderer.nikkudActive
-            renderKeyboard()
-            
-        case "keyset":
-            if !key.keysetValue.isEmpty {
-                switchKeyset(key.keysetValue)
-            }
-            
-        default:
-            break
-        }
-    }
-    
-    private func switchKeyset(_ keysetId: String) {
-        guard let config = parsedConfig,
-              config.keysets.contains(where: { $0.id == keysetId }) else {
-            return
-        }
-        
-        currentKeysetId = keysetId
-        renderer.shiftState = .inactive
-        renderKeyboard()
     }
     
     // MARK: - Layout
@@ -153,9 +119,36 @@ class KeyboardPreviewView: UIView, KeyboardRendererDelegate {
     override func layoutSubviews() {
         super.layoutSubviews()
         
-        // Re-render when layout changes (e.g., screen rotation)
-        if parsedConfig != nil {
+        let currentWidth = bounds.width
+        print("📐 PreviewView layoutSubviews: bounds = \(bounds), lastRenderedWidth = \(lastRenderedWidth)")
+        
+        // Don't re-render if nikkud picker is showing (tag 999)
+        let hasNikkudPicker = subviews.contains(where: { $0.tag == 999 })
+        if hasNikkudPicker {
+            print("📱 layoutSubviews: Skipping re-render (nikkud picker is showing)")
+            return
+        }
+        
+        // Only re-render if width has actually changed (prevents infinite loop)
+        if parsedConfig != nil && abs(currentWidth - lastRenderedWidth) > 1 {
+            print("📐 PreviewView width changed from \(lastRenderedWidth) to \(currentWidth), re-rendering")
             renderKeyboard()
+        }
+    }
+    
+    override var bounds: CGRect {
+        didSet {
+            if oldValue != bounds {
+                print("📐 PreviewView bounds changed: old = \(oldValue), new = \(bounds)")
+            }
+        }
+    }
+    
+    override var frame: CGRect {
+        didSet {
+            if oldValue != frame {
+                print("📐 PreviewView frame changed: old = \(oldValue), new = \(frame)")
+            }
         }
     }
 }

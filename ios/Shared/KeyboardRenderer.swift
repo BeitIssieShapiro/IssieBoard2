@@ -1,26 +1,65 @@
 import UIKit
 
 /**
- * Delegate protocol for key press events
+ * Custom overlay view that intercepts all touches
  */
-protocol KeyboardRendererDelegate: AnyObject {
-    func keyboardRenderer(_ renderer: KeyboardRenderer, didPressKey key: ParsedKey)
+class TouchInterceptingOverlay: UIView {
+    var onTapOutside: (() -> Void)?
+    
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        let result = super.hitTest(point, with: event)
+        // If the hit is on the overlay itself (not a subview), return self to capture the touch
+        if result == self {
+            return self
+        }
+        return result
+    }
+    
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        // Check if touch is outside the picker (on the dimmed area)
+        if let touch = touches.first {
+            let location = touch.location(in: self)
+            
+            // Check if touch is on the overlay background (not on picker)
+            var hitPicker = false
+            for subview in subviews {
+                if subview.frame.contains(location) {
+                    hitPicker = true
+                    break
+                }
+            }
+            
+            if !hitPicker {
+                print("🎯 Touch outside picker, dismissing")
+                onTapOutside?()
+            }
+        }
+    }
 }
 
 /**
- * Shared keyboard rendering logic for iOS
- * Used by both KeyboardViewController and KeyboardPreviewView
+ * Self-contained keyboard renderer that manages all keyboard logic internally
+ * Container (Preview/Keyboard) only needs to provide the view and listen to final key output
  */
 class KeyboardRenderer {
     
     // MARK: - Properties
     
     private let isPreview: Bool
-    weak var keyPressDelegate: KeyboardRendererDelegate?
     
-    // State
-    var shiftState: ShiftState = .inactive
-    var nikkudActive: Bool = false
+    // Only callback for FINAL key output (not UI state changes)
+    var onKeyPress: ((ParsedKey) -> Void)?
+    var onNikkudSelected: ((String) -> Void)?
+    
+    // Internal state - managed entirely by renderer
+    private var shiftState: ShiftState = .inactive
+    private var nikkudActive: Bool = false
+    private var config: KeyboardConfig?
+    var currentKeysetId: String = "abc"  // Public so container can read it (but shouldn't write)
+    private var editorContext: (enterVisible: Bool, enterLabel: String, enterAction: Int)?
+    
+    // Container reference - renderer owns the rendering
+    private weak var container: UIView?
     
     // UI Constants
     private let rowHeightKeyboard: CGFloat = 50
@@ -50,10 +89,43 @@ class KeyboardRenderer {
         currentKeysetId: String,
         editorContext: (enterVisible: Bool, enterLabel: String, enterAction: Int)?
     ) {
-        print("🎨 Rendering keyboard: keyset=\(currentKeysetId), isPreview=\(isPreview)")
+        print("📐 RENDER START =================")
+        print("📐 RENDER: container.bounds = \(container.bounds)")
+        print("📐 RENDER: container.frame = \(container.frame)")
+        print("📐 RENDER: container.bounds.width = \(container.bounds.width)")
         
-        // Clear existing views
-        container.subviews.forEach { $0.removeFromSuperview() }
+        // Log superview chain for debugging
+        var currentView: UIView? = container
+        var depth = 0
+        while let view = currentView {
+            print("📐 RENDER: superview[\(depth)] = \(type(of: view)), bounds = \(view.bounds), frame = \(view.frame)")
+            currentView = view.superview
+            depth += 1
+            if depth > 5 { break }  // Limit depth
+        }
+        
+        // Store container, config, and editor context
+        // Only update currentKeysetId if it's the first render (renderer manages its own state after that)
+        self.container = container
+        self.config = config
+        self.editorContext = editorContext
+        
+        // Only set currentKeysetId from parameter if renderer hasn't been initialized yet
+        if self.currentKeysetId == "abc" && currentKeysetId != "abc" {
+            self.currentKeysetId = currentKeysetId
+        }
+        
+        // Clear existing views, but preserve nikkud picker overlay if present
+        let existingOverlay = container.subviews.first(where: { $0.tag == 999 })
+        
+        container.subviews.forEach { subview in
+            if subview.tag != 999 {  // Don't remove nikkud picker overlay
+                subview.removeFromSuperview()
+            }
+        }
+        
+        // If overlay exists, bring it back to front after we add new views
+        // Note: We'll do this at the end of renderKeyboard
         
         // Set background color
         if let bgColorString = config.backgroundColor,
@@ -61,9 +133,9 @@ class KeyboardRenderer {
             container.backgroundColor = bgColor
         }
         
-        // Find current keyset
-        guard let keyset = config.keysets.first(where: { $0.id == currentKeysetId }) else {
-            print("❌ Keyset not found: \(currentKeysetId)")
+        // Find current keyset (use self.currentKeysetId - the renderer's internal state)
+        guard let keyset = config.keysets.first(where: { $0.id == self.currentKeysetId }) else {
+            print("❌ Keyset not found: \(self.currentKeysetId)")
             showError(in: container, message: "Keyset not found")
             return
         }
@@ -91,17 +163,19 @@ class KeyboardRenderer {
         let spacing = isPreview ? rowSpacingPreview : rowSpacing
         var currentY: CGFloat = 0
         
+        let availableWidth = container.bounds.width - 8
+        print("📐 AVAILABLE WIDTH = \(availableWidth) (from container.bounds.width: \(container.bounds.width))")
+        print("📐 RENDER END ===================")
+        
         for row in keyset.rows {
             let rowView = createRow(row, groups: groups, baselineWidth: baselineWidth, 
-                                   availableWidth: container.bounds.width - 8,
+                                   availableWidth: availableWidth,
                                    editorContext: editorContext)
             rowsContainer.addSubview(rowView)
             
-            rowView.frame = CGRect(x: 4, y: currentY, width: container.bounds.width - 8, height: rowHeight)
+            rowView.frame = CGRect(x: 4, y: currentY, width: availableWidth, height: rowHeight)
             currentY += rowHeight + spacing
         }
-        
-        print("✅ Keyboard rendered: \(keyset.rows.count) rows")
     }
     
     // MARK: - Private Helpers
@@ -272,7 +346,57 @@ class KeyboardRenderer {
             return
         }
         
-        keyPressDelegate?.keyboardRenderer(self, didPressKey: key)
+        // Handle key clicks internally, like Android does
+        handleKeyClick(key, keyView: sender)
+    }
+    
+    private func handleKeyClick(_ key: ParsedKey, keyView: UIButton) {
+        print("🔑 Key clicked: type='\(key.type)', value='\(key.value)'")
+        
+        switch key.type.lowercased() {
+        case "shift":
+            // Toggle shift and re-render internally
+            print("   → Handling SHIFT")
+            shiftState = shiftState.toggle()
+            rerender()
+            
+        case "nikkud":
+            // Toggle nikkud and re-render internally
+            print("   → Handling NIKKUD")
+            nikkudActive = !nikkudActive
+            rerender()
+            
+        case "keyset":
+            // Switch keyset and re-render internally
+            print("   → Handling KEYSET: keysetValue='\(key.keysetValue)'")
+            if !key.keysetValue.isEmpty {
+                currentKeysetId = key.keysetValue
+                shiftState = .inactive
+                nikkudActive = false  // Deactivate nikkud on keyset change
+                rerender()
+            }
+            
+        case "language", "next-keyboard":
+            // Language switching handled internally (both types)
+            print("   → Handling LANGUAGE/NEXT-KEYBOARD")
+            switchLanguage()
+            
+        default:
+            // For regular keys, check if nikkud popup should be shown
+            print("   → Handling DEFAULT key")
+            if nikkudActive && !key.nikkud.isEmpty {
+                showNikkudPicker(key.nikkud, anchorView: keyView)
+            } else {
+                // Only output FINAL key press to container
+                onKeyPress?(key)
+            }
+        }
+    }
+    
+    /// Internal re-render - renderer manages its own UI updates
+    private func rerender() {
+        guard let container = container, let config = config else { return }
+        renderKeyboard(in: container, config: config, currentKeysetId: currentKeysetId, editorContext: editorContext)
     }
     
     private func encodeKeyInfo(_ key: ParsedKey) -> String {
@@ -362,5 +486,237 @@ class KeyboardRenderer {
             label.centerXAnchor.constraint(equalTo: container.centerXAnchor),
             label.centerYAnchor.constraint(equalTo: container.centerYAnchor)
         ])
+    }
+    
+    // MARK: - Nikkud Picker
+    
+    private func showNikkudPicker(_ nikkudOptions: [NikkudOption], anchorView: UIView) {
+        print("🎯 Showing nikkud picker with \(nikkudOptions.count) options")
+        
+        guard let container = container else {
+            print("❌ No container available for nikkud picker")
+            return
+        }
+        
+        print("   Container bounds: \(container.bounds)")
+        print("   Container frame: \(container.frame)")
+        
+        // Create overlay background - use custom touch-intercepting view
+        let overlay = TouchInterceptingOverlay()
+        overlay.backgroundColor = UIColor.black.withAlphaComponent(0.3)
+        overlay.tag = 999
+        overlay.translatesAutoresizingMaskIntoConstraints = false
+        
+        // Set high z-position for React Native compatibility
+        overlay.layer.zPosition = 9999
+        
+        // Enable user interaction
+        overlay.isUserInteractionEnabled = true
+        
+        // Set callback for tap outside
+        overlay.onTapOutside = { [weak self] in
+            self?.dismissNikkudPicker()
+        }
+        
+        container.addSubview(overlay)
+        container.bringSubviewToFront(overlay)
+        
+        // Set the frame immediately with a large size to capture all touches
+        overlay.frame = container.bounds
+        
+        // Pin overlay to fill entire container
+        NSLayoutConstraint.activate([
+            overlay.leftAnchor.constraint(equalTo: container.leftAnchor),
+            overlay.rightAnchor.constraint(equalTo: container.rightAnchor),
+            overlay.topAnchor.constraint(equalTo: container.topAnchor),
+            overlay.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+        ])
+        
+        print("   Overlay added to container")
+        
+        let spacing: CGFloat = 12
+        let padding: CGFloat = 20
+        
+        // Calculate available width (80% of container width)
+        let maxAvailableWidth = container.bounds.width * 0.8
+        
+        // Force 2 rows for better layout
+        let itemsPerRow = (nikkudOptions.count + 1) / 2
+        
+        // Calculate button size based on available width and number of items per row
+        let totalSpacing = spacing * CGFloat(itemsPerRow - 1) + 2 * padding
+        let buttonSize = (maxAvailableWidth - totalSpacing) / CGFloat(itemsPerRow)
+        
+        print("   Container width: \(container.bounds.width)")
+        print("   Available width (80%): \(maxAvailableWidth)")
+        print("   Items per row: \(itemsPerRow)")
+        print("   Button size: \(buttonSize)")
+        
+        // Create picker container
+        let picker = UIView()
+        picker.backgroundColor = UIColor.systemGray6
+        picker.layer.cornerRadius = 16
+        picker.layer.shadowColor = UIColor.black.cgColor
+        picker.layer.shadowOffset = CGSize(width: 0, height: 4)
+        picker.layer.shadowOpacity = 0.3
+        picker.layer.shadowRadius = 8
+        
+        // Create flex container for RTL layout
+        let flexContainer = UIView()
+        picker.addSubview(flexContainer)
+        
+        // First pass: collect buttons into rows
+        var rows: [[UIButton]] = [[]]
+        
+        for (index, option) in nikkudOptions.enumerated() {
+            let value = option.value
+            let caption = option.caption ?? value
+            
+            // Force new row after itemsPerRow items
+            if index > 0 && index % itemsPerRow == 0 {
+                rows.append([])
+            }
+            
+            let button = UIButton(type: .system)
+            button.setTitle(caption, for: .normal)
+            button.titleLabel?.font = UIFont.systemFont(ofSize: 22)
+            button.titleLabel?.adjustsFontSizeToFitWidth = true
+            button.titleLabel?.minimumScaleFactor = 0.5
+            button.backgroundColor = .white
+            button.layer.cornerRadius = 8
+            button.layer.borderWidth = 1
+            button.layer.borderColor = UIColor.systemGray4.cgColor
+            button.contentEdgeInsets = UIEdgeInsets(top: 4, left: 4, bottom: 4, right: 4)
+            button.addTarget(self, action: #selector(nikkudOptionTapped(_:)), for: .touchUpInside)
+            button.accessibilityIdentifier = value
+            
+            rows[rows.count - 1].append(button)
+        }
+        
+        // Second pass: position buttons RTL, centered per row
+        var currentY: CGFloat = 0
+        var maxRowWidth: CGFloat = 0
+        
+        for row in rows {
+            let rowWidth = CGFloat(row.count) * buttonSize + CGFloat(row.count - 1) * spacing
+            maxRowWidth = max(maxRowWidth, rowWidth)
+            
+            // Position buttons RTL (right to left)
+            for (index, button) in row.enumerated() {
+                let reversedIndex = row.count - 1 - index  // Reverse for RTL
+                let x = CGFloat(reversedIndex) * (buttonSize + spacing)
+                button.frame = CGRect(x: x, y: currentY, width: buttonSize, height: buttonSize)
+                flexContainer.addSubview(button)
+            }
+            
+            currentY += buttonSize + spacing
+        }
+        
+        // Calculate final container size
+        let containerWidth = maxRowWidth
+        let containerHeight = currentY - spacing  // Remove last spacing
+        
+        flexContainer.frame = CGRect(x: padding, y: padding, width: containerWidth, height: containerHeight)
+        
+        overlay.addSubview(picker)
+        picker.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            picker.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
+            picker.centerYAnchor.constraint(equalTo: overlay.centerYAnchor),
+            picker.widthAnchor.constraint(equalToConstant: containerWidth + 2 * padding),
+            picker.heightAnchor.constraint(equalToConstant: containerHeight + 2 * padding)
+        ])
+        
+        // Tap overlay to dismiss
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(dismissNikkudPicker))
+        overlay.addGestureRecognizer(tapGesture)
+        
+        print("✅ Nikkud picker displayed")
+    }
+    
+    @objc private func nikkudOptionTapped(_ sender: UIButton) {
+        print("🎯 Nikkud option tapped: \(sender.accessibilityIdentifier ?? "nil")")
+        if let value = sender.accessibilityIdentifier {
+            onNikkudSelected?(value)
+        }
+        dismissNikkudPicker()
+    }
+    
+    @objc private func dismissNikkudPicker() {
+        print("🎯 Dismissing nikkud picker")
+        // Remove overlay - find by tag
+        if let overlay = container?.subviews.first(where: { $0.tag == 999 }) {
+            print("   Found overlay, removing...")
+            overlay.removeFromSuperview()
+        } else {
+            print("   ⚠️ Overlay not found!")
+        }
+        
+        // Do NOT deactivate nikkud mode here - it stays active until toggled off
+        // Just rerender to update the UI
+        rerender()
+    }
+    
+    // MARK: - Language Switching
+    
+    func switchLanguage() {
+        print("🌐 Language button tapped - cycling to next language")
+        
+        guard let config = config else {
+            print("❌ No config available")
+            return
+        }
+        
+        // Get all keyset IDs
+        let allKeysetIds = config.keysets.map { $0.id }
+        print("   All keysets: \(allKeysetIds.joined(separator: ", "))")
+        print("   Current keyset: \(currentKeysetId)")
+        
+        // Determine current keyset type (abc, 123, or #+=)
+        let currentKeysetType: String
+        if currentKeysetId.hasSuffix("_abc") {
+            currentKeysetType = "abc"
+        } else if currentKeysetId.hasSuffix("_123") {
+            currentKeysetType = "123"
+        } else if currentKeysetId.hasSuffix("_#+=") {
+            currentKeysetType = "#+="
+        } else if currentKeysetId == "abc" {
+            currentKeysetType = "abc"
+        } else if currentKeysetId == "123" {
+            currentKeysetType = "123"
+        } else if currentKeysetId == "#+=" {
+            currentKeysetType = "#+="
+        } else {
+            currentKeysetType = "abc"
+        }
+        
+        print("   Current keyset type: \(currentKeysetType)")
+        
+        // Find all keysets of the same type across different keyboards
+        let sameTypeKeysets = allKeysetIds.filter { keysetId in
+            keysetId == currentKeysetType || keysetId.hasSuffix("_\(currentKeysetType)")
+        }
+        
+        print("   Same type keysets (\(currentKeysetType)): \(sameTypeKeysets.joined(separator: ", "))")
+        
+        if sameTypeKeysets.count > 1 {
+            // Find current position
+            if let currentIndex = sameTypeKeysets.firstIndex(of: currentKeysetId) {
+                // Cycle to next
+                let nextIndex = (currentIndex + 1) % sameTypeKeysets.count
+                let nextKeysetId = sameTypeKeysets[nextIndex]
+                
+                print("   Switching from \(currentKeysetId) to \(nextKeysetId)")
+                currentKeysetId = nextKeysetId
+                shiftState = .inactive
+                
+                // Re-render internally
+                rerender()
+            } else {
+                print("⚠️ Current keyset not found in same-type list")
+            }
+        } else {
+            print("   Only one keyboard available for type \(currentKeysetType)")
+        }
     }
 }
