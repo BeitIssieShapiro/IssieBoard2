@@ -17,6 +17,11 @@
 		6A1E33752F22170C00035455 /* KeyboardPreferencesModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A1E33742F22170B00035455 /* KeyboardPreferencesModule.swift */; };
 		6A1E33772F22198A00035455 /* KeyboardModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A1E33762F22198A00035455 /* KeyboardModels.swift */; };
 		6A1E33782F22198A00035455 /* KeyboardModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A1E33762F22198A00035455 /* KeyboardModels.swift */; };
+		6A73B6892F24E985003898A5 /* KeyboardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A73B6882F24E985003898A5 /* KeyboardRenderer.swift */; };
+		6A73B68A2F24E985003898A5 /* KeyboardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A73B6882F24E985003898A5 /* KeyboardRenderer.swift */; };
+		6A73B68E2F24E9B1003898A5 /* KeyboardPreviewViewManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A73B68D2F24E9B1003898A5 /* KeyboardPreviewViewManager.swift */; };
+		6A73B68F2F24E9B1003898A5 /* KeyboardPreviewViewManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 6A73B68C2F24E9B1003898A5 /* KeyboardPreviewViewManager.m */; };
+		6A73B6902F24E9B1003898A5 /* KeyboardPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A73B68B2F24E9B1003898A5 /* KeyboardPreviewView.swift */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 /* End PBXBuildFile section */
@@ -60,6 +65,10 @@
 		6A1E33732F2216F000035455 /* IssieBoardNG-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "IssieBoardNG-Bridging-Header.h"; sourceTree = "<group>"; };
 		6A1E33742F22170B00035455 /* KeyboardPreferencesModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KeyboardPreferencesModule.swift; path = IssieBoardNG/KeyboardPreferencesModule.swift; sourceTree = "<group>"; };
 		6A1E33762F22198A00035455 /* KeyboardModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardModels.swift; sourceTree = "<group>"; };
+		6A73B6882F24E985003898A5 /* KeyboardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardRenderer.swift; sourceTree = "<group>"; };
+		6A73B68B2F24E9B1003898A5 /* KeyboardPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KeyboardPreviewView.swift; path = IssieBoardNG/KeyboardPreviewView.swift; sourceTree = "<group>"; };
+		6A73B68C2F24E9B1003898A5 /* KeyboardPreviewViewManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = KeyboardPreviewViewManager.m; path = IssieBoardNG/KeyboardPreviewViewManager.m; sourceTree = "<group>"; };
+		6A73B68D2F24E9B1003898A5 /* KeyboardPreviewViewManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KeyboardPreviewViewManager.swift; path = IssieBoardNG/KeyboardPreviewViewManager.swift; sourceTree = "<group>"; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = IssieBoardNG/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = IssieBoardNG/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
@@ -108,6 +117,9 @@
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
 				6A1E33712F2216ED00035455 /* KeyboardPreferencesModule.m */,
+				6A73B68B2F24E9B1003898A5 /* KeyboardPreviewView.swift */,
+				6A73B68C2F24E9B1003898A5 /* KeyboardPreviewViewManager.m */,
+				6A73B68D2F24E9B1003898A5 /* KeyboardPreviewViewManager.swift */,
 				6A1E33742F22170B00035455 /* KeyboardPreferencesModule.swift */,
 				6A1E33732F2216F000035455 /* IssieBoardNG-Bridging-Header.h */,
 			);
@@ -126,6 +138,7 @@
 		6A1E336E2F220FCA00035455 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
+				6A73B6882F24E985003898A5 /* KeyboardRenderer.swift */,
 				6A1E33762F22198A00035455 /* KeyboardModels.swift */,
 				6A1E336D2F220FCA00035455 /* KeyboardPreferences.swift */,
 			);
@@ -367,9 +380,13 @@
 			files = (
 				6A1E33722F2216ED00035455 /* KeyboardPreferencesModule.m in Sources */,
 				761780ED2CA45674006654EE /* AppDelegate.swift in Sources */,
+				6A73B68E2F24E9B1003898A5 /* KeyboardPreviewViewManager.swift in Sources */,
+				6A73B68F2F24E9B1003898A5 /* KeyboardPreviewViewManager.m in Sources */,
+				6A73B6902F24E9B1003898A5 /* KeyboardPreviewView.swift in Sources */,
 				6A1E33772F22198A00035455 /* KeyboardModels.swift in Sources */,
 				6A1E33702F220FCA00035455 /* KeyboardPreferences.swift in Sources */,
 				6A1E33752F22170C00035455 /* KeyboardPreferencesModule.swift in Sources */,
+				6A73B6892F24E985003898A5 /* KeyboardRenderer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -378,6 +395,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				6A1E33782F22198A00035455 /* KeyboardModels.swift in Sources */,
+				6A73B68A2F24E985003898A5 /* KeyboardRenderer.swift in Sources */,
 				6A1E336F2F220FCA00035455 /* KeyboardPreferences.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

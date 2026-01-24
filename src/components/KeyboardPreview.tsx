@@ -35,21 +35,15 @@ const NativeKeyboardPreview = requireNativeComponent<KeyboardPreviewProps>('Keyb
  */
 export const KeyboardPreview: React.FC<KeyboardPreviewProps> = (props) => {
   React.useEffect(() => {
-    if (Platform.OS === 'android') {
-      const componentName = 'KeyboardPreviewView';
-      const isRegistered = UIManager.getViewManagerConfig(componentName);
-      console.log(`[KeyboardPreview] Component ${componentName} registered:`, !!isRegistered);
-      if (!isRegistered) {
-        console.error(`[KeyboardPreview] ${componentName} is NOT registered! Check MainApplication.kt`);
-      }
+    const componentName = 'KeyboardPreviewView';
+    const isRegistered = UIManager.getViewManagerConfig(componentName);
+    console.log(`[KeyboardPreview] Component ${componentName} registered on ${Platform.OS}:`, !!isRegistered);
+    if (!isRegistered) {
+      console.error(`[KeyboardPreview] ${componentName} is NOT registered!`);
     }
   }, []);
   
-  console.log('[KeyboardPreview] Rendering with configJson length:', props.configJson?.length || 0);
-  
-  if (Platform.OS !== 'android') {
-    return null;
-  }
+  console.log(`[KeyboardPreview] Rendering on ${Platform.OS} with configJson length:`, props.configJson?.length || 0);
   
   return <NativeKeyboardPreview {...props} />;
 };

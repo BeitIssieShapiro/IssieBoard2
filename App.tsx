@@ -55,7 +55,7 @@ const buildConfiguration = (profile: any): any => {
     // Give each keyset a unique ID by prefixing with keyboard ID
     const keysets = keyboard.keysets.map((keyset: any) => {
       const rows = [...keyset.rows];
-      
+
       // Prepend system row if enabled
       if (profile.systemRow?.enabled) {
         rows.unshift({ keys: profile.systemRow.keys });
@@ -94,6 +94,8 @@ const App = () => {
   const [savedProfiles, setSavedProfiles] = useState<SavedProfile[]>([]);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [editingProfile, setEditingProfile] = useState<SavedProfile | null>(null);
+  const [jsonValidationError, setJsonValidationError] = useState<string | null>(null);
+  const [lastValidConfig, setLastValidConfig] = useState<string>('');
 
   // Load configuration on startup
   useEffect(() => {
@@ -113,22 +115,22 @@ const App = () => {
         // Get saved profile (platform-specific implementation)
         const savedProfile = (await KeyboardPreferences.getCurrentProfile()) || 'default';
         setSelectedProfile(savedProfile);
-        
+
         // Build configuration from profile
         const profile = PROFILES[savedProfile as keyof typeof PROFILES];
         const config = buildConfiguration(profile);
-        
+
         // Convert to JSON string for display
         setConfigJson(JSON.stringify(config, null, 2));
-        
+
         // Save to keyboard (platform-specific implementation)
         const setProfileResult = await KeyboardPreferences.setCurrentProfile(savedProfile);
         const setConfigResult = await KeyboardPreferences.setKeyboardConfigObject(config);
-        
+
         console.log(`✅ ${Platform.OS}: Configuration loaded and saved`);
         console.log('  Set profile result:', setProfileResult);
         console.log('  Set config result:', setConfigResult);
-        
+
         // Check if native module is working
         if (Platform.OS === 'ios' && !setProfileResult.success) {
           console.warn('⚠️ iOS native module not available. See console for setup instructions.');
@@ -143,26 +145,39 @@ const App = () => {
         setLoading(false);
       }
     };
-    
+
     initSettings();
   }, []);
+
+  /**
+   * Shared logic to apply a configuration and update the UI
+   */
+  const applyConfiguration = async (config: any, profileName: string, profileId?: string) => {
+    // Update display
+    setConfigJson(JSON.stringify(config, null, 2));
+
+    // Save to keyboard (platform-specific implementation)
+    if (profileId) {
+      await KeyboardPreferences.setCurrentProfile(profileId);
+      setSelectedProfile(profileId);
+    } else {
+      // For custom profiles, clear the built-in profile selection
+      setSelectedProfile('');
+    }
+    await KeyboardPreferences.setKeyboardConfigObject(config);
+
+    console.log(`✅ ${Platform.OS}: Applied configuration "${profileName}"`);
+  };
 
   const switchProfile = async (profileId: string) => {
     try {
       setStatus(strings.switchingProfile);
-      setSelectedProfile(profileId);
 
       // Build configuration from selected profile
       const profile = PROFILES[profileId as keyof typeof PROFILES];
       const config = buildConfiguration(profile);
 
-      // Update display
-      setConfigJson(JSON.stringify(config, null, 2));
-
-      // Save to keyboard (platform-specific implementation)
-      await KeyboardPreferences.setCurrentProfile(profileId);
-      await KeyboardPreferences.setKeyboardConfigObject(config);
-      console.log(`✅ ${Platform.OS}: Switched to ${profile.name}`);
+      await applyConfiguration(config, profile.name, profileId);
 
       setStatus(`${strings.switchedTo} ${profile.name}`);
       Alert.alert(strings.success, `${strings.profileChangedTo} "${profile.name}". ${strings.closeAndReopenKeyboard}`);
@@ -170,6 +185,19 @@ const App = () => {
       console.error('Profile switch error:', e);
       setStatus(strings.errorSwitchingProfile);
       Alert.alert(strings.error, strings.failedToSwitchProfile);
+    }
+  };
+
+  const handleJsonChange = (newValue: string) => {
+    setConfigJson(newValue);
+
+    // Validate JSON
+    try {
+      JSON.parse(newValue);
+      setJsonValidationError(null);
+      setLastValidConfig(newValue);
+    } catch (e: any) {
+      setJsonValidationError(e.message || 'Invalid JSON');
     }
   };
 
@@ -219,11 +247,18 @@ const App = () => {
   const loadSavedProfile = async (profile: SavedProfile) => {
     try {
       setStatus(strings.loadingProfile);
-      const config = await KeyboardPreferences.getProfileObject(profile.key);
+      let config = await KeyboardPreferences.getProfileObject(profile.key);
+
       if (config) {
-        setConfigJson(JSON.stringify(config, null, 2));
-        await KeyboardPreferences.setKeyboardConfigObject(config);
-        setSelectedProfile(profile.key); // Clear built-in profile selection
+        // Check if config needs to be built (has keyboards array but no keysets)
+        // This handles profiles that were saved as partial profiles
+        if (config.keyboards && (!config.keysets || config.keysets.length === 0)) {
+          console.log(`Building configuration for saved profile "${profile.name}"`);
+          config = buildConfiguration(config);
+        }
+
+        await applyConfiguration(config, profile.name);
+
         setStatus(`${strings.loadedProfile} ${profile.name}`);
         Alert.alert(strings.success, `"${profile.name}" ${strings.profileLoaded} ${strings.closeAndReopenKeyboard}`);
       } else {
@@ -404,29 +439,24 @@ const App = () => {
           </Text>
         </View>
 
-        {/* Live Keyboard Preview (Android only for now) */}
-        {Platform.OS === 'android' && (
-          <View style={styles.previewSection}>
-            <Text style={styles.sectionTitle}>🎹 {strings.keyboardPreview || 'Keyboard Preview'}</Text>
-            <Text style={styles.helpText}>
-              {strings.previewHelpText || 'Live preview of your keyboard. Tap keys to test!'}
-            </Text>
-            <View style={styles.previewContainer}>
-              <KeyboardPreview
-                style={{
-                  width: '100%',
-                  height: 250,
-                  backgroundColor: '#FF0000', // Red background to debug visibility
-                }}
-                configJson={configJson}
-                onKeyPress={(event) => {
-                  const { type, value } = event.nativeEvent;
-                  console.log('Preview key pressed:', type, value);
-                }}
-              />
-            </View>
+        {/* Live Keyboard Preview */}
+        <View style={styles.previewSection}>
+          <Text style={styles.sectionTitle}>🎹 {strings.keyboardPreview || 'Keyboard Preview'}</Text>
+          <Text style={styles.helpText}>
+            {strings.previewHelpText || 'Live preview of your keyboard. Tap keys to test!'}
+          </Text>
+          <View style={styles.previewContainer}>
+            <KeyboardPreview
+              key={`${selectedProfile}-${configJson.length}`} // Force re-render on profile/config change
+              style={styles.preview}
+              configJson={configJson}
+              onKeyPress={(event) => {
+                const { type, value } = event.nativeEvent;
+                console.log('Preview key pressed:', type, value);
+              }}
+            />
           </View>
-        )}
+        </View>
 
         {/* JSON Editor */}
         <View style={styles.editorSection}>
@@ -440,15 +470,29 @@ const App = () => {
               ? strings.editingHelpText
               : strings.editorHelpText}
           </Text>
+
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              jsonValidationError ? styles.inputError : null
+            ]}
             multiline
             value={configJson}
-            onChangeText={setConfigJson}
+            onChangeText={handleJsonChange}
             autoCapitalize="none"
             autoCorrect={false}
             textAlignVertical="top"
           />
+          {jsonValidationError && (
+            <View style={styles.validationError}>
+              <Text style={styles.validationErrorText}>
+                ⚠️ Invalid JSON: {jsonValidationError}
+              </Text>
+              <Text style={styles.validationErrorSubtext}>
+                Previous valid configuration is still active. Fix the JSON to apply changes.
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Action Buttons */}
@@ -473,26 +517,26 @@ const App = () => {
           <Text style={styles.helpTitle}>📚 {strings.aboutProfiles}</Text>
           <Text style={styles.helpText}>{strings.helpText}</Text>
         </View>
-    </ScrollView>
+      </ScrollView>
     </>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    padding: 20, 
-    paddingTop: 50, 
-    backgroundColor: '#f5f5f5' 
+  container: {
+    flex: 1,
+    padding: 20,
+    paddingTop: 50,
+    backgroundColor: '#f5f5f5'
   },
-  centered: { 
-    justifyContent: 'center', 
-    alignItems: 'center' 
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center'
   },
-  header: { 
-    fontSize: 24, 
-    fontWeight: 'bold', 
-    marginBottom: 20, 
+  header: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
     color: '#333',
     textAlign: 'center'
   },
@@ -548,14 +592,14 @@ const styles = StyleSheet.create({
   editorSection: {
     marginBottom: 20,
   },
-  input: { 
+  input: {
     height: 300,
-    borderColor: '#999', 
-    borderWidth: 1, 
+    borderColor: '#999',
+    borderWidth: 1,
     borderRadius: 8,
     marginTop: 10,
-    marginBottom: 20, 
-    padding: 15, 
+    marginBottom: 20,
+    padding: 15,
     backgroundColor: '#fff',
     fontFamily: 'monospace',
     fontSize: 12,
@@ -571,11 +615,11 @@ const styles = StyleSheet.create({
   editButtonWrapper: {
     flex: 1,
   },
-  status: { 
-    textAlign: 'center', 
-    marginBottom: 10, 
-    color: '#666', 
-    fontSize: 12 
+  status: {
+    textAlign: 'center',
+    marginBottom: 10,
+    color: '#666',
+    fontSize: 12
   },
   helpSection: {
     marginBottom: 30,
@@ -609,6 +653,29 @@ const styles = StyleSheet.create({
   },
   preview: {
     height: 250,
+  },
+  validationError: {
+    backgroundColor: '#FFF3CD',
+    borderColor: '#FFC107',
+    borderWidth: 1,
+    borderRadius: 4,
+    padding: 10,
+    marginTop: 10,
+  },
+  validationErrorText: {
+    color: '#856404',
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  validationErrorSubtext: {
+    color: '#856404',
+    fontSize: 11,
+    fontStyle: 'italic',
+  },
+  inputError: {
+    borderColor: '#dc3545',
+    borderWidth: 2,
   },
 });
 

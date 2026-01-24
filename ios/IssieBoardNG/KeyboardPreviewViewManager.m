@@ -1,0 +1,12 @@
+#import <React/RCTViewManager.h>
+#import <React/RCTUIManager.h>
+
+@interface RCT_EXTERN_MODULE(KeyboardPreviewViewManager, RCTViewManager)
+
+// Export the configJson property
+RCT_EXPORT_VIEW_PROPERTY(configJson, NSString)
+
+// Export the onKeyPress event as a direct event (not bubbling)
+RCT_EXPORT_VIEW_PROPERTY(onKeyPress, RCTBubblingEventBlock)
+
+@end
