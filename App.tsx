@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, Button, Text, StyleSheet, Alert, ActivityIndicator, ScrollView, Platform } from 'react-native';
+import { View, TextInput, Button, Text, StyleSheet, Alert, ActivityIndicator, ScrollView, Platform, TouchableOpacity } from 'react-native';
+import SaveProfileModal from './components/SaveProfileModal';
 import KeyboardPreferences from './src/native/KeyboardPreferences';
 
 // Import keyboard and profile files
@@ -8,6 +9,11 @@ import heKeyboard from './keyboards/he.json';
 import arKeyboard from './keyboards/ar.json';
 import defaultProfile from './profiles/default.json';
 import multilingualProfile from './profiles/multilingual.json';
+
+interface SavedProfile {
+  name: string;
+  key: string;
+}
 
 // Available keyboards and profiles
 const KEYBOARDS = {
@@ -82,11 +88,25 @@ const App = () => {
   const [configJson, setConfigJson] = useState('');
   const [status, setStatus] = useState('Initializing...');
   const [loading, setLoading] = useState(true);
+  const [savedProfiles, setSavedProfiles] = useState<SavedProfile[]>([]);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [editingProfile, setEditingProfile] = useState<SavedProfile | null>(null);
 
   // Load configuration on startup
   useEffect(() => {
     const initSettings = async () => {
       try {
+        // Load saved custom profiles list
+        const savedListJson = await KeyboardPreferences.getProfile('saved_list');
+        if (savedListJson) {
+          try {
+            const savedList = JSON.parse(savedListJson);
+            setSavedProfiles(savedList);
+          } catch (e) {
+            console.warn('Failed to parse saved profiles list:', e);
+          }
+        }
+
         // Get saved profile (platform-specific implementation)
         const savedProfile = (await KeyboardPreferences.getCurrentProfile()) || 'default';
         setSelectedProfile(savedProfile);
@@ -150,23 +170,160 @@ const App = () => {
     }
   };
 
-  const saveCustomConfig = async () => {
+  const saveCustomConfig = () => {
+    // Validate JSON before showing modal
+    try {
+      JSON.parse(configJson);
+      setShowSaveModal(true);
+    } catch (e) {
+      Alert.alert('Syntax Error', 'Please check your JSON formatting before saving.');
+    }
+  };
+
+  const handleSaveWithName = async (profileName: string) => {
+    const name = profileName.trim();
+    if (!name) {
+      Alert.alert('Error', 'Please enter a profile name');
+      return;
+    }
+
     try {
       setStatus('Saving custom configuration...');
-      
-      // Parse and validate JSON
       const parsedConfig = JSON.parse(configJson);
-      
-      // Save (platform-specific implementation)
+      const key = `custom_${Date.now()}`;
+
+      // Save the config with unique key
+      await KeyboardPreferences.setProfileObject(parsedConfig, key);
+
+      // Update saved profiles list
+      const newList = [...savedProfiles, { name, key }];
+      await KeyboardPreferences.setProfile(JSON.stringify(newList), 'saved_list');
+      setSavedProfiles(newList);
+
+      // Apply as current config
       await KeyboardPreferences.setKeyboardConfigObject(parsedConfig);
-      console.log(`✅ ${Platform.OS}: Custom config saved`);
-      
-      setStatus(`Custom configuration saved successfully! (${Platform.OS})`);
-      Alert.alert('Success', 'Configuration saved. Close and reopen the keyboard to see changes.');
+      console.log(`✅ ${Platform.OS}: Custom config "${name}" saved`);
+
+      setShowSaveModal(false);
+      setStatus(`Saved profile: ${name} (${Platform.OS})`);
+      Alert.alert('Success', `Profile "${name}" saved! Close and reopen the keyboard to see changes.`);
     } catch (e) {
-      setStatus('Error: Invalid JSON');
+      console.error('Save error:', e);
+      Alert.alert('Error', 'Failed to save profile');
+    }
+  };
+
+  const loadSavedProfile = async (profile: SavedProfile) => {
+    try {
+      setStatus('Loading saved profile...');
+      const config = await KeyboardPreferences.getProfileObject(profile.key);
+      if (config) {
+        setConfigJson(JSON.stringify(config, null, 2));
+        await KeyboardPreferences.setKeyboardConfigObject(config);
+        setSelectedProfile(profile.key); // Clear built-in profile selection
+        setStatus(`Loaded: ${profile.name} (${Platform.OS})`);
+        Alert.alert('Success', `Profile "${profile.name}" loaded. Close and reopen the keyboard to see changes.`);
+      } else {
+        Alert.alert('Error', 'Profile not found');
+      }
+    } catch (e) {
+      console.error('Load error:', e);
+      Alert.alert('Error', 'Failed to load profile');
+    }
+  };
+
+  const showProfileMenu = (profile: SavedProfile) => {
+    Alert.alert(
+      profile.name,
+      'What would you like to do?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Edit',
+          onPress: () => startEditingProfile(profile),
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => confirmDeleteProfile(profile),
+        },
+      ]
+    );
+  };
+
+  const startEditingProfile = async (profile: SavedProfile) => {
+    try {
+      const config = await KeyboardPreferences.getProfileObject(profile.key);
+      if (config) {
+        setConfigJson(JSON.stringify(config, null, 2));
+        setEditingProfile(profile);
+        setStatus(`Editing: ${profile.name}`);
+      } else {
+        Alert.alert('Error', 'Profile not found');
+      }
+    } catch (e) {
+      console.error('Edit error:', e);
+      Alert.alert('Error', 'Failed to load profile for editing');
+    }
+  };
+
+  const saveEditedProfile = async () => {
+    if (!editingProfile) return;
+
+    try {
+      const parsedConfig = JSON.parse(configJson);
+
+      // Save the updated config
+      await KeyboardPreferences.setProfileObject(parsedConfig, editingProfile.key);
+      await KeyboardPreferences.setKeyboardConfigObject(parsedConfig);
+
+      setStatus(`Saved changes to: ${editingProfile.name}`);
+      Alert.alert('Success', `Profile "${editingProfile.name}" updated. Close and reopen the keyboard to see changes.`);
+      setEditingProfile(null);
+    } catch (e) {
       Alert.alert('Syntax Error', 'Please check your JSON formatting.');
-      console.error('JSON parse error:', e);
+      console.error('Save edit error:', e);
+    }
+  };
+
+  const cancelEditing = () => {
+    setEditingProfile(null);
+    // Reload the current profile to reset the JSON editor
+    const profile = PROFILES[selectedProfile as keyof typeof PROFILES];
+    if (profile) {
+      const config = buildConfiguration(profile);
+      setConfigJson(JSON.stringify(config, null, 2));
+    }
+    setStatus('Edit cancelled');
+  };
+
+  const confirmDeleteProfile = (profile: SavedProfile) => {
+    Alert.alert(
+      'Delete Profile',
+      `Are you sure you want to delete "${profile.name}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => deleteSavedProfile(profile),
+        },
+      ]
+    );
+  };
+
+  const deleteSavedProfile = async (profile: SavedProfile) => {
+    try {
+      // Remove from saved profiles list
+      const newList = savedProfiles.filter(p => p.key !== profile.key);
+      await KeyboardPreferences.setProfile(JSON.stringify(newList), 'saved_list');
+      setSavedProfiles(newList);
+
+      setStatus(`Deleted: ${profile.name}`);
+      console.log(`✅ ${Platform.OS}: Deleted profile "${profile.name}"`);
+    } catch (e) {
+      console.error('Delete error:', e);
+      Alert.alert('Error', 'Failed to delete profile');
     }
   };
 
@@ -179,72 +336,124 @@ const App = () => {
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.header}>Keyboard Configuration</Text>
-      
-      {/* Profile Selector */}
-      <View style={styles.profileSection}>
-        <Text style={styles.sectionTitle}>Select Profile:</Text>
-        <View style={styles.profileButtons}>
-          {Object.entries(PROFILES).map(([id, profile]) => (
-            <Button
-              key={id}
-              title={profile.name}
-              onPress={() => switchProfile(id)}
-              color={selectedProfile === id ? '#4CAF50' : '#2196F3'}
-            />
-          ))}
+    <>
+      {/* Save Profile Modal */}
+      <SaveProfileModal
+        showSaveModal={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
+        onSave={handleSaveWithName}
+        key={showSaveModal.toString()}
+      />
+
+      <ScrollView style={styles.container}>
+        <Text style={styles.header}>Keyboard Configuration</Text>
+
+        {/* Profile Selector */}
+        <View style={styles.profileSection}>
+          <Text style={styles.sectionTitle}>Built-in Profiles:</Text>
+          <View style={styles.profileButtons}>
+            {Object.entries(PROFILES).map(([id, profile]) => (
+              <Button
+                key={id}
+                title={profile.name}
+                onPress={() => switchProfile(id)}
+                color={selectedProfile === id ? '#4CAF50' : '#2196F3'}
+              />
+            ))}
+          </View>
+
+          {/* Saved Custom Profiles */}
+          {savedProfiles.length > 0 && (
+            <>
+              <Text style={[styles.sectionTitle, { marginTop: 15 }]}>Saved Profiles:</Text>
+              <Text style={styles.hintText}>Long-press for options</Text>
+              <View style={styles.profileButtons}>
+                {savedProfiles.map((profile) => (
+                  <TouchableOpacity
+                    key={profile.key}
+                    style={[
+                      styles.savedProfileButton,
+                      { backgroundColor: selectedProfile === profile.key ? '#4CAF50' : '#2196F3' }
+                    ]}
+                    onPress={() => loadSavedProfile(profile)}
+                    onLongPress={() => showProfileMenu(profile)}
+                    delayLongPress={500}
+                  >
+                    <Text style={styles.savedProfileButtonText}>{profile.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
+          )}
+
+          <Text style={styles.profileInfo}>
+            Current: {PROFILES[selectedProfile as keyof typeof PROFILES]?.name || savedProfiles.find(p => p.key === selectedProfile)?.name || 'Custom'}
+          </Text>
         </View>
-        <Text style={styles.profileInfo}>
-          Current: {PROFILES[selectedProfile as keyof typeof PROFILES].name}
-        </Text>
-      </View>
 
-      {/* Keyboards in Current Profile */}
-      <View style={styles.keyboardsSection}>
-        <Text style={styles.sectionTitle}>Keyboards in This Profile:</Text>
-        <Text style={styles.keyboardsList}>
-          {PROFILES[selectedProfile as keyof typeof PROFILES].keyboards
-            .map((kbId: string) => KEYBOARDS[kbId as keyof typeof KEYBOARDS]?.name || kbId)
-            .join(', ')}
-        </Text>
-      </View>
+        {/* Keyboards in Current Profile */}
+        <View style={styles.keyboardsSection}>
+          <Text style={styles.sectionTitle}>Keyboards in This Profile:</Text>
+          <Text style={styles.keyboardsList}>
+            {PROFILES[selectedProfile as keyof typeof PROFILES]?.keyboards
+              ?.map((kbId: string) => KEYBOARDS[kbId as keyof typeof KEYBOARDS]?.name || kbId)
+              .join(', ') || 'Custom configuration'}
+          </Text>
+        </View>
 
-      {/* JSON Editor */}
-      <View style={styles.editorSection}>
-        <Text style={styles.sectionTitle}>Generated Configuration (Advanced):</Text>
-        <Text style={styles.helpText}>
-          You can manually edit the JSON below if needed. Changes will override the profile.
-        </Text>
-        <TextInput
-          style={styles.input}
-          multiline
-          value={configJson}
-          onChangeText={setConfigJson}
-          autoCapitalize="none"
-          autoCorrect={false}
-          textAlignVertical="top"
-        />
-      </View>
+        {/* JSON Editor */}
+        <View style={styles.editorSection}>
+          <Text style={styles.sectionTitle}>
+            {editingProfile
+              ? `Editing: ${editingProfile.name}`
+              : 'Generated Configuration (Advanced):'}
+          </Text>
+          <Text style={styles.helpText}>
+            {editingProfile
+              ? 'Make your changes below and tap "Save Changes" when done.'
+              : 'You can manually edit the JSON below if needed. Changes will override the profile.'}
+          </Text>
+          <TextInput
+            style={styles.input}
+            multiline
+            value={configJson}
+            onChangeText={setConfigJson}
+            autoCapitalize="none"
+            autoCorrect={false}
+            textAlignVertical="top"
+          />
+        </View>
 
-      {/* Action Buttons */}
-      <View style={styles.footer}>
-        <Text style={styles.status}>{status}</Text>
-        <Button title="Save Custom Configuration" onPress={saveCustomConfig} />
-      </View>
+        {/* Action Buttons */}
+        <View style={styles.footer}>
+          <Text style={styles.status}>{status}</Text>
+          {editingProfile ? (
+            <View style={styles.editButtons}>
+              <View style={styles.editButtonWrapper}>
+                <Button title="Cancel" onPress={cancelEditing} color="#666" />
+              </View>
+              <View style={styles.editButtonWrapper}>
+                <Button title="Save Changes" onPress={saveEditedProfile} color="#4CAF50" />
+              </View>
+            </View>
+          ) : (
+            <Button title="Save Custom Configuration" onPress={saveCustomConfig} />
+          )}
+        </View>
 
-      {/* Help Text */}
-      <View style={styles.helpSection}>
-        <Text style={styles.helpTitle}>📚 About Profiles</Text>
-        <Text style={styles.helpText}>
-          • Profiles combine keyboards with styling{'\n'}
-          • Switch profiles to change keyboards and themes{'\n'}
-          • Edit keyboards/ folder to add new languages{'\n'}
-          • Edit profiles/ folder to create custom themes{'\n'}
-          • See keyboards/README.md for details
-        </Text>
-      </View>
+        {/* Help Text */}
+        <View style={styles.helpSection}>
+          <Text style={styles.helpTitle}>📚 About Profiles</Text>
+          <Text style={styles.helpText}>
+            • Profiles combine keyboards with styling{'\n'}
+            • Switch profiles to change keyboards and themes{'\n'}
+            • Edit keyboards/ folder to add new languages{'\n'}
+            • Edit profiles/ folder to create custom themes{'\n'}
+            • See keyboards/README.md for details
+          </Text>
+        </View>
     </ScrollView>
+    </>
   );
 };
 
@@ -283,6 +492,21 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 5,
   },
+  hintText: {
+    fontSize: 12,
+    color: '#999',
+    fontStyle: 'italic',
+  },
+  savedProfileButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 4,
+  },
+  savedProfileButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '500',
+  },
   keyboardsSection: {
     marginBottom: 20,
     padding: 15,
@@ -315,8 +539,16 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
     fontSize: 12,
   },
-  footer: { 
-    marginBottom: 20 
+  footer: {
+    marginBottom: 20
+  },
+  editButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  editButtonWrapper: {
+    flex: 1,
   },
   status: { 
     textAlign: 'center', 
