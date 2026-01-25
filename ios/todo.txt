@@ -1,0 +1,6 @@
+Native:
+  android:
+   - double clikc on shift - not lock
+   - nikkud options not rtl
+   
+  ios:

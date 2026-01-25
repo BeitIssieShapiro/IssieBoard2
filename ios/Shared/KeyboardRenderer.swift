@@ -38,18 +38,22 @@ class TouchInterceptingOverlay: UIView {
 }
 
 /**
- * Self-contained keyboard renderer that manages all keyboard logic internally
- * Container (Preview/Keyboard) only needs to provide the view and listen to final key output
+ * Self-contained keyboard renderer that manages all keyboard logic internally.
+ * Used for both the in-app preview and the actual keyboard extension.
+ * Container only needs to provide the view and listen to final key output.
  */
 class KeyboardRenderer {
     
     // MARK: - Properties
     
-    private let isPreview: Bool
-    
-    // Only callback for FINAL key output (not UI state changes)
+    // Callbacks for key output
     var onKeyPress: ((ParsedKey) -> Void)?
     var onNikkudSelected: ((String) -> Void)?
+    
+    // Callbacks for system keyboard actions (only used by actual keyboard)
+    var onNextKeyboard: (() -> Void)?
+    var onDismissKeyboard: (() -> Void)?
+    var onOpenSettings: (() -> Void)?
     
     // Internal state - managed entirely by renderer
     private var shiftState: ShiftState = .inactive
@@ -58,27 +62,43 @@ class KeyboardRenderer {
     var currentKeysetId: String = "abc"  // Public so container can read it (but shouldn't write)
     private var editorContext: (enterVisible: Bool, enterLabel: String, enterAction: Int)?
     
+    // Shift double-click detection
+    private var lastShiftClickTime: TimeInterval = 0
+    private let doubleClickThreshold: TimeInterval = 0.5
+    
     // Container reference - renderer owns the rendering
     private weak var container: UIView?
     
-    // UI Constants
-    private let rowHeightKeyboard: CGFloat = 50
-    private let rowHeightPreview: CGFloat = 40
+    // Layout tracking to prevent infinite loops
+    private var lastRenderedWidth: CGFloat = 0
+    
+    // UI Constants - same for preview and keyboard
+    private let rowHeight: CGFloat = 50
     private let keySpacing: CGFloat = 6
-    private let keySpacingPreview: CGFloat = 4
     private let rowSpacing: CGFloat = 10
-    private let rowSpacingPreview: CGFloat = 6
     private let keyCornerRadius: CGFloat = 5
     private let fontSize: CGFloat = 18
-    private let fontSizePreview: CGFloat = 14
     private let largeFontSize: CGFloat = 24
-    private let largeFontSizePreview: CGFloat = 18
     
     // MARK: - Initialization
     
-    init(isPreview: Bool = false) {
-        self.isPreview = isPreview
-        print("🎨 KeyboardRenderer created (isPreview: \(isPreview))")
+    init() {
+        print("🎨 KeyboardRenderer created")
+    }
+    
+    // MARK: - Public Methods
+    
+    /// Check if width changed and re-render is needed
+    func needsRender(for width: CGFloat) -> Bool {
+        return abs(width - lastRenderedWidth) > 1
+    }
+    
+    /// Trigger re-render with current config
+    func rerenderIfNeeded() {
+        guard let container = container, let config = config else { return }
+        if needsRender(for: container.bounds.width) {
+            renderKeyboard(in: container, config: config, currentKeysetId: currentKeysetId, editorContext: editorContext)
+        }
     }
     
     // MARK: - Public Rendering
@@ -89,23 +109,14 @@ class KeyboardRenderer {
         currentKeysetId: String,
         editorContext: (enterVisible: Bool, enterLabel: String, enterAction: Int)?
     ) {
+        let currentWidth = container.bounds.width
         print("📐 RENDER START =================")
-        print("📐 RENDER: container.bounds = \(container.bounds)")
-        print("📐 RENDER: container.frame = \(container.frame)")
-        print("📐 RENDER: container.bounds.width = \(container.bounds.width)")
+        print("📐 RENDER: container.bounds.width = \(currentWidth), lastRenderedWidth = \(lastRenderedWidth)")
         
-        // Log superview chain for debugging
-        var currentView: UIView? = container
-        var depth = 0
-        while let view = currentView {
-            print("📐 RENDER: superview[\(depth)] = \(type(of: view)), bounds = \(view.bounds), frame = \(view.frame)")
-            currentView = view.superview
-            depth += 1
-            if depth > 5 { break }  // Limit depth
-        }
+        // Update last rendered width
+        lastRenderedWidth = currentWidth
         
         // Store container, config, and editor context
-        // Only update currentKeysetId if it's the first render (renderer manages its own state after that)
         self.container = container
         self.config = config
         self.editorContext = editorContext
@@ -116,16 +127,11 @@ class KeyboardRenderer {
         }
         
         // Clear existing views, but preserve nikkud picker overlay if present
-        let existingOverlay = container.subviews.first(where: { $0.tag == 999 })
-        
         container.subviews.forEach { subview in
             if subview.tag != 999 {  // Don't remove nikkud picker overlay
                 subview.removeFromSuperview()
             }
         }
-        
-        // If overlay exists, bring it back to front after we add new views
-        // Note: We'll do this at the end of renderKeyboard
         
         // Set background color
         if let bgColorString = config.backgroundColor,
@@ -159,12 +165,9 @@ class KeyboardRenderer {
         ])
         
         // Render each row
-        let rowHeight = isPreview ? rowHeightPreview : rowHeightKeyboard
-        let spacing = isPreview ? rowSpacingPreview : rowSpacing
         var currentY: CGFloat = 0
-        
         let availableWidth = container.bounds.width - 8
-        print("📐 AVAILABLE WIDTH = \(availableWidth) (from container.bounds.width: \(container.bounds.width))")
+        print("📐 AVAILABLE WIDTH = \(availableWidth)")
         print("📐 RENDER END ===================")
         
         for row in keyset.rows {
@@ -174,7 +177,7 @@ class KeyboardRenderer {
             rowsContainer.addSubview(rowView)
             
             rowView.frame = CGRect(x: 4, y: currentY, width: availableWidth, height: rowHeight)
-            currentY += rowHeight + spacing
+            currentY += rowHeight + rowSpacing
         }
     }
     
@@ -220,9 +223,6 @@ class KeyboardRenderer {
         editorContext: (enterVisible: Bool, enterLabel: String, enterAction: Int)?
     ) -> UIView {
         let rowContainer = UIView()
-        let spacing = isPreview ? keySpacingPreview : keySpacing
-        let rowHeight = isPreview ? rowHeightPreview : rowHeightKeyboard
-        
         var currentX: CGFloat = 0
         
         for key in row.keys {
@@ -240,13 +240,13 @@ class KeyboardRenderer {
                 let hiddenWidth = (CGFloat(parsedKey.width) / baselineWidth) * availableWidth
                 currentX += hiddenWidth
             } else {
-                let keyWidth = (CGFloat(parsedKey.width) / baselineWidth) * availableWidth - spacing
+                let keyWidth = (CGFloat(parsedKey.width) / baselineWidth) * availableWidth - keySpacing
                 let button = createKeyButton(parsedKey, width: keyWidth, height: rowHeight, 
                                             editorContext: editorContext)
                 rowContainer.addSubview(button)
                 
                 button.frame = CGRect(x: currentX, y: 0, width: keyWidth, height: rowHeight)
-                currentX += keyWidth + spacing
+                currentX += keyWidth + keySpacing
             }
         }
         
@@ -281,9 +281,7 @@ class KeyboardRenderer {
         // Font size
         let isLargeKey = ["shift", "backspace", "enter"].contains(key.type.lowercased())
         let isMultiChar = finalText.count > 1
-        let baseFontSize: CGFloat = isLargeKey ? 
-            (isPreview ? largeFontSizePreview : largeFontSize) : 
-            (isPreview ? fontSizePreview : fontSize)
+        let baseFontSize: CGFloat = isLargeKey ? largeFontSize : fontSize
         let finalFontSize = isMultiChar ? min(baseFontSize * 0.7, 14) : baseFontSize
         
         button.titleLabel?.font = UIFont.systemFont(ofSize: finalFontSize, weight: .regular)
@@ -355,10 +353,9 @@ class KeyboardRenderer {
         
         switch key.type.lowercased() {
         case "shift":
-            // Toggle shift and re-render internally
+            // Handle shift with double-click for lock
             print("   → Handling SHIFT")
-            shiftState = shiftState.toggle()
-            rerender()
+            handleShiftTap()
             
         case "nikkud":
             // Toggle nikkud and re-render internally
@@ -376,10 +373,28 @@ class KeyboardRenderer {
                 rerender()
             }
             
-        case "language", "next-keyboard":
-            // Language switching handled internally (both types)
-            print("   → Handling LANGUAGE/NEXT-KEYBOARD")
+        case "language":
+            // Language switching handled internally
+            print("   → Handling LANGUAGE")
             switchLanguage()
+            
+        case "next-keyboard":
+            // For actual keyboard: call system callback
+            // For preview: just switch language internally
+            print("   → Handling NEXT-KEYBOARD")
+            if let onNextKeyboard = onNextKeyboard {
+                onNextKeyboard()
+            } else {
+                switchLanguage()
+            }
+            
+        case "close":
+            print("   → Handling CLOSE")
+            onDismissKeyboard?()
+            
+        case "settings":
+            print("   → Handling SETTINGS")
+            onOpenSettings?()
             
         default:
             // For regular keys, check if nikkud popup should be shown
@@ -387,8 +402,16 @@ class KeyboardRenderer {
             if nikkudActive && !key.nikkud.isEmpty {
                 showNikkudPicker(key.nikkud, anchorView: keyView)
             } else {
-                // Only output FINAL key press to container
+                // Output FINAL key press to container
                 onKeyPress?(key)
+                
+                // For shift-active (but not locked) regular keys, reset shift after key press
+                // Locked shift stays active until explicitly toggled off
+                if case .active = shiftState {
+                    shiftState = .inactive
+                    rerender()
+                }
+                // .locked stays as is - doesn't reset after key press
             }
         }
     }
@@ -534,6 +557,8 @@ class KeyboardRenderer {
         
         print("   Overlay added to container")
         
+        // Nikkud picker button size
+        let buttonSize: CGFloat = 60
         let spacing: CGFloat = 12
         let padding: CGFloat = 20
         
@@ -545,12 +570,13 @@ class KeyboardRenderer {
         
         // Calculate button size based on available width and number of items per row
         let totalSpacing = spacing * CGFloat(itemsPerRow - 1) + 2 * padding
-        let buttonSize = (maxAvailableWidth - totalSpacing) / CGFloat(itemsPerRow)
+        let calculatedButtonSize = (maxAvailableWidth - totalSpacing) / CGFloat(itemsPerRow)
+        let finalButtonSize = min(buttonSize, calculatedButtonSize)
         
         print("   Container width: \(container.bounds.width)")
         print("   Available width (80%): \(maxAvailableWidth)")
         print("   Items per row: \(itemsPerRow)")
-        print("   Button size: \(buttonSize)")
+        print("   Button size: \(finalButtonSize)")
         
         // Create picker container
         let picker = UIView()
@@ -579,7 +605,7 @@ class KeyboardRenderer {
             
             let button = UIButton(type: .system)
             button.setTitle(caption, for: .normal)
-            button.titleLabel?.font = UIFont.systemFont(ofSize: 22)
+            button.titleLabel?.font = UIFont.systemFont(ofSize: 28)
             button.titleLabel?.adjustsFontSizeToFitWidth = true
             button.titleLabel?.minimumScaleFactor = 0.5
             button.backgroundColor = .white
@@ -598,18 +624,18 @@ class KeyboardRenderer {
         var maxRowWidth: CGFloat = 0
         
         for row in rows {
-            let rowWidth = CGFloat(row.count) * buttonSize + CGFloat(row.count - 1) * spacing
+            let rowWidth = CGFloat(row.count) * finalButtonSize + CGFloat(row.count - 1) * spacing
             maxRowWidth = max(maxRowWidth, rowWidth)
             
             // Position buttons RTL (right to left)
             for (index, button) in row.enumerated() {
                 let reversedIndex = row.count - 1 - index  // Reverse for RTL
-                let x = CGFloat(reversedIndex) * (buttonSize + spacing)
-                button.frame = CGRect(x: x, y: currentY, width: buttonSize, height: buttonSize)
+                let x = CGFloat(reversedIndex) * (finalButtonSize + spacing)
+                button.frame = CGRect(x: x, y: currentY, width: finalButtonSize, height: finalButtonSize)
                 flexContainer.addSubview(button)
             }
             
-            currentY += buttonSize + spacing
+            currentY += finalButtonSize + spacing
         }
         
         // Calculate final container size
@@ -654,6 +680,29 @@ class KeyboardRenderer {
         
         // Do NOT deactivate nikkud mode here - it stays active until toggled off
         // Just rerender to update the UI
+        rerender()
+    }
+    
+    // MARK: - Shift Handling
+    
+    private func handleShiftTap() {
+        let currentTime = Date().timeIntervalSince1970
+        
+        if currentTime - lastShiftClickTime < doubleClickThreshold {
+            // Double-click: toggle between locked and inactive
+            print("   → Shift double-click detected")
+            if shiftState == .locked {
+                shiftState = .inactive
+            } else {
+                shiftState = .locked
+            }
+        } else {
+            // Single click: toggle between inactive and active
+            shiftState = shiftState.toggle()
+        }
+        
+        lastShiftClickTime = currentTime
+        print("   → New shift state: \(shiftState)")
         rerender()
     }
     
@@ -708,7 +757,7 @@ class KeyboardRenderer {
                 
                 print("   Switching from \(currentKeysetId) to \(nextKeysetId)")
                 currentKeysetId = nextKeysetId
-                shiftState = .inactive
+                shiftState = .inactive  // Reset shift (including locked) on language change
                 
                 // Re-render internally
                 rerender()

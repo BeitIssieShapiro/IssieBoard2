@@ -23,7 +23,7 @@ class KeyboardPreviewView: UIView {
     
     override init(frame: CGRect) {
         // Create renderer - it manages all keyboard logic
-        self.renderer = KeyboardRenderer(isPreview: true)
+        self.renderer = KeyboardRenderer()
         
         super.init(frame: frame)
         
