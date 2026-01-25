@@ -236,14 +236,25 @@ const App = () => {
   };
 
   const handleJsonChange = (newValue: string) => {
-    setConfigJson(newValue);
-
     // Validate JSON
     try {
-      JSON.parse(newValue);
+      const parsedConfig = JSON.parse(newValue) as StoredConfig;
       setJsonValidationError(null);
-      setLastValidConfig(newValue);
+      
+      // If the config has a keyboards array and needs building, build it
+      // This ensures the preview gets a fully built config
+      if (needsBuilding(parsedConfig)) {
+        const builtConfig = buildConfiguration(parsedConfig);
+        const builtJson = JSON.stringify(builtConfig, null, 2);
+        setConfigJson(builtJson);
+        setLastValidConfig(builtJson);
+      } else {
+        setConfigJson(newValue);
+        setLastValidConfig(newValue);
+      }
     } catch (e) {
+      // Keep the invalid JSON in the editor so user can see their changes
+      setConfigJson(newValue);
       setJsonValidationError(e instanceof Error ? e.message : 'Invalid JSON');
     }
   };

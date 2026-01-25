@@ -24,7 +24,7 @@ class KeyboardConfigParser(private val context: Context) {
     /**
      * Load config from SharedPreferences and parse it
      */
-    fun loadAndParseConfig(): SimpleKeyboardService.ParsedConfig? {
+    fun loadAndParseConfig(): ParsedConfig? {
         return try {
             val prefs = context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
             val configString = prefs.getString(CONFIG_KEY, null) ?: "{}"
@@ -39,12 +39,16 @@ class KeyboardConfigParser(private val context: Context) {
     /**
      * Parse JSON config into ParsedConfig structure
      */
-    fun parseConfig(configJson: JSONObject): SimpleKeyboardService.ParsedConfig {
+    fun parseConfig(configJson: JSONObject): ParsedConfig {
         val bgColorString = configJson.optString("backgroundColor", DEFAULT_BG_COLOR)
         val backgroundColor = parseColor(bgColorString, Color.parseColor(DEFAULT_BG_COLOR))
         val defaultKeysetId = configJson.optString("defaultKeyset", DEFAULT_KEYSET_ID)
         
-        val keysets = mutableMapOf<String, SimpleKeyboardService.ParsedKeyset>()
+        // Parse groups from the top-level config (they apply to all keysets)
+        val globalGroups = parseGroupsFromArray(configJson.optJSONArray("groups"))
+        Log.d(TAG, "Parsed ${globalGroups.size} global groups: ${globalGroups.keys.joinToString()}")
+        
+        val keysets = mutableMapOf<String, ParsedKeyset>()
         val keysetsArray = configJson.optJSONArray("keysets")
         
         if (keysetsArray != null) {
@@ -53,8 +57,12 @@ class KeyboardConfigParser(private val context: Context) {
                 val keysetId = keysetObj.optString("id", "")
                 if (keysetId.isEmpty()) continue
                 
-                val groups = parseGroups(keysetObj)
-                val rows = mutableListOf<List<SimpleKeyboardService.KeyConfig>>()
+                // Merge keyset-level groups with global groups (keyset groups override global)
+                val keysetGroups = parseGroupsFromArray(keysetObj.optJSONArray("groups"))
+                val mergedGroups = globalGroups.toMutableMap()
+                mergedGroups.putAll(keysetGroups)
+                
+                val rows = mutableListOf<List<KeyConfig>>()
                 val rowsArray = keysetObj.optJSONArray("rows")
                 
                 if (rowsArray != null) {
@@ -62,33 +70,36 @@ class KeyboardConfigParser(private val context: Context) {
                         val rowObj = rowsArray.optJSONObject(j) ?: continue
                         val keysArray = rowObj.optJSONArray("keys") ?: continue
                         
-                        val rowKeys = mutableListOf<SimpleKeyboardService.KeyConfig>()
+                        val rowKeys = mutableListOf<KeyConfig>()
                         for (k in 0 until keysArray.length()) {
                             val keyObj = keysArray.optJSONObject(k) ?: continue
-                            val keyConfig = parseKeyConfig(keyObj, groups)
+                            val keyConfig = parseKeyConfig(keyObj, mergedGroups)
                             rowKeys.add(keyConfig)
                         }
                         rows.add(rowKeys)
                     }
                 }
                 
-                keysets[keysetId] = SimpleKeyboardService.ParsedKeyset(keysetId, rows, groups)
+                keysets[keysetId] = ParsedKeyset(keysetId, rows, mergedGroups)
             }
         }
         
-        return SimpleKeyboardService.ParsedConfig(backgroundColor, defaultKeysetId, keysets)
+        return ParsedConfig(backgroundColor, defaultKeysetId, keysets)
     }
     
-    private fun parseGroups(keyset: JSONObject): Map<String, SimpleKeyboardService.GroupTemplate> {
-        val groups = mutableMapOf<String, SimpleKeyboardService.GroupTemplate>()
-        val groupsArray = keyset.optJSONArray("groups") ?: return groups
+    /**
+     * Parse groups from a JSONArray into a map of value -> GroupTemplate
+     */
+    private fun parseGroupsFromArray(groupsArray: org.json.JSONArray?): Map<String, GroupTemplate> {
+        val groups = mutableMapOf<String, GroupTemplate>()
+        if (groupsArray == null) return groups
         
         for (i in 0 until groupsArray.length()) {
             val groupObj = groupsArray.optJSONObject(i) ?: continue
             val itemsArray = groupObj.optJSONArray("items") ?: continue
             val templateObj = groupObj.optJSONObject("template") ?: continue
             
-            val template = SimpleKeyboardService.GroupTemplate(
+            val template = GroupTemplate(
                 width = if (templateObj.has("width")) templateObj.optDouble("width", 1.0).toFloat() else null,
                 offset = if (templateObj.has("offset")) templateObj.optDouble("offset", 0.0).toFloat() else null,
                 hidden = if (templateObj.has("hidden")) templateObj.optBoolean("hidden", false) else null,
@@ -109,8 +120,8 @@ class KeyboardConfigParser(private val context: Context) {
     
     private fun parseKeyConfig(
         keyObj: JSONObject,
-        groups: Map<String, SimpleKeyboardService.GroupTemplate>
-    ): SimpleKeyboardService.KeyConfig {
+        groups: Map<String, GroupTemplate>
+    ): KeyConfig {
         val value = keyObj.optString("value", "")
         val groupTemplate = groups[value]
         
@@ -126,18 +137,18 @@ class KeyboardConfigParser(private val context: Context) {
         val textColor = parseColor(textColorString, Color.BLACK)
         val backgroundColor = parseColor(bgColorString, Color.LTGRAY)
         
-        val nikkudList = mutableListOf<SimpleKeyboardService.NikkudOption>()
+        val nikkudList = mutableListOf<NikkudOption>()
         val nikkudArray = keyObj.optJSONArray("nikkud")
         if (nikkudArray != null) {
             for (i in 0 until nikkudArray.length()) {
                 val nikkudObj = nikkudArray.optJSONObject(i) ?: continue
                 val nikkudValue = nikkudObj.optString("value", "")
                 val nikkudCaption = nikkudObj.optString("caption", "").ifEmpty { nikkudValue }
-                nikkudList.add(SimpleKeyboardService.NikkudOption(nikkudValue, nikkudCaption))
+                nikkudList.add(NikkudOption(nikkudValue, nikkudCaption))
             }
         }
         
-        return SimpleKeyboardService.KeyConfig(
+        return KeyConfig(
             value = value,
             caption = caption,
             sValue = sValue,

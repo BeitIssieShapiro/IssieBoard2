@@ -9,23 +9,32 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.content.res.Configuration
-import org.json.JSONObject
 
 /**
- * Shared keyboard rendering logic
- * Used by both SimpleKeyboardService and KeyboardPreviewView
+ * Keyboard rendering and state management
+ * 
+ * This is the central component that handles:
+ * - All keyboard rendering
+ * - Shift state management
+ * - Keyset switching (abc/123/#+= layouts)
+ * - Language switching
+ * - Nikkud popup display
+ * 
+ * Users (SimpleKeyboardService and KeyboardPreviewView) only need to:
+ * 1. Provide config
+ * 2. Provide a callback for key events (text input, backspace, enter, etc.)
  */
 class KeyboardRenderer(
     private val context: Context,
     private val isPreview: Boolean = false,
-    private val onKeyPress: ((SimpleKeyboardService.KeyConfig) -> Unit)? = null,
-    private val onNikkudSelected: ((String) -> Unit)? = null,
-    private val onRequestRerender: (() -> Unit)? = null
+    private val onKeyEvent: ((KeyEvent) -> Unit)? = null,
+    private val onStateChange: (() -> Unit)? = null  // Called after internal state changes (shift, keyset, language)
 ) {
     
     companion object {
         private const val TAG = "KeyboardRenderer"
         private var instanceCounter = 0
+        private const val DEFAULT_KEYSET_ID = "abc"
         
         // UI Dimensions
         private const val ROW_HEIGHT_PORTRAIT = 150
@@ -51,6 +60,9 @@ class KeyboardRenderer(
         private const val DEFAULT_BG_COLOR = "#CCCCCC"
         private const val SHIFT_ACTIVE_COLOR = "#4CAF50"
         private const val DEFAULT_BASELINE_WIDTH = 10f
+        
+        // Timing
+        private const val DOUBLE_CLICK_THRESHOLD_MS = 500L
     }
     
     private val instanceId = ++instanceCounter
@@ -59,29 +71,105 @@ class KeyboardRenderer(
     // Color parsing cache
     private val colorCache = mutableMapOf<String, Int>()
     
-    // State
-    var shiftState: SimpleKeyboardService.ShiftState = SimpleKeyboardService.ShiftState.Inactive
+    // ============================================================================
+    // STATE MANAGEMENT - All keyboard state is managed here
+    // ============================================================================
+    
+    /** Current shift state */
+    var shiftState: ShiftState = ShiftState.Inactive
+        private set
+    
+    /** Whether nikkud mode is active */
     var nikkudActive: Boolean = false
+        private set
+    
+    /** Current keyset ID */
+    var currentKeysetId: String = DEFAULT_KEYSET_ID
+        private set
+    
+    /** Stored config for re-rendering */
+    private var currentConfig: ParsedConfig? = null
+    
+    /** Stored editor context for re-rendering */
+    private var currentEditorContext: EditorContext? = null
+    
+    /** Container for rendering */
+    private var currentContainer: LinearLayout? = null
+    
+    /** Double-click detection for shift */
+    private var lastShiftClickTime: Long = 0
+    
+    // ============================================================================
+    // PUBLIC API
+    // ============================================================================
+    
+    /**
+     * Set the config and initialize the keyset
+     * Call this when config changes (e.g., from SharedPreferences)
+     * 
+     * @param config The new parsed configuration
+     * @param resetKeyset If true, always reset to default keyset. If false, only reset if current keyset doesn't exist.
+     */
+    fun setConfig(config: ParsedConfig, resetKeyset: Boolean = false) {
+        Log.d(logTag, "setConfig() called with ${config.keysets.size} keysets, resetKeyset=$resetKeyset")
+        currentConfig = config
+        
+        // Reset keyset if requested or if current keyset doesn't exist in new config
+        if (resetKeyset || !config.keysets.containsKey(currentKeysetId)) {
+            Log.d(logTag, "setConfig() - resetting keyset from '$currentKeysetId' to '${config.defaultKeysetId}'")
+            currentKeysetId = config.defaultKeysetId
+            shiftState = ShiftState.Inactive
+            nikkudActive = false
+        }
+    }
     
     /**
      * Render keyboard into a container layout
+     * 
+     * @param container The LinearLayout to render into
+     * @param editorContext Optional editor context for dynamic key behavior (enter label, etc.)
      */
     fun renderKeyboard(
         container: LinearLayout,
-        config: SimpleKeyboardService.ParsedConfig,
-        currentKeysetId: String,
-        editorContext: SimpleKeyboardService.EditorContext? = null
+        editorContext: EditorContext? = null
     ) {
-        lastContainer = container // Store for popup anchoring
+        Log.d(logTag, "renderKeyboard() - keyset=$currentKeysetId, container=$container")
+        
+        val config = currentConfig
+        if (config == null) {
+            Log.e(logTag, "renderKeyboard() - config is null!")
+            showError(container, "No config loaded")
+            return
+        }
+        
+        currentContainer = container
+        currentEditorContext = editorContext
         
         container.removeAllViews()
         container.setBackgroundColor(config.backgroundColor)
         
-        val keyset = config.keysets[currentKeysetId]
+        var keyset = config.keysets[currentKeysetId]
         if (keyset == null) {
-            showError(container, "Keyset not found: $currentKeysetId")
-            return
+            Log.w(logTag, "renderKeyboard() - Keyset '$currentKeysetId' not found! Falling back to '${config.defaultKeysetId}'")
+            currentKeysetId = config.defaultKeysetId
+            keyset = config.keysets[currentKeysetId]
+            
+            if (keyset == null) {
+                // Try first available keyset
+                val firstKeyset = config.keysets.entries.firstOrNull()
+                if (firstKeyset != null) {
+                    Log.w(logTag, "renderKeyboard() - Default keyset '${config.defaultKeysetId}' not found! Using first available: '${firstKeyset.key}'")
+                    currentKeysetId = firstKeyset.key
+                    keyset = firstKeyset.value
+                } else {
+                    Log.e(logTag, "renderKeyboard() - No keysets available!")
+                    showError(container, "No keysets available")
+                    return
+                }
+            }
         }
+        
+        Log.d(logTag, "renderKeyboard() - keyset has ${keyset.rows.size} rows")
         
         val baselineWidth = calculateBaselineWidth(keyset.rows, editorContext)
         
@@ -90,11 +178,170 @@ class KeyboardRenderer(
             renderRowKeys(rowLayout, rowKeys, editorContext)
             container.addView(rowLayout)
         }
+        
+        Log.d(logTag, "renderKeyboard() - done, container now has ${container.childCount} children")
     }
     
+    /**
+     * Re-render with same container and editor context
+     * Call this after state changes (shift, keyset, etc.)
+     */
+    fun rerender() {
+        Log.d(logTag, "rerender() called, currentContainer=${currentContainer != null}, currentKeysetId=$currentKeysetId")
+        currentContainer?.let { container ->
+            Log.d(logTag, "rerender() - rendering into container with ${container.childCount} children")
+            renderKeyboard(container, currentEditorContext)
+            Log.d(logTag, "rerender() - after render, container has ${container.childCount} children")
+            
+            // Notify that state changed (for layout refresh in preview)
+            onStateChange?.invoke()
+        } ?: run {
+            Log.e(logTag, "rerender() - currentContainer is null!")
+        }
+    }
+    
+    // ============================================================================
+    // STATE CHANGE HANDLERS
+    // ============================================================================
+    
+    /**
+     * Toggle shift state (single click)
+     */
+    private fun toggleShift() {
+        shiftState = shiftState.toggle()
+        rerender()
+    }
+    
+    /**
+     * Handle shift click with double-click detection for caps lock
+     */
+    private fun handleShiftClick() {
+        val currentTime = System.currentTimeMillis()
+        val timeSinceLastClick = currentTime - lastShiftClickTime
+        
+        if (timeSinceLastClick < DOUBLE_CLICK_THRESHOLD_MS) {
+            // Double-click: toggle caps lock
+            shiftState = if (shiftState is ShiftState.Locked) {
+                ShiftState.Inactive
+            } else {
+                ShiftState.Locked
+            }
+        } else {
+            // Single click: toggle
+            shiftState = shiftState.toggle()
+        }
+        lastShiftClickTime = currentTime
+        rerender()
+    }
+    
+    /**
+     * Toggle nikkud mode
+     */
+    private fun toggleNikkud() {
+        nikkudActive = !nikkudActive
+        rerender()
+    }
+    
+    /**
+     * Switch to a different keyset (abc, 123, #+=)
+     * Maintains the current keyboard/language prefix
+     */
+    private fun switchKeyset(keysetValue: String) {
+        if (keysetValue.isEmpty()) return
+        
+        val config = currentConfig ?: return
+        
+        // Extract the keyboard prefix from current keyset ID (e.g., "he_abc" -> "he")
+        val keyboardPrefix = if (currentKeysetId.contains("_")) {
+            currentKeysetId.substringBefore("_")
+        } else {
+            ""
+        }
+        
+        // Build target keyset ID with same keyboard prefix
+        val targetKeysetId = if (keyboardPrefix.isNotEmpty()) {
+            "${keyboardPrefix}_${keysetValue}"
+        } else {
+            keysetValue
+        }
+        
+        if (config.keysets.containsKey(targetKeysetId)) {
+            currentKeysetId = targetKeysetId
+            // Reset shift state when changing keysets
+            shiftState = ShiftState.Inactive
+            rerender()
+        } else {
+            Log.w(logTag, "Keyset not found: $targetKeysetId")
+        }
+    }
+    
+    /**
+     * Switch to the next language/keyboard
+     * Cycles through keyboards of the same type (abc/123/#+= stay the same)
+     */
+    private fun switchLanguage() {
+        val config = currentConfig ?: return
+        
+        if (config.keysets.isEmpty()) {
+            Log.w(logTag, "No keysets available for language switch")
+            return
+        }
+        
+        val allKeysetIds = config.keysets.keys.toList()
+        Log.d(logTag, "Language switch: All keysets: ${allKeysetIds.joinToString()}")
+        Log.d(logTag, "Language switch: Current keyset: $currentKeysetId")
+        
+        // Determine the keyset type (abc, 123, or #+=)
+        val currentKeysetType = when {
+            currentKeysetId.endsWith("_abc") -> "abc"
+            currentKeysetId.endsWith("_123") -> "123"
+            currentKeysetId.endsWith("_#+=") -> "#+="
+            currentKeysetId == "abc" -> "abc"
+            currentKeysetId == "123" -> "123"
+            currentKeysetId == "#+=" -> "#+="
+            else -> "abc"
+        }
+        
+        // Find all keysets of the same type across different keyboards
+        val sameTypeKeysets = allKeysetIds.filter { keysetId ->
+            keysetId == currentKeysetType || keysetId.endsWith("_$currentKeysetType")
+        }
+        
+        Log.d(logTag, "Language switch: Same type keysets ($currentKeysetType): ${sameTypeKeysets.joinToString()}")
+        
+        if (sameTypeKeysets.size > 1) {
+            val currentIndex = sameTypeKeysets.indexOf(currentKeysetId)
+            val nextIndex = (currentIndex + 1) % sameTypeKeysets.size
+            val nextKeysetId = sameTypeKeysets[nextIndex]
+            
+            Log.d(logTag, "Language switch: Switching from $currentKeysetId to $nextKeysetId")
+            
+            currentKeysetId = nextKeysetId
+            // Reset shift state when changing languages
+            shiftState = ShiftState.Inactive
+            rerender()
+        } else {
+            Log.d(logTag, "Language switch: Only one keyboard available for type $currentKeysetType")
+        }
+    }
+    
+    /**
+     * Auto-reset shift after typing (unless locked)
+     */
+    private fun autoResetShift() {
+        if (shiftState is ShiftState.Active) {
+            shiftState = ShiftState.Inactive
+            rerender()
+        }
+    }
+    
+    // ============================================================================
+    // RENDERING HELPERS
+    // ============================================================================
+    
     private fun calculateBaselineWidth(
-        rows: List<List<SimpleKeyboardService.KeyConfig>>,
-        editorContext: SimpleKeyboardService.EditorContext?
+        rows: List<List<KeyConfig>>,
+        editorContext: EditorContext?
     ): Float {
         var maxRowWidth = 0f
         
@@ -129,8 +376,6 @@ class KeyboardRenderer(
         
         val padding = if (isPreview) ROW_PADDING_HORIZONTAL_PREVIEW else ROW_PADDING_HORIZONTAL
         
-        Log.d(logTag, "createRowLayout: rowHeight=$rowHeight, isPreview=$isPreview")
-        
         return LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             layoutParams = LinearLayout.LayoutParams(
@@ -139,15 +384,13 @@ class KeyboardRenderer(
             )
             setPadding(padding, 0, padding, 0)
             weightSum = baselineWidth
-            
-            Log.d(logTag, "Row created with layoutParams: width=${layoutParams.width}, height=${layoutParams.height}")
         }
     }
     
     private fun renderRowKeys(
         rowLayout: LinearLayout,
-        rowKeys: List<SimpleKeyboardService.KeyConfig>,
-        editorContext: SimpleKeyboardService.EditorContext?
+        rowKeys: List<KeyConfig>,
+        editorContext: EditorContext?
     ) {
         for (key in rowKeys) {
             // Skip enter/action keys if not visible
@@ -180,14 +423,14 @@ class KeyboardRenderer(
         }
     }
     
-    private fun getDefaultLabel(type: String, editorContext: SimpleKeyboardService.EditorContext?): String {
+    private fun getDefaultLabel(type: String, editorContext: EditorContext?): String {
         return when (type.lowercase()) {
             "backspace" -> "⌫"
             "enter", "action" -> editorContext?.enterLabel ?: "↵"
             "shift" -> when (shiftState) {
-                is SimpleKeyboardService.ShiftState.Locked -> "🔒"
-                is SimpleKeyboardService.ShiftState.Active -> "⬆"
-                is SimpleKeyboardService.ShiftState.Inactive -> "⬆"
+                is ShiftState.Locked -> "🔒"
+                is ShiftState.Active -> "⬆"
+                is ShiftState.Inactive -> "⬆"
             }
             "settings" -> "⚙️"
             "close" -> "⬇"
@@ -208,9 +451,9 @@ class KeyboardRenderer(
     }
     
     private fun createKeyButton(
-        key: SimpleKeyboardService.KeyConfig,
+        key: KeyConfig,
         label: String,
-        editorContext: SimpleKeyboardService.EditorContext?
+        editorContext: EditorContext?
     ): Button {
         val horizontalMargin = if (isPreview) KEY_MARGIN_HORIZONTAL_PREVIEW else KEY_MARGIN_HORIZONTAL
         val verticalMargin = if (isPreview) KEY_MARGIN_VERTICAL_PREVIEW else KEY_MARGIN_VERTICAL
@@ -251,7 +494,7 @@ class KeyboardRenderer(
             alpha = if (keyEnabled) 1.0f else 0.4f
             
             setOnClickListener {
-                handleKeyClick(key, this)
+                handleKeyClick(key, this, editorContext)
             }
         }
     }
@@ -264,7 +507,7 @@ class KeyboardRenderer(
         }
     }
     
-    private fun getKeyBackgroundColor(key: SimpleKeyboardService.KeyConfig): Int {
+    private fun getKeyBackgroundColor(key: KeyConfig): Int {
         // Special handling for shift button when active
         if (key.type.lowercase() == "shift" && shiftState.isActive()) {
             return parseColor(SHIFT_ACTIVE_COLOR, Color.parseColor(SHIFT_ACTIVE_COLOR))
@@ -278,114 +521,119 @@ class KeyboardRenderer(
         return key.backgroundColor
     }
     
+    // ============================================================================
+    // KEY CLICK HANDLING
+    // ============================================================================
+    
     /**
-     * Handle key click - processes special keys and regular key presses
+     * Handle key click - processes all key types
+     * State changes (shift, keyset, language) are handled internally
+     * Text input and special actions are sent to the callback
      */
-    private fun handleKeyClick(key: SimpleKeyboardService.KeyConfig, keyView: View) {
+    private fun handleKeyClick(key: KeyConfig, keyView: View, editorContext: EditorContext?) {
         when (key.type.lowercase()) {
             "shift" -> {
-                shiftState = shiftState.toggle()
-                onRequestRerender?.invoke()
+                handleShiftClick()
             }
             "nikkud" -> {
-                nikkudActive = !nikkudActive
-                onRequestRerender?.invoke()
+                toggleNikkud()
+            }
+            "keyset" -> {
+                if (key.keysetValue.isNotEmpty()) {
+                    switchKeyset(key.keysetValue)
+                }
+            }
+            "language" -> {
+                switchLanguage()
+            }
+            "backspace" -> {
+                onKeyEvent?.invoke(KeyEvent.Backspace)
+            }
+            "enter", "action" -> {
+                val actionId = editorContext?.actionId ?: android.view.inputmethod.EditorInfo.IME_ACTION_DONE
+                onKeyEvent?.invoke(KeyEvent.Enter(actionId))
+            }
+            "settings" -> {
+                onKeyEvent?.invoke(KeyEvent.Settings)
+            }
+            "close" -> {
+                onKeyEvent?.invoke(KeyEvent.Close)
+            }
+            "next-keyboard" -> {
+                onKeyEvent?.invoke(KeyEvent.NextKeyboard)
             }
             else -> {
-                // For regular keys, check if nikkud popup should be shown
+                // Regular key - check if nikkud popup should be shown
                 if (nikkudActive && key.nikkud.isNotEmpty()) {
-                    // NOW we have the specific key view to anchor to!
                     showNikkudPopup(key.nikkud, keyView)
                 } else {
-                    // Let the parent handle the key press (typing, backspace, etc.)
-                    onKeyPress?.invoke(key)
+                    // Get the correct value based on shift state
+                    val value = if (shiftState.isActive()) key.sValue else key.value
+                    if (value.isNotEmpty()) {
+                        onKeyEvent?.invoke(KeyEvent.TextInput(value))
+                        autoResetShift()
+                    }
                 }
             }
         }
     }
     
-    fun parseColor(colorString: String, default: Int): Int {
-        if (colorString.isEmpty()) return default
-        
-        return colorCache.getOrPut(colorString) {
-            try {
-                Color.parseColor(colorString)
-            } catch (e: Exception) {
-                if (BuildConfig.DEBUG) {
-                    Log.w(TAG, "Invalid color: $colorString")
-                }
-                default
-            }
-        }
-    }
-    
-    // Store the last container for popup anchoring
-    private var lastContainer: LinearLayout? = null
-    
-    private fun showError(layout: LinearLayout, message: String) {
-        val errorText = TextView(context).apply {
-            text = message
-            textSize = TEXT_SIZE_ERROR
-        }
-        layout.addView(errorText)
-    }
-    
+    // ============================================================================
+    // NIKKUD POPUP
+    // ============================================================================
     
     /**
      * Shows a popup floating exactly above the pressed key.
-     * Uses showAsDropDown with isClippingEnabled = false to escape React Native bounds.
      */
-    fun showNikkudPopup(options: List<SimpleKeyboardService.NikkudOption>, anchorView: android.view.View) {
-        val context = anchorView.context
+    private fun showNikkudPopup(options: List<NikkudOption>, anchorView: View) {
         val buttonSize = 140
         val spacing = 20
         val padding = 30
 
-        // 1. Calculate Rows (Force 2 rows if many items)
+        // Calculate rows (Force 2 rows if many items)
         val itemsPerRow = if (options.size > 5) (options.size + 1) / 2 else options.size
         
-        // 2. Create Main Container (Vertical)
-        val mainLayout = android.widget.LinearLayout(context).apply {
-            orientation = android.widget.LinearLayout.VERTICAL
+        // Create main container
+        val mainLayout = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
             setPadding(padding, padding, padding, padding)
-            background = android.graphics.drawable.GradientDrawable().apply {
-                shape = android.graphics.drawable.GradientDrawable.RECTANGLE
-                setColor(android.graphics.Color.parseColor("#F0F0F0")) // Light Gray
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                setColor(Color.parseColor("#F0F0F0"))
                 cornerRadius = 20f
-                setStroke(2, android.graphics.Color.parseColor("#AAAAAA"))
+                setStroke(2, Color.parseColor("#AAAAAA"))
             }
             elevation = 20f
         }
 
-        // 3. Build Rows Dynamically
+        // Build rows dynamically
         val rows = options.chunked(itemsPerRow)
         rows.forEachIndexed { rowIndex, rowOptions ->
-            val rowLayout = android.widget.LinearLayout(context).apply {
-                orientation = android.widget.LinearLayout.HORIZONTAL
-                layoutParams = android.widget.LinearLayout.LayoutParams(
-                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
-                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+            val rowLayout = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
                 ).apply {
                     if (rowIndex > 0) topMargin = spacing
                 }
             }
             
             rowOptions.forEachIndexed { colIndex, option ->
-                val button = android.widget.Button(context).apply {
+                val button = Button(context).apply {
                     text = option.caption
                     textSize = 24f
-                    setTextColor(android.graphics.Color.BLACK)
-                    background = android.graphics.drawable.GradientDrawable().apply {
-                        setColor(android.graphics.Color.WHITE)
+                    setTextColor(Color.BLACK)
+                    background = GradientDrawable().apply {
+                        setColor(Color.WHITE)
                         cornerRadius = 12f
                     }
-                    layoutParams = android.widget.LinearLayout.LayoutParams(buttonSize, buttonSize).apply {
+                    layoutParams = LinearLayout.LayoutParams(buttonSize, buttonSize).apply {
                         if (colIndex > 0) marginStart = spacing
                     }
                     
-                    // Click Handler
                     setOnClickListener {
-                        onNikkudSelected?.invoke(option.value)
+                        onKeyEvent?.invoke(KeyEvent.TextInput(option.value))
                         (mainLayout.tag as? android.widget.PopupWindow)?.dismiss()
                     }
                 }
@@ -394,7 +642,7 @@ class KeyboardRenderer(
             mainLayout.addView(rowLayout)
         }
 
-        // 4. Create PopupWindow
+        // Create PopupWindow
         val popupWindow = android.widget.PopupWindow(
             mainLayout,
             android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -402,45 +650,64 @@ class KeyboardRenderer(
             true
         ).apply {
             isOutsideTouchable = true
-            // CRITICAL: Must be true to intercept outside touches, but use INPUT_METHOD_NOT_NEEDED to keep keyboard open
             isFocusable = true
-            // CRITICAL: This allows the popup to extend beyond screen/view bounds
-            isClippingEnabled = false 
-            setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+            isClippingEnabled = false
+            setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.TRANSPARENT))
             elevation = 24f
-            // CRITICAL: Prevents keyboard from closing
             inputMethodMode = android.widget.PopupWindow.INPUT_METHOD_NOT_NEEDED
-            // CRITICAL: Make it modal so touches outside dismiss popup without triggering underlying keys
-            setTouchInterceptor { view, event ->
+            setTouchInterceptor { _, event ->
                 if (event.action == android.view.MotionEvent.ACTION_OUTSIDE) {
                     dismiss()
-                    true // Consume the event
+                    true
                 } else {
-                    false // Let normal touch handling proceed
+                    false
                 }
             }
         }
-        mainLayout.tag = popupWindow // Self-reference for dismiss
+        mainLayout.tag = popupWindow
 
-        // 5. Measure Layout to calculate offsets
+        // Measure layout to calculate offsets
         mainLayout.measure(
-            android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED),
-            android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED)
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
         )
         val popupWidth = mainLayout.measuredWidth
         val popupHeight = mainLayout.measuredHeight
 
-        // 6. Calculate Position (Center Horizontally over key, Place Vertically above key)
+        // Calculate position (center horizontally over key, place vertically above key)
         val xOffset = (anchorView.width / 2) - (popupWidth / 2)
         val yOffset = -popupHeight - (anchorView.height / 4)
 
-        // 7. Show It
+        // Show popup
         try {
-            // showAsDropDown anchors relative to the 'anchorView' (the key)
             popupWindow.showAsDropDown(anchorView, xOffset, yOffset)
         } catch (e: Exception) {
             Log.e(logTag, "Popup failed", e)
         }
     }
     
+    // ============================================================================
+    // UTILITIES
+    // ============================================================================
+    
+    private fun parseColor(colorString: String, default: Int): Int {
+        if (colorString.isEmpty()) return default
+        
+        return colorCache.getOrPut(colorString) {
+            try {
+                Color.parseColor(colorString)
+            } catch (e: Exception) {
+                default
+            }
+        }
+    }
+    
+    private fun showError(layout: LinearLayout, message: String) {
+        layout.removeAllViews()
+        val errorText = TextView(context).apply {
+            text = message
+            textSize = TEXT_SIZE_ERROR
+        }
+        layout.addView(errorText)
+    }
 }
