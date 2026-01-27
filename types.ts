@@ -21,6 +21,7 @@ export interface StyleGroup {
     style: KeyStyleOverride;         // What to apply
     createdAt: string;               // ISO timestamp
     isBuiltIn?: boolean;             // System groups can't be deleted
+    active?: boolean;                // If false, group is saved but not applied to preview (defaults to true)
 }
 
 // Key configuration for individual keyboard keys

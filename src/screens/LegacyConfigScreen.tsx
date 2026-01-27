@@ -19,6 +19,7 @@ import {
   View,
 } from 'react-native';
 import SaveProfileModal from '../../components/SaveProfileModal';
+import AddProfileModal from '../../components/AddProfileModal';
 import KeyboardPreferences from '../native/KeyboardPreferences';
 import { useLocalization } from '../localization';
 import { KeyboardPreview } from '../components/KeyboardPreview';
@@ -127,6 +128,7 @@ export const LegacyConfigScreen: React.FC<LegacyConfigScreenProps> = ({ onSwitch
   const [editingProfile, setEditingProfile] = useState<SavedProfile | null>(null);
   const [jsonValidationError, setJsonValidationError] = useState<string | null>(null);
   const [lastValidConfig, setLastValidConfig] = useState<string>('');
+  const [showAddProfileModal, setShowAddProfileModal] = useState(false);
 
   // Load configuration on startup
   useEffect(() => {
@@ -437,6 +439,81 @@ export const LegacyConfigScreen: React.FC<LegacyConfigScreenProps> = ({ onSwitch
     }
   };
 
+  const handleCreateProfile = async (name: string, selectedLanguages: string[]) => {
+    try {
+      setStatus(strings.savingConfiguration);
+      
+      // Create a new profile definition based on the default profile
+      const newProfile: ProfileDefinition = {
+        id: `custom_${Date.now()}`,
+        name: name,
+        version: '1.0.0',
+        keyboards: selectedLanguages,
+        defaultKeyboard: selectedLanguages[0],
+        defaultKeyset: 'abc',
+        backgroundColor: '#E0E0E0',
+        systemRow: {
+          enabled: true,
+          keys: [
+            { type: 'settings' },
+            { type: 'backspace', width: 1.5 },
+            { type: 'enter' },
+            { type: 'close' },
+          ],
+        },
+        groups: [
+          {
+            name: 'letters',
+            items: [],
+            template: {
+              color: '#000000',
+              bgColor: '#FFFFFF',
+            },
+          },
+          {
+            name: 'numbers',
+            items: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'],
+            template: {
+              color: '#000000',
+              bgColor: '#E8E8E8',
+            },
+          },
+          {
+            name: 'symbols',
+            items: ['.', ',', '?', '!', "'", '"', '-', '/', ':', ';', '(', ')', '$', '&', '@'],
+            template: {
+              color: '#000000',
+              bgColor: '#D0D0D0',
+            },
+          },
+        ],
+      };
+
+      const key = newProfile.id;
+
+      // Save the profile definition
+      await KeyboardPreferences.setProfileObject(newProfile, key);
+
+      // Update saved profiles list
+      const newList = [...savedProfiles, { name, key }];
+      await KeyboardPreferences.setProfile(JSON.stringify(newList), 'saved_list');
+      setSavedProfiles(newList);
+
+      // Build and apply the configuration
+      const config = buildConfiguration(newProfile);
+      await applyConfiguration(config, name, key);
+
+      console.log(`✅ ${Platform.OS}: New profile "${name}" created with languages: ${selectedLanguages.join(', ')}`);
+
+      setShowAddProfileModal(false);
+      setStatus(`${strings.profileSaved} ${name}`);
+      Alert.alert(strings.success, `"${name}" ${strings.profileSaved} ${strings.closeAndReopenKeyboard}`);
+    } catch (e) {
+      console.error('Create profile error:', e);
+      Alert.alert(strings.error, strings.failedToSaveProfile);
+    }
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, styles.centered]}>
@@ -453,6 +530,13 @@ export const LegacyConfigScreen: React.FC<LegacyConfigScreenProps> = ({ onSwitch
         onClose={() => setShowSaveModal(false)}
         onSave={handleSaveWithName}
         key={showSaveModal.toString()}
+      />
+
+      {/* Add Profile Modal */}
+      <AddProfileModal
+        visible={showAddProfileModal}
+        onClose={() => setShowAddProfileModal(false)}
+        onCreate={handleCreateProfile}
       />
 
       <ScrollView style={styles.container}>
@@ -480,28 +564,33 @@ export const LegacyConfigScreen: React.FC<LegacyConfigScreenProps> = ({ onSwitch
           </View>
 
           {/* Saved Custom Profiles */}
+          <Text style={[styles.sectionTitle, { marginTop: 15 }]}>{strings.savedProfiles}</Text>
           {savedProfiles.length > 0 && (
-            <>
-              <Text style={[styles.sectionTitle, { marginTop: 15 }]}>{strings.savedProfiles}</Text>
-              <Text style={styles.hintText}>{strings.longPressForOptions}</Text>
-              <View style={styles.profileButtons}>
-                {savedProfiles.map((profile) => (
-                  <TouchableOpacity
-                    key={profile.key}
-                    style={[
-                      styles.savedProfileButton,
-                      { backgroundColor: selectedProfile === profile.key ? '#4CAF50' : '#2196F3' }
-                    ]}
-                    onPress={() => loadSavedProfile(profile)}
-                    onLongPress={() => showProfileMenu(profile)}
-                    delayLongPress={500}
-                  >
-                    <Text style={styles.savedProfileButtonText}>{profile.name}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </>
+            <Text style={styles.hintText}>{strings.longPressForOptions}</Text>
           )}
+          <View style={styles.profileButtons}>
+            {savedProfiles.map((profile) => (
+              <TouchableOpacity
+                key={profile.key}
+                style={[
+                  styles.savedProfileButton,
+                  { backgroundColor: selectedProfile === profile.key ? '#4CAF50' : '#2196F3' }
+                ]}
+                onPress={() => loadSavedProfile(profile)}
+                onLongPress={() => showProfileMenu(profile)}
+                delayLongPress={500}
+              >
+                <Text style={styles.savedProfileButtonText}>{profile.name}</Text>
+              </TouchableOpacity>
+            ))}
+            {/* Add New Profile Button */}
+            <TouchableOpacity
+              style={styles.addProfileButton}
+              onPress={() => setShowAddProfileModal(true)}
+            >
+              <Text style={styles.addProfileButtonText}>+ {strings.addProfile}</Text>
+            </TouchableOpacity>
+          </View>
 
           <Text style={styles.profileInfo}>
             {strings.current} {PROFILES[selectedProfile]?.name || savedProfiles.find(p => p.key === selectedProfile)?.name || strings.custom}
@@ -767,6 +856,20 @@ const styles = StyleSheet.create({
   inputError: {
     borderColor: '#dc3545',
     borderWidth: 2,
+  },
+  addProfileButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 4,
+    backgroundColor: '#FF9800',
+    borderWidth: 1,
+    borderColor: '#F57C00',
+    borderStyle: 'dashed',
+  },
+  addProfileButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 

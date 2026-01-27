@@ -17,6 +17,7 @@ export const GroupsPanel: React.FC = () => {
     deleteGroup,
     selectKeys,
     clearSelection,
+    toggleGroupActive,
   } = useEditor();
 
   const handleEditGroup = (group: StyleGroup) => {
@@ -143,53 +144,82 @@ export const GroupsPanel: React.FC = () => {
         </Text>
       </View>
 
-      {state.styleGroups.map((group) => (
-        <View
-          key={group.id}
-          style={[
-            styles.groupCard,
-            state.activeGroupId === group.id && styles.groupCardActive,
-          ]}
-        >
-          <View style={styles.groupHeader}>
-            <Text style={styles.groupName}>{group.name}</Text>
-            <View style={styles.actionButtons}>
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={() => handleEditGroup(group)}
-                hitSlop={{ top: 10, bottom: 10, left: 5, right: 5 }}
-              >
-                <Text style={styles.actionButtonText}>✏️</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={() => handleDeleteGroup(group)}
-                hitSlop={{ top: 10, bottom: 10, left: 5, right: 5 }}
-              >
-                <Text style={styles.actionButtonText}>🗑️</Text>
-              </TouchableOpacity>
+      {state.styleGroups.map((group) => {
+        const isGroupActive = group.active !== false;
+        
+        return (
+          <View
+            key={group.id}
+            style={[
+              styles.groupCard,
+              state.activeGroupId === group.id && styles.groupCardActive,
+              !isGroupActive && styles.groupCardInactive,
+            ]}
+          >
+            <View style={styles.groupHeader}>
+              <View style={styles.groupTitleRow}>
+                {/* Active Checkbox */}
+                <TouchableOpacity
+                  style={styles.activeCheckbox}
+                  onPress={() => toggleGroupActive(group.id)}
+                  hitSlop={{ top: 10, bottom: 10, left: 5, right: 10 }}
+                >
+                  <View style={[
+                    styles.checkbox,
+                    isGroupActive && styles.checkboxChecked,
+                  ]}>
+                    {isGroupActive && <Text style={styles.checkboxCheckmark}>✓</Text>}
+                  </View>
+                </TouchableOpacity>
+                <Text style={[styles.groupName, !isGroupActive && styles.groupNameInactive]}>
+                  {group.name}
+                </Text>
+              </View>
+              <View style={styles.actionButtons}>
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={() => handleEditGroup(group)}
+                  hitSlop={{ top: 10, bottom: 10, left: 5, right: 5 }}
+                >
+                  <Text style={styles.actionButtonText}>✏️</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={() => handleDeleteGroup(group)}
+                  hitSlop={{ top: 10, bottom: 10, left: 5, right: 5 }}
+                >
+                  <Text style={styles.actionButtonText}>🗑️</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-          
-          {/* Members display */}
-          <View style={styles.membersContainer}>
-            <Text style={styles.membersText} numberOfLines={2}>
-              {getMemberDisplay(group.members)}
-            </Text>
-          </View>
-          
-          {/* Style indicators */}
-          <View style={styles.stylePreview}>
-            {getStylePreview(group)}
-          </View>
-          
-          {state.activeGroupId === group.id && (
-            <View style={styles.activeIndicator}>
-              <Text style={styles.activeIndicatorText}>✓ Active</Text>
+            
+            {/* Active status indicator */}
+            {!isGroupActive && (
+              <View style={styles.inactiveNotice}>
+                <Text style={styles.inactiveNoticeText}>⏸ Inactive - not applied to preview</Text>
+              </View>
+            )}
+            
+            {/* Members display */}
+            <View style={styles.membersContainer}>
+              <Text style={[styles.membersText, !isGroupActive && styles.membersTextInactive]} numberOfLines={2}>
+                {getMemberDisplay(group.members)}
+              </Text>
             </View>
-          )}
-        </View>
-      ))}
+            
+            {/* Style indicators */}
+            <View style={styles.stylePreview}>
+              {getStylePreview(group)}
+            </View>
+            
+            {state.activeGroupId === group.id && (
+              <View style={styles.activeIndicator}>
+                <Text style={styles.activeIndicatorText}>✓ Editing</Text>
+              </View>
+            )}
+          </View>
+        );
+      })}
 
       <View style={styles.helpSection}>
         <Text style={styles.helpTitle}>💡 Tips</Text>
@@ -368,6 +398,57 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#5D4037',
     lineHeight: 18,
+  },
+  groupTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  activeCheckbox: {
+    marginRight: 10,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#BDBDBD',
+    backgroundColor: '#FFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
+  },
+  checkboxCheckmark: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  groupCardInactive: {
+    opacity: 0.7,
+    backgroundColor: '#EEEEEE',
+  },
+  groupNameInactive: {
+    color: '#999',
+    textDecorationLine: 'line-through',
+  },
+  membersTextInactive: {
+    color: '#AAA',
+  },
+  inactiveNotice: {
+    backgroundColor: '#FFF3E0',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    marginBottom: 8,
+    alignSelf: 'flex-start',
+  },
+  inactiveNoticeText: {
+    fontSize: 11,
+    color: '#E65100',
+    fontWeight: '500',
   },
 });
 

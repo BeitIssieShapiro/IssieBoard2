@@ -20,6 +20,7 @@ import { InteractiveCanvas } from '../components/canvas/InteractiveCanvas';
 import { Toolbox } from '../components/toolbox/Toolbox';
 import KeyboardPreferences from '../native/KeyboardPreferences';
 import { KeyboardConfig, ProfileDefinition, KeyboardDefinition } from '../../types';
+import AddProfileModal from '../../components/AddProfileModal';
 
 // Import keyboard and profile files
 import enKeyboard from '../../keyboards/en.json';
@@ -92,6 +93,7 @@ interface EditorScreenInnerProps {
   onDuplicate: (newName: string) => Promise<void>;
   onDelete: () => Promise<void>;
   onProfileChange: (profileId: string, profileName: string) => void;
+  onCreateNew: (name: string, languages: string[]) => Promise<void>;
 }
 
 // Helper: Get key value from keyId (keysetId:rowIndex:keyIndex)
@@ -163,6 +165,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   onDuplicate,
   onDelete,
   onProfileChange,
+  onCreateNew,
 }) => {
   const { state, setMode, setConfig } = useEditor();
   const [testText, setTestText] = useState('');
@@ -172,6 +175,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [duplicateName, setDuplicateName] = useState('');
   const [profiles, setProfiles] = useState<ProfileOption[]>([]);
+  const [showAddProfileModal, setShowAddProfileModal] = useState(false);
   const [currentProfileName, setCurrentProfileName] = useState(profileName);
   const [currentProfileId, setCurrentProfileId] = useState(profileId);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -216,34 +220,35 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     });
   }, [toastOpacity]);
 
-  // Load available profiles
-  useEffect(() => {
-    const loadProfiles = async () => {
-      const profileList: ProfileOption[] = [];
-      
-      // Add built-in profiles
-      for (const [id, profile] of Object.entries(PROFILES)) {
-        profileList.push({ id, name: profile.name, isBuiltIn: true });
-      }
-      
-      // Load saved custom profiles
-      try {
-        const savedListJson = await KeyboardPreferences.getProfile('saved_list');
-        if (savedListJson) {
-          const savedList = JSON.parse(savedListJson);
-          for (const saved of savedList) {
-            profileList.push({ id: saved.key, name: saved.name, isBuiltIn: false });
-          }
-        }
-      } catch (e) {
-        console.warn('Failed to load saved profiles:', e);
-      }
-      
-      setProfiles(profileList);
-    };
+  // Load available profiles - extracted as a reusable function
+  const loadProfilesList = useCallback(async () => {
+    const profileList: ProfileOption[] = [];
     
-    loadProfiles();
+    // Add built-in profiles
+    for (const [id, profile] of Object.entries(PROFILES)) {
+      profileList.push({ id, name: profile.name, isBuiltIn: true });
+    }
+    
+    // Load saved custom profiles
+    try {
+      const savedListJson = await KeyboardPreferences.getProfile('saved_list');
+      if (savedListJson) {
+        const savedList = JSON.parse(savedListJson);
+        for (const saved of savedList) {
+          profileList.push({ id: saved.key, name: saved.name, isBuiltIn: false });
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load saved profiles:', e);
+    }
+    
+    setProfiles(profileList);
   }, []);
+
+  // Load available profiles on mount
+  useEffect(() => {
+    loadProfilesList();
+  }, [loadProfilesList]);
 
   const handleLoadProfile = useCallback(async (profile: ProfileOption) => {
     setShowProfilePicker(false);
@@ -350,26 +355,28 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       showToast(`✓ Created "${newName}"`);
       
       // Reload profiles list to include the new one
-      const profileList: ProfileOption[] = [];
-      for (const [id, profile] of Object.entries(PROFILES)) {
-        profileList.push({ id, name: profile.name, isBuiltIn: true });
-      }
-      try {
-        const savedListJson = await KeyboardPreferences.getProfile('saved_list');
-        if (savedListJson) {
-          const savedList = JSON.parse(savedListJson);
-          for (const saved of savedList) {
-            profileList.push({ id: saved.key, name: saved.name, isBuiltIn: false });
-          }
-        }
-      } catch { /* ignore */ }
-      setProfiles(profileList);
-      
+      await loadProfilesList();
       setDuplicateName('');
     } catch (error) {
       showToast('✗ Failed to duplicate profile');
     }
   }, [duplicateName, onDuplicate, showToast]);
+
+  const handleCreateNewProfile = useCallback(async (name: string, languages: string[]) => {
+    setShowAddProfileModal(false);
+    setShowProfilePicker(false);
+    
+    try {
+      await onCreateNew(name, languages);
+      showToast(`✓ Created "${name}"`);
+      
+      // Reload profiles list
+      await loadProfilesList();
+    } catch (error) {
+      showToast('✗ Failed to create profile');
+      console.error('Create profile error:', error);
+    }
+  }, [onCreateNew, showToast, loadProfilesList]);
 
   const handleTestInput = useCallback((char: string) => {
     if (char === '\b' || char === 'backspace') {
@@ -434,6 +441,13 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         </Animated.View>
       )}
 
+      {/* Add New Profile Modal */}
+      <AddProfileModal
+        visible={showAddProfileModal}
+        onClose={() => setShowAddProfileModal(false)}
+        onCreate={handleCreateNewProfile}
+      />
+
       {/* Duplicate Profile Modal */}
       <Modal
         visible={showDuplicateModal}
@@ -489,6 +503,18 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         >
           <View style={styles.profilePickerContainer}>
             <Text style={styles.profilePickerTitle}>Load Profile</Text>
+            
+            {/* Add New Profile Button */}
+            <TouchableOpacity
+              style={styles.addNewProfileButton}
+              onPress={() => {
+                setShowProfilePicker(false);
+                setShowAddProfileModal(true);
+              }}
+            >
+              <Text style={styles.addNewProfileButtonText}>+ Add New Profile</Text>
+            </TouchableOpacity>
+            
             <FlatList
               data={profiles}
               keyExtractor={item => item.id}
@@ -885,6 +911,82 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
     setProfileName(newProfileName);
   }, []);
 
+  const handleCreateNew = useCallback(async (name: string, languages: string[]) => {
+    // Create a new profile definition
+    const newProfileId = `custom_${Date.now()}`;
+    
+    const newProfile: ProfileDefinition = {
+      id: newProfileId,
+      name: name,
+      version: '1.0.0',
+      keyboards: languages,
+      defaultKeyboard: languages[0],
+      defaultKeyset: 'abc',
+      backgroundColor: '#E0E0E0',
+      systemRow: {
+        enabled: true,
+        keys: [
+          { type: 'settings' },
+          { type: 'backspace', width: 1.5 },
+          { type: 'enter' },
+          { type: 'close' },
+        ],
+      },
+      groups: [
+        {
+          name: 'letters',
+          items: [],
+          template: {
+            color: '#000000',
+            bgColor: '#FFFFFF',
+          },
+        },
+        {
+          name: 'numbers',
+          items: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'],
+          template: {
+            color: '#000000',
+            bgColor: '#E8E8E8',
+          },
+        },
+        {
+          name: 'symbols',
+          items: ['.', ',', '?', '!', "'", '"', '-', '/', ':', ';', '(', ')', '$', '&', '@'],
+          template: {
+            color: '#000000',
+            bgColor: '#D0D0D0',
+          },
+        },
+      ],
+    };
+
+    // Build the configuration from the profile
+    const config = buildConfiguration(newProfile);
+
+    // Save the profile definition
+    await KeyboardPreferences.setProfileObject(config, newProfileId);
+
+    // Add to saved profiles list
+    let savedList: { name: string; key: string }[] = [];
+    try {
+      const savedListJson = await KeyboardPreferences.getProfile('saved_list');
+      if (savedListJson) {
+        savedList = JSON.parse(savedListJson);
+      }
+    } catch { /* ignore */ }
+
+    savedList.push({ name, key: newProfileId });
+    await KeyboardPreferences.setProfile(JSON.stringify(savedList), 'saved_list');
+
+    // Switch to the new profile
+    setCurrentProfileId(newProfileId);
+    setProfileName(name);
+    setInitialConfig(config);
+    setInitialStyleGroups([]);
+
+    console.log(`✅ Created new profile "${name}" with languages: ${languages.join(', ')}`);
+  }, []);
+
   // Check if current profile is a custom (non-built-in) profile
   const isCustomProfile = !PROFILES[currentProfileId];
 
@@ -910,6 +1012,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
         onDuplicate={handleDuplicate}
         onDelete={handleDelete}
         onProfileChange={handleProfileChange}
+        onCreateNew={handleCreateNew}
       />
     </EditorProvider>
   );
@@ -1208,6 +1311,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFF',
+  },
+  // Add new profile button styles
+  addNewProfileButton: {
+    backgroundColor: '#FF9800',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 12,
+    alignItems: 'center',
+  },
+  addNewProfileButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

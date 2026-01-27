@@ -47,6 +47,7 @@ type EditorAction =
   | { type: 'ADD_TO_GROUP'; payload: { groupId: string; keyIds: string[] } }
   | { type: 'REMOVE_FROM_GROUP'; payload: { groupId: string; keyIds: string[] } }
   | { type: 'UPDATE_GROUP_STYLE'; payload: { groupId: string; style: Partial<KeyStyleOverride> } }
+  | { type: 'TOGGLE_GROUP_ACTIVE'; payload: string }
   | { type: 'APPLY_STYLE_TO_SELECTION'; payload: KeyStyleOverride }
   | { type: 'UPDATE_BACKGROUND_COLOR'; payload: string }
   | { type: 'MARK_SAVED' };
@@ -141,6 +142,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         members: [...state.selectedKeys],
         style: action.payload.style,
         createdAt: new Date().toISOString(),
+        active: true,
       };
       
       return {
@@ -220,6 +222,20 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       };
     }
 
+    case 'TOGGLE_GROUP_ACTIVE': {
+      const newGroups = state.styleGroups.map(g =>
+        g.id === action.payload
+          ? { ...g, active: g.active === false ? true : false }
+          : g
+      );
+      
+      return {
+        ...state,
+        styleGroups: newGroups,
+        isDirty: true,
+      };
+    }
+
     case 'APPLY_STYLE_TO_SELECTION': {
       if (state.selectedKeys.length === 0) return state;
       
@@ -240,6 +256,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         members: [...state.selectedKeys],
         style: action.payload,
         createdAt: new Date().toISOString(),
+        active: true,
       };
       
       return {
@@ -290,16 +307,17 @@ const createInitialState = (
   activeGroupId: null,
 });
 
-// Helper to get computed key style (base + all applicable groups)
+// Helper to get computed key style (base + all applicable active groups)
 const getComputedKeyStyle = (
   keyId: string,
   styleGroups: StyleGroup[]
 ): KeyStyleOverride => {
   const computedStyle: KeyStyleOverride = {};
   
-  // Apply groups in order (later groups override)
+  // Apply groups in order (later groups override), skip inactive groups
   for (const group of styleGroups) {
-    if (group.members.includes(keyId)) {
+    // Only apply active groups (default to true if not specified)
+    if (group.active !== false && group.members.includes(keyId)) {
       Object.assign(computedStyle, group.style);
     }
   }
@@ -325,6 +343,7 @@ interface EditorContextValue {
   addToGroup: (groupId: string, keyIds?: string[]) => void;
   removeFromGroup: (groupId: string, keyIds?: string[]) => void;
   updateGroupStyle: (groupId: string, style: Partial<KeyStyleOverride>) => void;
+  toggleGroupActive: (groupId: string) => void;
   setActiveGroup: (groupId: string | null) => void;
   
   // Apply style to current selection
@@ -402,6 +421,10 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
     dispatch({ type: 'UPDATE_GROUP_STYLE', payload: { groupId, style } });
   }, []);
 
+  const toggleGroupActive = useCallback((groupId: string) => {
+    dispatch({ type: 'TOGGLE_GROUP_ACTIVE', payload: groupId });
+  }, []);
+
   const setActiveGroup = useCallback((groupId: string | null) => {
     dispatch({ type: 'SET_ACTIVE_GROUP', payload: groupId });
   }, []);
@@ -447,6 +470,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
     addToGroup,
     removeFromGroup,
     updateGroupStyle,
+    toggleGroupActive,
     setActiveGroup,
     applyStyleToSelection,
     getComputedKeyStyle: getComputedKeyStyleFn,

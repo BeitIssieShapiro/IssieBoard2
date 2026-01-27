@@ -36,6 +36,13 @@ export interface Strings {
   enterProfileNamePrompt: string;
   profileNamePlaceholder: string;
 
+  // Add Profile Modal
+  addProfile: string;
+  profileNameLabel: string;
+  selectLanguages: string;
+  atLeastOneLanguage: string;
+  create: string;
+
   // Help Section
   aboutProfiles: string;
   helpText: string;
@@ -111,6 +118,13 @@ const en: Strings = {
   saveProfile: 'Save Profile',
   enterProfileNamePrompt: 'Enter a name for this profile',
   profileNamePlaceholder: 'Profile name',
+
+  // Add Profile Modal
+  addProfile: 'Add New Profile',
+  profileNameLabel: 'Profile Name',
+  selectLanguages: 'Select Languages',
+  atLeastOneLanguage: 'At least one language must be selected',
+  create: 'Create',
 
   // Help Section
   aboutProfiles: 'About Profiles',
@@ -188,6 +202,13 @@ const he: Strings = {
   enterProfileNamePrompt: 'הזן שם לפרופיל זה',
   profileNamePlaceholder: 'שם הפרופיל',
 
+  // Add Profile Modal
+  addProfile: 'הוסף פרופיל חדש',
+  profileNameLabel: 'שם הפרופיל',
+  selectLanguages: 'בחר שפות',
+  atLeastOneLanguage: 'יש לבחור לפחות שפה אחת',
+  create: 'צור',
+
   // Help Section
   aboutProfiles: 'אודות פרופילים',
   helpText: '• פרופילים משלבים מקלדות עם עיצוב\n• החלף פרופילים לשינוי מקלדות וערכות נושא\n• ערוך תיקיית keyboards/ להוספת שפות\n• ערוך תיקיית profiles/ ליצירת ערכות נושא\n• ראה keyboards/README.md לפרטים',
@@ -263,6 +284,13 @@ const ar: Strings = {
   saveProfile: 'حفظ الملف الشخصي',
   enterProfileNamePrompt: 'أدخل اسمًا لهذا الملف الشخصي',
   profileNamePlaceholder: 'اسم الملف الشخصي',
+
+  // Add Profile Modal
+  addProfile: 'إضافة ملف تعريف جديد',
+  profileNameLabel: 'اسم الملف الشخصي',
+  selectLanguages: 'اختر اللغات',
+  atLeastOneLanguage: 'يجب تحديد لغة واحدة على الأقل',
+  create: 'إنشاء',
 
   // Help Section
   aboutProfiles: 'حول الملفات الشخصية',
