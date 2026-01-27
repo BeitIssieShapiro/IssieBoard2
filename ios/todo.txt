@@ -2,5 +2,13 @@ Native:
   android:
    - double clikc on shift - not lock
    - nikkud options not rtl
-   
+
   ios:
+
+
+Nikkud: 
+ - select which options
+ - font for the keys
+Predict words
+slide curson
+

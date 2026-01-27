@@ -31,4 +31,9 @@ class KeyboardPreviewViewManager(
     fun setConfigJson(view: KeyboardPreviewView, configJson: String?) {
         view.setConfigJson(configJson)
     }
+    
+    @ReactProp(name = "selectedKeys")
+    fun setSelectedKeys(view: KeyboardPreviewView, selectedKeys: String?) {
+        view.setSelectedKeys(selectedKeys)
+    }
 }

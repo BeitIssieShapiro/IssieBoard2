@@ -66,6 +66,9 @@ class KeyboardRenderer {
     private var lastShiftClickTime: TimeInterval = 0
     private let doubleClickThreshold: TimeInterval = 0.5
     
+    // Selected keys for visual highlighting (edit mode)
+    private var selectedKeyIds: Set<String> = []
+    
     // Container reference - renderer owns the rendering
     private weak var container: UIView?
     
@@ -99,6 +102,13 @@ class KeyboardRenderer {
         if needsRender(for: container.bounds.width) {
             renderKeyboard(in: container, config: config, currentKeysetId: currentKeysetId, editorContext: editorContext)
         }
+    }
+    
+    /// Set selected key IDs for visual highlighting
+    /// Key IDs are in format "keysetId:rowIndex:keyIndex", e.g., "abc:0:3"
+    func setSelectedKeys(_ keyIds: Set<String>) {
+        print("🎯 KeyboardRenderer setSelectedKeys: \(keyIds.count) keys")
+        selectedKeyIds = keyIds
     }
     
     // MARK: - Public Rendering
@@ -170,10 +180,12 @@ class KeyboardRenderer {
         print("📐 AVAILABLE WIDTH = \(availableWidth)")
         print("📐 RENDER END ===================")
         
-        for row in keyset.rows {
+        for (rowIndex, row) in keyset.rows.enumerated() {
             let rowView = createRow(row, groups: groups, baselineWidth: baselineWidth, 
                                    availableWidth: availableWidth,
-                                   editorContext: editorContext)
+                                   editorContext: editorContext,
+                                   keysetId: self.currentKeysetId,
+                                   rowIndex: rowIndex)
             rowsContainer.addSubview(rowView)
             
             rowView.frame = CGRect(x: 4, y: currentY, width: availableWidth, height: rowHeight)
@@ -220,10 +232,13 @@ class KeyboardRenderer {
         groups: [String: GroupTemplate],
         baselineWidth: CGFloat,
         availableWidth: CGFloat,
-        editorContext: (enterVisible: Bool, enterLabel: String, enterAction: Int)?
+        editorContext: (enterVisible: Bool, enterLabel: String, enterAction: Int)?,
+        keysetId: String,
+        rowIndex: Int
     ) -> UIView {
         let rowContainer = UIView()
         var currentX: CGFloat = 0
+        var keyIndex = 0
         
         for key in row.keys {
             let parsedKey = ParsedKey(from: key, groups: groups,
@@ -236,18 +251,25 @@ class KeyboardRenderer {
                 currentX += offsetWidth
             }
             
+            // Generate key identifier for selection checking
+            let keyId = "\(keysetId):\(rowIndex):\(keyIndex)"
+            let isSelected = selectedKeyIds.contains(keyId)
+            
             if parsedKey.hidden {
                 let hiddenWidth = (CGFloat(parsedKey.width) / baselineWidth) * availableWidth
                 currentX += hiddenWidth
             } else {
                 let keyWidth = (CGFloat(parsedKey.width) / baselineWidth) * availableWidth - keySpacing
                 let button = createKeyButton(parsedKey, width: keyWidth, height: rowHeight, 
-                                            editorContext: editorContext)
+                                            editorContext: editorContext,
+                                            isSelected: isSelected)
                 rowContainer.addSubview(button)
                 
                 button.frame = CGRect(x: currentX, y: 0, width: keyWidth, height: rowHeight)
                 currentX += keyWidth + keySpacing
             }
+            
+            keyIndex += 1
         }
         
         return rowContainer
@@ -257,7 +279,8 @@ class KeyboardRenderer {
         _ key: ParsedKey,
         width: CGFloat,
         height: CGFloat,
-        editorContext: (enterVisible: Bool, enterLabel: String, enterAction: Int)?
+        editorContext: (enterVisible: Bool, enterLabel: String, enterAction: Int)?,
+        isSelected: Bool = false
     ) -> UIButton {
         let button = UIButton(type: .system)
         
@@ -305,6 +328,12 @@ class KeyboardRenderer {
         button.layer.shadowOffset = CGSize(width: 0, height: 1)
         button.layer.shadowOpacity = 0.2
         button.layer.shadowRadius = 1
+        
+        // Selection highlight for edit mode
+        if isSelected {
+            button.layer.borderWidth = 3.0
+            button.layer.borderColor = UIColor.systemBlue.cgColor
+        }
         
         button.addTarget(self, action: #selector(keyTapped(_:)), for: .touchUpInside)
         button.accessibilityIdentifier = encodeKeyInfo(key)

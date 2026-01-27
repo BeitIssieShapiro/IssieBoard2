@@ -16,6 +16,9 @@ class KeyboardPreviewView: UIView {
     // Event callback for React Native
     @objc var onKeyPress: RCTBubblingEventBlock?
     
+    // Selected keys for edit mode visualization
+    private var selectedKeyIds: Set<String> = []
+    
     // Layout tracking to prevent infinite loops
     private var lastRenderedWidth: CGFloat = 0
     
@@ -52,6 +55,24 @@ class KeyboardPreviewView: UIView {
         }
         
         parseAndRender(configJson)
+    }
+    
+    /// Set selected key IDs for visual highlighting in edit mode
+    /// Format: JSON array of strings like ["abc:0:3", "abc:1:2"]
+    @objc func setSelectedKeys(_ selectedKeysJson: String?) {
+        guard let jsonString = selectedKeysJson,
+              let jsonData = jsonString.data(using: .utf8),
+              let keys = try? JSONDecoder().decode([String].self, from: jsonData) else {
+            selectedKeyIds = []
+            renderer.setSelectedKeys([])
+            renderKeyboard()
+            return
+        }
+        
+        print("📱 setSelectedKeys: \(keys.count) keys selected")
+        selectedKeyIds = Set(keys)
+        renderer.setSelectedKeys(selectedKeyIds)
+        renderKeyboard()
     }
     
     // MARK: - Config Parsing & Rendering

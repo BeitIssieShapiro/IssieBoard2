@@ -99,9 +99,22 @@ class KeyboardRenderer(
     /** Double-click detection for shift */
     private var lastShiftClickTime: Long = 0
     
+    /** Selected key IDs for visual highlighting (edit mode) */
+    /** Key IDs are in format "keysetId:rowIndex:keyIndex", e.g., "abc:0:3" */
+    private var selectedKeyIds: Set<String> = emptySet()
+    
     // ============================================================================
     // PUBLIC API
     // ============================================================================
+    
+    /**
+     * Set selected key IDs for visual highlighting in edit mode
+     * @param keyIds Set of key IDs in format "keysetId:rowIndex:keyIndex"
+     */
+    fun setSelectedKeys(keyIds: Set<String>) {
+        Log.d(logTag, "setSelectedKeys: ${keyIds.size} keys")
+        selectedKeyIds = keyIds
+    }
     
     /**
      * Set the config and initialize the keyset
@@ -173,9 +186,9 @@ class KeyboardRenderer(
         
         val baselineWidth = calculateBaselineWidth(keyset.rows, editorContext)
         
-        for (rowKeys in keyset.rows) {
+        for ((rowIndex, rowKeys) in keyset.rows.withIndex()) {
             val rowLayout = createRowLayout(baselineWidth)
-            renderRowKeys(rowLayout, rowKeys, editorContext)
+            renderRowKeys(rowLayout, rowKeys, editorContext, currentKeysetId, rowIndex)
             container.addView(rowLayout)
         }
         
@@ -390,19 +403,27 @@ class KeyboardRenderer(
     private fun renderRowKeys(
         rowLayout: LinearLayout,
         rowKeys: List<KeyConfig>,
-        editorContext: EditorContext?
+        editorContext: EditorContext?,
+        keysetId: String,
+        rowIndex: Int
     ) {
+        var keyIndex = 0
         for (key in rowKeys) {
             // Skip enter/action keys if not visible
             if (editorContext != null &&
                 (key.type.lowercase() == "enter" || key.type.lowercase() == "action") &&
                 !editorContext.enterVisible) {
+                keyIndex++
                 continue
             }
             
             if (key.offset > 0) {
                 rowLayout.addView(createSpacer(key.offset))
             }
+            
+            // Generate key identifier for selection checking
+            val keyId = "$keysetId:$rowIndex:$keyIndex"
+            val isSelected = selectedKeyIds.contains(keyId)
             
             if (key.hidden) {
                 rowLayout.addView(createSpacer(key.width))
@@ -418,8 +439,10 @@ class KeyboardRenderer(
                     getDefaultLabel(key.type, editorContext)
                 }
                 
-                rowLayout.addView(createKeyButton(key, finalLabel, editorContext))
+                rowLayout.addView(createKeyButton(key, finalLabel, editorContext, isSelected))
             }
+            
+            keyIndex++
         }
     }
     
@@ -453,7 +476,8 @@ class KeyboardRenderer(
     private fun createKeyButton(
         key: KeyConfig,
         label: String,
-        editorContext: EditorContext?
+        editorContext: EditorContext?,
+        isSelected: Boolean = false
     ): Button {
         val horizontalMargin = if (isPreview) KEY_MARGIN_HORIZONTAL_PREVIEW else KEY_MARGIN_HORIZONTAL
         val verticalMargin = if (isPreview) KEY_MARGIN_VERTICAL_PREVIEW else KEY_MARGIN_VERTICAL
@@ -479,6 +503,11 @@ class KeyboardRenderer(
                 shape = GradientDrawable.RECTANGLE
                 setColor(bgColor)
                 cornerRadius = KEY_CORNER_RADIUS
+                
+                // Selection highlight for edit mode
+                if (isSelected) {
+                    setStroke(6, Color.parseColor("#2196F3")) // Blue border
+                }
             }
             setTextColor(textColor)
             setPadding(KEY_PADDING, KEY_PADDING, KEY_PADDING, KEY_PADDING)

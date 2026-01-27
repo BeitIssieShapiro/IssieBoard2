@@ -38,6 +38,9 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
     // Config JSON from React Native prop
     private var configJson: String? = null
     
+    // Selected keys JSON from React Native prop
+    private var selectedKeysJson: String? = null
+    
     // Keyboard container that holds the keyboard rows
     private val keyboardContainer = LinearLayout(context).apply {
         orientation = LinearLayout.VERTICAL
@@ -70,6 +73,47 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
         Log.d(TAG, "onMeasure: width=${MeasureSpec.getSize(widthMeasureSpec)}, height=${MeasureSpec.getSize(heightMeasureSpec)}")
+    }
+    
+    /**
+     * Set selected key IDs for visual highlighting in edit mode
+     * Format: JSON array of strings like ["abc:0:3", "abc:1:2"]
+     */
+    fun setSelectedKeys(json: String?) {
+        Log.d(TAG, "setSelectedKeys called: ${json?.length ?: 0} chars")
+        
+        val newKeyIds: Set<String> = if (json == null || json.isEmpty() || json == "[]") {
+            emptySet()
+        } else {
+            try {
+                val jsonArray = org.json.JSONArray(json)
+                val keyIds = mutableSetOf<String>()
+                for (i in 0 until jsonArray.length()) {
+                    keyIds.add(jsonArray.getString(i))
+                }
+                Log.d(TAG, "setSelectedKeys: ${keyIds.size} keys parsed")
+                keyIds
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to parse selectedKeys JSON", e)
+                emptySet()
+            }
+        }
+        
+        // Only update if the value actually changed
+        if (selectedKeysJson == json) {
+            Log.d(TAG, "setSelectedKeys: no change, skipping")
+            return
+        }
+        
+        selectedKeysJson = json
+        renderer.setSelectedKeys(newKeyIds)
+        
+        // Only re-render if config is already loaded AND renderer has config
+        // This prevents render when called before config is set
+        if (configJson != null && keyboardContainer.childCount > 0) {
+            // Use rerender instead of renderKeyboard to preserve renderer state
+            renderer.rerender()
+        }
     }
     
     /**
