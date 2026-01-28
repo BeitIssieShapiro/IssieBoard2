@@ -89,21 +89,21 @@ interface DiacriticModifierOption {
 
 ### Profile Definition
 
-Profiles can customize diacritics per keyboard:
+Profiles can customize diacritics per keyboard using the `diacriticsSettings` field:
 
 ```json
 {
   "id": "profile-name",
   "name": "Profile Display Name",
   "keyboards": ["he", "ar"],
-  "diacritics": {
+  "diacriticsSettings": {
     "he": {
-      "modifierEnabled": true,
-      "hidden": ["shva", "kubutz"]
+      "hidden": ["shva", "kubutz"],
+      "disabledModifiers": []
     },
     "ar": {
-      "modifierEnabled": false,
-      "hidden": ["sukun", "tanwinFath", "tanwinKasr", "tanwinDamm"]
+      "hidden": ["sukun", "tanwinFath", "tanwinKasr", "tanwinDamm"],
+      "disabledModifiers": ["shadda"]
     }
   }
 }
@@ -112,11 +112,13 @@ Profiles can customize diacritics per keyboard:
 #### Diacritic Settings
 
 ```typescript
-interface DiacriticSettings {
-  modifierEnabled?: boolean;  // Whether to show modifier combinations (default: true)
-  hidden?: string[];          // Array of diacritic IDs to hide
+interface DiacriticsSettings {
+  hidden?: string[];           // Array of diacritic IDs to hide
+  disabledModifiers?: string[]; // Array of modifier IDs to disable
 }
 ```
+
+**Note:** The `plain` item (id: "plain") is always available and cannot be hidden - users need the option to output letters without diacritics.
 
 ---
 
@@ -365,30 +367,14 @@ During the transition, the renderer should:
 
 ---
 
-## TODO / Future Improvements
+## Multiple Modifiers Support (Implemented)
 
-### Shin/Sin as Second Modifier
+The data model now supports multiple modifiers via the `modifiers` array. Each modifier can be either:
+1. **Simple toggle** (has `mark`) - On/Off state, like dagesh
+2. **Multi-option** (has `options` array) - None + N exclusive options, like shin/sin dot
 
-Currently, `shinDot` (שׁ) and `sinDot` (שׂ) are implemented as items with `onlyFor: ["ש"]`. However, linguistically they behave more like a **second modifier** specific to the letter Shin - similar to how dagesh is a modifier that combines with vowels.
+### Hebrew with Multiple Modifiers
 
-**Current implementation:**
-```json
-{ "id": "shinDot", "mark": "\u05C1", "name": "שִׁין", "onlyFor": ["ש"] },
-{ "id": "sinDot", "mark": "\u05C2", "name": "שׂין", "onlyFor": ["ש"] }
-```
-
-**Proposed improvement:**
-The data model should support letter-specific modifiers. For Shin, the user should be able to:
-1. Choose shin (שׁ) vs sin (שׂ) - mutually exclusive
-2. Then choose vowel (kamatz, patach, etc.)
-3. Then optionally add dagesh
-
-This would require:
-- Extending the data model to support multiple modifiers
-- Letter-specific modifier definitions (e.g., `modifiers` array instead of single `modifier`)
-- UI changes to show multiple toggle buttons or a segmented control for Shin
-
-**Example new structure:**
 ```json
 "modifiers": [
   {
@@ -399,7 +385,7 @@ This would require:
   },
   {
     "id": "shinSin",
-    "name": "שין/שׂין",
+    "name": "שׁין / שׂין",
     "appliesTo": ["ש"],
     "options": [
       { "id": "shin", "mark": "\u05C1", "name": "שִׁין" },
@@ -409,4 +395,69 @@ This would require:
 ]
 ```
 
-This would allow for proper handling of complex letter variants while keeping the UI simple.
+### Modifier UI Behavior
+
+When the nikkud picker opens for a letter:
+1. **All applicable modifiers appear on the same row** below the vowel options
+2. **Simple toggle** (dagesh): Single button showing letter+mark (e.g., "בּ"), toggles on/off
+3. **Multi-option** (shin/sin): Bordered group with N+1 buttons - "None" (just letter) + one for each option
+
+The modifier toggle buttons always show the letter WITH the modifier mark, regardless of selection state. The visual highlight (blue border) indicates selection, not the text.
+
+### Modifier State Management
+
+Modifier states are tracked per picker session:
+- `modifierStates: { [modifierId]: selectedOptionId | null }`
+- For simple toggle: `nil` = off, `""` = on
+- For multi-option: `nil` = none selected, `optionId` = specific option selected
+- States reset when the picker closes
+
+---
+
+## Configuration Data Flow
+
+### Multi-Keyboard Profiles
+
+For profiles with multiple keyboards (e.g., English + Hebrew + Arabic), each keyboard's diacritics are stored separately:
+
+```typescript
+// In KeyboardConfig (config sent to native renderer)
+interface KeyboardConfig {
+  keyboards?: string[];                              // ["en", "he", "ar"]
+  allDiacritics?: { [keyboardId: string]: DiacriticsDefinition };  // Per-keyboard diacritics
+  diacriticsSettings?: { [keyboardId: string]: DiacriticsSettings }; // Per-keyboard settings
+  // ... other fields
+}
+```
+
+### EditorScreen Flow
+
+1. **Load keyboards**: Each keyboard JSON has its own `diacritics` definition
+2. **Store in allDiacritics**: `allDiacritics[keyboardId] = keyboard.diacritics`
+3. **Merge settings**: Profile's `diacriticsSettings[keyboardId]` overrides defaults
+4. **Send to renderer**: Native preview receives full config with all keyboards' diacritics
+
+### DiacriticsPanel UI
+
+The DiacriticsPanel shows settings for the **currently active keyboard** (determined by `state.activeKeyset`):
+- Keyset "he_abc" → keyboard "he" → shows Hebrew diacritics settings
+- Keyset "ar_abc" → keyboard "ar" → shows Arabic diacritics settings  
+- Keyset "abc" (first keyboard) → keyboard "en" → shows "No diacritics available"
+
+---
+
+## TODO / Future Improvements
+
+### Android Implementation
+
+The Android renderer needs to be updated to:
+- Parse the `modifiers` array (not just single `modifier`)
+- Implement modifier toggle UI in the nikkud picker
+- Support multi-option modifiers (shin/sin)
+- Track modifier states per picker session
+
+### Additional Features
+
+- **Modifier presets**: Allow profiles to set default modifier states
+- **Keyboard-specific modifier defaults**: Different defaults per keyboard
+- **Modifier ordering**: Control the order modifiers appear in the UI

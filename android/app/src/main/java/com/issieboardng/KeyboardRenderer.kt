@@ -103,6 +103,25 @@ class KeyboardRenderer(
     /** Key IDs are in format "keysetId:rowIndex:keyIndex", e.g., "abc:0:3" */
     private var selectedKeyIds: Set<String> = emptySet()
     
+    /** Current keyboard ID for diacritics lookup (derived from keyset ID) */
+    private var currentKeyboardId: String? = null
+    
+    /** Modifier toggle states for nikkud picker */
+    /** Key: modifier ID, Value: selected option ID (null = off, empty string = on for simple toggle) */
+    private val modifierStates = mutableMapOf<String, String?>()
+    
+    /** Current letter being edited in nikkud picker (for modifier toggle refresh) */
+    private var currentNikkudLetter: String = ""
+    
+    /** Current popup window (for refreshing when modifier toggles) */
+    private var currentPopupWindow: android.widget.PopupWindow? = null
+    
+    /** Current anchor view for popup refresh */
+    private var currentPopupAnchor: View? = null
+    
+    /** Flag to track if popup was just dismissed - skip next key click */
+    private var popupJustDismissed: Boolean = false
+    
     // ============================================================================
     // PUBLIC API
     // ============================================================================
@@ -180,6 +199,20 @@ class KeyboardRenderer(
                     return
                 }
             }
+        }
+        
+        // Derive currentKeyboardId from keyset ID (e.g., "he_abc" -> "he", "abc" -> first keyboard)
+        if (config.keyboards.isNotEmpty()) {
+            var foundKeyboard: String? = null
+            for (keyboardId in config.keyboards) {
+                if (currentKeysetId.startsWith("${keyboardId}_") || currentKeysetId == keyboardId) {
+                    foundKeyboard = keyboardId
+                    break
+                }
+            }
+            // If no match found, use first keyboard
+            currentKeyboardId = foundKeyboard ?: config.keyboards.firstOrNull()
+            Log.d(logTag, "Current keyboard ID set to: $currentKeyboardId")
         }
         
         Log.d(logTag, "renderKeyboard() - keyset has ${keyset.rows.size} rows")
@@ -487,6 +520,7 @@ class KeyboardRenderer(
         return Button(context).apply {
             text = label
             textSize = determineTextSize(key.type, label, normalSize, largeSize)
+            setAllCaps(false)  // Important: preserve case for lowercase letters
             layoutParams = LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.MATCH_PARENT, key.width
             ).apply {
@@ -560,6 +594,16 @@ class KeyboardRenderer(
      * Text input and special actions are sent to the callback
      */
     private fun handleKeyClick(key: KeyConfig, keyView: View, editorContext: EditorContext?) {
+        // If there's a popup open, dismiss it and don't process this click
+        // The popupJustDismissed flag prevents processing the same click twice
+        val hadPopup = currentPopupWindow != null
+        if (hadPopup) {
+            Log.d(logTag, "handleKeyClick: dismissing popup, will not process this click")
+            currentPopupWindow?.dismiss()
+            currentPopupWindow = null
+            return  // Just dismiss, don't process the key click
+        }
+        
         when (key.type.lowercase()) {
             "shift" -> {
                 handleShiftClick()
@@ -573,7 +617,10 @@ class KeyboardRenderer(
                 }
             }
             "language" -> {
+                // Switch language internally - Android handles the visual switch
                 switchLanguage()
+                // Notify React with the NEW keyset ID so it can sync directly
+                onKeyEvent?.invoke(KeyEvent.Custom(KeyConfig(type = "keyset-changed", value = currentKeysetId)))
             }
             "backspace" -> {
                 onKeyEvent?.invoke(KeyEvent.Backspace)
@@ -589,12 +636,34 @@ class KeyboardRenderer(
                 onKeyEvent?.invoke(KeyEvent.Close)
             }
             "next-keyboard" -> {
-                onKeyEvent?.invoke(KeyEvent.NextKeyboard)
+                // For preview: switch language internally AND notify React with new keyset ID
+                // For actual keyboard: just notify (system handles the switch)
+                if (isPreview) {
+                    switchLanguage()
+                    // Send the NEW keyset ID so React can sync directly
+                    onKeyEvent?.invoke(KeyEvent.Custom(KeyConfig(type = "keyset-changed", value = currentKeysetId)))
+                } else {
+                    onKeyEvent?.invoke(KeyEvent.NextKeyboard)
+                }
             }
             else -> {
                 // Regular key - check if nikkud popup should be shown
-                if (nikkudActive && key.nikkud.isNotEmpty()) {
-                    showNikkudPopup(key.nikkud, keyView)
+                if (nikkudActive) {
+                    // Get diacritics for this key - first try explicit nikkud, then generate from definition
+                    val diacriticsOptions = getDiacriticsForKey(key)
+                    if (diacriticsOptions.isNotEmpty()) {
+                        showNikkudPopupWithDiacritics(key.value, diacriticsOptions, keyView)
+                    } else if (key.nikkud.isNotEmpty()) {
+                        // Fallback to explicit nikkud (backward compatibility)
+                        showNikkudPopup(key.nikkud, keyView)
+                    } else {
+                        // No diacritics available, just output the key
+                        val value = if (shiftState.isActive()) key.sValue else key.value
+                        if (value.isNotEmpty()) {
+                            onKeyEvent?.invoke(KeyEvent.TextInput(value))
+                            autoResetShift()
+                        }
+                    }
                 } else {
                     // Get the correct value based on shift state
                     val value = if (shiftState.isActive()) key.sValue else key.value
@@ -738,5 +807,439 @@ class KeyboardRenderer(
             textSize = TEXT_SIZE_ERROR
         }
         layout.addView(errorText)
+    }
+    
+    // ============================================================================
+    // DIACRITICS GENERATION
+    // ============================================================================
+    
+    /**
+     * Get diacritics for a key using the diacritics definition
+     */
+    private fun getDiacriticsForKey(key: KeyConfig): List<NikkudOption> {
+        val config = currentConfig ?: return emptyList()
+        val keyboardId = currentKeyboardId ?: return emptyList()
+        
+        val diacritics = config.getDiacritics(keyboardId) ?: return emptyList()
+        val settings = config.diacriticsSettings[keyboardId]
+        val hidden = settings?.hidden ?: emptyList()
+        
+        val letter = key.value
+        if (letter.isEmpty()) return emptyList()
+        
+        Log.d(logTag, "getDiacriticsForKey: letter='$letter', keyboard='$keyboardId'")
+        
+        val result = mutableListOf<NikkudOption>()
+        
+        for (item in diacritics.items) {
+            // Skip if hidden in profile
+            if (hidden.contains(item.id)) continue
+            
+            // Skip if not applicable to this letter
+            if (item.onlyFor != null && !item.onlyFor.contains(letter)) continue
+            if (item.excludeFor != null && item.excludeFor.contains(letter)) continue
+            
+            // Determine the output value
+            val value = if (item.isReplacement) item.mark else (letter + item.mark)
+            
+            result.add(NikkudOption(value, value))
+        }
+        
+        Log.d(logTag, "getDiacriticsForKey: generated ${result.size} options")
+        return result
+    }
+    
+    /**
+     * Generate nikkud options for a letter with active modifiers applied
+     */
+    private fun generateNikkudOptions(letter: String): List<NikkudOption> {
+        val config = currentConfig ?: return emptyList()
+        val keyboardId = currentKeyboardId ?: return emptyList()
+        
+        val diacritics = config.getDiacritics(keyboardId) ?: return emptyList()
+        val settings = config.diacriticsSettings[keyboardId]
+        val hidden = settings?.hidden ?: emptyList()
+        val disabledMods = settings?.disabledModifiers ?: emptyList()
+        
+        // Get applicable modifiers for this letter
+        val applicableModifiers = diacritics.getModifiersForLetter(letter).filter { 
+            !disabledMods.contains(it.id)
+        }
+        
+        val result = mutableListOf<NikkudOption>()
+        
+        for (item in diacritics.items) {
+            // Skip if hidden in profile
+            if (hidden.contains(item.id)) continue
+            
+            // Skip if not applicable to this letter
+            if (item.onlyFor != null && !item.onlyFor.contains(letter)) continue
+            if (item.excludeFor != null && item.excludeFor.contains(letter)) continue
+            
+            val isReplacement = item.isReplacement
+            
+            // Start with base value
+            var value = if (isReplacement) item.mark else letter
+            
+            // Apply each active modifier
+            if (!isReplacement) {
+                for (modifier in applicableModifiers) {
+                    val activeState = modifierStates[modifier.id]
+                    if (activeState == null) continue  // Modifier not active
+                    
+                    if (modifier.isMultiOption) {
+                        // Multi-option: find selected option's mark
+                        val selectedOption = modifier.options?.find { it.id == activeState }
+                        if (selectedOption != null) {
+                            value += selectedOption.mark
+                        }
+                    } else if (modifier.mark != null) {
+                        // Simple toggle: add mark if active (activeState is empty string)
+                        value += modifier.mark
+                    }
+                }
+                
+                // Add the diacritic mark
+                value += item.mark
+            }
+            
+            result.add(NikkudOption(value, value))
+        }
+        
+        return result
+    }
+    
+    /**
+     * Get modifiers that apply to a letter (filtered by settings)
+     */
+    private fun getModifiersForLetter(letter: String): List<DiacriticModifier> {
+        val config = currentConfig ?: return emptyList()
+        val keyboardId = currentKeyboardId ?: return emptyList()
+        
+        val diacritics = config.getDiacritics(keyboardId) ?: return emptyList()
+        val settings = config.diacriticsSettings[keyboardId]
+        val disabledMods = settings?.disabledModifiers ?: emptyList()
+        
+        return diacritics.getModifiersForLetter(letter).filter { !disabledMods.contains(it.id) }
+    }
+    
+    /**
+     * Show nikkud popup with diacritics and optional modifier toggles
+     */
+    private fun showNikkudPopupWithDiacritics(letter: String, options: List<NikkudOption>, anchorView: View) {
+        currentNikkudLetter = letter
+        currentPopupAnchor = anchorView
+        
+        val applicableModifiers = getModifiersForLetter(letter)
+        val hasModifiers = applicableModifiers.isNotEmpty()
+        
+        // Generate options based on current modifier states
+        val nikkudOptions = generateNikkudOptions(letter)
+        val displayOptions = if (nikkudOptions.isNotEmpty()) nikkudOptions else options
+        
+        val buttonSize = 110
+        val spacing = 12
+        val padding = 20
+        
+        // Calculate items per row (max 6, or 2 rows if many)
+        val itemsPerRow = if (displayOptions.size > 6) {
+            (displayOptions.size + 1) / 2
+        } else {
+            maxOf(1, minOf(6, displayOptions.size))
+        }
+        
+        // Create main container
+        val mainLayout = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(padding, padding, padding, padding)
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                setColor(Color.parseColor("#F5F5F5"))
+                cornerRadius = 16f
+                setStroke(1, Color.parseColor("#CCCCCC"))
+            }
+            elevation = 24f
+        }
+        
+        // Build diacritic option rows
+        val rows = displayOptions.chunked(itemsPerRow)
+        rows.forEachIndexed { rowIndex, rowOptions ->
+            val rowLayout = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    if (rowIndex > 0) topMargin = spacing
+                }
+            }
+            
+            rowOptions.forEachIndexed { colIndex, option ->
+                // Log the option value for debugging
+                Log.d(logTag, "Creating diacritic button: value='${option.value}' (${option.value.length} chars), hex=${option.value.map { String.format("%04X", it.code) }.joinToString()}")
+                
+                val button = TextView(context).apply {
+                    // Show the FULL value with diacritic (not just the caption)
+                    text = option.value
+                    textSize = 24f
+                    setTextColor(Color.BLACK)
+                    gravity = android.view.Gravity.CENTER
+                    // Important: use a typeface that supports Hebrew combining marks
+                    typeface = android.graphics.Typeface.DEFAULT
+                    background = GradientDrawable().apply {
+                        setColor(Color.WHITE)
+                        cornerRadius = 10f
+                        setStroke(1, Color.parseColor("#DDDDDD"))
+                    }
+                    layoutParams = LinearLayout.LayoutParams(buttonSize, buttonSize).apply {
+                        if (colIndex > 0) marginStart = spacing
+                    }
+                    isClickable = true
+                    isFocusable = true
+                    
+                    setOnClickListener {
+                        onKeyEvent?.invoke(KeyEvent.TextInput(option.value))
+                        currentPopupWindow?.dismiss()
+                        modifierStates.clear()
+                    }
+                }
+                rowLayout.addView(button)
+            }
+            mainLayout.addView(rowLayout)
+        }
+        
+        // Add modifier row if applicable
+        if (hasModifiers) {
+            // Add separator
+            val separator = View(context).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    2
+                ).apply {
+                    topMargin = spacing
+                    bottomMargin = spacing / 2
+                }
+                setBackgroundColor(Color.parseColor("#DDDDDD"))
+            }
+            mainLayout.addView(separator)
+            
+            val modifierRow = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    topMargin = spacing / 2
+                }
+                gravity = android.view.Gravity.CENTER_HORIZONTAL
+            }
+            
+            val modifierButtonSize = (buttonSize * 0.9).toInt()
+            
+            for ((modIndex, modifier) in applicableModifiers.withIndex()) {
+                // Add spacing between modifier groups
+                if (modIndex > 0) {
+                    val spacer = View(context).apply {
+                        layoutParams = LinearLayout.LayoutParams(spacing * 2, 1)
+                    }
+                    modifierRow.addView(spacer)
+                }
+                
+                val currentState = modifierStates[modifier.id]
+                
+                if (modifier.isMultiOption && modifier.options != null) {
+                    // Multi-option modifier: create bordered button group
+                    val groupLayout = LinearLayout(context).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        background = GradientDrawable().apply {
+                            setColor(Color.parseColor("#FAFAFA"))
+                            cornerRadius = 12f
+                            setStroke(2, Color.parseColor("#AAAAAA"))
+                        }
+                        setPadding(6, 6, 6, 6)
+                    }
+                    
+                    // "None" button (just letter)
+                    val noneButton = createModifierToggleButton(
+                        letter,
+                        currentState == null,
+                        modifierButtonSize
+                    ) {
+                        modifierStates.remove(modifier.id)
+                        refreshNikkudPopup()
+                    }
+                    groupLayout.addView(noneButton)
+                    
+                    // Option buttons
+                    modifier.options.forEach { option ->
+                        val optButton = createModifierToggleButton(
+                            letter + option.mark,
+                            currentState == option.id,
+                            modifierButtonSize
+                        ) {
+                            modifierStates[modifier.id] = option.id
+                            refreshNikkudPopup()
+                        }
+                        groupLayout.addView(optButton)
+                    }
+                    
+                    modifierRow.addView(groupLayout)
+                    
+                } else if (modifier.mark != null) {
+                    // Simple toggle modifier - single button, always shows with mark
+                    val isActive = currentState != null
+                    val toggleButton = createModifierToggleButton(
+                        letter + modifier.mark,  // Always show with mark
+                        isActive,
+                        modifierButtonSize
+                    ) {
+                        if (isActive) {
+                            modifierStates.remove(modifier.id)
+                        } else {
+                            modifierStates[modifier.id] = ""  // Empty string = on for simple toggle
+                        }
+                        refreshNikkudPopup()
+                    }
+                    modifierRow.addView(toggleButton)
+                }
+            }
+            
+            mainLayout.addView(modifierRow)
+        }
+        
+        // Create and show popup
+        // Note: isOutsideTouchable = false prevents auto-dismiss on outside clicks
+        // The popup will only dismiss when:
+        // 1. A diacritic option is selected
+        // 2. A key on the keyboard is pressed (which will trigger a new popup or dismiss)
+        // 3. The nikkud mode is toggled off
+        val popupWindow = android.widget.PopupWindow(
+            mainLayout,
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+            false  // Not focusable so it doesn't steal touch events
+        ).apply {
+            isOutsideTouchable = false  // Don't dismiss on outside clicks (like Diacritics panel)
+            isFocusable = false  // Don't steal focus from the rest of the UI
+            isClippingEnabled = true  // Enable clipping to keep popup on screen
+            setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.TRANSPARENT))
+            elevation = 24f
+            inputMethodMode = android.widget.PopupWindow.INPUT_METHOD_NOT_NEEDED
+            setOnDismissListener {
+                currentPopupWindow = null
+                currentPopupAnchor = null
+                modifierStates.clear()
+            }
+        }
+        
+        currentPopupWindow = popupWindow
+        
+        // Measure and position
+        mainLayout.measure(
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        val popupWidth = mainLayout.measuredWidth
+        val popupHeight = mainLayout.measuredHeight
+        
+        // Get anchor position on screen
+        val anchorLocation = IntArray(2)
+        anchorView.getLocationOnScreen(anchorLocation)
+        
+        // Get screen dimensions
+        val displayMetrics = context.resources.displayMetrics
+        val screenWidth = displayMetrics.widthPixels
+        
+        // Calculate desired X position (centered over key)
+        var xPos = anchorLocation[0] + (anchorView.width / 2) - (popupWidth / 2)
+        
+        // Clamp to screen bounds
+        if (xPos < 0) xPos = 0
+        if (xPos + popupWidth > screenWidth) xPos = screenWidth - popupWidth
+        
+        // Calculate offset relative to anchor
+        val xOffset = xPos - anchorLocation[0]
+        val yOffset = -popupHeight - (anchorView.height / 4)
+        
+        try {
+            popupWindow.showAsDropDown(anchorView, xOffset, yOffset)
+        } catch (e: Exception) {
+            Log.e(logTag, "Diacritics popup failed", e)
+        }
+    }
+    
+    /**
+     * Create a modifier toggle button with proper styling
+     * Uses TextView instead of Button to avoid internal padding issues
+     */
+    private fun createModifierToggleButton(
+        text: String,
+        isSelected: Boolean,
+        size: Int,
+        onClick: () -> Unit
+    ): TextView {
+        return TextView(context).apply {
+            this.text = text
+            textSize = 20f
+            setTextColor(if (isSelected) Color.parseColor("#1976D2") else Color.BLACK)
+            gravity = android.view.Gravity.CENTER
+            background = GradientDrawable().apply {
+                setColor(if (isSelected) Color.parseColor("#BBDEFB") else Color.WHITE)
+                cornerRadius = 8f
+                if (isSelected) {
+                    setStroke(3, Color.parseColor("#1976D2"))
+                } else {
+                    setStroke(1, Color.parseColor("#CCCCCC"))
+                }
+            }
+            layoutParams = LinearLayout.LayoutParams(size, size).apply {
+                marginStart = 4
+                marginEnd = 4
+            }
+            elevation = if (isSelected) 6f else 2f
+            isClickable = true
+            isFocusable = true
+            
+            setOnClickListener { onClick() }
+        }
+    }
+    
+    // Keep old method for backward compatibility - returns View instead of Button
+    private fun createModifierButton(
+        text: String,
+        isSelected: Boolean,
+        size: Int,
+        onClick: () -> Unit
+    ): View = createModifierToggleButton(text, isSelected, size, onClick)
+    
+    /**
+     * Refresh the nikkud popup with current modifier states
+     * Note: We must preserve modifier states during refresh
+     */
+    private fun refreshNikkudPopup() {
+        val anchor = currentPopupAnchor
+        val letter = currentNikkudLetter
+        
+        if (anchor == null || letter.isEmpty()) return
+        
+        Log.d(logTag, "refreshNikkudPopup: letter='$letter', modifierStates=$modifierStates")
+        
+        // Save modifier states before dismiss (since dismiss listener clears them)
+        val savedModifierStates = modifierStates.toMap()
+        
+        // Dismiss current popup (but don't let it clear our saved states)
+        currentPopupWindow?.setOnDismissListener(null)  // Remove listener temporarily
+        currentPopupWindow?.dismiss()
+        
+        // Restore states
+        modifierStates.clear()
+        modifierStates.putAll(savedModifierStates)
+        
+        Log.d(logTag, "refreshNikkudPopup: restored modifierStates=$modifierStates")
+        
+        val options = getDiacriticsForKey(KeyConfig(value = letter))
+        if (options.isNotEmpty()) {
+            showNikkudPopupWithDiacritics(letter, options, anchor)
+        }
     }
 }

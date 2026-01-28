@@ -164,7 +164,9 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
         
         if (config != null) {
             // Reset to default keyset when config changes from prop
-            renderer.setConfig(config, resetKeyset = true)
+            // Don't reset keyset when config changes (e.g., diacritics settings toggled)
+            // Only reset if the current keyset doesn't exist in the new config
+            renderer.setConfig(config, resetKeyset = false)
             Log.d(TAG, "Config set to renderer, current keyset: ${renderer.currentKeysetId}")
         } else {
             Log.e(TAG, "Failed to load config")

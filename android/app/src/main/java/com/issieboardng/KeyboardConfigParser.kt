@@ -44,6 +44,51 @@ class KeyboardConfigParser(private val context: Context) {
         val backgroundColor = parseColor(bgColorString, Color.parseColor(DEFAULT_BG_COLOR))
         val defaultKeysetId = configJson.optString("defaultKeyset", DEFAULT_KEYSET_ID)
         
+        // Parse keyboards array
+        val keyboards = mutableListOf<String>()
+        val keyboardsArray = configJson.optJSONArray("keyboards")
+        if (keyboardsArray != null) {
+            for (i in 0 until keyboardsArray.length()) {
+                val kb = keyboardsArray.optString(i, "")
+                if (kb.isNotEmpty()) keyboards.add(kb)
+            }
+        }
+        Log.d(TAG, "Parsed keyboards: ${keyboards.joinToString()}")
+        
+        // Parse allDiacritics (per-keyboard diacritics definitions)
+        val allDiacritics = mutableMapOf<String, DiacriticsDefinition>()
+        val allDiacriticsObj = configJson.optJSONObject("allDiacritics")
+        if (allDiacriticsObj != null) {
+            val keys = allDiacriticsObj.keys()
+            while (keys.hasNext()) {
+                val keyboardId = keys.next()
+                val diacriticsObj = allDiacriticsObj.optJSONObject(keyboardId)
+                if (diacriticsObj != null) {
+                    val diacriticsDef = parseDiacriticsDefinition(diacriticsObj)
+                    if (diacriticsDef != null) {
+                        allDiacritics[keyboardId] = diacriticsDef
+                    }
+                }
+            }
+        }
+        Log.d(TAG, "Parsed allDiacritics for keyboards: ${allDiacritics.keys.joinToString()}")
+        
+        // Parse diacriticsSettings (per-keyboard profile settings)
+        val diacriticsSettings = mutableMapOf<String, DiacriticsSettings>()
+        val settingsObj = configJson.optJSONObject("diacriticsSettings")
+        if (settingsObj != null) {
+            val keys = settingsObj.keys()
+            while (keys.hasNext()) {
+                val keyboardId = keys.next()
+                val settingObj = settingsObj.optJSONObject(keyboardId)
+                if (settingObj != null) {
+                    val settings = parseDiacriticsSettings(settingObj)
+                    diacriticsSettings[keyboardId] = settings
+                }
+            }
+        }
+        Log.d(TAG, "Parsed diacriticsSettings for keyboards: ${diacriticsSettings.keys.joinToString()}")
+        
         // Parse groups from the top-level config (they apply to all keysets)
         val globalGroups = parseGroupsFromArray(configJson.optJSONArray("groups"))
         Log.d(TAG, "Parsed ${globalGroups.size} global groups: ${globalGroups.keys.joinToString()}")
@@ -84,7 +129,132 @@ class KeyboardConfigParser(private val context: Context) {
             }
         }
         
-        return ParsedConfig(backgroundColor, defaultKeysetId, keysets)
+        return ParsedConfig(
+            backgroundColor = backgroundColor,
+            defaultKeysetId = defaultKeysetId,
+            keysets = keysets,
+            keyboards = keyboards,
+            allDiacritics = allDiacritics,
+            diacriticsSettings = diacriticsSettings
+        )
+    }
+    
+    /**
+     * Parse diacritics definition from JSON
+     */
+    private fun parseDiacriticsDefinition(obj: JSONObject): DiacriticsDefinition? {
+        val itemsArray = obj.optJSONArray("items") ?: return null
+        
+        val items = mutableListOf<DiacriticItem>()
+        for (i in 0 until itemsArray.length()) {
+            val itemObj = itemsArray.optJSONObject(i) ?: continue
+            val item = parseDiacriticItem(itemObj)
+            if (item != null) items.add(item)
+        }
+        
+        // Parse legacy single modifier
+        val modifier = obj.optJSONObject("modifier")?.let { parseDiacriticModifier(it) }
+        
+        // Parse new multiple modifiers array
+        val modifiers = mutableListOf<DiacriticModifier>()
+        val modifiersArray = obj.optJSONArray("modifiers")
+        if (modifiersArray != null) {
+            for (i in 0 until modifiersArray.length()) {
+                val modObj = modifiersArray.optJSONObject(i) ?: continue
+                val mod = parseDiacriticModifier(modObj)
+                if (mod != null) modifiers.add(mod)
+            }
+        }
+        
+        return DiacriticsDefinition(
+            items = items,
+            modifier = modifier,
+            modifiers = if (modifiers.isEmpty()) null else modifiers
+        )
+    }
+    
+    /**
+     * Parse a single diacritic item
+     */
+    private fun parseDiacriticItem(obj: JSONObject): DiacriticItem? {
+        val id = obj.optString("id", "")
+        if (id.isEmpty()) return null
+        
+        val onlyFor = parseStringArray(obj.optJSONArray("onlyFor"))
+        val excludeFor = parseStringArray(obj.optJSONArray("excludeFor"))
+        
+        return DiacriticItem(
+            id = id,
+            mark = obj.optString("mark", ""),
+            name = obj.optString("name", id),
+            onlyFor = if (onlyFor.isEmpty()) null else onlyFor,
+            excludeFor = if (excludeFor.isEmpty()) null else excludeFor,
+            isReplacement = obj.optBoolean("isReplacement", false)
+        )
+    }
+    
+    /**
+     * Parse a diacritic modifier
+     */
+    private fun parseDiacriticModifier(obj: JSONObject): DiacriticModifier? {
+        val id = obj.optString("id", "")
+        if (id.isEmpty()) return null
+        
+        val appliesTo = parseStringArray(obj.optJSONArray("appliesTo"))
+        val excludeFor = parseStringArray(obj.optJSONArray("excludeFor"))
+        
+        // Parse options for multi-option modifiers
+        val options = mutableListOf<DiacriticModifierOption>()
+        val optionsArray = obj.optJSONArray("options")
+        if (optionsArray != null) {
+            for (i in 0 until optionsArray.length()) {
+                val optObj = optionsArray.optJSONObject(i) ?: continue
+                val optId = optObj.optString("id", "")
+                if (optId.isNotEmpty()) {
+                    options.add(DiacriticModifierOption(
+                        id = optId,
+                        mark = optObj.optString("mark", ""),
+                        name = optObj.optString("name", optId)
+                    ))
+                }
+            }
+        }
+        
+        return DiacriticModifier(
+            id = id,
+            mark = obj.optString("mark", "").takeIf { it.isNotEmpty() },
+            name = obj.optString("name", id),
+            appliesTo = if (appliesTo.isEmpty()) null else appliesTo,
+            excludeFor = if (excludeFor.isEmpty()) null else excludeFor,
+            options = if (options.isEmpty()) null else options
+        )
+    }
+    
+    /**
+     * Parse diacritics settings from JSON
+     */
+    private fun parseDiacriticsSettings(obj: JSONObject): DiacriticsSettings {
+        val hidden = parseStringArray(obj.optJSONArray("hidden"))
+        val disabledModifiers = parseStringArray(obj.optJSONArray("disabledModifiers"))
+        
+        return DiacriticsSettings(
+            hidden = hidden,
+            disabledModifiers = disabledModifiers
+        )
+    }
+    
+    /**
+     * Parse a JSON array of strings
+     */
+    private fun parseStringArray(array: org.json.JSONArray?): List<String> {
+        if (array == null) return emptyList()
+        
+        val result = mutableListOf<String>()
+        for (i in 0 until array.length()) {
+            val str = array.optString(i, "")
+            if (str.isNotEmpty()) result.add(str)
+        }
+        return result
     }
     
     /**

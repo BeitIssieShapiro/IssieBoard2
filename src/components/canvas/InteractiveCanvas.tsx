@@ -104,6 +104,17 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
     console.log(`[InteractiveCanvas] handleKeyPress: type='${type}', value='${value}', label='${label}'`);
     
     // Handle language/keyboard switch - update React state to match native
+    // "keyset-changed" is sent by Android with the actual new keyset ID
+    if (type === 'keyset-changed' && value) {
+      console.log(`[InteractiveCanvas] Native switched keyset to: ${value}`);
+      if (value !== state.activeKeyset) {
+        dispatch({ type: 'SET_ACTIVE_KEYSET', payload: value });
+      }
+      return;
+    }
+    
+    // Legacy: "next-keyboard" without value means React should calculate next
+    // (used by iOS and non-preview Android)
     if (type === 'next-keyboard' || type === 'language') {
       const nextKeyset = getNextKeysetId(
         state.activeKeyset,
