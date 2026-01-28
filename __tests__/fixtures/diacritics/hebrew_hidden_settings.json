@@ -1,0 +1,32 @@
+{
+  "name": "Hebrew Bet (ב) with Hidden diacritics settings",
+  "description": "Tests that diacritics marked as hidden in settings are filtered out, and disabled modifiers don't generate variants",
+  "input": {
+    "letter": "ב",
+    "diacritics": {
+      "items": [
+        { "id": "plain", "mark": "", "name": "ללא" },
+        { "id": "kamatz", "mark": "\u05B8", "name": "קָמָץ" },
+        { "id": "patach", "mark": "\u05B7", "name": "פַּתָח" },
+        { "id": "segol", "mark": "\u05B6", "name": "סֶגוֹל" }
+      ],
+      "modifiers": [
+        {
+          "id": "dagesh",
+          "mark": "\u05BC",
+          "name": "דָּגֵשׁ",
+          "appliesTo": ["ב", "ג", "ד", "כ", "פ", "ת"]
+        }
+      ]
+    },
+    "settings": {
+      "hidden": ["segol"],
+      "disabledModifiers": ["dagesh"]
+    }
+  },
+  "expected": [
+    { "id": "plain", "value": "ב", "name": "ללא" },
+    { "id": "kamatz", "value": "בָ", "name": "קָמָץ" },
+    { "id": "patach", "value": "בַ", "name": "פַּתָח" }
+  ]
+}

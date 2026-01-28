@@ -1,0 +1,32 @@
+{
+  "name": "Hebrew Vav (ו) with Replacement diacritics",
+  "description": "Tests diacritics generation for Vav which has special replacement diacritics (cholam male, shuruk) using onlyFor and isReplacement",
+  "input": {
+    "letter": "ו",
+    "diacritics": {
+      "items": [
+        { "id": "plain", "mark": "", "name": "ללא" },
+        { "id": "kamatz", "mark": "\u05B8", "name": "קָמָץ" },
+        { "id": "patach", "mark": "\u05B7", "name": "פַּתָח" },
+        { "id": "cholamVav", "mark": "וֹ", "name": "חוֹלָם מָלֵא", "onlyFor": ["ו"], "isReplacement": true },
+        { "id": "shuruk", "mark": "וּ", "name": "שׁוּרוּק", "onlyFor": ["ו"], "isReplacement": true }
+      ],
+      "modifiers": [
+        {
+          "id": "dagesh",
+          "mark": "\u05BC",
+          "name": "דָּגֵשׁ",
+          "appliesTo": ["ב", "ג", "ד", "כ", "פ", "ת"]
+        }
+      ]
+    },
+    "settings": null
+  },
+  "expected": [
+    { "id": "plain", "value": "ו", "name": "ללא" },
+    { "id": "kamatz", "value": "וָ", "name": "קָמָץ" },
+    { "id": "patach", "value": "וַ", "name": "פַּתָח" },
+    { "id": "cholamVav", "value": "וֹ", "name": "חוֹלָם מָלֵא" },
+    { "id": "shuruk", "value": "וּ", "name": "שׁוּרוּק" }
+  ]
+}

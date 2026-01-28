@@ -34,6 +34,13 @@
 			remoteGlobalIDString = 6A1E335D2F22091300035455;
 			remoteInfo = IssieBoard;
 		};
+		6ACC1DFB2F2AB0A900F1FA30 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 83CBB9F71A601CBA00E9B192 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 13B07F861A680F5B00A75B9A;
+			remoteInfo = IssieBoardNG;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -69,6 +76,7 @@
 		6A73B68B2F24E9B1003898A5 /* KeyboardPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KeyboardPreviewView.swift; path = IssieBoardNG/KeyboardPreviewView.swift; sourceTree = "<group>"; };
 		6A73B68C2F24E9B1003898A5 /* KeyboardPreviewViewManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = KeyboardPreviewViewManager.m; path = IssieBoardNG/KeyboardPreviewViewManager.m; sourceTree = "<group>"; };
 		6A73B68D2F24E9B1003898A5 /* KeyboardPreviewViewManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KeyboardPreviewViewManager.swift; path = IssieBoardNG/KeyboardPreviewViewManager.swift; sourceTree = "<group>"; };
+		6ACC1DF72F2AB0A800F1FA30 /* IssieBoardNGTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = IssieBoardNGTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = IssieBoardNG/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = IssieBoardNG/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
@@ -86,6 +94,7 @@
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		6A1E335F2F22091300035455 /* IssieBoard */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (6A1E33692F22091300035455 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = IssieBoard; sourceTree = "<group>"; };
+		6ACC1DF82F2AB0A900F1FA30 /* IssieBoardNGTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = IssieBoardNGTests; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -98,6 +107,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		6A1E335B2F22091300035455 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6ACC1DF42F2AB0A800F1FA30 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -159,6 +175,7 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				6A1E335F2F22091300035455 /* IssieBoard */,
 				6A1E336E2F220FCA00035455 /* Shared */,
+				6ACC1DF82F2AB0A900F1FA30 /* IssieBoardNGTests */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				BBD78D7AC51CEA395F1C20DB /* Pods */,
@@ -173,6 +190,7 @@
 			children = (
 				13B07F961A680F5B00A75B9A /* IssieBoardNG.app */,
 				6A1E335E2F22091300035455 /* IssieBoard.appex */,
+				6ACC1DF72F2AB0A800F1FA30 /* IssieBoardNGTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -234,6 +252,29 @@
 			productReference = 6A1E335E2F22091300035455 /* IssieBoard.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		6ACC1DF62F2AB0A800F1FA30 /* IssieBoardNGTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6ACC1DFF2F2AB0A900F1FA30 /* Build configuration list for PBXNativeTarget "IssieBoardNGTests" */;
+			buildPhases = (
+				6ACC1DF32F2AB0A800F1FA30 /* Sources */,
+				6ACC1DF42F2AB0A800F1FA30 /* Frameworks */,
+				6ACC1DF52F2AB0A800F1FA30 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				6ACC1DFC2F2AB0A900F1FA30 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				6ACC1DF82F2AB0A900F1FA30 /* IssieBoardNGTests */,
+			);
+			name = IssieBoardNGTests;
+			packageProductDependencies = (
+			);
+			productName = IssieBoardNGTests;
+			productReference = 6ACC1DF72F2AB0A800F1FA30 /* IssieBoardNGTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -248,6 +289,10 @@
 					};
 					6A1E335D2F22091300035455 = {
 						CreatedOnToolsVersion = 26.2;
+					};
+					6ACC1DF62F2AB0A800F1FA30 = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = 13B07F861A680F5B00A75B9A;
 					};
 				};
 			};
@@ -266,6 +311,7 @@
 			targets = (
 				13B07F861A680F5B00A75B9A /* IssieBoardNG */,
 				6A1E335D2F22091300035455 /* IssieBoard */,
+				6ACC1DF62F2AB0A800F1FA30 /* IssieBoardNGTests */,
 			);
 		};
 /* End PBXProject section */
@@ -282,6 +328,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		6A1E335C2F22091300035455 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6ACC1DF52F2AB0A800F1FA30 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -400,6 +453,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		6ACC1DF32F2AB0A800F1FA30 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -407,6 +467,11 @@
 			isa = PBXTargetDependency;
 			target = 6A1E335D2F22091300035455 /* IssieBoard */;
 			targetProxy = 6A1E33632F22091300035455 /* PBXContainerItemProxy */;
+		};
+		6ACC1DFC2F2AB0A900F1FA30 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 13B07F861A680F5B00A75B9A /* IssieBoardNG */;
+			targetProxy = 6ACC1DFB2F2AB0A900F1FA30 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -557,6 +622,79 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		6ACC1DFD2F2AB0A900F1FA30 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = SKNJT9TD9G;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = issieshapito.IssieBoardNGTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/IssieBoardNG.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/IssieBoardNG";
+			};
+			name = Debug;
+		};
+		6ACC1DFE2F2AB0A900F1FA30 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = SKNJT9TD9G;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = issieshapito.IssieBoardNGTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/IssieBoardNG.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/IssieBoardNG";
 			};
 			name = Release;
 		};
@@ -723,6 +861,15 @@
 			buildConfigurations = (
 				6A1E33672F22091300035455 /* Debug */,
 				6A1E33682F22091300035455 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		6ACC1DFF2F2AB0A900F1FA30 /* Build configuration list for PBXNativeTarget "IssieBoardNGTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6ACC1DFD2F2AB0A900F1FA30 /* Debug */,
+				6ACC1DFE2F2AB0A900F1FA30 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

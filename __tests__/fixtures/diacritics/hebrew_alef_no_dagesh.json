@@ -1,0 +1,30 @@
+{
+  "name": "Hebrew Alef (א) - No Dagesh modifier",
+  "description": "Tests diacritics generation for Alef which does NOT support dagesh (not in appliesTo list)",
+  "input": {
+    "letter": "א",
+    "diacritics": {
+      "items": [
+        { "id": "plain", "mark": "", "name": "ללא" },
+        { "id": "kamatz", "mark": "\u05B8", "name": "קָמָץ" },
+        { "id": "patach", "mark": "\u05B7", "name": "פַּתָח" },
+        { "id": "segol", "mark": "\u05B6", "name": "סֶגוֹל" }
+      ],
+      "modifiers": [
+        {
+          "id": "dagesh",
+          "mark": "\u05BC",
+          "name": "דָּגֵשׁ",
+          "appliesTo": ["ב", "ג", "ד", "כ", "פ", "ת"]
+        }
+      ]
+    },
+    "settings": null
+  },
+  "expected": [
+    { "id": "plain", "value": "א", "name": "ללא" },
+    { "id": "kamatz", "value": "אָ", "name": "קָמָץ" },
+    { "id": "patach", "value": "אַ", "name": "פַּתָח" },
+    { "id": "segol", "value": "אֶ", "name": "סֶגוֹל" }
+  ]
+}

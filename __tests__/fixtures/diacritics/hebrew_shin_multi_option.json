@@ -1,0 +1,39 @@
+{
+  "name": "Hebrew Shin (ש) with Shin/Sin multi-option modifier",
+  "description": "Tests diacritics generation for Shin which has a multi-option modifier (shin dot vs sin dot) plus dagesh",
+  "input": {
+    "letter": "ש",
+    "diacritics": {
+      "items": [
+        { "id": "plain", "mark": "", "name": "ללא" },
+        { "id": "kamatz", "mark": "\u05B8", "name": "קָמָץ" },
+        { "id": "patach", "mark": "\u05B7", "name": "פַּתָח" }
+      ],
+      "modifiers": [
+        {
+          "id": "dagesh",
+          "mark": "\u05BC",
+          "name": "דָּגֵשׁ",
+          "appliesTo": ["ב", "ג", "ד", "כ", "פ", "ש", "ת"]
+        },
+        {
+          "id": "shinSin",
+          "name": "שין/שׂין",
+          "appliesTo": ["ש"],
+          "options": [
+            { "id": "shin", "mark": "\u05C1", "name": "שִׁין" },
+            { "id": "sin", "mark": "\u05C2", "name": "שׂין" }
+          ]
+        }
+      ]
+    },
+    "settings": null
+  },
+  "expected": [
+    { "id": "plain", "value": "ש", "name": "ללא" },
+    { "id": "kamatz", "value": "\u05E9\u05B8", "name": "קָמָץ" },
+    { "id": "kamatz+dagesh", "value": "\u05E9\u05BC\u05B8", "name": "קָמָץ + דָּגֵשׁ" },
+    { "id": "patach", "value": "\u05E9\u05B7", "name": "פַּתָח" },
+    { "id": "patach+dagesh", "value": "\u05E9\u05BC\u05B7", "name": "פַּתָח + דָּגֵשׁ" }
+  ]
+}
