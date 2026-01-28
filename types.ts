@@ -78,9 +78,10 @@ export interface DiacriticModifier {
 
 // Diacritics definition for a keyboard
 export interface DiacriticsDefinition {
+    appliesTo?: string[];            // Characters that should trigger diacritics popup (if absent, no popup)
     items: DiacriticItem[];
-    modifier?: DiacriticModifier;   // Backward compatibility - single modifier
-    modifiers?: DiacriticModifier[];  // New - array of modifiers
+    modifier?: DiacriticModifier;    // Backward compatibility - single modifier
+    modifiers?: DiacriticModifier[]; // New - array of modifiers
 }
 
 // Per-keyboard diacritics settings in profile

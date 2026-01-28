@@ -1,8 +1,8 @@
 {
-  "name": "Hebrew Bet (ב) with Hidden diacritics settings",
-  "description": "Tests that diacritics marked as hidden in settings are filtered out, and disabled modifiers don't generate variants",
+  "name": "Number key (1) - No diacritics should apply",
+  "description": "Tests that numbers and other non-letter characters do NOT get diacritics options because they are not in the appliesTo list",
   "input": {
-    "letter": "ב",
+    "letter": "1",
     "diacritics": {
       "appliesTo": ["א", "ב", "ג", "ד", "ה", "ו", "ז", "ח", "ט", "י", "כ", "ך", "ל", "מ", "ם", "נ", "ן", "ס", "ע", "פ", "ף", "צ", "ץ", "ק", "ר", "ש", "ת"],
       "items": [
@@ -20,14 +20,8 @@
         }
       ]
     },
-    "settings": {
-      "hidden": ["segol"],
-      "disabledModifiers": ["dagesh"]
-    }
+    "settings": null
   },
-  "expected": [
-    { "id": "plain", "value": "ב", "name": "ללא" },
-    { "id": "kamatz", "value": "בָ", "name": "קָמָץ" },
-    { "id": "patach", "value": "בַ", "name": "פַּתָח" }
-  ]
+  "expected": [],
+  "shouldShowDiacriticsPopup": false
 }

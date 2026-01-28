@@ -131,12 +131,21 @@ struct DiacriticModifier: Codable {
 
 /// Diacritics definition for a keyboard
 struct DiacriticsDefinition: Codable {
+    let appliesTo: [String]?             // Characters that should trigger diacritics popup
     let items: [DiacriticItem]
-    let modifier: DiacriticModifier?   // Backward compatibility - single modifier
+    let modifier: DiacriticModifier?     // Backward compatibility - single modifier
     let modifiers: [DiacriticModifier]?  // New - array of modifiers
     
     enum CodingKeys: String, CodingKey {
-        case items, modifier, modifiers
+        case appliesTo, items, modifier, modifiers
+    }
+    
+    /// Check if diacritics apply to a given character
+    func appliesTo(character: String) -> Bool {
+        guard let validChars = appliesTo else {
+            return false  // If appliesTo is not defined, diacritics don't apply to any character
+        }
+        return validChars.contains(character)
     }
     
     /// Get all applicable modifiers (prefers modifiers array, falls back to single modifier)

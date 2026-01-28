@@ -145,6 +145,9 @@ class KeyboardConfigParser(private val context: Context) {
     private fun parseDiacriticsDefinition(obj: JSONObject): DiacriticsDefinition? {
         val itemsArray = obj.optJSONArray("items") ?: return null
         
+        // Parse appliesTo - list of characters that should trigger diacritics popup
+        val appliesTo = parseStringArray(obj.optJSONArray("appliesTo"))
+        
         val items = mutableListOf<DiacriticItem>()
         for (i in 0 until itemsArray.length()) {
             val itemObj = itemsArray.optJSONObject(i) ?: continue
@@ -167,6 +170,7 @@ class KeyboardConfigParser(private val context: Context) {
         }
         
         return DiacriticsDefinition(
+            appliesTo = if (appliesTo.isEmpty()) null else appliesTo,
             items = items,
             modifier = modifier,
             modifiers = if (modifiers.isEmpty()) null else modifiers

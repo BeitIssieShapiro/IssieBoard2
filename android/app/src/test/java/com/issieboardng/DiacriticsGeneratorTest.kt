@@ -87,6 +87,9 @@ class DiacriticsGeneratorTest {
         }
         
         private fun parseDiacriticsDefinition(obj: JSONObject): DiacriticsDefinition {
+            // Parse appliesTo array at definition level
+            val appliesTo = parseStringArray(obj.optJSONArray("appliesTo"))
+            
             val itemsArray = obj.getJSONArray("items")
             val items = mutableListOf<DiacriticItem>()
             
@@ -117,6 +120,7 @@ class DiacriticsGeneratorTest {
             val legacyModifier = obj.optJSONObject("modifier")?.let { parseDiacriticModifier(it) }
             
             return DiacriticsDefinition(
+                appliesTo = appliesTo,
                 items = items,
                 modifier = legacyModifier,
                 modifiers = if (modifiers.isEmpty()) null else modifiers
@@ -227,6 +231,64 @@ class DiacriticsGeneratorTest {
     }
     
     @Test
+    fun testNumberNoDiacritics() {
+        runFixtureTest("hebrew_number_no_diacritics")
+    }
+    
+    // MARK: - AppliesTo Tests
+    
+    @Test
+    fun testAppliesToReturnsTrueForHebrewLetter() {
+        val diacritics = DiacriticsDefinition(
+            appliesTo = listOf("א", "ב", "ג"),
+            items = emptyList(),
+            modifier = null,
+            modifiers = null
+        )
+        assertTrue(diacritics.appliesTo("א"))
+        assertTrue(diacritics.appliesTo("ב"))
+        assertTrue(diacritics.appliesTo("ג"))
+    }
+    
+    @Test
+    fun testAppliesToReturnsFalseForNumber() {
+        val diacritics = DiacriticsDefinition(
+            appliesTo = listOf("א", "ב", "ג"),
+            items = emptyList(),
+            modifier = null,
+            modifiers = null
+        )
+        assertFalse(diacritics.appliesTo("1"))
+        assertFalse(diacritics.appliesTo("2"))
+        assertFalse(diacritics.appliesTo("0"))
+    }
+    
+    @Test
+    fun testAppliesToReturnsFalseForPunctuation() {
+        val diacritics = DiacriticsDefinition(
+            appliesTo = listOf("א", "ב", "ג"),
+            items = emptyList(),
+            modifier = null,
+            modifiers = null
+        )
+        assertFalse(diacritics.appliesTo("."))
+        assertFalse(diacritics.appliesTo(","))
+        assertFalse(diacritics.appliesTo("!"))
+    }
+    
+    @Test
+    fun testAppliesToReturnsFalseWhenNil() {
+        val diacritics = DiacriticsDefinition(
+            appliesTo = null,
+            items = emptyList(),
+            modifier = null,
+            modifiers = null
+        )
+        assertFalse(diacritics.appliesTo("א"))
+        assertFalse(diacritics.appliesTo("1"))
+    }
+    
+    @Test
     fun testAllFixtures() {
         val fixtures = loadAllFixtures()
         assertTrue("Should have at least one fixture", fixtures.isNotEmpty())
@@ -313,6 +375,11 @@ object DiacriticsGenerator {
         settings: DiacriticsSettings?
     ): List<GeneratedOption> {
         if (diacritics == null) return emptyList()
+        
+        // Check if diacritics apply to this letter
+        if (!diacritics.appliesTo(letter)) {
+            return emptyList()
+        }
         
         val hidden = settings?.hidden ?: emptyList()
         val result = mutableListOf<GeneratedOption>()

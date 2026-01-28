@@ -41,9 +41,18 @@ struct DiacriticModifier: Codable {
 
 /// Diacritics definition for a keyboard
 struct DiacriticsDefinition: Codable {
+    let appliesTo: [String]?
     let items: [DiacriticItem]
     let modifier: DiacriticModifier?
     let modifiers: [DiacriticModifier]?
+    
+    /// Check if diacritics apply to a given character
+    func appliesTo(character: String) -> Bool {
+        guard let validChars = appliesTo else {
+            return false  // If appliesTo is not defined, diacritics don't apply to any character
+        }
+        return validChars.contains(character)
+    }
     
     func getModifiers() -> [DiacriticModifier] {
         if let mods = modifiers, !mods.isEmpty {
@@ -282,6 +291,59 @@ class DiacriticsGeneratorTests: XCTestCase {
     
     func testHebrewHiddenSettings() throws {
         try runFixtureTest(named: "hebrew_hidden_settings")
+    }
+    
+    func testNumberNoDiacritics() throws {
+        try runFixtureTest(named: "hebrew_number_no_diacritics")
+    }
+    
+    // MARK: - AppliesTo Tests
+    
+    func testAppliesToReturnsTrueForHebrewLetter() {
+        let diacritics = DiacriticsDefinition(
+            appliesTo: ["א", "ב", "ג"],
+            items: [],
+            modifier: nil,
+            modifiers: nil
+        )
+        XCTAssertTrue(diacritics.appliesTo(character: "א"))
+        XCTAssertTrue(diacritics.appliesTo(character: "ב"))
+        XCTAssertTrue(diacritics.appliesTo(character: "ג"))
+    }
+    
+    func testAppliesToReturnsFalseForNumber() {
+        let diacritics = DiacriticsDefinition(
+            appliesTo: ["א", "ב", "ג"],
+            items: [],
+            modifier: nil,
+            modifiers: nil
+        )
+        XCTAssertFalse(diacritics.appliesTo(character: "1"))
+        XCTAssertFalse(diacritics.appliesTo(character: "2"))
+        XCTAssertFalse(diacritics.appliesTo(character: "0"))
+    }
+    
+    func testAppliesToReturnsFalseForPunctuation() {
+        let diacritics = DiacriticsDefinition(
+            appliesTo: ["א", "ב", "ג"],
+            items: [],
+            modifier: nil,
+            modifiers: nil
+        )
+        XCTAssertFalse(diacritics.appliesTo(character: "."))
+        XCTAssertFalse(diacritics.appliesTo(character: ","))
+        XCTAssertFalse(diacritics.appliesTo(character: "!"))
+    }
+    
+    func testAppliesToReturnsFalseWhenNil() {
+        let diacritics = DiacriticsDefinition(
+            appliesTo: nil,
+            items: [],
+            modifier: nil,
+            modifiers: nil
+        )
+        XCTAssertFalse(diacritics.appliesTo(character: "א"))
+        XCTAssertFalse(diacritics.appliesTo(character: "1"))
     }
     
     // MARK: - All Fixtures Test

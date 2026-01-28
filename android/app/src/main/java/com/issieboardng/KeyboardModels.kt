@@ -175,10 +175,19 @@ data class DiacriticModifier(
  * Complete diacritics definition for a keyboard
  */
 data class DiacriticsDefinition(
+    val appliesTo: List<String>? = null,  // Characters that should trigger diacritics popup
     val items: List<DiacriticItem>,
     val modifier: DiacriticModifier? = null,  // Legacy single modifier
     val modifiers: List<DiacriticModifier>? = null  // New multiple modifiers
 ) {
+    /**
+     * Check if diacritics apply to a given character
+     */
+    fun appliesTo(character: String): Boolean {
+        val validChars = appliesTo ?: return false
+        return validChars.contains(character)
+    }
+    
     /**
      * Get all modifiers (combines legacy single modifier with new modifiers array)
      */

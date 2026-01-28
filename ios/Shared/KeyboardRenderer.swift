@@ -466,11 +466,22 @@ class KeyboardRenderer {
             // For regular keys, check if nikkud popup should be shown
             print("   → Handling DEFAULT key")
             
-            // Get diacritics using the generator (falls back to explicit nikkud if present)
-            let diacriticsOptions = getDiacriticsForKey(key)
+            // First, check if diacritics apply to this character
+            let shouldShowDiacritics = shouldShowDiacriticsPopup(for: key)
             
-            if nikkudActive && !diacriticsOptions.isEmpty {
-                showNikkudPicker(diacriticsOptions, anchorView: keyView)
+            if nikkudActive && shouldShowDiacritics {
+                // Get diacritics using the generator (falls back to explicit nikkud if present)
+                let diacriticsOptions = getDiacriticsForKey(key)
+                if !diacriticsOptions.isEmpty {
+                    showNikkudPicker(diacriticsOptions, anchorView: keyView)
+                } else {
+                    // No options available, just output the key
+                    onKeyPress?(key)
+                    if case .active = shiftState {
+                        shiftState = .inactive
+                        rerender()
+                    }
+                }
             } else {
                 // Output FINAL key press to container
                 onKeyPress?(key)
@@ -602,6 +613,29 @@ class KeyboardRenderer {
     }
     
     // MARK: - Diacritics Generation
+    
+    /// Check if diacritics popup should be shown for this key
+    /// Returns true if:
+    /// 1. The key has explicit nikkud options, OR
+    /// 2. The key's character is in the diacritics appliesTo list for the current keyboard
+    private func shouldShowDiacriticsPopup(for key: ParsedKey) -> Bool {
+        // If the key has explicit nikkud options, always show popup
+        if !key.nikkud.isEmpty {
+            print("   → shouldShowDiacriticsPopup: YES (explicit nikkud)")
+            return true
+        }
+        
+        // Check if the character is in the appliesTo list
+        guard let config = config,
+              let diacritics = config.getDiacritics(for: currentKeyboardId) else {
+            print("   → shouldShowDiacriticsPopup: NO (no diacritics definition)")
+            return false
+        }
+        
+        let applies = diacritics.appliesTo(character: key.value)
+        print("   → shouldShowDiacriticsPopup: \(applies ? "YES" : "NO") (character '\(key.value)' \(applies ? "is" : "is NOT") in appliesTo)")
+        return applies
+    }
     
     /// Get diacritics for a key, using explicit nikkud if present, otherwise generating from diacritics definition
     private func getDiacriticsForKey(_ key: ParsedKey) -> [NikkudOption] {

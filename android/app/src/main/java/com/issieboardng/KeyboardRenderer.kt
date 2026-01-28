@@ -648,7 +648,7 @@ class KeyboardRenderer(
             }
             else -> {
                 // Regular key - check if nikkud popup should be shown
-                if (nikkudActive) {
+                if (nikkudActive && shouldShowDiacriticsPopup(key)) {
                     // Get diacritics for this key - first try explicit nikkud, then generate from definition
                     val diacriticsOptions = getDiacriticsForKey(key)
                     if (diacriticsOptions.isNotEmpty()) {
@@ -814,18 +814,53 @@ class KeyboardRenderer(
     // ============================================================================
     
     /**
+     * Check if diacritics popup should be shown for this key
+     * Returns true if:
+     * 1. The key has explicit nikkud options, OR
+     * 2. The key's character is in the diacritics appliesTo list for the current keyboard
+     */
+    private fun shouldShowDiacriticsPopup(key: KeyConfig): Boolean {
+        // If key has explicit nikkud options, always show popup
+        if (key.nikkud.isNotEmpty()) {
+            Log.d(logTag, "shouldShowDiacriticsPopup: YES (explicit nikkud)")
+            return true
+        }
+        
+        val config = currentConfig ?: return false
+        val keyboardId = currentKeyboardId ?: return false
+        val diacritics = config.getDiacritics(keyboardId) ?: return false
+        
+        val applies = diacritics.appliesTo(key.value)
+        Log.d(logTag, "shouldShowDiacriticsPopup: ${if (applies) "YES" else "NO"} (character '${key.value}' ${if (applies) "is" else "is NOT"} in appliesTo)")
+        return applies
+    }
+    
+    /**
      * Get diacritics for a key using the diacritics definition
      */
     private fun getDiacriticsForKey(key: KeyConfig): List<NikkudOption> {
+        // If key has explicit nikkud options, use them (backward compatibility)
+        if (key.nikkud.isNotEmpty()) {
+            Log.d(logTag, "getDiacriticsForKey: using explicit nikkud (${key.nikkud.size} options)")
+            return key.nikkud
+        }
+        
         val config = currentConfig ?: return emptyList()
         val keyboardId = currentKeyboardId ?: return emptyList()
         
         val diacritics = config.getDiacritics(keyboardId) ?: return emptyList()
-        val settings = config.diacriticsSettings[keyboardId]
-        val hidden = settings?.hidden ?: emptyList()
         
         val letter = key.value
         if (letter.isEmpty()) return emptyList()
+        
+        // Check if diacritics apply to this character using the appliesTo list
+        if (!diacritics.appliesTo(letter)) {
+            Log.d(logTag, "getDiacriticsForKey: letter='$letter' NOT in appliesTo list")
+            return emptyList()
+        }
+        
+        val settings = config.diacriticsSettings[keyboardId]
+        val hidden = settings?.hidden ?: emptyList()
         
         Log.d(logTag, "getDiacriticsForKey: letter='$letter', keyboard='$keyboardId'")
         
