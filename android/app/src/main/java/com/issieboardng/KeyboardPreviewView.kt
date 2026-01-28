@@ -131,6 +131,12 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
             
             Log.d(TAG, "setConfigJson: configChanged=$configChanged, loading config...")
             loadConfig()
+            
+            if (configChanged) {
+                // Notify renderer that config changed (for popup refresh)
+                renderer.onConfigUpdated()
+            }
+            
             Log.d(TAG, "setConfigJson: config loaded, rendering...")
             renderKeyboard()
             Log.d(TAG, "setConfigJson: render complete")

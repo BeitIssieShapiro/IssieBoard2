@@ -1133,6 +1133,7 @@ class KeyboardRenderer(
         }
         
         currentPopupWindow = popupWindow
+        popupContentContainer = mainLayout  // Store reference for in-place updates
         
         // Measure and position
         mainLayout.measure(
@@ -1212,34 +1213,203 @@ class KeyboardRenderer(
         onClick: () -> Unit
     ): View = createModifierToggleButton(text, isSelected, size, onClick)
     
+    /** Reference to the popup's content container for in-place updates */
+    private var popupContentContainer: LinearLayout? = null
+    
     /**
      * Refresh the nikkud popup with current modifier states
-     * Note: We must preserve modifier states during refresh
+     * This is called when modifier toggles are pressed inside the popup
+     * Updates in-place without dismiss/recreate to avoid blinking
      */
     private fun refreshNikkudPopup() {
-        val anchor = currentPopupAnchor
+        val container = popupContentContainer
         val letter = currentNikkudLetter
         
-        if (anchor == null || letter.isEmpty()) return
+        if (container == null || letter.isEmpty()) return
         
-        Log.d(logTag, "refreshNikkudPopup: letter='$letter', modifierStates=$modifierStates")
+        Log.d(logTag, "refreshNikkudPopup: letter='$letter', modifierStates=$modifierStates (in-place update)")
         
-        // Save modifier states before dismiss (since dismiss listener clears them)
-        val savedModifierStates = modifierStates.toMap()
+        // Update the popup content in-place
+        updatePopupContent(container, letter)
+    }
+    
+    /**
+     * Called when config changes (e.g., diacritics settings updated from UI)
+     * If a popup is open, refresh it to reflect new settings
+     */
+    fun onConfigUpdated() {
+        val container = popupContentContainer
+        val letter = currentNikkudLetter
         
-        // Dismiss current popup (but don't let it clear our saved states)
-        currentPopupWindow?.setOnDismissListener(null)  // Remove listener temporarily
-        currentPopupWindow?.dismiss()
-        
-        // Restore states
-        modifierStates.clear()
-        modifierStates.putAll(savedModifierStates)
-        
-        Log.d(logTag, "refreshNikkudPopup: restored modifierStates=$modifierStates")
-        
-        val options = getDiacriticsForKey(KeyConfig(value = letter))
-        if (options.isNotEmpty()) {
-            showNikkudPopupWithDiacritics(letter, options, anchor)
+        if (container != null && currentPopupWindow?.isShowing == true && letter.isNotEmpty()) {
+            Log.d(logTag, "onConfigUpdated: updating popup content for letter='$letter'")
+            updatePopupContent(container, letter)
         }
+    }
+    
+    /**
+     * Update popup content in-place (no dismiss/recreate)
+     */
+    private fun updatePopupContent(container: LinearLayout, letter: String) {
+        // Clear existing content
+        container.removeAllViews()
+        
+        val applicableModifiers = getModifiersForLetter(letter)
+        val hasModifiers = applicableModifiers.isNotEmpty()
+        
+        // Generate options based on current modifier states and config
+        val nikkudOptions = generateNikkudOptions(letter)
+        val options = getDiacriticsForKey(KeyConfig(value = letter))
+        val displayOptions = if (nikkudOptions.isNotEmpty()) nikkudOptions else options
+        
+        val buttonSize = 110
+        val spacing = 12
+        
+        // Calculate items per row
+        val itemsPerRow = if (displayOptions.size > 6) {
+            (displayOptions.size + 1) / 2
+        } else {
+            maxOf(1, minOf(6, displayOptions.size))
+        }
+        
+        // Build diacritic option rows
+        val rows = displayOptions.chunked(itemsPerRow)
+        rows.forEachIndexed { rowIndex, rowOptions ->
+            val rowLayout = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    if (rowIndex > 0) topMargin = spacing
+                }
+            }
+            
+            rowOptions.forEachIndexed { colIndex, option ->
+                val button = TextView(context).apply {
+                    text = option.value
+                    textSize = 24f
+                    setTextColor(Color.BLACK)
+                    gravity = android.view.Gravity.CENTER
+                    typeface = android.graphics.Typeface.DEFAULT
+                    background = GradientDrawable().apply {
+                        setColor(Color.WHITE)
+                        cornerRadius = 10f
+                        setStroke(1, Color.parseColor("#DDDDDD"))
+                    }
+                    layoutParams = LinearLayout.LayoutParams(buttonSize, buttonSize).apply {
+                        if (colIndex > 0) marginStart = spacing
+                    }
+                    isClickable = true
+                    isFocusable = true
+                    
+                    setOnClickListener {
+                        onKeyEvent?.invoke(KeyEvent.TextInput(option.value))
+                        currentPopupWindow?.dismiss()
+                        modifierStates.clear()
+                    }
+                }
+                rowLayout.addView(button)
+            }
+            container.addView(rowLayout)
+        }
+        
+        // Add modifier row if applicable
+        if (hasModifiers) {
+            // Add separator
+            val separator = View(context).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    2
+                ).apply {
+                    topMargin = spacing
+                    bottomMargin = spacing / 2
+                }
+                setBackgroundColor(Color.parseColor("#DDDDDD"))
+            }
+            container.addView(separator)
+            
+            val modifierRow = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    topMargin = spacing / 2
+                }
+                gravity = android.view.Gravity.CENTER_HORIZONTAL
+            }
+            
+            val modifierButtonSize = (buttonSize * 0.9).toInt()
+            
+            for ((modIndex, modifier) in applicableModifiers.withIndex()) {
+                if (modIndex > 0) {
+                    val spacer = View(context).apply {
+                        layoutParams = LinearLayout.LayoutParams(spacing * 2, 1)
+                    }
+                    modifierRow.addView(spacer)
+                }
+                
+                val currentState = modifierStates[modifier.id]
+                
+                if (modifier.isMultiOption && modifier.options != null) {
+                    val groupLayout = LinearLayout(context).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        background = GradientDrawable().apply {
+                            setColor(Color.parseColor("#FAFAFA"))
+                            cornerRadius = 12f
+                            setStroke(2, Color.parseColor("#AAAAAA"))
+                        }
+                        setPadding(6, 6, 6, 6)
+                    }
+                    
+                    val noneButton = createModifierToggleButton(
+                        letter,
+                        currentState == null,
+                        modifierButtonSize
+                    ) {
+                        modifierStates.remove(modifier.id)
+                        refreshNikkudPopup()
+                    }
+                    groupLayout.addView(noneButton)
+                    
+                    modifier.options.forEach { option ->
+                        val optButton = createModifierToggleButton(
+                            letter + option.mark,
+                            currentState == option.id,
+                            modifierButtonSize
+                        ) {
+                            modifierStates[modifier.id] = option.id
+                            refreshNikkudPopup()
+                        }
+                        groupLayout.addView(optButton)
+                    }
+                    
+                    modifierRow.addView(groupLayout)
+                } else if (modifier.mark != null) {
+                    val isActive = currentState != null
+                    val toggleButton = createModifierToggleButton(
+                        letter + modifier.mark,
+                        isActive,
+                        modifierButtonSize
+                    ) {
+                        if (isActive) {
+                            modifierStates.remove(modifier.id)
+                        } else {
+                            modifierStates[modifier.id] = ""
+                        }
+                        refreshNikkudPopup()
+                    }
+                    modifierRow.addView(toggleButton)
+                }
+            }
+            
+            container.addView(modifierRow)
+        }
+        
+        // Request layout update
+        container.requestLayout()
+        container.invalidate()
+        currentPopupWindow?.update()
     }
 }
