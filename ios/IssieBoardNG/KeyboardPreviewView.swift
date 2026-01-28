@@ -54,6 +54,13 @@ class KeyboardPreviewView: UIView {
             return
         }
         
+        // Log if diacriticsSettings is present
+        if configJson.contains("diacriticsSettings") {
+            print("   ✅ Config contains diacriticsSettings")
+        } else {
+            print("   ⚠️ Config does NOT contain diacriticsSettings")
+        }
+        
         parseAndRender(configJson)
     }
     
@@ -89,8 +96,17 @@ class KeyboardPreviewView: UIView {
             
             print("✅ Config parsed: keysets=\(parsedConfig?.keysets.map { $0.id }.joined(separator: ", ") ?? "none")")
             
-            // Render immediately
-            renderKeyboard()
+            // Check if nikkud picker is showing
+            let hasNikkudPicker = subviews.contains(where: { $0.tag == 999 })
+            
+            if hasNikkudPicker {
+                // Don't dismiss - instead, tell renderer to refresh the picker with new options
+                print("📱 Nikkud picker is open, refreshing with updated settings")
+                renderer.refreshNikkudPickerIfOpen(in: self, config: parsedConfig!)
+            } else {
+                // No picker open, just re-render keyboard normally
+                renderKeyboard()
+            }
         } catch {
             print("❌ Failed to parse config: \(error)")
         }

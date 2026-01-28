@@ -52,6 +52,10 @@ const buildConfiguration = (profile: ProfileDefinition): KeyboardConfig => {
     groups: profile.groups || [],
     keyboards: profile.keyboards || [],
     defaultKeyboard: profile.defaultKeyboard || (profile.keyboards && profile.keyboards[0]) || 'en',
+    // Initialize diacritics - will be set from the first keyboard that has them
+    diacritics: undefined,
+    allDiacritics: {},  // Per-keyboard diacritics definitions
+    diacriticsSettings: profile.diacritics || {},
   };
 
   let isFirstKeyboard = true;
@@ -77,6 +81,18 @@ const buildConfiguration = (profile: ProfileDefinition): KeyboardConfig => {
     }
 
     config.keysets.push(...keysets);
+    
+    // Store diacritics for each keyboard that has them
+    if ((keyboard as any).diacritics) {
+      config.allDiacritics![keyboardId] = (keyboard as any).diacritics;
+      console.log(`✅ Loaded diacritics from keyboard "${keyboardId}" with ${(keyboard as any).diacritics?.items?.length || 0} items`);
+      
+      // Also set the legacy single diacritics field (backward compatibility)
+      // Use the first keyboard with diacritics
+      if (!config.diacritics) {
+        config.diacritics = (keyboard as any).diacritics;
+      }
+    }
   }
 
   return config;
@@ -713,13 +729,18 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
       try {
         // Get the active keyboard profile
         const activeProfile = await KeyboardPreferences.getCurrentProfile();
+        console.log(`🔍 getCurrentProfile() returned: "${activeProfile}" (type: ${typeof activeProfile})`);
+        
         setActiveKeyboardProfileId(activeProfile || 'default');
         
         // Get the current profile from preferences (what the keyboard is using)
         let profileId = propProfileId;
+        console.log(`🔍 propProfileId: "${propProfileId}"`);
+        
         if (!profileId) {
           profileId = activeProfile || 'default';
         }
+        console.log(`🔍 Using profileId: "${profileId}"`);
         setCurrentProfileId(profileId);
         
         let config: KeyboardConfig;
@@ -772,10 +793,9 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
           console.warn('Failed to load style groups:', e);
         }
         
-        // Also save to preferences so keyboard extension can read it
-        await KeyboardPreferences.setKeyboardConfigObject(config);
-        await KeyboardPreferences.setCurrentProfile(profileId);
-        console.log(`✅ Loaded and saved profile "${name}" to preferences`);
+        // Note: Don't automatically save to preferences here - that should only happen
+        // when user explicitly sets a profile as active or saves changes
+        console.log(`✅ Loaded profile "${name}" for editing`);
         
       } catch (error) {
         console.error('Failed to load profile:', error);

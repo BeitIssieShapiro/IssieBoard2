@@ -4,8 +4,9 @@ import { useEditor } from '../../context/EditorContext';
 import { KeyEditorPanel } from './KeyEditorPanel';
 import { GlobalSettingsPanel } from './GlobalSettingsPanel';
 import { GroupsPanel } from './GroupsPanel';
+import { DiacriticsPanel } from './DiacriticsPanel';
 
-type TabId = 'settings' | 'groups';
+type TabId = 'settings' | 'groups' | 'diacritics';
 
 export const Toolbox: React.FC = () => {
   const { state } = useEditor();
@@ -40,11 +41,23 @@ export const Toolbox: React.FC = () => {
             )}
           </Text>
         </TouchableOpacity>
+        {state.config.diacritics && (
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'diacritics' && styles.tabActive]}
+            onPress={() => setActiveTab('diacritics')}
+          >
+            <Text style={[styles.tabText, activeTab === 'diacritics' && styles.tabTextActive]}>
+              ◌ָ Nikkud
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Tab Content */}
       <View style={styles.content}>
-        {activeTab === 'settings' ? <GlobalSettingsPanel /> : <GroupsPanel />}
+        {activeTab === 'settings' && <GlobalSettingsPanel />}
+        {activeTab === 'groups' && <GroupsPanel />}
+        {activeTab === 'diacritics' && <DiacriticsPanel />}
       </View>
     </View>
   );

@@ -19,9 +19,8 @@ type Screen =
   | { type: 'editor'; profileId?: string };
 
 export const AppNavigator: React.FC = () => {
-  // Start with legacy screen by default during development
-  // Can change to { type: 'editor' } to test the new UI
-  const [currentScreen, setCurrentScreen] = useState<Screen>({ type: 'legacy' });
+  // Start with the new Editor screen by default
+  const [currentScreen, setCurrentScreen] = useState<Screen>({ type: 'editor' });
 
   const navigateToEditor = useCallback((profileId?: string) => {
     setCurrentScreen({ type: 'editor', profileId });
@@ -35,11 +34,11 @@ export const AppNavigator: React.FC = () => {
     <View style={styles.container}>
       {currentScreen.type === 'legacy' ? (
         <LegacyConfigScreen 
-          onSwitchToEditor={() => navigateToEditor('default')} 
+          onSwitchToEditor={() => navigateToEditor()} 
         />
       ) : (
         <EditorScreen 
-          profileId={currentScreen.profileId || 'default'}
+          profileId={currentScreen.profileId}
           onBack={navigateToLegacy}
         />
       )}

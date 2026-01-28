@@ -68,6 +68,9 @@ const buildConfiguration = (profile: ProfileDefinition): KeyboardConfig => {
     groups: profile.groups || [],
     keyboards: profile.keyboards || [],
     defaultKeyboard: profile.defaultKeyboard || (profile.keyboards && profile.keyboards[0]) || 'en',
+    // Diacritics - will be set from first keyboard that has them
+    diacritics: undefined,
+    diacriticsSettings: (profile as any).diacritics || {},
   };
 
   // Load all keyboards specified in the profile
@@ -108,6 +111,12 @@ const buildConfiguration = (profile: ProfileDefinition): KeyboardConfig => {
 
     // Add all keysets from this keyboard to the config
     config.keysets.push(...keysets);
+    
+    // Propagate diacritics from the keyboard definition (use first keyboard with diacritics)
+    if (!config.diacritics && (keyboard as any).diacritics) {
+      config.diacritics = (keyboard as any).diacritics;
+      console.log(`✅ Loaded diacritics from keyboard "${keyboardId}" with ${config.diacritics?.items?.length || 0} items`);
+    }
   }
 
   return config;

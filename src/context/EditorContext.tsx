@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useCallback, ReactNode } from 'react';
-import { KeyboardConfig, StyleGroup, KeyStyleOverride } from '../../types';
+import { KeyboardConfig, StyleGroup, KeyStyleOverride, DiacriticsSettings } from '../../types';
 
 // Key identifier for selection
 export interface KeyIdentifier {
@@ -50,6 +50,7 @@ type EditorAction =
   | { type: 'TOGGLE_GROUP_ACTIVE'; payload: string }
   | { type: 'APPLY_STYLE_TO_SELECTION'; payload: KeyStyleOverride }
   | { type: 'UPDATE_BACKGROUND_COLOR'; payload: string }
+  | { type: 'UPDATE_DIACRITICS_SETTINGS'; payload: { keyboardId: string; settings: DiacriticsSettings } }
   | { type: 'MARK_SAVED' };
 
 // Generate unique group ID
@@ -271,6 +272,19 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       return {
         ...state,
         config: { ...state.config, backgroundColor: action.payload },
+        isDirty: true,
+      };
+    }
+
+    case 'UPDATE_DIACRITICS_SETTINGS': {
+      const { keyboardId, settings } = action.payload;
+      const newDiacriticsSettings = {
+        ...(state.config.diacriticsSettings || {}),
+        [keyboardId]: settings,
+      };
+      return {
+        ...state,
+        config: { ...state.config, diacriticsSettings: newDiacriticsSettings },
         isDirty: true,
       };
     }

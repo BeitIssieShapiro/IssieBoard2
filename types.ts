@@ -36,6 +36,58 @@ export interface KeyConfig {
     hidden?: boolean;
     color?: string;
     bgColor?: string;
+    nikkud?: NikkudOption[];  // Explicit nikkud options (backward compatibility)
+}
+
+// Nikkud option for explicit key definitions (backward compatibility)
+export interface NikkudOption {
+    value: string;
+    caption?: string;
+    sValue?: string;
+    sCaption?: string;
+}
+
+// Diacritics System Types
+
+// Individual diacritic mark definition
+export interface DiacriticItem {
+    id: string;              // Unique identifier (e.g., "kamatz", "patach")
+    mark: string;            // Unicode combining mark or replacement character
+    name: string;            // Display name in the keyboard's language
+    onlyFor?: string[];      // If present, only show for these letters
+    excludeFor?: string[];   // If present, don't show for these letters
+    isReplacement?: boolean; // If true, replaces the letter entirely
+}
+
+// Option for a multi-option modifier (like shin/sin)
+export interface DiacriticModifierOption {
+    id: string;              // Unique identifier (e.g., "shin", "sin")
+    mark: string;            // Unicode combining mark
+    name: string;            // Display name
+}
+
+// Modifier that can combine with other diacritics (like dagesh or shadda)
+export interface DiacriticModifier {
+    id: string;              // Unique identifier (e.g., "dagesh", "shinSin")
+    mark?: string;           // Unicode combining mark (for simple toggle, absent for multi-option)
+    name: string;            // Display name
+    appliesTo?: string[];    // If present, only applies to these letters
+    excludeFor?: string[];   // If present, doesn't apply to these letters
+    options?: DiacriticModifierOption[];  // If present, this is a multi-option modifier
+}
+
+// Diacritics definition for a keyboard
+export interface DiacriticsDefinition {
+    items: DiacriticItem[];
+    modifier?: DiacriticModifier;   // Backward compatibility - single modifier
+    modifiers?: DiacriticModifier[];  // New - array of modifiers
+}
+
+// Per-keyboard diacritics settings in profile
+export interface DiacriticsSettings {
+    hidden?: string[];            // Array of diacritic item IDs to hide
+    disabledModifiers?: string[]; // Array of modifier IDs to disable (default: all enabled)
+    modifierEnabled?: boolean;    // Backward compatibility: global toggle for all modifiers
 }
 
 // Row containing keys
@@ -80,6 +132,7 @@ export interface ProfileDefinition {
     backgroundColor: string;
     systemRow?: SystemRowConfig;
     groups?: GroupConfig[];
+    diacritics?: Record<string, DiacriticsSettings>;  // Per-keyboard diacritics settings
 }
 
 // Keyboard definition (as stored in keyboard JSON files)
@@ -87,6 +140,7 @@ export interface KeyboardDefinition {
     id: string;
     name: string;
     keysets: KeysetConfig[];
+    diacritics?: DiacriticsDefinition;  // Diacritics catalog for this keyboard
 }
 
 // Final built keyboard configuration
@@ -97,6 +151,9 @@ export interface KeyboardConfig {
     groups: GroupConfig[];
     keyboards: string[];
     defaultKeyboard: string;
+    diacritics?: DiacriticsDefinition;  // Backward compatibility: merged diacritics from keyboard definition
+    allDiacritics?: Record<string, DiacriticsDefinition>;  // Per-keyboard diacritics definitions
+    diacriticsSettings?: Record<string, DiacriticsSettings>;  // From profile
 }
 
 // Config from storage - could be a built KeyboardConfig or ProfileDefinition that needs building

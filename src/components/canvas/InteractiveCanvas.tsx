@@ -2,6 +2,41 @@ import React, { useMemo, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { KeyboardPreview, KeyPressEvent } from '../KeyboardPreview';
 import { useEditor, KeyIdentifier } from '../../context/EditorContext';
+
+// Helper to cycle to next keyset of the same type across keyboards
+const getNextKeysetId = (
+  currentKeysetId: string,
+  keyboards: string[],
+  allKeysets: { id: string }[]
+): string => {
+  // Determine current keyset type (abc, 123, or #+=)
+  let currentKeysetType = 'abc';
+  if (currentKeysetId.includes('_123') || currentKeysetId === '123') {
+    currentKeysetType = '123';
+  } else if (currentKeysetId.includes('_#+=') || currentKeysetId === '#+=') {
+    currentKeysetType = '#+=';
+  } else if (currentKeysetId.includes('_abc') || currentKeysetId === 'abc') {
+    currentKeysetType = 'abc';
+  }
+  
+  // Find all keysets of the same type
+  const sameTypeKeysets = allKeysets.filter(ks => 
+    ks.id === currentKeysetType || ks.id.endsWith(`_${currentKeysetType}`)
+  ).map(ks => ks.id);
+  
+  if (sameTypeKeysets.length <= 1) {
+    return currentKeysetId; // No other keyboard to switch to
+  }
+  
+  // Find current position and cycle to next
+  const currentIndex = sameTypeKeysets.indexOf(currentKeysetId);
+  if (currentIndex === -1) {
+    return sameTypeKeysets[0];
+  }
+  
+  const nextIndex = (currentIndex + 1) % sameTypeKeysets.length;
+  return sameTypeKeysets[nextIndex];
+};
 import { KeyboardConfig } from '../../../types';
 
 interface InteractiveCanvasProps {
@@ -9,7 +44,7 @@ interface InteractiveCanvasProps {
 }
 
 export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInput }) => {
-  const { state, selectKey, toggleKeySelection } = useEditor();
+  const { state, dispatch, selectKey, toggleKeySelection } = useEditor();
 
   // Find key by matching criteria
   const findKeyIdentifier = useCallback((
@@ -66,6 +101,22 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
   const handleKeyPress = useCallback((event: KeyPressEvent) => {
     const { type, value, label } = event.nativeEvent;
     
+    console.log(`[InteractiveCanvas] handleKeyPress: type='${type}', value='${value}', label='${label}'`);
+    
+    // Handle language/keyboard switch - update React state to match native
+    if (type === 'next-keyboard' || type === 'language') {
+      const nextKeyset = getNextKeysetId(
+        state.activeKeyset,
+        state.config.keyboards || [],
+        state.config.keysets
+      );
+      if (nextKeyset !== state.activeKeyset) {
+        console.log(`[InteractiveCanvas] Switching keyset from ${state.activeKeyset} to ${nextKeyset}`);
+        dispatch({ type: 'SET_ACTIVE_KEYSET', payload: nextKeyset });
+      }
+      return;
+    }
+    
     if (state.mode === 'test') {
       if (onTestInput && value) {
         onTestInput(value);
@@ -84,7 +135,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
         selectKey(keyId);
       }
     }
-  }, [state.mode, state.selectedKeys.length, findKeyIdentifier, selectKey, toggleKeySelection, onTestInput]);
+  }, [state.mode, state.activeKeyset, state.config.keyboards, state.config.keysets, state.selectedKeys.length, dispatch, findKeyIdentifier, selectKey, toggleKeySelection, onTestInput]);
 
   // Convert StyleGroups to the GroupConfig format the native renderer expects
   // The native renderer will apply groups at render time
@@ -121,7 +172,13 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
     };
   }, [state.config, state.styleGroups]);
 
-  const configJson = useMemo(() => JSON.stringify(configWithGroups), [configWithGroups]);
+  const configJson = useMemo(() => {
+    const json = JSON.stringify(configWithGroups);
+    // Debug: Log diacriticsSettings
+    console.log('[InteractiveCanvas] diacriticsSettings:', JSON.stringify(configWithGroups.diacriticsSettings));
+    console.log('[InteractiveCanvas] keyboards:', configWithGroups.keyboards);
+    return json;
+  }, [configWithGroups]);
   
   // Build selected keys JSON for native preview highlighting
   // selectedKeys are already in string format "keysetId:rowIndex:keyIndex"

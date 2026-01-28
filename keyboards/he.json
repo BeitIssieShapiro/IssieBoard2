@@ -1,923 +1,91 @@
 {
   "id": "he",
   "name": "Hebrew",
+  "diacritics": {
+    "items": [
+      { "id": "plain", "mark": "", "name": "ללא" },
+      { "id": "kamatz", "mark": "\u05B8", "name": "קָמָץ" },
+      { "id": "patach", "mark": "\u05B7", "name": "פַּתָח" },
+      { "id": "segol", "mark": "\u05B6", "name": "סֶגוֹל" },
+      { "id": "tzere", "mark": "\u05B5", "name": "צֵירֵי" },
+      { "id": "chirik", "mark": "\u05B4", "name": "חִירִיק" },
+      { "id": "cholam", "mark": "\u05B9", "name": "חוֹלָם" },
+      { "id": "kubutz", "mark": "\u05BB", "name": "קֻבּוּץ" },
+      { "id": "shva", "mark": "\u05B0", "name": "שְׁוָא" },
+      { "id": "cholamVav", "mark": "וֹ", "name": "חוֹלָם מָלֵא", "onlyFor": ["ו"], "isReplacement": true },
+      { "id": "shuruk", "mark": "וּ", "name": "שׁוּרוּק", "onlyFor": ["ו"], "isReplacement": true }
+    ],
+    "modifiers": [
+      {
+        "id": "dagesh",
+        "mark": "\u05BC",
+        "name": "דָּגֵשׁ",
+        "appliesTo": ["ב", "ג", "ד", "ז", "כ", "ך", "ל", "מ", "נ", "ס", "פ", "ף", "צ", "ק", "ש", "ת"]
+      },
+      {
+        "id": "shinSin",
+        "name": "שין/שׂין",
+        "appliesTo": ["ש"],
+        "options": [
+          { "id": "shin", "mark": "\u05C1", "name": "שִׁין" },
+          { "id": "sin", "mark": "\u05C2", "name": "שׂין" }
+        ]
+      }
+    ]
+  },
   "keysets": [
     {
       "id": "abc",
       "rows": [
         {
           "keys": [
-            {
-              "value": "ק",
-              "nikkud": [
-                {
-                  "value": "ק"
-                },
-                {
-                  "value": "קָ"
-                },
-                {
-                  "value": "קַ"
-                },
-                {
-                  "value": "קֶ"
-                },
-                {
-                  "value": "קֵ"
-                },
-                {
-                  "value": "קִ"
-                },
-                {
-                  "value": "קֹ"
-                },
-                {
-                  "value": "קֻ"
-                },
-                {
-                  "value": "קְ"
-                }
-              ]
-            },
-            {
-              "value": "ר",
-              "nikkud": [
-                {
-                  "value": "ר"
-                },
-                {
-                  "value": "רָ"
-                },
-                {
-                  "value": "רַ"
-                },
-                {
-                  "value": "רֶ"
-                },
-                {
-                  "value": "רֵ"
-                },
-                {
-                  "value": "רִ"
-                },
-                {
-                  "value": "רֹ"
-                },
-                {
-                  "value": "רֻ"
-                },
-                {
-                  "value": "רְ"
-                }
-              ]
-            },
-            {
-              "value": "א",
-              "nikkud": [
-                {
-                  "value": "א"
-                },
-                {
-                  "value": "אָ"
-                },
-                {
-                  "value": "אַ"
-                },
-                {
-                  "value": "אֶ"
-                },
-                {
-                  "value": "אֵ"
-                },
-                {
-                  "value": "אִ"
-                },
-                {
-                  "value": "אֹ"
-                },
-                {
-                  "value": "אֻ"
-                },
-                {
-                  "value": "אְ"
-                }
-              ]
-            },
-            {
-              "value": "ט",
-              "nikkud": [
-                {
-                  "value": "ט"
-                },
-                {
-                  "value": "טָ"
-                },
-                {
-                  "value": "טַ"
-                },
-                {
-                  "value": "טֶ"
-                },
-                {
-                  "value": "טֵ"
-                },
-                {
-                  "value": "טִ"
-                },
-                {
-                  "value": "טֹ"
-                },
-                {
-                  "value": "טֻ"
-                },
-                {
-                  "value": "טְ"
-                }
-              ]
-            },
-            {
-              "value": "ו",
-              "nikkud": [
-                {
-                  "value": "ו"
-                },
-                {
-                  "value": "וָ"
-                },
-                {
-                  "value": "וַ"
-                },
-                {
-                  "value": "וֶ"
-                },
-                {
-                  "value": "וֵ"
-                },
-                {
-                  "value": "וִ"
-                },
-                {
-                  "value": "וֹ"
-                },
-                {
-                  "value": "וּ"
-                },
-                {
-                  "value": "וְ"
-                }
-              ]
-            },
-            {
-              "value": "ן",
-              "nikkud": [
-                {
-                  "value": "ן"
-                },
-                {
-                  "value": "ןָ"
-                },
-                {
-                  "value": "ןַ"
-                },
-                {
-                  "value": "ןֶ"
-                },
-                {
-                  "value": "ןֵ"
-                },
-                {
-                  "value": "ןִ"
-                },
-                {
-                  "value": "ןֹ"
-                },
-                {
-                  "value": "ןֻ"
-                },
-                {
-                  "value": "ןְ"
-                }
-              ]
-            },
-            {
-              "value": "ם",
-              "nikkud": [
-                {
-                  "value": "ם"
-                },
-                {
-                  "value": "םָ"
-                },
-                {
-                  "value": "םַ"
-                },
-                {
-                  "value": "םֶ"
-                },
-                {
-                  "value": "םֵ"
-                },
-                {
-                  "value": "םִ"
-                },
-                {
-                  "value": "םֹ"
-                },
-                {
-                  "value": "םֻ"
-                },
-                {
-                  "value": "םְ"
-                }
-              ]
-            },
-            {
-              "value": "פ",
-              "nikkud": [
-                {
-                  "value": "פ"
-                },
-                {
-                  "value": "פָּ"
-                },
-                {
-                  "value": "פַּ"
-                },
-                {
-                  "value": "פֶּ"
-                },
-                {
-                  "value": "פֵּ"
-                },
-                {
-                  "value": "פִּ"
-                },
-                {
-                  "value": "פֹּ"
-                },
-                {
-                  "value": "פֻּ"
-                },
-                {
-                  "value": "פְּ"
-                }
-              ]
-            },
-            {
-              "value": "ש",
-              "nikkud": [
-                {
-                  "value": "ש"
-                },
-                {
-                  "value": "שָׁ"
-                },
-                {
-                  "value": "שַׁ"
-                },
-                {
-                  "value": "שֶׁ"
-                },
-                {
-                  "value": "שֵׁ"
-                },
-                {
-                  "value": "שִׁ"
-                },
-                {
-                  "value": "שֹׁ"
-                },
-                {
-                  "value": "שֻׁ"
-                },
-                {
-                  "value": "שְׁ"
-                }
-              ]
-            },
-            {
-              "value": "ד",
-              "nikkud": [
-                {
-                  "value": "ד"
-                },
-                {
-                  "value": "דָ"
-                },
-                {
-                  "value": "דַ"
-                },
-                {
-                  "value": "דֶ"
-                },
-                {
-                  "value": "דֵ"
-                },
-                {
-                  "value": "דִ"
-                },
-                {
-                  "value": "דֹ"
-                },
-                {
-                  "value": "דֻ"
-                },
-                {
-                  "value": "דְ"
-                }
-              ]
-            }
+            { "value": "ק" },
+            { "value": "ר" },
+            { "value": "א" },
+            { "value": "ט" },
+            { "value": "ו" },
+            { "value": "ן" },
+            { "value": "ם" },
+            { "value": "פ" },
+            { "value": "ש" },
+            { "value": "ד" }
           ]
         },
         {
           "keys": [
-            {
-              "hidden": true,
-              "width": 0.5
-            },
-            {
-              "value": "ף",
-              "nikkud": [
-                {
-                  "value": "ף"
-                },
-                {
-                  "value": "ףָ"
-                },
-                {
-                  "value": "ףַ"
-                },
-                {
-                  "value": "ףֶ"
-                },
-                {
-                  "value": "ףֵ"
-                },
-                {
-                  "value": "ףִ"
-                },
-                {
-                  "value": "ףֹ"
-                },
-                {
-                  "value": "ףֻ"
-                },
-                {
-                  "value": "ףְ"
-                }
-              ]
-            },
-            {
-              "value": "ך",
-              "nikkud": [
-                {
-                  "value": "ך"
-                },
-                {
-                  "value": "ךָ"
-                },
-                {
-                  "value": "ךַ"
-                },
-                {
-                  "value": "ךֶ"
-                },
-                {
-                  "value": "ךֵ"
-                },
-                {
-                  "value": "ךִ"
-                },
-                {
-                  "value": "ךֹ"
-                },
-                {
-                  "value": "ךֻ"
-                },
-                {
-                  "value": "ךְ"
-                }
-              ]
-            },
-            {
-              "value": "ל",
-              "nikkud": [
-                {
-                  "value": "ל"
-                },
-                {
-                  "value": "לָ"
-                },
-                {
-                  "value": "לַ"
-                },
-                {
-                  "value": "לֶ"
-                },
-                {
-                  "value": "לֵ"
-                },
-                {
-                  "value": "לִ"
-                },
-                {
-                  "value": "לֹ"
-                },
-                {
-                  "value": "לֻ"
-                },
-                {
-                  "value": "לְ"
-                }
-              ]
-            },
-            {
-              "value": "ח",
-              "nikkud": [
-                {
-                  "value": "ח"
-                },
-                {
-                  "value": "חָ"
-                },
-                {
-                  "value": "חַ"
-                },
-                {
-                  "value": "חֶ"
-                },
-                {
-                  "value": "חֵ"
-                },
-                {
-                  "value": "חִ"
-                },
-                {
-                  "value": "חֹ"
-                },
-                {
-                  "value": "חֻ"
-                },
-                {
-                  "value": "חְ"
-                }
-              ]
-            },
-            {
-              "value": "י",
-              "nikkud": [
-                {
-                  "value": "י"
-                },
-                {
-                  "value": "יָ"
-                },
-                {
-                  "value": "יַ"
-                },
-                {
-                  "value": "יֶ"
-                },
-                {
-                  "value": "יֵ"
-                },
-                {
-                  "value": "יִ"
-                },
-                {
-                  "value": "יֹ"
-                },
-                {
-                  "value": "יֻ"
-                },
-                {
-                  "value": "יְ"
-                }
-              ]
-            },
-            {
-              "value": "ע",
-              "nikkud": [
-                {
-                  "value": "ע"
-                },
-                {
-                  "value": "עָ"
-                },
-                {
-                  "value": "עַ"
-                },
-                {
-                  "value": "עֶ"
-                },
-                {
-                  "value": "עֵ"
-                },
-                {
-                  "value": "עִ"
-                },
-                {
-                  "value": "עֹ"
-                },
-                {
-                  "value": "עֻ"
-                },
-                {
-                  "value": "עְ"
-                }
-              ]
-            },
-            {
-              "value": "כ",
-              "nikkud": [
-                {
-                  "value": "כ"
-                },
-                {
-                  "value": "כָּ"
-                },
-                {
-                  "value": "כַּ"
-                },
-                {
-                  "value": "כֶּ"
-                },
-                {
-                  "value": "כֵּ"
-                },
-                {
-                  "value": "כִּ"
-                },
-                {
-                  "value": "כֹּ"
-                },
-                {
-                  "value": "כֻּ"
-                },
-                {
-                  "value": "כְּ"
-                }
-              ]
-            },
-            {
-              "value": "ג",
-              "nikkud": [
-                {
-                  "value": "ג"
-                },
-                {
-                  "value": "גָ"
-                },
-                {
-                  "value": "גַ"
-                },
-                {
-                  "value": "גֶ"
-                },
-                {
-                  "value": "גֵ"
-                },
-                {
-                  "value": "גִ"
-                },
-                {
-                  "value": "גֹ"
-                },
-                {
-                  "value": "גֻ"
-                },
-                {
-                  "value": "גְ"
-                }
-              ]
-            },
-            {
-              "value": "ה",
-              "nikkud": [
-                {
-                  "value": "ה"
-                },
-                {
-                  "value": "הָ"
-                },
-                {
-                  "value": "הַ"
-                },
-                {
-                  "value": "הֶ"
-                },
-                {
-                  "value": "הֵ"
-                },
-                {
-                  "value": "הִ"
-                },
-                {
-                  "value": "הֹ"
-                },
-                {
-                  "value": "הֻ"
-                },
-                {
-                  "value": "הְ"
-                }
-              ]
-            }
+            { "hidden": true, "width": 0.5 },
+            { "value": "ף" },
+            { "value": "ך" },
+            { "value": "ל" },
+            { "value": "ח" },
+            { "value": "י" },
+            { "value": "ע" },
+            { "value": "כ" },
+            { "value": "ג" },
+            { "value": "ה" }
           ]
         },
         {
           "keys": [
-            {
-              "type": "shift",
-              "width": 1.5
-            },
-            {
-              "value": "ץ",
-              "nikkud": [
-                {
-                  "value": "ץ"
-                },
-                {
-                  "value": "ץָ"
-                },
-                {
-                  "value": "ץַ"
-                },
-                {
-                  "value": "ץֶ"
-                },
-                {
-                  "value": "ץֵ"
-                },
-                {
-                  "value": "ץִ"
-                },
-                {
-                  "value": "ץֹ"
-                },
-                {
-                  "value": "ץֻ"
-                },
-                {
-                  "value": "ץְ"
-                }
-              ]
-            },
-            {
-              "value": "ת",
-              "nikkud": [
-                {
-                  "value": "ת"
-                },
-                {
-                  "value": "תָּ"
-                },
-                {
-                  "value": "תַּ"
-                },
-                {
-                  "value": "תֶּ"
-                },
-                {
-                  "value": "תֵּ"
-                },
-                {
-                  "value": "תִּ"
-                },
-                {
-                  "value": "תֹּ"
-                },
-                {
-                  "value": "תֻּ"
-                },
-                {
-                  "value": "תְּ"
-                }
-              ]
-            },
-            {
-              "value": "צ",
-              "nikkud": [
-                {
-                  "value": "צ"
-                },
-                {
-                  "value": "צָ"
-                },
-                {
-                  "value": "צַ"
-                },
-                {
-                  "value": "צֶ"
-                },
-                {
-                  "value": "צֵ"
-                },
-                {
-                  "value": "צִ"
-                },
-                {
-                  "value": "צֹ"
-                },
-                {
-                  "value": "צֻ"
-                },
-                {
-                  "value": "צְ"
-                }
-              ]
-            },
-            {
-              "value": "מ",
-              "nikkud": [
-                {
-                  "value": "מ"
-                },
-                {
-                  "value": "מָ"
-                },
-                {
-                  "value": "מַ"
-                },
-                {
-                  "value": "מֶ"
-                },
-                {
-                  "value": "מֵ"
-                },
-                {
-                  "value": "מִ"
-                },
-                {
-                  "value": "מֹ"
-                },
-                {
-                  "value": "מֻ"
-                },
-                {
-                  "value": "מְ"
-                }
-              ]
-            },
-            {
-              "value": "נ",
-              "nikkud": [
-                {
-                  "value": "נ"
-                },
-                {
-                  "value": "נָ"
-                },
-                {
-                  "value": "נַ"
-                },
-                {
-                  "value": "נֶ"
-                },
-                {
-                  "value": "נֵ"
-                },
-                {
-                  "value": "נִ"
-                },
-                {
-                  "value": "נֹ"
-                },
-                {
-                  "value": "נֻ"
-                },
-                {
-                  "value": "נְ"
-                }
-              ]
-            },
-            {
-              "value": "ב",
-              "nikkud": [
-                {
-                  "value": "ב"
-                },
-                {
-                  "value": "בָּ"
-                },
-                {
-                  "value": "בַּ"
-                },
-                {
-                  "value": "בֶּ"
-                },
-                {
-                  "value": "בֵּ"
-                },
-                {
-                  "value": "בִּ"
-                },
-                {
-                  "value": "בֹּ"
-                },
-                {
-                  "value": "בֻּ"
-                },
-                {
-                  "value": "בְּ"
-                }
-              ]
-            },
-            {
-              "value": "ס",
-              "nikkud": [
-                {
-                  "value": "ס"
-                },
-                {
-                  "value": "סָ"
-                },
-                {
-                  "value": "סַ"
-                },
-                {
-                  "value": "סֶ"
-                },
-                {
-                  "value": "סֵ"
-                },
-                {
-                  "value": "סִ"
-                },
-                {
-                  "value": "סֹ"
-                },
-                {
-                  "value": "סֻ"
-                },
-                {
-                  "value": "סְ"
-                }
-              ]
-            },
-            {
-              "value": "ז",
-              "nikkud": [
-                {
-                  "value": "ז"
-                },
-                {
-                  "value": "זָ"
-                },
-                {
-                  "value": "זַ"
-                },
-                {
-                  "value": "זֶ"
-                },
-                {
-                  "value": "זֵ"
-                },
-                {
-                  "value": "זִ"
-                },
-                {
-                  "value": "זֹ"
-                },
-                {
-                  "value": "זֻ"
-                },
-                {
-                  "value": "זְ"
-                }
-              ]
-            },
-            {
-              "type": "backspace",
-              "width": 1.5
-            }
+            { "type": "shift", "width": 1.5 },
+            { "value": "ץ" },
+            { "value": "ת" },
+            { "value": "צ" },
+            { "value": "מ" },
+            { "value": "נ" },
+            { "value": "ב" },
+            { "value": "ס" },
+            { "value": "ז" },
+            { "type": "backspace", "width": 1.5 }
           ]
         },
         {
           "keys": [
-            {
-              "type": "keyset",
-              "keysetValue": "123",
-              "label": "123",
-              "width": 1.5
-            },
-            {
-              "type": "next-keyboard",
-              "width": 1
-            },
-            {
-              "caption": "רווח",
-              "value": " ",
-              "width": 4
-            },
-            {
-              "value": ".",
-              "sValue": ","
-            },
-            {
-              "type": "enter",
-              "width": 1.5
-            }
+            { "type": "keyset", "keysetValue": "123", "label": "123", "width": 1.5 },
+            { "type": "next-keyboard", "width": 1 },
+            { "caption": "רווח", "value": " ", "width": 4 },
+            { "value": ".", "sValue": "," },
+            { "type": "enter", "width": 1.5 }
           ]
         }
       ]
@@ -927,125 +95,50 @@
       "rows": [
         {
           "keys": [
-            {
-              "value": "1"
-            },
-            {
-              "value": "2"
-            },
-            {
-              "value": "3"
-            },
-            {
-              "value": "4"
-            },
-            {
-              "value": "5"
-            },
-            {
-              "value": "6"
-            },
-            {
-              "value": "7"
-            },
-            {
-              "value": "8"
-            },
-            {
-              "value": "9"
-            },
-            {
-              "value": "0"
-            }
+            { "value": "1" },
+            { "value": "2" },
+            { "value": "3" },
+            { "value": "4" },
+            { "value": "5" },
+            { "value": "6" },
+            { "value": "7" },
+            { "value": "8" },
+            { "value": "9" },
+            { "value": "0" }
           ]
         },
         {
           "keys": [
-            {
-              "value": "-"
-            },
-            {
-              "value": "/"
-            },
-            {
-              "value": ":"
-            },
-            {
-              "value": ";"
-            },
-            {
-              "value": "("
-            },
-            {
-              "value": ")"
-            },
-            {
-              "value": "₪"
-            },
-            {
-              "value": "&"
-            },
-            {
-              "value": "@"
-            },
-            {
-              "value": "\""
-            }
+            { "value": "-" },
+            { "value": "/" },
+            { "value": ":" },
+            { "value": ";" },
+            { "value": "(" },
+            { "value": ")" },
+            { "value": "₪" },
+            { "value": "&" },
+            { "value": "@" },
+            { "value": "\"" }
           ]
         },
         {
           "keys": [
-            {
-              "type": "keyset",
-              "keysetValue": "#+=",
-              "label": "#+=",
-              "width": 1.5
-            },
-            {
-              "value": "."
-            },
-            {
-              "value": ","
-            },
-            {
-              "value": "?"
-            },
-            {
-              "value": "!"
-            },
-            {
-              "value": "'"
-            },
-            {
-              "type": "backspace",
-              "width": 2.5
-            }
+            { "type": "keyset", "keysetValue": "#+=", "label": "#+=", "width": 1.5 },
+            { "value": "." },
+            { "value": "," },
+            { "value": "?" },
+            { "value": "!" },
+            { "value": "'" },
+            { "type": "backspace", "width": 2.5 }
           ]
         },
         {
           "keys": [
-            {
-              "type": "keyset",
-              "keysetValue": "abc",
-              "label": "אבג",
-              "width": 1.5
-            },
-            {
-              "type": "next-keyboard",
-              "width": 1
-            },
-            {
-              "caption": "רווח",
-              "value": " ",
-              "width": 4
-            },
-            {
-              "value": "."
-            },
-            {
-              "type": "enter",
-              "width": 1.5
-            }
+            { "type": "keyset", "keysetValue": "abc", "label": "אבג", "width": 1.5 },
+            { "type": "next-keyboard", "width": 1 },
+            { "caption": "רווח", "value": " ", "width": 4 },
+            { "value": "." },
+            { "type": "enter", "width": 1.5 }
           ]
         }
       ]
@@ -1055,125 +148,50 @@
       "rows": [
         {
           "keys": [
-            {
-              "value": "["
-            },
-            {
-              "value": "]"
-            },
-            {
-              "value": "{"
-            },
-            {
-              "value": "}"
-            },
-            {
-              "value": "#"
-            },
-            {
-              "value": "%"
-            },
-            {
-              "value": "^"
-            },
-            {
-              "value": "*"
-            },
-            {
-              "value": "+"
-            },
-            {
-              "value": "="
-            }
+            { "value": "[" },
+            { "value": "]" },
+            { "value": "{" },
+            { "value": "}" },
+            { "value": "#" },
+            { "value": "%" },
+            { "value": "^" },
+            { "value": "*" },
+            { "value": "+" },
+            { "value": "=" }
           ]
         },
         {
           "keys": [
-            {
-              "value": "_"
-            },
-            {
-              "value": "\\"
-            },
-            {
-              "value": "|"
-            },
-            {
-              "value": "~"
-            },
-            {
-              "value": "<"
-            },
-            {
-              "value": ">"
-            },
-            {
-              "value": "€"
-            },
-            {
-              "value": "£"
-            },
-            {
-              "value": "¥"
-            },
-            {
-              "value": "•"
-            }
+            { "value": "_" },
+            { "value": "\\" },
+            { "value": "|" },
+            { "value": "~" },
+            { "value": "<" },
+            { "value": ">" },
+            { "value": "€" },
+            { "value": "£" },
+            { "value": "¥" },
+            { "value": "•" }
           ]
         },
         {
           "keys": [
-            {
-              "type": "keyset",
-              "keysetValue": "123",
-              "label": "123",
-              "width": 1.5
-            },
-            {
-              "value": "."
-            },
-            {
-              "value": ","
-            },
-            {
-              "value": "?"
-            },
-            {
-              "value": "!"
-            },
-            {
-              "value": "'"
-            },
-            {
-              "type": "backspace",
-              "width": 2.5
-            }
+            { "type": "keyset", "keysetValue": "123", "label": "123", "width": 1.5 },
+            { "value": "." },
+            { "value": "," },
+            { "value": "?" },
+            { "value": "!" },
+            { "value": "'" },
+            { "type": "backspace", "width": 2.5 }
           ]
         },
         {
           "keys": [
-            {
-              "type": "keyset",
-              "keysetValue": "abc",
-              "label": "אבג",
-              "width": 1.5
-            },
-            {
-              "type": "next-keyboard",
-              "width": 1
-            },
-            {
-              "caption": "רווח",
-              "value": " ",
-              "width": 4
-            },
-            {
-              "value": "."
-            },
-            {
-              "type": "enter",
-              "width": 1.5
-            }
+            { "type": "keyset", "keysetValue": "abc", "label": "אבג", "width": 1.5 },
+            { "type": "next-keyboard", "width": 1 },
+            { "caption": "רווח", "value": " ", "width": 4 },
+            { "value": "." },
+            { "type": "enter", "width": 1.5 }
           ]
         }
       ]

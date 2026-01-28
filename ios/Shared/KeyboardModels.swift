@@ -10,6 +10,9 @@ struct KeyboardConfig: Codable {
     let groups: [Group]?
     let keyboards: [String]?
     let defaultKeyboard: String?
+    let diacritics: DiacriticsDefinition?  // Backward compatibility
+    let allDiacritics: [String: DiacriticsDefinition]?  // Per-keyboard diacritics definitions
+    let diacriticsSettings: [String: DiacriticsSettings]?  // Per-keyboard settings from profile
     
     enum CodingKeys: String, CodingKey {
         case backgroundColor
@@ -18,6 +21,17 @@ struct KeyboardConfig: Codable {
         case groups
         case keyboards
         case defaultKeyboard
+        case diacritics
+        case allDiacritics
+        case diacriticsSettings
+    }
+    
+    /// Get diacritics for a specific keyboard ID
+    func getDiacritics(for keyboardId: String?) -> DiacriticsDefinition? {
+        guard let keyboardId = keyboardId else {
+            return diacritics  // Fallback to legacy field
+        }
+        return allDiacritics?[keyboardId] ?? diacritics
     }
 }
 
@@ -67,6 +81,110 @@ struct NikkudOption: Codable {
     let caption: String?
     let sValue: String?
     let sCaption: String?
+}
+
+// MARK: - Diacritics System (New)
+
+/// Individual diacritic mark definition
+struct DiacriticItem: Codable {
+    let id: String           // Unique identifier (e.g., "kamatz", "patach")
+    let mark: String         // Unicode combining mark or replacement character
+    let name: String         // Display name in the keyboard's language
+    let onlyFor: [String]?   // If present, only show for these letters
+    let excludeFor: [String]? // If present, don't show for these letters
+    let isReplacement: Bool? // If true, replaces the letter entirely
+    
+    enum CodingKeys: String, CodingKey {
+        case id, mark, name, onlyFor, excludeFor, isReplacement
+    }
+}
+
+/// Option for a multi-option modifier (like shin/sin)
+struct DiacriticModifierOption: Codable {
+    let id: String           // Unique identifier (e.g., "shin", "sin")
+    let mark: String         // Unicode combining mark
+    let name: String         // Display name
+    
+    enum CodingKeys: String, CodingKey {
+        case id, mark, name
+    }
+}
+
+/// Modifier that can combine with other diacritics (like dagesh or shadda)
+struct DiacriticModifier: Codable {
+    let id: String            // Unique identifier (e.g., "dagesh", "shinSin")
+    let mark: String?         // Unicode combining mark (for simple toggle, nil for multi-option)
+    let name: String          // Display name
+    let appliesTo: [String]?  // If present, only applies to these letters
+    let excludeFor: [String]? // If present, doesn't apply to these letters
+    let options: [DiacriticModifierOption]?  // If present, this is a multi-option modifier
+    
+    enum CodingKeys: String, CodingKey {
+        case id, mark, name, appliesTo, excludeFor, options
+    }
+    
+    /// Check if this modifier has options (multi-option) vs simple toggle
+    var isMultiOption: Bool {
+        return options != nil && !(options?.isEmpty ?? true)
+    }
+}
+
+/// Diacritics definition for a keyboard
+struct DiacriticsDefinition: Codable {
+    let items: [DiacriticItem]
+    let modifier: DiacriticModifier?   // Backward compatibility - single modifier
+    let modifiers: [DiacriticModifier]?  // New - array of modifiers
+    
+    enum CodingKeys: String, CodingKey {
+        case items, modifier, modifiers
+    }
+    
+    /// Get all applicable modifiers (prefers modifiers array, falls back to single modifier)
+    func getModifiers() -> [DiacriticModifier] {
+        if let mods = modifiers, !mods.isEmpty {
+            return mods
+        }
+        if let mod = modifier {
+            return [mod]
+        }
+        return []
+    }
+    
+    /// Get modifiers that apply to a specific letter
+    func getModifiers(for letter: String) -> [DiacriticModifier] {
+        return getModifiers().filter { modifier in
+            if let appliesTo = modifier.appliesTo {
+                return appliesTo.contains(letter)
+            }
+            if let excludeFor = modifier.excludeFor {
+                return !excludeFor.contains(letter)
+            }
+            return true
+        }
+    }
+}
+
+/// Per-keyboard diacritics settings in profile
+struct DiacriticsSettings: Codable {
+    let hidden: [String]?             // Array of diacritic IDs to hide
+    let disabledModifiers: [String]?  // Array of modifier IDs to disable
+    
+    enum CodingKeys: String, CodingKey {
+        case hidden, disabledModifiers
+    }
+    
+    /// Check if a specific modifier is enabled
+    func isModifierEnabled(_ modifierId: String) -> Bool {
+        guard let disabled = disabledModifiers else { return true }
+        return !disabled.contains(modifierId)
+    }
+}
+
+/// Generated diacritic option for display
+struct GeneratedDiacriticOption {
+    let id: String
+    let value: String
+    let name: String
 }
 
 struct Group: Codable {
@@ -206,5 +324,137 @@ extension UIColor {
         }
         
         self.init(red: r, green: g, blue: b, alpha: a)
+    }
+}
+
+// MARK: - Diacritics Generator
+
+/// Generates diacritic options for a letter at runtime based on keyboard definition and profile settings
+class DiacriticsGenerator {
+    
+    /// Generate diacritic options for a specific letter
+    /// - Parameters:
+    ///   - letter: The base letter to generate diacritics for
+    ///   - diacritics: The keyboard's diacritics definition
+    ///   - settings: Optional profile settings to filter diacritics
+    /// - Returns: Array of generated diacritic options
+    static func generateOptions(
+        for letter: String,
+        diacritics: DiacriticsDefinition?,
+        settings: DiacriticsSettings?
+    ) -> [GeneratedDiacriticOption] {
+        guard let diacritics = diacritics else {
+            return []
+        }
+        
+        let hidden = settings?.hidden ?? []
+        
+        var result: [GeneratedDiacriticOption] = []
+        
+        for item in diacritics.items {
+            // Skip if hidden in profile
+            if hidden.contains(item.id) {
+                continue
+            }
+            
+            // Skip if not applicable to this letter (onlyFor check)
+            if let onlyFor = item.onlyFor, !onlyFor.contains(letter) {
+                continue
+            }
+            
+            // Skip if excluded for this letter
+            if let excludeFor = item.excludeFor, excludeFor.contains(letter) {
+                continue
+            }
+            
+            // Determine the output value
+            let isReplacement = item.isReplacement ?? false
+            let value = isReplacement ? item.mark : (letter + item.mark)
+            
+            result.append(GeneratedDiacriticOption(
+                id: item.id,
+                value: value,
+                name: item.name
+            ))
+            
+            // Add modifier variant if applicable (e.g., dagesh, shadda)
+            // Check each modifier independently
+            for modifier in diacritics.getModifiers() {
+                // Skip if this modifier is disabled in settings
+                guard settings?.isModifierEnabled(modifier.id) ?? true else { continue }
+                
+                // Skip for replacements or plain items
+                guard !isReplacement, item.id != "plain" else { continue }
+                
+                // Check if modifier applies to this letter
+                let modifierApplies: Bool
+                if let appliesTo = modifier.appliesTo {
+                    modifierApplies = appliesTo.contains(letter)
+                } else if let excludeFor = modifier.excludeFor {
+                    modifierApplies = !excludeFor.contains(letter)
+                } else {
+                    modifierApplies = true
+                }
+                
+                guard modifierApplies else { continue }
+                
+                if let modifierMark = modifier.mark {
+                    // Simple toggle modifier: add mark
+                    let modifiedValue = letter + modifierMark + item.mark
+                    result.append(GeneratedDiacriticOption(
+                        id: "\(item.id)+\(modifier.id)",
+                        value: modifiedValue,
+                        name: "\(item.name) + \(modifier.name)"
+                    ))
+                }
+            }
+        }
+        
+        return result
+    }
+    
+    /// Convert generated options to NikkudOption array for compatibility with existing code
+    static func toNikkudOptions(_ options: [GeneratedDiacriticOption]) -> [NikkudOption] {
+        return options.map { option in
+            NikkudOption(
+                value: option.value,
+                caption: option.value,  // Use value as caption for display
+                sValue: nil,
+                sCaption: nil
+            )
+        }
+    }
+    
+    /// Check if a letter has diacritics available (either explicit or generated)
+    static func hasDiacritics(
+        for letter: String,
+        explicitNikkud: [NikkudOption],
+        diacritics: DiacriticsDefinition?,
+        settings: DiacriticsSettings?
+    ) -> Bool {
+        // If explicit nikkud array exists and is not empty, use that
+        if !explicitNikkud.isEmpty {
+            return true
+        }
+        
+        // Otherwise, check if we can generate diacritics
+        let generated = generateOptions(for: letter, diacritics: diacritics, settings: settings)
+        return !generated.isEmpty
+    }
+    
+    /// Get diacritics for a key (prefer explicit, fall back to generated)
+    static func getDiacritics(
+        for key: ParsedKey,
+        diacritics: DiacriticsDefinition?,
+        settings: DiacriticsSettings?
+    ) -> [NikkudOption] {
+        // If explicit nikkud array exists, use it (backward compatibility)
+        if !key.nikkud.isEmpty {
+            return key.nikkud
+        }
+        
+        // Otherwise, generate from diacritics definition
+        let generated = generateOptions(for: key.value, diacritics: diacritics, settings: settings)
+        return toNikkudOptions(generated)
     }
 }
