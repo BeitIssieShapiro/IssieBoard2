@@ -12,3 +12,7 @@ Nikkud:
 Predict words
 slide curson
 
+suggestion:
+- if some chars (not typed by kb) already exist it should use them
+- start with I The I'm ??
+- not offer suggestion for certain input type? then ommit the header row?

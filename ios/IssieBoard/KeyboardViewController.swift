@@ -445,16 +445,90 @@ class KeyboardViewController: UIInputViewController {
     private func openSettings() {
         print("⚙️ Settings button tapped - attempting to open main app")
         
-        // Try to open the main app using a URL scheme
-        if let url = URL(string: "issieboard://") {
-            extensionContext?.open(url, completionHandler: { success in
-                print(success ? "✅ Opened main app" : "⚠️ Could not open app - Full Access may be required")
-                if !success {
-                    self.dismissKeyboard()
-                }
-            })
-        } else {
-            dismissKeyboard()
+        // Check if we have full access (required to open URLs from keyboard extension)
+        let hasFullAccess = self.hasFullAccess
+        print("🔐 Full Access enabled: \(hasFullAccess)")
+        
+        if !hasFullAccess {
+            print("⚠️ Full Access is not enabled - cannot open app from keyboard")
+            print("   User needs to enable: Settings > IssieBoardNG > Keyboards > Allow Full Access")
+            return
         }
+        
+        // Try to open the main app using a URL scheme
+        // The URL scheme "issieboard" is registered in the main app's Info.plist
+        guard let url = URL(string: "issieboard://settings") else {
+            print("❌ Failed to create URL")
+            return
+        }
+        
+        print("🔗 Attempting to open URL: \(url)")
+        
+        // Keyboard extensions cannot use extensionContext.open() reliably
+        // Use the UIApplication workaround through the responder chain
+        openURL(url)
+    }
+    
+    /// Opens a URL from within a keyboard extension
+    /// Uses the responder chain to access UIApplication.shared
+    private func openURL(_ url: URL) {
+        // Method 1: Try using the responder chain to find UIApplication
+        var responder: UIResponder? = self
+        while responder != nil {
+            if let application = responder as? UIApplication {
+                print("📱 Found UIApplication via responder chain")
+                application.open(url, options: [:]) { success in
+                    print(success ? "✅ Successfully opened URL" : "❌ Failed to open URL")
+                }
+                return
+            }
+            responder = responder?.next
+        }
+        
+        // Method 2: Use selector-based approach through responder chain
+        // Look for any responder that can handle openURL:
+        let openURLSelector = NSSelectorFromString("openURL:")
+        var target: UIResponder? = self
+        while let currentTarget = target {
+            if currentTarget.responds(to: openURLSelector) {
+                print("📱 Found responder that handles openURL:")
+                _ = currentTarget.perform(openURLSelector, with: url)
+                print("✅ URL open request sent via openURL:")
+                return
+            }
+            target = currentTarget.next
+        }
+        
+        // Method 3: Access UIApplication.shared via UIResponder extension trick
+        // The keyboard's view hierarchy ultimately connects to the host app's UIApplication
+        if let hostApp = self.hostAppApplication {
+            print("📱 Found host application via parent")
+            hostApp.open(url, options: [:]) { success in
+                print(success ? "✅ Successfully opened URL via host app" : "❌ Failed to open URL via host app")
+            }
+            return
+        }
+        
+        print("❌ Could not find a way to open URL from keyboard extension")
+        print("   All methods failed - this may be an iOS restriction")
+    }
+    
+    /// Attempts to get UIApplication from the host app through private API
+    private var hostAppApplication: UIApplication? {
+        // Try to find UIApplication through the view hierarchy
+        var responder: UIResponder? = self.view
+        while let r = responder {
+            if let app = r as? UIApplication {
+                return app
+            }
+            // Check if this responder has an application property
+            if r.responds(to: NSSelectorFromString("application")) {
+                if let app = r.value(forKey: "application") as? UIApplication {
+                    return app
+                }
+            }
+            responder = r.next
+        }
+        return nil
     }
 }

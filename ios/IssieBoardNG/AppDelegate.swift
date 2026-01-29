@@ -31,6 +31,28 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     return true
   }
+  
+  // Handle URL scheme for opening app from keyboard extension
+  func application(
+    _ app: UIApplication,
+    open url: URL,
+    options: [UIApplication.OpenURLOptionsKey: Any] = [:]
+  ) -> Bool {
+    print("📱 App opened via URL scheme: \(url)")
+    
+    // Handle the issieboard:// URL scheme
+    if url.scheme == "issieboard" {
+      // The app is now open - keyboard extension successfully triggered this
+      // You can handle specific paths here if needed, e.g., issieboard://settings
+      if url.host == "settings" {
+        // Navigate to settings screen if needed
+        print("📱 Opening settings from keyboard extension")
+      }
+      return true
+    }
+    
+    return false
+  }
 }
 
 class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
