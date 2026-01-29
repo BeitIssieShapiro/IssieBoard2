@@ -82,7 +82,8 @@ data class ParsedConfig(
     val keysets: Map<String, ParsedKeyset>,
     val keyboards: List<String> = emptyList(),
     val allDiacritics: Map<String, DiacriticsDefinition> = emptyMap(),
-    val diacriticsSettings: Map<String, DiacriticsSettings> = emptyMap()
+    val diacriticsSettings: Map<String, DiacriticsSettings> = emptyMap(),
+    val wordSuggestionsEnabled: Boolean = true  // Enable/disable word suggestions
 ) {
     /**
      * Get diacritics definition for a specific keyboard

@@ -89,6 +89,10 @@ class KeyboardConfigParser(private val context: Context) {
         }
         Log.d(TAG, "Parsed diacriticsSettings for keyboards: ${diacriticsSettings.keys.joinToString()}")
         
+        // Parse wordSuggestionsEnabled (defaults to true if not specified)
+        val wordSuggestionsEnabled = configJson.optBoolean("wordSuggestionsEnabled", true)
+        Log.d(TAG, "Word suggestions enabled: $wordSuggestionsEnabled")
+        
         // Parse groups from the top-level config (they apply to all keysets)
         val globalGroups = parseGroupsFromArray(configJson.optJSONArray("groups"))
         Log.d(TAG, "Parsed ${globalGroups.size} global groups: ${globalGroups.keys.joinToString()}")
@@ -135,7 +139,8 @@ class KeyboardConfigParser(private val context: Context) {
             keysets = keysets,
             keyboards = keyboards,
             allDiacritics = allDiacritics,
-            diacriticsSettings = diacriticsSettings
+            diacriticsSettings = diacriticsSettings,
+            wordSuggestionsEnabled = wordSuggestionsEnabled
         )
     }
     

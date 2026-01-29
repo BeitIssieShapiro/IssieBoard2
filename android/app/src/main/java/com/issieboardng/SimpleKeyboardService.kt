@@ -2,7 +2,10 @@ package com.issieboardng
 
 import android.inputmethodservice.InputMethodService
 import android.view.View
+import android.view.Gravity
 import android.widget.LinearLayout
+import android.widget.TextView
+import android.widget.HorizontalScrollView
 import android.view.ViewGroup.LayoutParams
 import android.content.Context
 import android.content.SharedPreferences
@@ -12,6 +15,9 @@ import android.view.WindowInsets
 import android.view.inputmethod.EditorInfo
 import android.text.InputType
 import android.content.Intent
+import android.graphics.Color
+import android.graphics.Typeface
+import android.util.TypedValue
 
 /**
  * Android Input Method Service for IssieBoard keyboard
@@ -34,9 +40,18 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
     // Main layout container
     private var mainLayout: LinearLayout? = null
     
+    // Suggestions bar
+    private var suggestionsBar: LinearLayout? = null
+    
     // Shared components
     private lateinit var renderer: KeyboardRenderer
     private lateinit var configParser: KeyboardConfigParser
+    private lateinit var wordCompletionManager: WordCompletionManager
+    
+    // Word completion state
+    private var wordSuggestionsEnabled: Boolean = true
+    private var currentWord: StringBuilder = StringBuilder()
+    private var currentLanguage: String = "en"
 
     // ============================================================================
     // LIFECYCLE
@@ -73,6 +88,7 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
 
         // Initialize shared components
         configParser = KeyboardConfigParser(this)
+        wordCompletionManager = WordCompletionManager.getInstance(this)
         renderer = KeyboardRenderer(
             context = this,
             isPreview = false,
@@ -113,8 +129,35 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
         val config = configParser.loadAndParseConfig()
         if (config != null) {
             renderer.setConfig(config)
+            
+            // Update word suggestions state from config
+            wordSuggestionsEnabled = config.wordSuggestionsEnabled
+            Log.d(TAG, "📝 Word suggestions enabled: $wordSuggestionsEnabled")
+            
+            // Initialize word completion if enabled
+            if (wordSuggestionsEnabled) {
+                // Detect language from default keyset
+                val defaultKeysetId = config.defaultKeysetId
+                currentLanguage = detectLanguageFromKeyset(defaultKeysetId)
+                Log.d(TAG, "📝 Setting initial language to: $currentLanguage (from keyset: $defaultKeysetId)")
+                wordCompletionManager.setLanguage(currentLanguage)
+            } else {
+                // Clear word state if disabled
+                currentWord.clear()
+            }
         } else {
             Log.e(TAG, "Failed to load config")
+        }
+    }
+    
+    /**
+     * Detect language code from a keyset ID
+     */
+    private fun detectLanguageFromKeyset(keysetId: String): String {
+        return when {
+            keysetId.startsWith("he") || keysetId.contains("hebrew") -> "he"
+            keysetId.startsWith("ar") || keysetId.contains("arabic") -> "ar"
+            else -> "en"
         }
     }
 
@@ -125,11 +168,125 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
     private fun renderKeyboard() {
         val layout = mainLayout ?: return
         
+        // Clear existing views
+        layout.removeAllViews()
+        
+        // Add suggestions bar at the top if enabled
+        if (wordSuggestionsEnabled) {
+            suggestionsBar = createSuggestionsBar()
+            layout.addView(suggestionsBar)
+            updateSuggestionsBar()
+        } else {
+            suggestionsBar = null
+        }
+        
+        // Create a container for the keyboard rows
+        val keyboardContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
+        }
+        layout.addView(keyboardContainer)
+        
         // Get editor context for dynamic key behavior
         val editorContext = analyzeEditorInfo()
         
         // Render using the shared renderer
-        renderer.renderKeyboard(layout, editorContext)
+        renderer.renderKeyboard(keyboardContainer, editorContext)
+    }
+    
+    // ============================================================================
+    // SUGGESTIONS BAR
+    // ============================================================================
+    
+    private fun createSuggestionsBar(): LinearLayout {
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, dpToPx(44))
+            setBackgroundColor(Color.parseColor("#E8E8E8"))
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dpToPx(4), 0, dpToPx(4), 0)
+        }
+    }
+    
+    private fun updateSuggestionsBar() {
+        val bar = suggestionsBar ?: return
+        bar.removeAllViews()
+        
+        if (!wordSuggestionsEnabled || currentWord.isEmpty()) {
+            return
+        }
+        
+        val suggestions = wordCompletionManager.getSuggestions(currentWord.toString())
+        if (suggestions.isEmpty()) {
+            return
+        }
+        
+        Log.d(TAG, "📝 Displaying ${suggestions.size} suggestions for '${currentWord}'")
+        
+        val suggestionCount = minOf(suggestions.size, 4)
+        
+        for ((index, suggestion) in suggestions.take(4).withIndex()) {
+            // Create suggestion text view
+            val textView = TextView(this).apply {
+                text = suggestion
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+                setTextColor(Color.DKGRAY)
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(0, LayoutParams.MATCH_PARENT, 1f)
+                setPadding(dpToPx(8), 0, dpToPx(8), 0)
+                isClickable = true
+                isFocusable = true
+                
+                // Handle click
+                setOnClickListener {
+                    handleSuggestionSelected(suggestion)
+                }
+            }
+            bar.addView(textView)
+            
+            // Add divider (except after last item)
+            if (index < suggestionCount - 1) {
+                val divider = View(this).apply {
+                    layoutParams = LinearLayout.LayoutParams(dpToPx(1), LayoutParams.MATCH_PARENT).apply {
+                        setMargins(0, dpToPx(8), 0, dpToPx(8))
+                    }
+                    setBackgroundColor(Color.parseColor("#C0C0C0"))
+                }
+                bar.addView(divider)
+            }
+        }
+    }
+    
+    private fun handleSuggestionSelected(suggestion: String) {
+        Log.d(TAG, "📝 Suggestion selected: '$suggestion', current word: '$currentWord'")
+        
+        val ic = currentInputConnection ?: return
+        
+        // Begin batch edit for atomic operation
+        ic.beginBatchEdit()
+        
+        // Delete the current word
+        val wordLength = currentWord.length
+        ic.deleteSurroundingText(wordLength, 0)
+        
+        // Finish any composing text first
+        ic.finishComposingText()
+        
+        // Insert the suggestion followed by a space
+        val textWithSpace = suggestion + " "
+        Log.d(TAG, "📝 Inserting text: '$textWithSpace' (length: ${textWithSpace.length})")
+        ic.commitText(textWithSpace, 1)
+        
+        // End batch edit
+        ic.endBatchEdit()
+        
+        // Clear current word and suggestions
+        currentWord.clear()
+        updateSuggestionsBar()
+    }
+    
+    private fun dpToPx(dp: Int): Int {
+        return (dp * resources.displayMetrics.density).toInt()
     }
     
     // ============================================================================
@@ -202,12 +359,30 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
         when (event) {
             is KeyEvent.TextInput -> {
                 currentInputConnection?.commitText(event.text, 1)
+                // Track the current word for suggestions
+                if (wordSuggestionsEnabled) {
+                    currentWord.append(event.text)
+                    updateSuggestionsBar()
+                }
             }
             is KeyEvent.Backspace -> {
                 currentInputConnection?.deleteSurroundingText(1, 0)
+                // Update current word on backspace
+                if (wordSuggestionsEnabled && currentWord.isNotEmpty()) {
+                    currentWord.deleteCharAt(currentWord.length - 1)
+                    updateSuggestionsBar()
+                } else if (wordSuggestionsEnabled) {
+                    // Try to detect current word from context
+                    detectCurrentWord()
+                }
             }
             is KeyEvent.Enter -> {
                 currentInputConnection?.performEditorAction(event.actionId)
+                // Clear current word on enter
+                if (wordSuggestionsEnabled) {
+                    currentWord.clear()
+                    updateSuggestionsBar()
+                }
             }
             is KeyEvent.Settings -> {
                 openSettings()
@@ -219,9 +394,67 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
                 switchToNextKeyboard()
             }
             is KeyEvent.Custom -> {
-                // Handle any custom key types if needed
+                // Handle keyset changes - update language for word completion
+                val key = event.key
+                when (key.type.lowercase()) {
+                    "keyset" -> {
+                        updateLanguageFromKeyset(key.keysetValue)
+                    }
+                    "space" -> {
+                        // Space was handled as custom - clear current word
+                        if (wordSuggestionsEnabled) {
+                            currentWord.clear()
+                            updateSuggestionsBar()
+                        }
+                    }
+                }
                 Log.d(TAG, "Custom key event: ${event.key.type}")
             }
+        }
+    }
+    
+    // ============================================================================
+    // WORD COMPLETION HELPERS
+    // ============================================================================
+    
+    /**
+     * Detect current word from text document context
+     */
+    private fun detectCurrentWord() {
+        val beforeText = currentInputConnection?.getTextBeforeCursor(50, 0)?.toString() ?: ""
+        
+        // Find the last word (characters after the last space/newline)
+        val trimmed = beforeText.trimEnd()
+        val lastSpaceIndex = trimmed.lastIndexOfAny(charArrayOf(' ', '\n', '\t'))
+        
+        currentWord.clear()
+        if (lastSpaceIndex >= 0 && lastSpaceIndex < trimmed.length - 1) {
+            currentWord.append(trimmed.substring(lastSpaceIndex + 1))
+        } else if (lastSpaceIndex < 0) {
+            currentWord.append(trimmed)
+        }
+        
+        Log.d(TAG, "📝 Detected current word: '$currentWord'")
+        updateSuggestionsBar()
+    }
+    
+    /**
+     * Update language based on keyset ID
+     */
+    private fun updateLanguageFromKeyset(keysetId: String) {
+        val newLanguage = when {
+            keysetId.startsWith("he") || keysetId.contains("hebrew") -> "he"
+            keysetId.startsWith("ar") || keysetId.contains("arabic") -> "ar"
+            else -> "en"
+        }
+        
+        if (newLanguage != currentLanguage) {
+            currentLanguage = newLanguage
+            if (wordSuggestionsEnabled) {
+                wordCompletionManager.setLanguage(currentLanguage)
+            }
+            Log.d(TAG, "📝 Language changed to: $currentLanguage")
+            updateSuggestionsBar()
         }
     }
     
