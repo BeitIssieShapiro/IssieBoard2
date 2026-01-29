@@ -4,7 +4,7 @@
 <dict>
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>group.com.issieshapiro.issieboard</string>
+		<string>group.org.issieshapiro.test</string>
 	</array>
 </dict>
 </plist>

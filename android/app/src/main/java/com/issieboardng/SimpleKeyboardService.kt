@@ -361,7 +361,15 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
                 currentInputConnection?.commitText(event.text, 1)
                 // Track the current word for suggestions
                 if (wordSuggestionsEnabled) {
-                    currentWord.append(event.text)
+                    // Check if this is a word separator (space, punctuation)
+                    val isWordSeparator = event.text.all { it.isWhitespace() || it in ".,;:!?-()[]{}\"'" }
+                    if (isWordSeparator) {
+                        // Word completed - clear current word
+                        currentWord.clear()
+                    } else {
+                        // Continue building the word
+                        currentWord.append(event.text)
+                    }
                     updateSuggestionsBar()
                 }
             }

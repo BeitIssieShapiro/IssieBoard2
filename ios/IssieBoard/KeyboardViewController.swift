@@ -66,11 +66,10 @@ class KeyboardViewController: UIInputViewController {
     
     override func textWillChange(_ textInput: UITextInput?) {
         super.textWillChange(textInput)
-        // Re-render keyboard when text input changes (e.g., switching fields)
-        // This updates the enter key label
-        if parsedConfig != nil {
-            renderKeyboard()
-        }
+        // Note: Only re-render for field switching, not for every keystroke
+        // Re-rendering on every keystroke was causing suggestions to be cleared
+        // because renderKeyboard() creates a fresh suggestions bar
+        print("📝 textWillChange called - NOT re-rendering to preserve suggestions")
     }
     
     override func viewDidDisappear(_ animated: Bool) {
@@ -148,9 +147,27 @@ class KeyboardViewController: UIInputViewController {
             print("   Config length: \(configJSON.count) chars")
             parseKeyboardConfig(configJSON)
         } else {
-            print("⚠️ No keyboard config found - using fallback")
-            renderFallbackKeyboard()
+            print("⚠️ No keyboard config found - loading bundled default")
+            loadBundledDefaultConfig()
         }
+    }
+    
+    /// Load the bundled default keyboard configuration
+    /// This allows the keyboard to work immediately after installation
+    /// without requiring the user to open the main app first
+    private func loadBundledDefaultConfig() {
+        print("📱 Loading bundled default config...")
+        
+        // Load pre-built default config from bundle
+        if let configPath = Bundle.main.path(forResource: "default_config", ofType: "json"),
+           let configJSON = try? String(contentsOfFile: configPath, encoding: .utf8) {
+            print("✅ Loaded default_config.json from bundle")
+            parseKeyboardConfig(configJSON)
+            return
+        }
+        
+        print("⚠️ Could not load default_config.json - showing fallback")
+        renderFallbackKeyboard()
     }
     
     private func parseKeyboardConfig(_ jsonString: String) {

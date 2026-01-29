@@ -54,6 +54,7 @@ class WordCompletionManager {
     /// - Returns: Array of suggested words (max 4)
     func getSuggestions(for prefix: String) -> [String] {
         guard !prefix.isEmpty else {
+            print("📚 WordCompletionManager: Empty prefix, returning empty suggestions")
             return []
         }
         
@@ -67,9 +68,16 @@ class WordCompletionManager {
             return []
         }
         
-        let suggestions = engine.getSuggestions(for: prefix, limit: maxSuggestions)
-        print("📚 WordCompletionManager: Got \(suggestions.count) suggestions for '\(prefix)'")
-        return suggestions
+        print("📚 WordCompletionManager: Querying engine for prefix '\(prefix)' (length: \(prefix.count))")
+        
+        // Request extra suggestions to account for filtering
+        let suggestions = engine.getSuggestions(for: prefix, limit: maxSuggestions + 4)
+        print("📚 WordCompletionManager: Engine returned \(suggestions.count) raw suggestions: \(suggestions)")
+        
+        // Filter out single-letter suggestions - they're already typed
+        let filteredSuggestions = Array(suggestions.filter { $0.count > 1 }.prefix(maxSuggestions))
+        print("📚 WordCompletionManager: Returning \(filteredSuggestions.count) filtered suggestions for '\(prefix)': \(filteredSuggestions)")
+        return filteredSuggestions
     }
     
     /// Get word suggestions using a specific language
@@ -79,6 +87,7 @@ class WordCompletionManager {
     /// - Returns: Array of suggested words (max 4)
     func getSuggestions(for prefix: String, language languageCode: String) -> [String] {
         guard !prefix.isEmpty else {
+            print("📚 WordCompletionManager: Empty prefix, returning empty suggestions")
             return []
         }
         
@@ -87,9 +96,16 @@ class WordCompletionManager {
             return []
         }
         
-        let suggestions = engine.getSuggestions(for: prefix, limit: maxSuggestions)
-        print("📚 WordCompletionManager: Got \(suggestions.count) suggestions for '\(prefix)' in '\(languageCode)'")
-        return suggestions
+        print("📚 WordCompletionManager: Querying engine for prefix '\(prefix)' in '\(languageCode)' (length: \(prefix.count))")
+        
+        // Request extra suggestions to account for filtering
+        let suggestions = engine.getSuggestions(for: prefix, limit: maxSuggestions + 4)
+        print("📚 WordCompletionManager: Engine returned \(suggestions.count) raw suggestions: \(suggestions)")
+        
+        // Filter out single-letter suggestions - they're already typed
+        let filteredSuggestions = Array(suggestions.filter { $0.count > 1 }.prefix(maxSuggestions))
+        print("📚 WordCompletionManager: Returning \(filteredSuggestions.count) filtered suggestions for '\(prefix)' in '\(languageCode)': \(filteredSuggestions)")
+        return filteredSuggestions
     }
     
     /// Check if a dictionary is available for the given language

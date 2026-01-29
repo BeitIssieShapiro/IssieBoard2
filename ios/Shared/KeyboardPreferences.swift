@@ -6,7 +6,8 @@ class KeyboardPreferences {
     
     // IMPORTANT: This must match the App Group ID configured in Xcode
     // Format: group.<bundle-identifier>
-    static let appGroupIdentifier = "group.com.issieshapiro.issieboard"
+    static let appGroupIdentifier = //"group.com.issieshapiro.issieboard"
+    "group.org.issieshapiro.test"
     
     // Keys for storing preferences
     struct Keys {

@@ -74,8 +74,10 @@ class WordCompletionManager private constructor(private val context: Context) {
         }
         
         val suggestions = engine.getSuggestions(prefix, MAX_SUGGESTIONS)
-        Log.d(TAG, "📚 Got ${suggestions.size} suggestions for '$prefix'")
-        return suggestions
+        // Filter out single-letter suggestions - they're already typed
+        val filteredSuggestions = suggestions.filter { it.length > 1 }
+        Log.d(TAG, "📚 Got ${filteredSuggestions.size} suggestions for '$prefix' (filtered from ${suggestions.size})")
+        return filteredSuggestions
     }
     
     /**
@@ -91,8 +93,10 @@ class WordCompletionManager private constructor(private val context: Context) {
         }
         
         val suggestions = engine.getSuggestions(prefix, MAX_SUGGESTIONS)
-        Log.d(TAG, "📚 Got ${suggestions.size} suggestions for '$prefix' in '$languageCode'")
-        return suggestions
+        // Filter out single-letter suggestions - they're already typed
+        val filteredSuggestions = suggestions.filter { it.length > 1 }
+        Log.d(TAG, "📚 Got ${filteredSuggestions.size} suggestions for '$prefix' in '$languageCode' (filtered from ${suggestions.size})")
+        return filteredSuggestions
     }
     
     /**
