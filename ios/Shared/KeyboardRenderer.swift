@@ -50,10 +50,19 @@ class KeyboardRenderer {
     var onKeyPress: ((ParsedKey) -> Void)?
     var onNikkudSelected: ((String) -> Void)?
     
+    // Callback for word suggestion selection
+    var onSuggestionSelected: ((String) -> Void)?
+    
     // Callbacks for system keyboard actions (only used by actual keyboard)
     var onNextKeyboard: (() -> Void)?
     var onDismissKeyboard: (() -> Void)?
     var onOpenSettings: (() -> Void)?
+    
+    // Word suggestions to display
+    private var currentSuggestions: [String] = []
+    
+    // Whether word suggestions are enabled (from config)
+    private var wordSuggestionsEnabled: Bool = true
     
     // Internal state - managed entirely by renderer
     private var shiftState: ShiftState = .inactive
@@ -95,6 +104,10 @@ class KeyboardRenderer {
     private let keyCornerRadius: CGFloat = 5
     private let fontSize: CGFloat = 18
     private let largeFontSize: CGFloat = 24
+    private let suggestionsBarHeight: CGFloat = 44
+    
+    // Suggestions bar view reference for updates
+    private weak var suggestionsBar: UIView?
     
     // MARK: - Initialization
     
@@ -122,6 +135,20 @@ class KeyboardRenderer {
     func setSelectedKeys(_ keyIds: Set<String>) {
         print("🎯 KeyboardRenderer setSelectedKeys: \(keyIds.count) keys")
         selectedKeyIds = keyIds
+    }
+    
+    /// Update word suggestions displayed in the suggestions bar
+    /// - Parameter suggestions: Array of suggested words (max 4)
+    func updateSuggestions(_ suggestions: [String]) {
+        print("📝 KeyboardRenderer updateSuggestions: \(suggestions)")
+        currentSuggestions = suggestions
+        updateSuggestionsBar()
+    }
+    
+    /// Clear all suggestions
+    func clearSuggestions() {
+        currentSuggestions = []
+        updateSuggestionsBar()
     }
     
     // MARK: - Public Rendering
@@ -191,7 +218,28 @@ class KeyboardRenderer {
         // Calculate baseline width
         let baselineWidth = calculateBaselineWidth(keyset.rows, groups: groups)
         
-        // Create rows
+        // Update word suggestions enabled state from config
+        wordSuggestionsEnabled = config.isWordSuggestionsEnabled
+        print("📝 Word suggestions enabled: \(wordSuggestionsEnabled)")
+        
+        // Calculate top offset based on whether suggestions bar is shown
+        var topOffset: CGFloat = 4
+        
+        // Create suggestions bar at the top only if enabled
+        if wordSuggestionsEnabled {
+            let bar = createSuggestionsBar(width: container.bounds.width)
+            container.addSubview(bar)
+            suggestionsBar = bar
+            
+            // Update suggestions bar with current suggestions
+            updateSuggestionsBar()
+            
+            topOffset = suggestionsBarHeight + 4
+        } else {
+            suggestionsBar = nil
+        }
+        
+        // Create rows container below suggestions bar (or at top if disabled)
         let rowsContainer = UIView()
         container.addSubview(rowsContainer)
         
@@ -199,7 +247,7 @@ class KeyboardRenderer {
         NSLayoutConstraint.activate([
             rowsContainer.leftAnchor.constraint(equalTo: container.leftAnchor),
             rowsContainer.rightAnchor.constraint(equalTo: container.rightAnchor),
-            rowsContainer.topAnchor.constraint(equalTo: container.topAnchor, constant: 4),
+            rowsContainer.topAnchor.constraint(equalTo: container.topAnchor, constant: topOffset),
             rowsContainer.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -4)
         ])
         
@@ -1308,6 +1356,95 @@ class KeyboardRenderer {
         lastShiftClickTime = currentTime
         print("   → New shift state: \(shiftState)")
         rerender()
+    }
+    
+    // MARK: - Suggestions Bar
+    
+    /// Update the suggestions bar with current suggestions
+    /// Renders suggestions as plain text with dividers, spread evenly across the row
+    private func updateSuggestionsBar() {
+        guard let container = container else { return }
+        
+        // Find existing suggestions bar or skip if not rendered yet
+        guard let bar = suggestionsBar else {
+            print("📝 updateSuggestionsBar: No suggestions bar found, skipping")
+            return
+        }
+        
+        // Clear existing subviews
+        bar.subviews.forEach { $0.removeFromSuperview() }
+        
+        // If no suggestions, show nothing
+        guard !currentSuggestions.isEmpty else {
+            print("📝 updateSuggestionsBar: No suggestions to display")
+            return
+        }
+        
+        print("📝 updateSuggestionsBar: Displaying \(currentSuggestions.count) suggestions")
+        
+        let suggestionCount = min(currentSuggestions.count, 4)
+        // Use container width if bar hasn't been laid out yet
+        let barWidth = bar.bounds.width > 0 ? bar.bounds.width : container.bounds.width
+        let barHeight = bar.bounds.height > 0 ? bar.bounds.height : suggestionsBarHeight
+        
+        // Skip if we still don't have valid dimensions
+        guard barWidth > 0, barHeight > 0 else {
+            print("📝 updateSuggestionsBar: Bar dimensions are 0, skipping")
+            return
+        }
+        
+        let cellWidth = barWidth / CGFloat(suggestionCount)
+        let dividerWidth: CGFloat = 1.0
+        
+        for (index, suggestion) in currentSuggestions.prefix(4).enumerated() {
+            // Create tappable label/button with transparent background
+            let button = UIButton(type: .system)
+            button.setTitle(suggestion, for: .normal)
+            button.titleLabel?.font = UIFont.systemFont(ofSize: 15, weight: .regular)
+            button.titleLabel?.adjustsFontSizeToFitWidth = true
+            button.titleLabel?.minimumScaleFactor = 0.5
+            button.titleLabel?.textAlignment = .center
+            button.backgroundColor = .clear
+            button.setTitleColor(.darkGray, for: .normal)
+            button.setTitleColor(.black, for: .highlighted)
+            
+            // Store suggestion in accessibility identifier for retrieval on tap
+            button.accessibilityIdentifier = suggestion
+            button.addTarget(self, action: #selector(suggestionTapped(_:)), for: .touchUpInside)
+            
+            let x = CGFloat(index) * cellWidth
+            button.frame = CGRect(x: x, y: 0, width: cellWidth, height: barHeight)
+            bar.addSubview(button)
+            
+            // Add divider after each cell except the last one
+            if index < suggestionCount - 1 {
+                let divider = UIView()
+                divider.backgroundColor = UIColor.systemGray3
+                divider.frame = CGRect(
+                    x: x + cellWidth - (dividerWidth / 2),
+                    y: barHeight * 0.2,
+                    width: dividerWidth,
+                    height: barHeight * 0.6
+                )
+                bar.addSubview(divider)
+            }
+        }
+    }
+    
+    /// Handle suggestion button tap
+    @objc private func suggestionTapped(_ sender: UIButton) {
+        guard let suggestion = sender.accessibilityIdentifier else { return }
+        print("📝 Suggestion tapped: '\(suggestion)'")
+        onSuggestionSelected?(suggestion)
+    }
+    
+    /// Create the suggestions bar view
+    private func createSuggestionsBar(width: CGFloat) -> UIView {
+        let bar = UIView()
+        bar.backgroundColor = UIColor.systemGray5
+        bar.frame = CGRect(x: 0, y: 0, width: width, height: suggestionsBarHeight)
+        bar.tag = 888  // Tag to identify suggestions bar
+        return bar
     }
     
     // MARK: - Language Switching

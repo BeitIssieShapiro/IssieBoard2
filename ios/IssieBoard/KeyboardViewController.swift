@@ -17,6 +17,11 @@ class KeyboardViewController: UIInputViewController {
     private var renderer: KeyboardRenderer!
     private var parsedConfig: KeyboardConfig?
     
+    // Word completion
+    private var wordCompletionEnabled: Bool = false  // Start as false so first render initializes it
+    private var currentWord: String = ""
+    private var currentLanguage: String = "en"
+    
     // MARK: - Lifecycle
     
     override func viewDidLoad() {
@@ -90,7 +95,8 @@ class KeyboardViewController: UIInputViewController {
             keyboardView.rightAnchor.constraint(equalTo: view.rightAnchor),
             keyboardView.topAnchor.constraint(equalTo: view.topAnchor),
             keyboardView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            keyboardView.heightAnchor.constraint(greaterThanOrEqualToConstant: 300)
+            // Increased height to accommodate all rows plus suggestions bar
+            keyboardView.heightAnchor.constraint(greaterThanOrEqualToConstant: 340)
         ])
     }
     
@@ -105,6 +111,14 @@ class KeyboardViewController: UIInputViewController {
         
         renderer.onNikkudSelected = { [weak self] value in
             self?.textDocumentProxy.insertText(value)
+            // Clear current word after nikkud selection
+            self?.currentWord = ""
+            self?.renderer.clearSuggestions()
+        }
+        
+        // Handle word suggestion selection
+        renderer.onSuggestionSelected = { [weak self] suggestion in
+            self?.handleSuggestionSelected(suggestion)
         }
         
         // System keyboard callbacks
@@ -119,6 +133,8 @@ class KeyboardViewController: UIInputViewController {
         renderer.onOpenSettings = { [weak self] in
             self?.openSettings()
         }
+        
+        // Word completion will be initialized after config is loaded
     }
     
     // MARK: - Preferences Management
@@ -184,6 +200,21 @@ class KeyboardViewController: UIInputViewController {
         }
         
         print("🎨 Rendering keyboard via KeyboardRenderer")
+        
+        // Update word completion enabled state from config
+        let wasEnabled = wordCompletionEnabled
+        wordCompletionEnabled = config.isWordSuggestionsEnabled
+        print("📝 Word completion enabled: \(wordCompletionEnabled)")
+        
+        // Initialize word completion only if enabled and wasn't enabled before
+        if wordCompletionEnabled && !wasEnabled {
+            WordCompletionManager.shared.setLanguage(currentLanguage)
+        }
+        
+        // Clear word completion state if disabled
+        if !wordCompletionEnabled {
+            currentWord = ""
+        }
         
         // Get editor context for dynamic enter key
         let editorContext = analyzeEditorContext()
@@ -266,20 +297,130 @@ class KeyboardViewController: UIInputViewController {
         switch key.type.lowercased() {
         case "backspace":
             textDocumentProxy.deleteBackward()
+            // Update current word after backspace
+            if !currentWord.isEmpty {
+                currentWord.removeLast()
+                updateWordSuggestions()
+            } else {
+                // Try to detect current word from context
+                detectCurrentWord()
+            }
             
         case "enter", "action":
             textDocumentProxy.insertText("\n")
+            // Clear current word on enter
+            currentWord = ""
+            renderer.clearSuggestions()
             
         case "space":
             textDocumentProxy.insertText(" ")
+            // Clear current word on space (word completed)
+            currentWord = ""
+            renderer.clearSuggestions()
+            
+        case "keyset":
+            // Keyset change - update language for word completion
+            updateLanguageFromKeyset(key.keysetValue)
+            
+        case "language", "next-keyboard":
+            // Language switch - update language for word completion
+            updateLanguageFromCurrentKeyset()
             
         default:
             // Regular character key
             let value = key.value
             if !value.isEmpty {
                 textDocumentProxy.insertText(value)
+                // Add to current word and update suggestions
+                currentWord += value
+                updateWordSuggestions()
             }
         }
+    }
+    
+    // MARK: - Word Completion
+    
+    /// Update word suggestions based on current word
+    private func updateWordSuggestions() {
+        // Skip if word completion is disabled
+        guard wordCompletionEnabled else {
+            return
+        }
+        
+        guard !currentWord.isEmpty else {
+            renderer.clearSuggestions()
+            return
+        }
+        
+        print("📝 Getting suggestions for: '\(currentWord)'")
+        let suggestions = WordCompletionManager.shared.getSuggestions(for: currentWord)
+        renderer.updateSuggestions(suggestions)
+    }
+    
+    /// Handle suggestion selection - replace current word with suggestion
+    private func handleSuggestionSelected(_ suggestion: String) {
+        print("📝 Suggestion selected: '\(suggestion)', current word: '\(currentWord)'")
+        
+        // Delete the current word
+        for _ in 0..<currentWord.count {
+            textDocumentProxy.deleteBackward()
+        }
+        
+        // Insert the suggestion followed by a space
+        textDocumentProxy.insertText(suggestion + " ")
+        
+        // Clear current word and suggestions
+        currentWord = ""
+        renderer.clearSuggestions()
+    }
+    
+    /// Detect current word from text document proxy context
+    private func detectCurrentWord() {
+        guard let beforeInput = textDocumentProxy.documentContextBeforeInput else {
+            currentWord = ""
+            renderer.clearSuggestions()
+            return
+        }
+        
+        // Find the last word (characters after the last space/newline)
+        let trimmed = beforeInput.trimmingCharacters(in: .whitespaces)
+        if let lastSpaceIndex = trimmed.lastIndex(where: { $0 == " " || $0 == "\n" }) {
+            currentWord = String(trimmed[trimmed.index(after: lastSpaceIndex)...])
+        } else {
+            currentWord = trimmed
+        }
+        
+        print("📝 Detected current word: '\(currentWord)'")
+        updateWordSuggestions()
+    }
+    
+    /// Update language based on keyset ID
+    private func updateLanguageFromKeyset(_ keysetId: String) {
+        let newLanguage: String
+        if keysetId.hasPrefix("he") || keysetId.contains("hebrew") {
+            newLanguage = "he"
+        } else if keysetId.hasPrefix("ar") || keysetId.contains("arabic") {
+            newLanguage = "ar"
+        } else {
+            newLanguage = "en"
+        }
+        
+        if newLanguage != currentLanguage {
+            currentLanguage = newLanguage
+            // Only set language if word completion is enabled
+            if wordCompletionEnabled {
+                WordCompletionManager.shared.setLanguage(currentLanguage)
+            }
+            print("📝 Language changed to: \(currentLanguage)")
+            // Update suggestions for new language
+            updateWordSuggestions()
+        }
+    }
+    
+    /// Update language based on current keyset in renderer
+    private func updateLanguageFromCurrentKeyset() {
+        let keysetId = renderer.currentKeysetId
+        updateLanguageFromKeyset(keysetId)
     }
     
     // MARK: - System Keyboard Actions
