@@ -156,6 +156,20 @@ class KeyboardRenderer(
     }
     
     /**
+     * Set the initial keyset ID (for restoring from saved preferences)
+     * Only effective if the keyset exists in the current config
+     */
+    fun setInitialKeyset(keysetId: String) {
+        val config = currentConfig
+        if (config != null && config.keysets.containsKey(keysetId)) {
+            Log.d(logTag, "setInitialKeyset: setting keyset to '$keysetId'")
+            currentKeysetId = keysetId
+        } else if (keysetId.isNotEmpty()) {
+            Log.w(logTag, "setInitialKeyset: keyset '$keysetId' not found in config, ignoring")
+        }
+    }
+    
+    /**
      * Render keyboard into a container layout
      * 
      * @param container The LinearLayout to render into
@@ -366,6 +380,9 @@ class KeyboardRenderer(
             // Reset shift state when changing languages
             shiftState = ShiftState.Inactive
             rerender()
+            
+            // Notify service to save the new keyset
+            onStateChange?.invoke()
         } else {
             Log.d(logTag, "Language switch: Only one keyboard available for type $currentKeysetType")
         }

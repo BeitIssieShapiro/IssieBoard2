@@ -187,6 +187,28 @@ class KeyboardPreferences {
   }
 
   /**
+   * Clear the keyboard configuration only (for testing bootstrap)
+   * This allows the keyboard extension to fall back to its bundled default config
+   * 
+   * Note: Implemented in TypeScript by setting an empty config string.
+   * The native keyboard should check for empty/null config and use defaults.
+   */
+  async clearKeyboardConfig(): Promise<SetResult> {
+    if (!KeyboardPreferencesModule) {
+      return { success: false, error: 'Native module not available' };
+    }
+    // Use setKeyboardConfig with empty string to clear the config
+    // The native keyboard should detect empty config and fall back to defaults
+    try {
+      await KeyboardPreferencesModule.setKeyboardConfig('');
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to clear keyboard config:', error);
+      return { success: false, error: String(error) };
+    }
+  }
+
+  /**
    * Get the App Group identifier
    */
   async getAppGroupIdentifier(): Promise<string> {

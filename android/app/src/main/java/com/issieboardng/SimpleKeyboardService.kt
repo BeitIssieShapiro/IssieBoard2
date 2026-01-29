@@ -35,6 +35,7 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
         private const val TAG = "SimpleKeyboardService"
         private const val PREFS_FILE = "keyboard_data"
         private const val CONFIG_KEY = "config_json"
+        private const val SELECTED_KEYSET_KEY = "selected_keyset"
     }
 
     // Main layout container
@@ -92,11 +93,16 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
         renderer = KeyboardRenderer(
             context = this,
             isPreview = false,
-            onKeyEvent = { event -> handleKeyEvent(event) }
+            onKeyEvent = { event -> handleKeyEvent(event) },
+            onStateChange = { saveCurrentKeyset() }
         )
 
         // Load config and render
         loadConfig()
+        
+        // Restore saved keyset
+        loadSavedKeyset()
+        
         renderKeyboard()
         
         return mainLayout!!
@@ -463,6 +469,37 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
             }
             Log.d(TAG, "📝 Language changed to: $currentLanguage")
             updateSuggestionsBar()
+        }
+    }
+    
+    // ============================================================================
+    // KEYSET PERSISTENCE
+    // ============================================================================
+    
+    /**
+     * Save the current keyset ID to preferences (for persistence across keyboard restarts)
+     */
+    private fun saveCurrentKeyset() {
+        val keysetId = renderer.currentKeysetId
+        Log.d(TAG, "💾 Saving current keyset to preferences: '$keysetId'")
+        val prefs = getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
+        prefs.edit().putString(SELECTED_KEYSET_KEY, keysetId).apply()
+    }
+    
+    /**
+     * Load the saved keyset ID from preferences and set it on the renderer
+     */
+    private fun loadSavedKeyset() {
+        val prefs = getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
+        val savedKeyset = prefs.getString(SELECTED_KEYSET_KEY, null)
+        if (savedKeyset != null && savedKeyset.isNotEmpty()) {
+            Log.d(TAG, "📱 Loading saved keyset from preferences: '$savedKeyset'")
+            renderer.setInitialKeyset(savedKeyset)
+            
+            // Also update language for word completion
+            updateLanguageFromKeyset(savedKeyset)
+        } else {
+            Log.d(TAG, "📱 No saved keyset found in preferences")
         }
     }
     

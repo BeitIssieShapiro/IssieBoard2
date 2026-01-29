@@ -182,6 +182,21 @@ class KeyboardPreferences {
     }
   }
 
+  /**
+   * Clear the keyboard configuration only (for testing bootstrap)
+   * This allows the keyboard to fall back to its bundled default config
+   */
+  async clearKeyboardConfig(): Promise<SetResult> {
+    try {
+      await DefaultPreference.setName('keyboard_data');
+      await DefaultPreference.clear('config_json');
+      return { success: true };
+    } catch (error) {
+      console.error('Android: Failed to clear keyboard config', error);
+      return { success: false, error };
+    }
+  }
+
   async getAppGroupIdentifier(): Promise<string> {
     return 'SharedPreferences (keyboard_data)';
   }

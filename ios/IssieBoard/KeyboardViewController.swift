@@ -103,6 +103,11 @@ class KeyboardViewController: UIInputViewController {
         // Create renderer - handles all UI rendering
         renderer = KeyboardRenderer()
         
+        // Set up callback to save keyset changes to preferences
+        renderer.onKeysetChanged = { [weak self] keysetId in
+            self?.saveCurrentKeyset(keysetId)
+        }
+        
         // Set up callbacks for key presses - route to system
         renderer.onKeyPress = { [weak self] key in
             self?.handleKeyPress(key)
@@ -142,12 +147,12 @@ class KeyboardViewController: UIInputViewController {
         print("🔄 Loading keyboard preferences...")
         preferences.printAllPreferences()
         
-        if let configJSON = preferences.getKeyboardConfigJSON() {
+        if let configJSON = preferences.getKeyboardConfigJSON(), !configJSON.isEmpty {
             print("⚙️ Parsing keyboard config...")
             print("   Config length: \(configJSON.count) chars")
             parseKeyboardConfig(configJSON)
         } else {
-            print("⚠️ No keyboard config found - loading bundled default")
+            print("⚠️ No keyboard config found (or empty) - loading bundled default")
             loadBundledDefaultConfig()
         }
     }
@@ -207,6 +212,33 @@ class KeyboardViewController: UIInputViewController {
         preferenceObserver = nil
     }
     
+    // MARK: - Keyset Persistence
+    
+    /// Save the current keyset ID to preferences (for persistence across keyboard restarts)
+    private func saveCurrentKeyset(_ keysetId: String) {
+        print("💾 Saving current keyset to preferences: '\(keysetId)'")
+        preferences.selectedLanguage = keysetId
+    }
+    
+    /// Load the saved keyset ID from preferences
+    /// Returns the saved keyset ID if it exists in the current config, nil otherwise
+    private func loadSavedKeyset() -> String? {
+        guard let savedKeyset = preferences.selectedLanguage, !savedKeyset.isEmpty else {
+            print("📱 No saved keyset found in preferences")
+            return nil
+        }
+        
+        // Verify the saved keyset exists in current config
+        guard let config = parsedConfig,
+              config.keysets.contains(where: { $0.id == savedKeyset }) else {
+            print("⚠️ Saved keyset '\(savedKeyset)' not found in current config")
+            return nil
+        }
+        
+        print("📱 Loaded saved keyset from preferences: '\(savedKeyset)'")
+        return savedKeyset
+    }
+    
     // MARK: - Rendering
     
     private func renderKeyboard() {
@@ -236,11 +268,26 @@ class KeyboardViewController: UIInputViewController {
         // Get editor context for dynamic enter key
         let editorContext = analyzeEditorContext()
         
+        // Determine initial keyset - prioritize: saved > renderer current > config default
+        var initialKeyset: String
+        if !renderer.currentKeysetId.isEmpty && renderer.currentKeysetId != "abc" {
+            // Renderer already has a keyset (not the default "abc" placeholder)
+            initialKeyset = renderer.currentKeysetId
+        } else if let savedKeyset = loadSavedKeyset() {
+            // Use saved keyset from preferences
+            initialKeyset = savedKeyset
+        } else {
+            // Fall back to config default
+            initialKeyset = config.defaultKeyset ?? "abc"
+        }
+        
+        print("📱 Using keyset: '\(initialKeyset)'")
+        
         // Use renderer - it handles all UI rendering
         renderer.renderKeyboard(
             in: keyboardView,
             config: config,
-            currentKeysetId: renderer.currentKeysetId.isEmpty ? (config.defaultKeyset ?? "abc") : renderer.currentKeysetId,
+            currentKeysetId: initialKeyset,
             editorContext: editorContext
         )
     }
@@ -467,6 +514,11 @@ class KeyboardViewController: UIInputViewController {
         // Keyboard extensions cannot use extensionContext.open() reliably
         // Use the UIApplication workaround through the responder chain
         openURL(url)
+        
+        // Dismiss the keyboard after opening the app
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            self?.dismissKeyboard()
+        }
     }
     
     /// Opens a URL from within a keyboard extension

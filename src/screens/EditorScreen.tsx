@@ -322,6 +322,34 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     }
   }, [onSetActive, showToast]);
 
+  const handleClearConfig = useCallback(async () => {
+    Alert.alert(
+      'Clear All Settings',
+      'This will clear all keyboard settings and profiles, resetting to defaults. The keyboard will use its bundled default config.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Clear All', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Clear all preferences (config, profiles, language, etc.)
+              const result = await KeyboardPreferences.clearAll();
+              if (result.success) {
+                showToast('✓ All settings cleared - keyboard will use defaults');
+              } else {
+                showToast('✗ Failed to clear settings');
+              }
+            } catch (error) {
+              showToast('✗ Failed to clear settings');
+              console.error('Clear settings error:', error);
+            }
+          }
+        },
+      ]
+    );
+  }, [showToast]);
+
   const handleDelete = useCallback(async () => {
     if (!isCustomProfile) {
       Alert.alert('Cannot Delete', 'Built-in profiles cannot be deleted.');
@@ -662,6 +690,14 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
             <Text style={styles.actionButtonText}>🗑️</Text>
           </TouchableOpacity>
         )}
+
+        {/* Clear Config Button */}
+        <TouchableOpacity
+          style={[styles.actionButton, styles.clearConfigButton]}
+          onPress={handleClearConfig}
+        >
+          <Text style={styles.actionButtonText}>🔄</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Main Content */}
@@ -838,7 +874,17 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
 
   const handleSetActive = useCallback(async () => {
     // Set this profile as the active one for the keyboard
-    const config = await KeyboardPreferences.getProfileObject(currentProfileId);
+    let config = await KeyboardPreferences.getProfileObject(currentProfileId);
+    
+    // If no stored config exists, check if it's a built-in profile and build it
+    if (!config) {
+      const builtInProfile = PROFILES[currentProfileId];
+      if (builtInProfile) {
+        config = buildConfiguration(builtInProfile);
+        console.log(`📦 Built config from built-in profile "${currentProfileId}"`);
+      }
+    }
+    
     if (config) {
       await KeyboardPreferences.setKeyboardConfigObject(config as KeyboardConfig);
     }
@@ -1260,6 +1306,11 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     backgroundColor: '#F44336',
+    flex: 0,
+    minWidth: 50,
+  },
+  clearConfigButton: {
+    backgroundColor: '#9E9E9E',
     flex: 0,
     minWidth: 50,
   },

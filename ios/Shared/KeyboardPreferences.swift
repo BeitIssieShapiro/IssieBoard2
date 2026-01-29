@@ -154,12 +154,19 @@ class KeyboardPreferences {
     // MARK: - Clear Preferences
     
     func clearAll() {
-        userDefaults?.removeObject(forKey: Keys.currentProfile)
-        userDefaults?.removeObject(forKey: Keys.keyboardConfig)
-        userDefaults?.removeObject(forKey: Keys.selectedLanguage)
-        userDefaults?.removeObject(forKey: Keys.lastUpdateTime)
-        userDefaults?.synchronize()
+        // Remove all keys from the App Group UserDefaults
+        guard let defaults = userDefaults else { return }
+        
+        // Get all keys and remove them
+        let dictionary = defaults.dictionaryRepresentation()
+        for key in dictionary.keys {
+            defaults.removeObject(forKey: key)
+        }
+        
+        defaults.synchronize()
         notifyPreferencesChanged()
+        
+        print("🗑️ Cleared all \(dictionary.keys.count) preference keys")
     }
 }
 

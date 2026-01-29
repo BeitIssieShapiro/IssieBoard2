@@ -94,6 +94,9 @@ class KeyboardRenderer {
     // Container reference - renderer owns the rendering
     private weak var container: UIView?
     
+    // Callback for keyset changes (so controller can save to preferences)
+    var onKeysetChanged: ((String) -> Void)?
+    
     // Layout tracking to prevent infinite loops
     private var lastRenderedWidth: CGFloat = 0
     
@@ -102,8 +105,8 @@ class KeyboardRenderer {
     private let keySpacing: CGFloat = 6
     private let rowSpacing: CGFloat = 10
     private let keyCornerRadius: CGFloat = 5
-    private let fontSize: CGFloat = 18
-    private let largeFontSize: CGFloat = 24
+    private let fontSize: CGFloat = 22
+    private let largeFontSize: CGFloat = 26
     private let suggestionsBarHeight: CGFloat = 44
     
     // Suggestions bar view reference for updates
@@ -1499,6 +1502,9 @@ class KeyboardRenderer {
                 print("   Switching from \(currentKeysetId) to \(nextKeysetId)")
                 currentKeysetId = nextKeysetId
                 shiftState = .inactive  // Reset shift (including locked) on language change
+                
+                // Notify controller so it can save to preferences
+                onKeysetChanged?(currentKeysetId)
                 
                 // Re-render internally
                 rerender()

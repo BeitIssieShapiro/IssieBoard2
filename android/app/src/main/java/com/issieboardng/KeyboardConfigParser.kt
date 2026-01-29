@@ -23,15 +23,39 @@ class KeyboardConfigParser(private val context: Context) {
     
     /**
      * Load config from SharedPreferences and parse it
+     * Falls back to bundled default config if preferences are empty
      */
     fun loadAndParseConfig(): ParsedConfig? {
         return try {
             val prefs = context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
-            val configString = prefs.getString(CONFIG_KEY, null) ?: "{}"
+            val configString = prefs.getString(CONFIG_KEY, null)
+            
+            // Check if config is empty or null - load bundled default
+            if (configString.isNullOrEmpty() || configString == "{}") {
+                Log.d(TAG, "No saved config found - loading bundled default")
+                return loadBundledDefaultConfig()
+            }
+            
             val configJson = JSONObject(configString)
             parseConfig(configJson)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to load config", e)
+            Log.e(TAG, "Failed to load config, falling back to default", e)
+            loadBundledDefaultConfig()
+        }
+    }
+    
+    /**
+     * Load the bundled default keyboard configuration from assets
+     */
+    private fun loadBundledDefaultConfig(): ParsedConfig? {
+        return try {
+            val inputStream = context.assets.open("default_config.json")
+            val configString = inputStream.bufferedReader().use { it.readText() }
+            Log.d(TAG, "Loaded bundled default_config.json")
+            val configJson = JSONObject(configString)
+            parseConfig(configJson)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to load bundled default config", e)
             null
         }
     }
