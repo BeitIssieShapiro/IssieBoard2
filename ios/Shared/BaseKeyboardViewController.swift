@@ -1,11 +1,12 @@
 import UIKit
 
 /**
- * iOS Keyboard Extension Controller
- * Thin wrapper around KeyboardRenderer that handles system keyboard integration.
+ * Base iOS Keyboard Extension Controller
+ * Shared keyboard controller that handles system keyboard integration.
+ * Each language-specific keyboard extension inherits from this class.
  * Routes key presses to the system text input proxy.
  */
-class KeyboardViewController: UIInputViewController {
+class BaseKeyboardViewController: UIInputViewController {
     
     // MARK: - Properties
     
@@ -22,13 +23,31 @@ class KeyboardViewController: UIInputViewController {
     private var currentWord: String = ""
     private var currentLanguage: String = "en"
     
+    /// Override this in subclasses to specify the keyboard language
+    var keyboardLanguage: String {
+        // Try to read from Info.plist first
+        if let language = Bundle.main.object(forInfoDictionaryKey: "KeyboardLanguage") as? String {
+            return language
+        }
+        // Default to English
+        return "en"
+    }
+    
+    /// Override this in subclasses to specify the config file name
+    var defaultConfigFileName: String {
+        return "default_config"
+    }
+    
     // MARK: - Lifecycle
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        print("🚀 KeyboardViewController viewDidLoad")
+        print("🚀 BaseKeyboardViewController viewDidLoad - Language: \(keyboardLanguage)")
         print("📐 viewDidLoad: view.bounds = \(view.bounds)")
+        
+        // Set the current language based on keyboard type
+        currentLanguage = keyboardLanguage
         
         setupKeyboard()
         setupRenderer()
@@ -153,11 +172,18 @@ class KeyboardViewController: UIInputViewController {
     // MARK: - Preferences Management
     
     private func loadPreferences() {
-        print("🔄 Loading keyboard preferences...")
+        print("🔄 Loading keyboard preferences for language: \(keyboardLanguage)...")
         preferences.printAllPreferences()
         
-        if let configJSON = preferences.getKeyboardConfigJSON(), !configJSON.isEmpty {
-            print("⚙️ Parsing keyboard config...")
+        // First try to load language-specific config from preferences
+        let configKey = "keyboardConfig_\(keyboardLanguage)"
+        if let configJSON = preferences.getString(forKey: configKey), !configJSON.isEmpty {
+            print("⚙️ Parsing keyboard config for \(keyboardLanguage)...")
+            print("   Config length: \(configJSON.count) chars")
+            parseKeyboardConfig(configJSON)
+        } else if let configJSON = preferences.getKeyboardConfigJSON(), !configJSON.isEmpty {
+            // Fall back to global config
+            print("⚙️ Parsing global keyboard config...")
             print("   Config length: \(configJSON.count) chars")
             parseKeyboardConfig(configJSON)
         } else {
@@ -170,17 +196,17 @@ class KeyboardViewController: UIInputViewController {
     /// This allows the keyboard to work immediately after installation
     /// without requiring the user to open the main app first
     private func loadBundledDefaultConfig() {
-        print("📱 Loading bundled default config...")
+        print("📱 Loading bundled default config for \(keyboardLanguage)...")
         
         // Load pre-built default config from bundle
-        if let configPath = Bundle.main.path(forResource: "default_config", ofType: "json"),
+        if let configPath = Bundle.main.path(forResource: defaultConfigFileName, ofType: "json"),
            let configJSON = try? String(contentsOfFile: configPath, encoding: .utf8) {
-            print("✅ Loaded default_config.json from bundle")
+            print("✅ Loaded \(defaultConfigFileName).json from bundle")
             parseKeyboardConfig(configJSON)
             return
         }
         
-        print("⚠️ Could not load default_config.json - showing fallback")
+        print("⚠️ Could not load \(defaultConfigFileName).json - showing fallback")
         renderFallbackKeyboard()
     }
     
@@ -257,7 +283,7 @@ class KeyboardViewController: UIInputViewController {
             return
         }
         
-        print("🎨 Rendering keyboard via KeyboardRenderer")
+        print("🎨 Rendering keyboard via KeyboardRenderer - Language: \(keyboardLanguage)")
         
         // Update word completion enabled state from config
         let wasEnabled = wordCompletionEnabled
@@ -299,6 +325,11 @@ class KeyboardViewController: UIInputViewController {
             currentKeysetId: initialKeyset,
             editorContext: editorContext
         )
+        
+        // Show default suggestions initially (if word completion is enabled and no current word)
+        if wordCompletionEnabled && currentWord.isEmpty {
+            showDefaultSuggestions()
+        }
     }
     
     private func renderFallbackKeyboard() {
@@ -438,23 +469,23 @@ class KeyboardViewController: UIInputViewController {
             
         case "enter", "action":
             textDocumentProxy.insertText("\n")
-            // Clear current word on enter
+            // Clear current word on enter, show default suggestions
             currentWord = ""
-            renderer.clearSuggestions()
+            showDefaultSuggestions()
             
         case "space":
             textDocumentProxy.insertText(" ")
-            // Clear current word on space (word completed)
+            // Clear current word on space (word completed), show default suggestions
             currentWord = ""
-            renderer.clearSuggestions()
+            showDefaultSuggestions()
             
         case "keyset":
-            // Keyset change - update language for word completion
-            updateLanguageFromKeyset(key.keysetValue)
+            // Keyset change - no language change for single-language keyboard
+            break
             
         case "language", "next-keyboard":
-            // Language switch - update language for word completion
-            updateLanguageFromCurrentKeyset()
+            // Language switch - advance to next system keyboard
+            advanceToNextInputMode()
             
         default:
             // Regular character key
@@ -499,9 +530,19 @@ class KeyboardViewController: UIInputViewController {
         // Insert the suggestion followed by a space
         textDocumentProxy.insertText(suggestion + " ")
         
-        // Clear current word and suggestions
+        // Clear current word and show default suggestions for next word
         currentWord = ""
-        renderer.clearSuggestions()
+        showDefaultSuggestions()
+    }
+    
+    /// Show default suggestions (when no text is being typed)
+    private func showDefaultSuggestions() {
+        guard wordCompletionEnabled else { return }
+        
+        // Get default suggestions for current language (empty prefix)
+        let suggestions = WordCompletionManager.shared.getSuggestions(for: "")
+        print("📝 Showing default suggestions: \(suggestions)")
+        renderer.updateSuggestions(suggestions)
     }
     
     /// Detect current word from text document proxy context
@@ -522,35 +563,6 @@ class KeyboardViewController: UIInputViewController {
         
         print("📝 Detected current word: '\(currentWord)'")
         updateWordSuggestions()
-    }
-    
-    /// Update language based on keyset ID
-    private func updateLanguageFromKeyset(_ keysetId: String) {
-        let newLanguage: String
-        if keysetId.hasPrefix("he") || keysetId.contains("hebrew") {
-            newLanguage = "he"
-        } else if keysetId.hasPrefix("ar") || keysetId.contains("arabic") {
-            newLanguage = "ar"
-        } else {
-            newLanguage = "en"
-        }
-        
-        if newLanguage != currentLanguage {
-            currentLanguage = newLanguage
-            // Only set language if word completion is enabled
-            if wordCompletionEnabled {
-                WordCompletionManager.shared.setLanguage(currentLanguage)
-            }
-            print("📝 Language changed to: \(currentLanguage)")
-            // Update suggestions for new language
-            updateWordSuggestions()
-        }
-    }
-    
-    /// Update language based on current keyset in renderer
-    private func updateLanguageFromCurrentKeyset() {
-        let keysetId = renderer.currentKeysetId
-        updateLanguageFromKeyset(keysetId)
     }
     
     // MARK: - System Keyboard Actions

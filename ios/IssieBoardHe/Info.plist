@@ -9,9 +9,9 @@
 			<key>IsASCIICapable</key>
 			<false/>
 			<key>PrefersRightToLeft</key>
-			<false/>
+			<true/>
 			<key>PrimaryLanguage</key>
-			<string>en-US</string>
+			<string>he</string>
 			<key>RequestsOpenAccess</key>
 			<true/>
 		</dict>
@@ -20,7 +20,9 @@
 		<key>NSExtensionPrincipalClass</key>
 		<string>$(PRODUCT_MODULE_NAME).KeyboardViewController</string>
 	</dict>
-	<key>RCTNewArchEnabled</key>
-	<true/>
+	<key>CFBundleDisplayName</key>
+	<string>IssieBoard Hebrew</string>
+	<key>KeyboardLanguage</key>
+	<string>he</string>
 </dict>
 </plist>

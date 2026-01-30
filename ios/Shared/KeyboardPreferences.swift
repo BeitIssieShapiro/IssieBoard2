@@ -120,6 +120,19 @@ class KeyboardPreferences {
         return userDefaults?.string(forKey: "profile_\(key)")
     }
     
+    // MARK: - Generic String Storage
+    
+    /// Store a string value for a given key
+    func setString(_ value: String, forKey key: String) {
+        userDefaults?.set(value, forKey: key)
+        userDefaults?.synchronize()
+    }
+    
+    /// Retrieve a string value for a given key
+    func getString(forKey key: String) -> String? {
+        return userDefaults?.string(forKey: key)
+    }
+    
     // MARK: - Notification
     
     private func notifyPreferencesChanged() {

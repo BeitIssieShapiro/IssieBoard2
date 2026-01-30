@@ -4,12 +4,15 @@
   "private": true,
   "scripts": {
     "android": "react-native run-android",
-    "ios": "react-native run-ios",
+    "ios": "npm run build:ios-keyboards && react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",
     "test": "jest",
     "test:android": "cd android && ./gradlew :app:testDebugUnitTest",
-    "test:ios": "cd ios && xcodebuild test -workspace IssieBoardNG.xcworkspace -scheme IssieBoardNG -destination 'platform=iOS Simulator,name=iPhone 17' -quiet"
+    "test:ios": "cd ios && xcodebuild test -workspace IssieBoardNG.xcworkspace -scheme IssieBoardNG -destination 'platform=iOS Simulator,name=iPhone 17' -quiet",
+    "build:dictionaries": "node scripts/build_dictionaries.js",
+    "build:ios-keyboards": "node scripts/build_ios_keyboard_configs.js",
+    "build:all": "npm run build:dictionaries && npm run build:ios-keyboards"
   },
   "dependencies": {
     "@react-native/new-app-screen": "0.83.1",

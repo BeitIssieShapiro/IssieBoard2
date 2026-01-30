@@ -218,10 +218,11 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
         val bar = suggestionsBar ?: return
         bar.removeAllViews()
         
-        if (!wordSuggestionsEnabled || currentWord.isEmpty()) {
+        if (!wordSuggestionsEnabled) {
             return
         }
         
+        // Get suggestions - WordCompletionManager will return defaults for empty string
         val suggestions = wordCompletionManager.getSuggestions(currentWord.toString())
         if (suggestions.isEmpty()) {
             return

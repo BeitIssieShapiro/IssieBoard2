@@ -1,0 +1,647 @@
+{
+  "backgroundColor": "#E0E0E0",
+  "defaultKeyset": "abc",
+  "wordSuggestionsEnabled": true,
+  "groups": [
+    {
+      "items": [
+        "ا",
+        "ب",
+        "ت",
+        "ث",
+        "ج",
+        "ح",
+        "خ",
+        "د",
+        "ذ",
+        "ر",
+        "ز",
+        "س",
+        "ش",
+        "ص",
+        "ض",
+        "ط",
+        "ظ",
+        "ع",
+        "غ",
+        "ف",
+        "ق",
+        "ك",
+        "ل",
+        "م",
+        "ن",
+        "ه",
+        "و",
+        "ي",
+        "ء",
+        "ؤ",
+        "ئ",
+        "ة",
+        "ى"
+      ],
+      "template": {
+        "color": "#000000",
+        "bgColor": "#FFFFFF"
+      }
+    },
+    {
+      "items": [
+        "٠",
+        "١",
+        "٢",
+        "٣",
+        "٤",
+        "٥",
+        "٦",
+        "٧",
+        "٨",
+        "٩"
+      ],
+      "template": {
+        "color": "#000000",
+        "bgColor": "#E8E8E8"
+      }
+    }
+  ],
+  "keyboards": [
+    "ar"
+  ],
+  "defaultKeyboard": "ar",
+  "keyboardLanguage": "ar",
+  "diacritics": {
+    "appliesTo": [
+      "ا",
+      "ب",
+      "ت",
+      "ث",
+      "ج",
+      "ح",
+      "خ",
+      "د",
+      "ذ",
+      "ر",
+      "ز",
+      "س",
+      "ش",
+      "ص",
+      "ض",
+      "ط",
+      "ظ",
+      "ع",
+      "غ",
+      "ف",
+      "ق",
+      "ك",
+      "ل",
+      "م",
+      "ن",
+      "ه",
+      "و",
+      "ي",
+      "ء",
+      "ؤ",
+      "ئ",
+      "ة",
+      "ى"
+    ],
+    "items": [
+      {
+        "id": "plain",
+        "mark": "",
+        "name": "بدون"
+      },
+      {
+        "id": "fatha",
+        "mark": "َ",
+        "name": "فَتحة"
+      },
+      {
+        "id": "kasra",
+        "mark": "ِ",
+        "name": "كَسرة"
+      },
+      {
+        "id": "damma",
+        "mark": "ُ",
+        "name": "ضَمّة"
+      },
+      {
+        "id": "sukun",
+        "mark": "ْ",
+        "name": "سُكون",
+        "excludeFor": [
+          "ا",
+          "ء"
+        ]
+      },
+      {
+        "id": "tanwinFath",
+        "mark": "ً",
+        "name": "تنوين فتح"
+      },
+      {
+        "id": "tanwinKasr",
+        "mark": "ٍ",
+        "name": "تنوين كسر",
+        "excludeFor": [
+          "ة",
+          "ى"
+        ]
+      },
+      {
+        "id": "tanwinDamm",
+        "mark": "ٌ",
+        "name": "تنوين ضم",
+        "excludeFor": [
+          "ة",
+          "ى"
+        ]
+      },
+      {
+        "id": "hamzaAbove",
+        "mark": "أ",
+        "name": "همزة فوق",
+        "onlyFor": [
+          "ا"
+        ],
+        "isReplacement": true
+      },
+      {
+        "id": "hamzaBelow",
+        "mark": "إ",
+        "name": "همزة تحت",
+        "onlyFor": [
+          "ا"
+        ],
+        "isReplacement": true
+      },
+      {
+        "id": "madda",
+        "mark": "آ",
+        "name": "مدّة",
+        "onlyFor": [
+          "ا"
+        ],
+        "isReplacement": true
+      },
+      {
+        "id": "wasla",
+        "mark": "ٱ",
+        "name": "وصلة",
+        "onlyFor": [
+          "ا"
+        ],
+        "isReplacement": true
+      }
+    ],
+    "modifier": {
+      "id": "shadda",
+      "mark": "ّ",
+      "name": "شَدّة",
+      "excludeFor": [
+        "ا",
+        "ء",
+        "ؤ",
+        "ة",
+        "ى"
+      ]
+    }
+  },
+  "keysets": [
+    {
+      "id": "abc",
+      "rows": [
+        {
+          "keys": [
+            {
+              "type": "settings"
+            },
+            {
+              "type": "backspace",
+              "width": 1.5
+            },
+            {
+              "type": "enter"
+            },
+            {
+              "type": "close"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "ض"
+            },
+            {
+              "value": "ص"
+            },
+            {
+              "value": "ث"
+            },
+            {
+              "value": "ق"
+            },
+            {
+              "value": "ف"
+            },
+            {
+              "value": "غ"
+            },
+            {
+              "value": "ع"
+            },
+            {
+              "value": "ه"
+            },
+            {
+              "value": "خ"
+            },
+            {
+              "value": "ح"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "hidden": true,
+              "width": 0.5
+            },
+            {
+              "value": "ش"
+            },
+            {
+              "value": "س"
+            },
+            {
+              "value": "ي"
+            },
+            {
+              "value": "ب"
+            },
+            {
+              "value": "ل"
+            },
+            {
+              "value": "ا"
+            },
+            {
+              "value": "ت"
+            },
+            {
+              "value": "ن"
+            },
+            {
+              "value": "م"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "ء"
+            },
+            {
+              "value": "ؤ"
+            },
+            {
+              "value": "ر"
+            },
+            {
+              "value": "ى"
+            },
+            {
+              "value": "ة"
+            },
+            {
+              "value": "و"
+            },
+            {
+              "value": "ز"
+            },
+            {
+              "value": "ظ"
+            },
+            {
+              "type": "backspace",
+              "width": 1.5
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "type": "keyset",
+              "keysetValue": "123",
+              "label": "123"
+            },
+            {
+              "type": "next-keyboard",
+              "width": 1
+            },
+            {
+              "caption": "مسافة",
+              "value": " ",
+              "width": 5
+            },
+            {
+              "value": ".",
+              "sValue": "،"
+            },
+            {
+              "type": "enter"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "123",
+      "rows": [
+        {
+          "keys": [
+            {
+              "type": "settings"
+            },
+            {
+              "type": "backspace",
+              "width": 1.5
+            },
+            {
+              "type": "enter"
+            },
+            {
+              "type": "close"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "١"
+            },
+            {
+              "value": "٢"
+            },
+            {
+              "value": "٣"
+            },
+            {
+              "value": "٤"
+            },
+            {
+              "value": "٥"
+            },
+            {
+              "value": "٦"
+            },
+            {
+              "value": "٧"
+            },
+            {
+              "value": "٨"
+            },
+            {
+              "value": "٩"
+            },
+            {
+              "value": "٠"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "-"
+            },
+            {
+              "value": "/"
+            },
+            {
+              "value": ":"
+            },
+            {
+              "value": "؛"
+            },
+            {
+              "value": "("
+            },
+            {
+              "value": ")"
+            },
+            {
+              "value": "$"
+            },
+            {
+              "value": "&"
+            },
+            {
+              "value": "@"
+            },
+            {
+              "value": "\""
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "type": "keyset",
+              "keysetValue": "#+=",
+              "label": "#+=",
+              "width": 1.5
+            },
+            {
+              "value": "."
+            },
+            {
+              "value": "،"
+            },
+            {
+              "value": "؟"
+            },
+            {
+              "value": "!"
+            },
+            {
+              "value": "'"
+            },
+            {
+              "type": "backspace",
+              "width": 1.5
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "type": "keyset",
+              "keysetValue": "abc",
+              "label": "أبج"
+            },
+            {
+              "type": "next-keyboard",
+              "width": 1
+            },
+            {
+              "caption": "مسافة",
+              "value": " ",
+              "width": 5
+            },
+            {
+              "value": "."
+            },
+            {
+              "type": "enter",
+              "width": 1.5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "#+=",
+      "rows": [
+        {
+          "keys": [
+            {
+              "type": "settings"
+            },
+            {
+              "type": "backspace",
+              "width": 1.5
+            },
+            {
+              "type": "enter"
+            },
+            {
+              "type": "close"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "["
+            },
+            {
+              "value": "]"
+            },
+            {
+              "value": "{"
+            },
+            {
+              "value": "}"
+            },
+            {
+              "value": "#"
+            },
+            {
+              "value": "%"
+            },
+            {
+              "value": "^"
+            },
+            {
+              "value": "*"
+            },
+            {
+              "value": "+"
+            },
+            {
+              "value": "="
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "_"
+            },
+            {
+              "value": "\\"
+            },
+            {
+              "value": "|"
+            },
+            {
+              "value": "~"
+            },
+            {
+              "value": "<"
+            },
+            {
+              "value": ">"
+            },
+            {
+              "value": "€"
+            },
+            {
+              "value": "£"
+            },
+            {
+              "value": "¥"
+            },
+            {
+              "value": "•"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "type": "keyset",
+              "keysetValue": "123",
+              "label": "123",
+              "width": 1.5
+            },
+            {
+              "value": "."
+            },
+            {
+              "value": "،"
+            },
+            {
+              "value": "؟"
+            },
+            {
+              "value": "!"
+            },
+            {
+              "value": "'"
+            },
+            {
+              "type": "backspace",
+              "width": 2.5
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "type": "keyset",
+              "keysetValue": "abc",
+              "label": "أبج"
+            },
+            {
+              "type": "next-keyboard",
+              "width": 1
+            },
+            {
+              "caption": "مسافة",
+              "value": " ",
+              "width": 5
+            },
+            {
+              "value": "."
+            },
+            {
+              "type": "enter"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
