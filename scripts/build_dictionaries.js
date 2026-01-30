@@ -1,6 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
+//https://github.com/hermitdave/FrequencyWords
+
 // --- CONFIGURATION ---
 const INPUT_DIR = path.join(__dirname, '../dict');
 const OUTPUT_DIR = path.join(__dirname, '../dict/bin');

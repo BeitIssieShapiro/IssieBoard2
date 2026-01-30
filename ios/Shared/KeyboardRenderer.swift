@@ -58,6 +58,10 @@ class KeyboardRenderer {
     var onDismissKeyboard: (() -> Void)?
     var onOpenSettings: (() -> Void)?
     
+    // Callbacks for backspace long-press actions
+    var onDeleteCharacter: (() -> Void)?     // Delete single character
+    var onDeleteWord: (() -> Void)?          // Delete entire word
+    
     // Word suggestions to display
     private var currentSuggestions: [String] = []
     
@@ -111,6 +115,24 @@ class KeyboardRenderer {
     
     // Suggestions bar view reference for updates
     private weak var suggestionsBar: UIView?
+    
+    // MARK: - Long Press Backspace
+    
+    // Backspace long-press state
+    private var backspaceTimer: Timer?
+    private var backspacePressStartTime: Date?
+    private var backspaceDeleteCount: Int = 0
+    private var lastBackspaceDeleteTime: Date?
+    
+    // Long-press timing constants
+    private let charDeleteStartDelay: TimeInterval = 2.0    // Start deleting after 2 seconds
+    private let wordDeleteStartDelay: TimeInterval = 6.0    // Switch to word delete after 6 seconds
+    private let initialDeleteInterval: TimeInterval = 0.2   // Initial delete interval (200ms)
+    private let minDeleteInterval: TimeInterval = 0.05      // Minimum delete interval (50ms)
+    private let deleteSpeedupFactor: Double = 0.9           // Speed up factor per delete
+    
+    // Current delete interval (decreases as user holds longer)
+    private var currentDeleteInterval: TimeInterval = 0.2
     
     // MARK: - Initialization
     
@@ -288,12 +310,22 @@ class KeyboardRenderer {
     private func calculateBaselineWidth(_ rows: [KeyRow], groups: [String: GroupTemplate]) -> CGFloat {
         var maxRowWidth: CGFloat = 0
         
+        // Check if we have only one language (keyboard)
+        let hasOnlyOneLanguage = (config?.keyboards?.count ?? 0) <= 1
+        
         for row in rows {
             var rowWidth: CGFloat = 0
             for key in row.keys {
                 let parsedKey = ParsedKey(from: key, groups: groups,
                                          defaultTextColor: .black,
                                          defaultBgColor: .white)
+                
+                // Skip language/next-keyboard keys if only one language
+                let keyType = parsedKey.type.lowercased()
+                if hasOnlyOneLanguage && (keyType == "language" || keyType == "next-keyboard") {
+                    continue
+                }
+                
                 if !parsedKey.hidden {
                     rowWidth += CGFloat(parsedKey.width + parsedKey.offset)
                 }
@@ -320,10 +352,20 @@ class KeyboardRenderer {
         var currentX: CGFloat = 0
         var keyIndex = 0
         
+        // Check if we have only one language (keyboard)
+        let hasOnlyOneLanguage = (config?.keyboards?.count ?? 0) <= 1
+        
         for key in row.keys {
             let parsedKey = ParsedKey(from: key, groups: groups,
                                      defaultTextColor: .black,
                                      defaultBgColor: .white)
+            
+            // Skip language/next-keyboard keys if only one language
+            let keyType = parsedKey.type.lowercased()
+            if hasOnlyOneLanguage && (keyType == "language" || keyType == "next-keyboard") {
+                keyIndex += 1
+                continue
+            }
             
             // Handle offset
             if parsedKey.offset > 0 {
@@ -415,10 +457,149 @@ class KeyboardRenderer {
             button.layer.borderColor = UIColor.systemBlue.cgColor
         }
         
-        button.addTarget(self, action: #selector(keyTapped(_:)), for: .touchUpInside)
+        // For backspace key, add long-press handling
+        if key.type.lowercased() == "backspace" {
+            // Add touch down/up/cancel handlers for long-press detection
+            button.addTarget(self, action: #selector(backspaceTouchDown(_:)), for: .touchDown)
+            button.addTarget(self, action: #selector(backspaceTouchUp(_:)), for: .touchUpInside)
+            button.addTarget(self, action: #selector(backspaceTouchUp(_:)), for: .touchUpOutside)
+            button.addTarget(self, action: #selector(backspaceTouchUp(_:)), for: .touchCancel)
+        } else {
+            button.addTarget(self, action: #selector(keyTapped(_:)), for: .touchUpInside)
+        }
         button.accessibilityIdentifier = encodeKeyInfo(key)
         
         return button
+    }
+    
+    // MARK: - Backspace Long Press Handling
+    
+    /// Called when backspace button is pressed down
+    @objc private func backspaceTouchDown(_ sender: UIButton) {
+        print("⌫ Backspace touch DOWN")
+        
+        // Record the start time
+        backspacePressStartTime = Date()
+        backspaceDeleteCount = 0
+        currentDeleteInterval = initialDeleteInterval
+        
+        // Perform initial delete immediately
+        performBackspaceDelete()
+        
+        // Start the timer to check for long-press
+        startBackspaceTimer()
+    }
+    
+    /// Called when backspace button is released or cancelled
+    @objc private func backspaceTouchUp(_ sender: UIButton) {
+        print("⌫ Backspace touch UP")
+        stopBackspaceTimer()
+    }
+    
+    /// Start the backspace long-press timer
+    private func startBackspaceTimer() {
+        stopBackspaceTimer()
+        
+        // Start a repeating timer that fires frequently to handle deletions
+        backspaceTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
+            self?.handleBackspaceTimerTick()
+        }
+    }
+    
+    /// Stop the backspace timer
+    private func stopBackspaceTimer() {
+        backspaceTimer?.invalidate()
+        backspaceTimer = nil
+        backspacePressStartTime = nil
+        lastBackspaceDeleteTime = nil
+        backspaceDeleteCount = 0
+        currentDeleteInterval = initialDeleteInterval
+    }
+    
+    /// Handle each tick of the backspace timer
+    private func handleBackspaceTimerTick() {
+        guard let startTime = backspacePressStartTime else {
+            stopBackspaceTimer()
+            return
+        }
+        
+        let now = Date()
+        let elapsed = now.timeIntervalSince(startTime)
+        
+        // Only start deleting after the initial delay (2 seconds)
+        guard elapsed >= charDeleteStartDelay else {
+            return
+        }
+        
+        // Check if enough time has passed since the last delete
+        let timeSinceLastDelete: TimeInterval
+        if let lastDelete = lastBackspaceDeleteTime {
+            timeSinceLastDelete = now.timeIntervalSince(lastDelete)
+        } else {
+            // First delete after the 2-second delay
+            timeSinceLastDelete = currentDeleteInterval  // Force immediate first delete
+        }
+        
+        // If we've waited long enough, perform a delete
+        if timeSinceLastDelete >= currentDeleteInterval {
+            lastBackspaceDeleteTime = now
+            performBackspaceAction(elapsed: elapsed)
+        }
+    }
+    
+    /// Perform the appropriate backspace action based on elapsed time
+    private func performBackspaceAction(elapsed: TimeInterval) {
+        if elapsed >= wordDeleteStartDelay {
+            // After 6 seconds: delete whole words
+            print("⌫ Deleting WORD (elapsed: \(String(format: "%.1f", elapsed))s)")
+            performWordDelete()
+        } else {
+            // Between 2-6 seconds: delete characters at increasing speed
+            print("⌫ Deleting CHAR (elapsed: \(String(format: "%.1f", elapsed))s, interval: \(String(format: "%.3f", currentDeleteInterval))s)")
+            performBackspaceDelete()
+        }
+        
+        // Increase speed (decrease interval) after each delete
+        backspaceDeleteCount += 1
+        currentDeleteInterval = max(minDeleteInterval, currentDeleteInterval * deleteSpeedupFactor)
+    }
+    
+    /// Delete a single character
+    private func performBackspaceDelete() {
+        // Use the onDeleteCharacter callback if available, otherwise fall back to onKeyPress
+        if let onDeleteCharacter = onDeleteCharacter {
+            onDeleteCharacter()
+        } else {
+            // Create a backspace key and emit through onKeyPress
+            let backspaceKey = Key(
+                value: "",
+                sValue: nil,
+                caption: nil,
+                sCaption: nil,
+                type: "backspace",
+                width: nil,
+                offset: nil,
+                hidden: nil,
+                color: nil,
+                bgColor: nil,
+                label: nil,
+                keysetValue: nil,
+                nikkud: nil
+            )
+            let parsedKey = ParsedKey(from: backspaceKey, groups: [:], defaultTextColor: .black, defaultBgColor: .white)
+            onKeyPress?(parsedKey)
+        }
+    }
+    
+    /// Delete an entire word
+    private func performWordDelete() {
+        // Use the onDeleteWord callback if available
+        if let onDeleteWord = onDeleteWord {
+            onDeleteWord()
+        } else {
+            // Fall back to character delete
+            performBackspaceDelete()
+        }
     }
     
     private func getDefaultLabel(
@@ -436,7 +617,9 @@ class KeyboardRenderer {
             return "⚙"
         case "close":
             return "⬇"
-        case "language", "next-keyboard":
+        case "language":
+            return "<->"
+        case "next-keyboard":
             return "🌐"
         case "nikkud":
             return nikkudActive ? "◌ָ" : "◌"
@@ -476,10 +659,7 @@ class KeyboardRenderer {
             // Switch keyset and re-render internally
             print("   → Handling KEYSET: keysetValue='\(key.keysetValue)'")
             if !key.keysetValue.isEmpty {
-                currentKeysetId = key.keysetValue
-                shiftState = .inactive
-                nikkudActive = false  // Deactivate nikkud on keyset change
-                rerender()
+                switchKeyset(key.keysetValue)
             }
             
         case "language":
@@ -829,7 +1009,9 @@ class KeyboardRenderer {
             button.titleLabel?.font = UIFont.systemFont(ofSize: 24)
             button.titleLabel?.adjustsFontSizeToFitWidth = true
             button.titleLabel?.minimumScaleFactor = 0.5
-            button.backgroundColor = .white
+            // Use systemBackground for dark mode support
+            button.backgroundColor = UIColor.systemBackground
+            button.setTitleColor(.label, for: .normal)
             button.layer.cornerRadius = 8
             button.layer.borderWidth = 1
             button.layer.borderColor = UIColor.systemGray4.cgColor
@@ -973,7 +1155,9 @@ class KeyboardRenderer {
             button.titleLabel?.font = UIFont.systemFont(ofSize: 24)
             button.titleLabel?.adjustsFontSizeToFitWidth = true
             button.titleLabel?.minimumScaleFactor = 0.5
-            button.backgroundColor = .white
+            // Use systemBackground for dark mode support
+            button.backgroundColor = UIColor.systemBackground
+            button.setTitleColor(.label, for: .normal)
             button.layer.cornerRadius = 8
             button.layer.borderWidth = 1
             button.layer.borderColor = UIColor.systemGray4.cgColor
@@ -1147,14 +1331,15 @@ class KeyboardRenderer {
         button.titleLabel?.adjustsFontSizeToFitWidth = true
         button.titleLabel?.minimumScaleFactor = 0.6
         
-        // Raised key style with shadow
+        // Raised key style with shadow - use adaptive colors for dark mode support
         if isSelected {
             button.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.3)
             button.setTitleColor(.systemBlue, for: .normal)
             button.layer.borderWidth = 2
             button.layer.borderColor = UIColor.systemBlue.cgColor
         } else {
-            button.backgroundColor = .white
+            // Use systemBackground instead of .white for dark mode support
+            button.backgroundColor = UIColor.systemBackground
             button.setTitleColor(.label, for: .normal)
             button.layer.borderWidth = 1
             button.layer.borderColor = UIColor.systemGray4.cgColor
@@ -1448,6 +1633,52 @@ class KeyboardRenderer {
         bar.frame = CGRect(x: 0, y: 0, width: width, height: suggestionsBarHeight)
         bar.tag = 888  // Tag to identify suggestions bar
         return bar
+    }
+    
+    // MARK: - Keyset Switching
+    
+    /// Switch to a different keyset (abc, 123, #+=) while staying on the same keyboard/language
+    private func switchKeyset(_ keysetValue: String) {
+        guard !keysetValue.isEmpty, let config = config else { return }
+        
+        // Use currentKeyboardId to determine which keyboard we're on
+        // This is more reliable than extracting prefix from keyset ID
+        let keyboardId = currentKeyboardId
+        
+        // Try to find the keyset for the current keyboard
+        // Priority: 1. prefixed keyset (e.g., "he_abc"), 2. plain keyset (e.g., "abc")
+        var candidates: [String] = []
+        
+        // Add prefixed version if we know the keyboard
+        if let keyboardId = keyboardId, !keyboardId.isEmpty {
+            candidates.append("\(keyboardId)_\(keysetValue)")
+        }
+        
+        // Also try the keyset ID that matches the pattern of the current keyset
+        // If current is "he_123", target should be "he_abc"
+        if currentKeysetId.contains("_") {
+            let prefix = currentKeysetId.components(separatedBy: "_").first ?? ""
+            if !prefix.isEmpty {
+                candidates.append("\(prefix)_\(keysetValue)")
+            }
+        }
+        
+        // Finally, try the plain keyset value (for first keyboard which has no prefix)
+        candidates.append(keysetValue)
+        
+        // Find the first matching keyset
+        let allKeysetIds = config.keysets.map { $0.id }
+        let targetKeysetId = candidates.first { allKeysetIds.contains($0) }
+        
+        if let targetKeysetId = targetKeysetId {
+            print("switchKeyset: switching from '\(currentKeysetId)' to '\(targetKeysetId)' (candidates: \(candidates))")
+            currentKeysetId = targetKeysetId
+            shiftState = .inactive
+            nikkudActive = false
+            rerender()
+        } else {
+            print("⚠️ Keyset not found for value '\(keysetValue)'. Tried: \(candidates)")
+        }
     }
     
     // MARK: - Language Switching

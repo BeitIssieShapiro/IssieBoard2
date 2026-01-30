@@ -59,7 +59,12 @@ class WordCompletionManager private constructor(private val context: Context) {
      * Get word suggestions for the given prefix using current language
      */
     fun getSuggestions(prefix: String): List<String> {
-        if (prefix.isEmpty()) return emptyList()
+        if (prefix.isEmpty()) {
+            // Return default suggestions when no prefix (nothing typed yet)
+            val defaults = getDefaultSuggestions()
+            Log.d(TAG, "📚 Empty prefix, returning default suggestions: $defaults")
+            return defaults
+        }
         
         val language = currentLanguage
         if (language == null) {
@@ -84,7 +89,12 @@ class WordCompletionManager private constructor(private val context: Context) {
      * Get word suggestions using a specific language
      */
     fun getSuggestions(prefix: String, languageCode: String): List<String> {
-        if (prefix.isEmpty()) return emptyList()
+        if (prefix.isEmpty()) {
+            // Return default suggestions when no prefix (nothing typed yet)
+            val defaults = getDefaultSuggestions()
+            Log.d(TAG, "📚 Empty prefix, returning default suggestions: $defaults")
+            return defaults
+        }
         
         val engine = getEngine(languageCode)
         if (engine == null) {
@@ -122,6 +132,26 @@ class WordCompletionManager private constructor(private val context: Context) {
     fun clearCache() {
         Log.d(TAG, "📚 Clearing engine cache")
         engines.clear()
+    }
+    
+    /**
+     * Get default suggestions to show when no prefix is typed
+     * These are common words that users frequently start typing
+     * Language-specific defaults for: en, he, ar
+     */
+    private fun getDefaultSuggestions(): List<String> {
+        return getDefaultSuggestions(currentLanguage)
+    }
+    
+    /**
+     * Get language-specific default suggestions
+     */
+    private fun getDefaultSuggestions(languageCode: String?): List<String> {
+        return when (languageCode) {
+            "he" -> listOf("אני", "זה", "לא")
+            "ar" -> listOf("أنا", "هذا", "لا")
+            else -> listOf("I", "the", "I'm") // Default to English
+        }
     }
     
     /**

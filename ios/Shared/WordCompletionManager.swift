@@ -54,8 +54,10 @@ class WordCompletionManager {
     /// - Returns: Array of suggested words (max 4)
     func getSuggestions(for prefix: String) -> [String] {
         guard !prefix.isEmpty else {
-            print("📚 WordCompletionManager: Empty prefix, returning empty suggestions")
-            return []
+            // Return default suggestions when no prefix (nothing typed yet)
+            let defaults = getDefaultSuggestions()
+            print("📚 WordCompletionManager: Empty prefix, returning default suggestions: \(defaults)")
+            return defaults
         }
         
         guard let language = currentLanguage else {
@@ -87,8 +89,10 @@ class WordCompletionManager {
     /// - Returns: Array of suggested words (max 4)
     func getSuggestions(for prefix: String, language languageCode: String) -> [String] {
         guard !prefix.isEmpty else {
-            print("📚 WordCompletionManager: Empty prefix, returning empty suggestions")
-            return []
+            // Return default suggestions when no prefix (nothing typed yet)
+            let defaults = getDefaultSuggestions()
+            print("📚 WordCompletionManager: Empty prefix, returning default suggestions: \(defaults)")
+            return defaults
         }
         
         guard let engine = getEngine(for: languageCode) else {
@@ -130,6 +134,26 @@ class WordCompletionManager {
     }
     
     // MARK: - Private Helpers
+    
+    /// Get default suggestions to show when no prefix is typed
+    /// These are common words that users frequently start typing
+    /// Language-specific defaults for: en, he, ar
+    private func getDefaultSuggestions() -> [String] {
+        return getDefaultSuggestions(for: currentLanguage)
+    }
+    
+    /// Get language-specific default suggestions
+    private func getDefaultSuggestions(for languageCode: String?) -> [String] {
+        switch languageCode {
+        case "he":
+            return ["אני", "זה", "לא"]
+        case "ar":
+            return ["أنا", "هذا", "لا"]
+        default:
+            // Default to English
+            return ["I", "the", "I'm"]
+        }
+    }
     
     /// Get or load a TrieEngine for the given language
     private func getEngine(for languageCode: String) -> TrieEngine? {

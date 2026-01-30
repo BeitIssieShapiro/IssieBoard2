@@ -48,11 +48,11 @@
         },
         {
           "keys": [
-            { "type": "keyset", "keysetValue": "123", "label": "123", "width": 1.5 },
-            { "type": "next-keyboard", "width": 1 },
-            { "caption": "SPACE", "value": " ", "width": 4 },
+            { "type": "keyset", "keysetValue": "123", "label": "123" },
+            { "type": "language", "width": 1 },
+            { "caption": "SPACE", "value": " ", "width": 5 },
             { "value": ".", "sValue": "," },
-            { "type": "enter", "width": 1.5 }
+            { "type": "enter" }
           ]
         }
       ]
@@ -101,11 +101,11 @@
         },
         {
           "keys": [
-            { "type": "keyset", "keysetValue": "abc", "label": "ABC", "width": 1.5 },
-            { "type": "next-keyboard", "width": 1 },
-            { "caption": "SPACE", "value": " ", "width": 4 },
+            { "type": "keyset", "keysetValue": "abc", "label": "ABC" },
+            { "type": "language", "width": 1 },
+            { "caption": "SPACE", "value": " ", "width": 5 },
             { "value": "." },
-            { "type": "enter", "width": 1.5 }
+            { "type": "enter" }
           ]
         }
       ]
@@ -143,7 +143,7 @@
         },
         {
           "keys": [
-            { "type": "keyset", "keysetValue": "123", "label": "123", "width": 1.5 },
+            { "type": "keyset", "keysetValue": "123", "label": "123" },
             { "value": "." },
             { "value": "," },
             { "value": "?" },
@@ -154,11 +154,11 @@
         },
         {
           "keys": [
-            { "type": "keyset", "keysetValue": "abc", "label": "ABC", "width": 1.5 },
-            { "type": "next-keyboard", "width": 1 },
-            { "caption": "SPACE", "value": " ", "width": 4 },
+            { "type": "keyset", "keysetValue": "abc", "label": "ABC" },
+            { "type": "language", "width": 1 },
+            { "caption": "SPACE", "value": " ", "width": 5 },
             { "value": "." },
-            { "type": "enter", "width": 1.5 }
+            { "type": "enter" }
           ]
         }
       ]

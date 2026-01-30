@@ -1,6 +1,6 @@
 {
-  "id": "he",
-  "name": "Hebrew",
+  "id": "he_ordered",
+  "name": "Hebrew Ordered (אבג)",
   "diacritics": {
     "appliesTo": ["א", "ב", "ג", "ד", "ה", "ו", "ז", "ח", "ט", "י", "כ", "ך", "ל", "מ", "ם", "נ", "ן", "ס", "ע", "פ", "ף", "צ", "ץ", "ק", "ר", "ש", "ת"],
     "items": [
@@ -40,54 +40,52 @@
       "rows": [
         {
           "keys": [
-            { "width": 0.5, "hidden": true},
-            { "value": "ק" },
-            { "value": "ר" },
-            { "value": "א" },
+            { "value": "י" },
             { "value": "ט" },
+            { "value": "ח" },
+            { "value": "ז" },
             { "value": "ו" },
-            { "value": "ן" },
-            { "value": "ם" },
-            { "value": "פ" },
-            { "type": "backspace", "width": 1.5 }
-          ]
-        },
-        {
-          "keys": [
-            { "value": "ש" },
+            { "value": "ה" },
             { "value": "ד" },
             { "value": "ג" },
-            { "value": "כ" },
-            { "value": "ע" },
-            { "value": "י" },
-            { "value": "ח" },
-            { "value": "ל" },
-            { "value": "ך" },
-            { "value": "ף" }
-          ]
-        },
-        {
-          "keys": [
-            { "width": 0.5, "hidden": true},
-            { "value": "ז" },
-            { "value": "ס" },
             { "value": "ב" },
-            { "value": "ה" },
-            { "value": "נ" },
-            { "value": "מ" },
-            { "value": "צ" },
-            { "value": "ת" },
-            { "value": "ץ" }
+            { "value": "א" }
           ]
         },
         {
           "keys": [
-            { "type": "keyset", "keysetValue": "123", "label": "123"},
-            { "type": "language" },
-            { "caption": "רווח", "value": " ", "width": 5 },
+            { "value": "ר" },
+            { "value": "ק" },
+            { "value": "צ", "sValue": "ץ" },
+            { "value": "פ", "sValue": "ף" },
+            { "value": "ע" },
+            { "value": "ס" },
+            { "value": "נ", "sValue": "ן" },
+            { "value": "מ", "sValue": "ם" },
+            { "value": "ל" },
+            { "value": "כ", "sValue": "ך" }
+          ]
+        },
+        {
+          "keys": [
+            { "type": "backspace", "width": 1.5 },
+            { "value": "ץ" },
+            { "value": "ף" },
+            { "value": "ן" },
+            { "value": "ם" },
+            { "value": "ך" },
+            { "value": "ת" },
+            { "value": "ש" },
+            { "type": "shift", "width": 1.5 }
+          ]
+        },
+        {
+          "keys": [
+            { "type": "keyset", "keysetValue": "123", "label": "123", "width": 1.5 },
+            { "type": "next-keyboard", "width": 1 },
+            { "caption": "רווח", "value": " ", "width": 4 },
             { "value": ".", "sValue": "," },
-            { "type": "nikkud" },
-            { "type": "enter" }
+            { "type": "enter", "width": 1.5 }
           ]
         }
       ]
@@ -131,16 +129,16 @@
             { "value": "?" },
             { "value": "!" },
             { "value": "'" },
-            { "type": "backspace", "width": 1.5 }
+            { "type": "backspace", "width": 2.5 }
           ]
         },
         {
-           "keys": [
+          "keys": [
             { "type": "keyset", "keysetValue": "abc", "label": "אבג", "width": 1.5 },
-            { "caption": "רווח", "value": " ", "width": 5 },
-            { "value": ".", "sValue": "," },
-            { "type": "nikkud" },
-            { "type": "enter" }
+            { "type": "next-keyboard", "width": 1 },
+            { "caption": "רווח", "value": " ", "width": 4 },
+            { "value": "." },
+            { "type": "enter", "width": 1.5 }
           ]
         }
       ]
@@ -184,14 +182,14 @@
             { "value": "?" },
             { "value": "!" },
             { "value": "'" },
-            { "type": "backspace", "width": 1.5 }
+            { "type": "backspace", "width": 2.5 }
           ]
         },
         {
           "keys": [
             { "type": "keyset", "keysetValue": "abc", "label": "אבג", "width": 1.5 },
-            { "type": "language", "width": 1 },
-            { "caption": "רווח", "value": " ", "width": 5 },
+            { "type": "next-keyboard", "width": 1 },
+            { "caption": "רווח", "value": " ", "width": 4 },
             { "value": "." },
             { "type": "enter", "width": 1.5 }
           ]

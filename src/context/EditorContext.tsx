@@ -51,6 +51,7 @@ type EditorAction =
   | { type: 'APPLY_STYLE_TO_SELECTION'; payload: KeyStyleOverride }
   | { type: 'UPDATE_BACKGROUND_COLOR'; payload: string }
   | { type: 'UPDATE_DIACRITICS_SETTINGS'; payload: { keyboardId: string; settings: DiacriticsSettings } }
+  | { type: 'UPDATE_WORD_SUGGESTIONS'; payload: boolean }
   | { type: 'MARK_SAVED' };
 
 // Generate unique group ID
@@ -289,6 +290,14 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       };
     }
 
+    case 'UPDATE_WORD_SUGGESTIONS': {
+      return {
+        ...state,
+        config: { ...state.config, wordSuggestionsEnabled: action.payload },
+        isDirty: true,
+      };
+    }
+
     case 'MARK_SAVED':
       return {
         ...state,
@@ -372,6 +381,7 @@ interface EditorContextValue {
   setMode: (mode: 'edit' | 'test') => void;
   setConfig: (config: KeyboardConfig, styleGroups?: StyleGroup[]) => void;
   updateBackgroundColor: (color: string) => void;
+  updateWordSuggestions: (enabled: boolean) => void;
 }
 
 const EditorContext = createContext<EditorContextValue | null>(null);
@@ -471,6 +481,10 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
     dispatch({ type: 'UPDATE_BACKGROUND_COLOR', payload: color });
   }, []);
 
+  const updateWordSuggestions = useCallback((enabled: boolean) => {
+    dispatch({ type: 'UPDATE_WORD_SUGGESTIONS', payload: enabled });
+  }, []);
+
   const value: EditorContextValue = {
     state,
     dispatch,
@@ -493,6 +507,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
     setMode,
     setConfig,
     updateBackgroundColor,
+    updateWordSuggestions,
   };
 
   return <EditorContext.Provider value={value}>{children}</EditorContext.Provider>;

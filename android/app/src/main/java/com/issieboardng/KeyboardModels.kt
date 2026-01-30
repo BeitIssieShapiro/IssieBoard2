@@ -110,6 +110,7 @@ data class EditorContext(
 sealed class KeyEvent {
     data class TextInput(val text: String) : KeyEvent()
     object Backspace : KeyEvent()
+    object DeleteWord : KeyEvent()  // For long-press backspace - delete entire word
     data class Enter(val actionId: Int) : KeyEvent()
     object Settings : KeyEvent()
     object Close : KeyEvent()

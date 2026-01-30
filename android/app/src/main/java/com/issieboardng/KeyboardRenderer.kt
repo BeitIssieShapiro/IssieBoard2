@@ -3,7 +3,10 @@ package com.issieboardng
 import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
+import android.view.MotionEvent
 import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
@@ -121,6 +124,32 @@ class KeyboardRenderer(
     
     /** Flag to track if popup was just dismissed - skip next key click */
     private var popupJustDismissed: Boolean = false
+    
+    // ============================================================================
+    // LONG PRESS BACKSPACE STATE
+    // ============================================================================
+    
+    /** Handler for scheduling backspace deletions */
+    private val backspaceHandler = Handler(Looper.getMainLooper())
+    
+    /** Runnable for handling backspace long-press */
+    private var backspaceRunnable: Runnable? = null
+    
+    /** Time when backspace was first pressed */
+    private var backspacePressStartTime: Long = 0
+    
+    /** Count of deletions performed in current long-press */
+    private var backspaceDeleteCount: Int = 0
+    
+    /** Current deletion interval (decreases as user holds longer) */
+    private var currentDeleteInterval: Long = 200
+    
+    // Long-press timing constants (in milliseconds)
+    private val CHAR_DELETE_START_DELAY = 2000L    // Start deleting after 2 seconds
+    private val WORD_DELETE_START_DELAY = 6000L   // Switch to word delete after 6 seconds
+    private val INITIAL_DELETE_INTERVAL = 200L    // Initial delete interval (200ms)
+    private val MIN_DELETE_INTERVAL = 50L         // Minimum delete interval (50ms)
+    private val DELETE_SPEEDUP_FACTOR = 0.9       // Speed up factor per delete
     
     // ============================================================================
     // PUBLIC API
@@ -304,34 +333,47 @@ class KeyboardRenderer(
     
     /**
      * Switch to a different keyset (abc, 123, #+=)
-     * Maintains the current keyboard/language prefix
+     * Maintains the current keyboard/language
      */
     private fun switchKeyset(keysetValue: String) {
         if (keysetValue.isEmpty()) return
         
         val config = currentConfig ?: return
         
-        // Extract the keyboard prefix from current keyset ID (e.g., "he_abc" -> "he")
-        val keyboardPrefix = if (currentKeysetId.contains("_")) {
-            currentKeysetId.substringBefore("_")
-        } else {
-            ""
+        // Use currentKeyboardId to determine which keyboard we're on
+        // This is more reliable than extracting prefix from keyset ID
+        val keyboardId = currentKeyboardId
+        
+        // Try to find the keyset for the current keyboard
+        // Priority: 1. prefixed keyset (e.g., "he_abc"), 2. plain keyset (e.g., "abc")
+        val candidates = mutableListOf<String>()
+        
+        // Add prefixed version if we know the keyboard
+        if (!keyboardId.isNullOrEmpty()) {
+            candidates.add("${keyboardId}_${keysetValue}")
         }
         
-        // Build target keyset ID with same keyboard prefix
-        val targetKeysetId = if (keyboardPrefix.isNotEmpty()) {
-            "${keyboardPrefix}_${keysetValue}"
-        } else {
-            keysetValue
+        // Also try the keyset ID that matches the pattern of the current keyset
+        // If current is "he_123", target should be "he_abc"
+        if (currentKeysetId.contains("_")) {
+            val prefix = currentKeysetId.substringBefore("_")
+            candidates.add("${prefix}_${keysetValue}")
         }
         
-        if (config.keysets.containsKey(targetKeysetId)) {
+        // Finally, try the plain keyset value (for first keyboard which has no prefix)
+        candidates.add(keysetValue)
+        
+        // Find the first matching keyset
+        val targetKeysetId = candidates.firstOrNull { config.keysets.containsKey(it) }
+        
+        if (targetKeysetId != null) {
+            Log.d(logTag, "switchKeyset: switching from '$currentKeysetId' to '$targetKeysetId' (candidates: $candidates)")
             currentKeysetId = targetKeysetId
             // Reset shift state when changing keysets
             shiftState = ShiftState.Inactive
             rerender()
         } else {
-            Log.w(logTag, "Keyset not found: $targetKeysetId")
+            Log.w(logTag, "Keyset not found for value '$keysetValue'. Tried: $candidates")
         }
     }
     
@@ -408,6 +450,9 @@ class KeyboardRenderer(
     ): Float {
         var maxRowWidth = 0f
         
+        // Check if we have only one language (keyboard)
+        val hasOnlyOneLanguage = (currentConfig?.keyboards?.size ?: 0) <= 1
+        
         for (rowKeys in rows) {
             var rowWidth = 0f
             for (key in rowKeys) {
@@ -415,6 +460,12 @@ class KeyboardRenderer(
                 if (editorContext != null && 
                     (key.type.lowercase() == "enter" || key.type.lowercase() == "action") && 
                     !editorContext.enterVisible) {
+                    continue
+                }
+                
+                // Skip language/next-keyboard keys if only one language
+                val keyType = key.type.lowercase()
+                if (hasOnlyOneLanguage && (keyType == "language" || keyType == "next-keyboard")) {
                     continue
                 }
                 
@@ -458,11 +509,22 @@ class KeyboardRenderer(
         rowIndex: Int
     ) {
         var keyIndex = 0
+        
+        // Check if we have only one language (keyboard)
+        val hasOnlyOneLanguage = (currentConfig?.keyboards?.size ?: 0) <= 1
+        
         for (key in rowKeys) {
             // Skip enter/action keys if not visible
             if (editorContext != null &&
                 (key.type.lowercase() == "enter" || key.type.lowercase() == "action") &&
                 !editorContext.enterVisible) {
+                keyIndex++
+                continue
+            }
+            
+            // Skip language/next-keyboard keys if only one language
+            val keyType = key.type.lowercase()
+            if (hasOnlyOneLanguage && (keyType == "language" || keyType == "next-keyboard")) {
                 keyIndex++
                 continue
             }
@@ -573,10 +635,129 @@ class KeyboardRenderer(
             isEnabled = keyEnabled
             alpha = if (keyEnabled) 1.0f else 0.4f
             
+            // For backspace key, add touch listener for long-press handling
+            if (key.type.lowercase() == "backspace") {
+                setOnTouchListener { view, event ->
+                    when (event.action) {
+                        MotionEvent.ACTION_DOWN -> {
+                            handleBackspaceTouchDown()
+                            false // Return false to allow click event for single tap
+                        }
+                        MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                            handleBackspaceTouchUp()
+                            false
+                        }
+                        else -> false
+                    }
+                }
+            }
+            
             setOnClickListener {
                 handleKeyClick(key, this, editorContext)
             }
         }
+    }
+    
+    // ============================================================================
+    // BACKSPACE LONG PRESS HANDLING
+    // ============================================================================
+    
+    /**
+     * Called when backspace button is touched down
+     */
+    private fun handleBackspaceTouchDown() {
+        Log.d(logTag, "⌫ Backspace touch DOWN")
+        
+        // Record the start time
+        backspacePressStartTime = System.currentTimeMillis()
+        backspaceDeleteCount = 0
+        currentDeleteInterval = INITIAL_DELETE_INTERVAL
+        
+        // Start the runnable to handle continuous deletion
+        startBackspaceRepeat()
+    }
+    
+    /**
+     * Called when backspace button is released or touch cancelled
+     */
+    private fun handleBackspaceTouchUp() {
+        Log.d(logTag, "⌫ Backspace touch UP")
+        stopBackspaceRepeat()
+    }
+    
+    /**
+     * Start the backspace repeat runnable
+     */
+    private fun startBackspaceRepeat() {
+        stopBackspaceRepeat()
+        
+        backspaceRunnable = object : Runnable {
+            override fun run() {
+                handleBackspaceTimerTick()
+                // Schedule next tick
+                backspaceHandler.postDelayed(this, 50)
+            }
+        }
+        
+        // Start the timer after initial delay
+        backspaceHandler.postDelayed(backspaceRunnable!!, 50)
+    }
+    
+    /**
+     * Stop the backspace repeat
+     */
+    private fun stopBackspaceRepeat() {
+        backspaceRunnable?.let {
+            backspaceHandler.removeCallbacks(it)
+        }
+        backspaceRunnable = null
+        backspacePressStartTime = 0
+        backspaceDeleteCount = 0
+        currentDeleteInterval = INITIAL_DELETE_INTERVAL
+    }
+    
+    /**
+     * Handle each tick of the backspace timer
+     */
+    private fun handleBackspaceTimerTick() {
+        if (backspacePressStartTime == 0L) {
+            stopBackspaceRepeat()
+            return
+        }
+        
+        val elapsed = System.currentTimeMillis() - backspacePressStartTime
+        
+        // Only start deleting after the initial delay (2 seconds)
+        if (elapsed < CHAR_DELETE_START_DELAY) {
+            return
+        }
+        
+        // Check if we should delete now based on current interval
+        val timeSinceLastAction = elapsed % currentDeleteInterval
+        
+        // If we're at the start of a new interval, perform delete
+        if (timeSinceLastAction < 50) {
+            performBackspaceAction(elapsed)
+        }
+    }
+    
+    /**
+     * Perform the appropriate backspace action based on elapsed time
+     */
+    private fun performBackspaceAction(elapsed: Long) {
+        if (elapsed >= WORD_DELETE_START_DELAY) {
+            // After 6 seconds: delete whole words
+            Log.d(logTag, "⌫ Deleting WORD (elapsed: ${elapsed}ms)")
+            onKeyEvent?.invoke(KeyEvent.DeleteWord)
+        } else {
+            // Between 2-6 seconds: delete characters at increasing speed
+            Log.d(logTag, "⌫ Deleting CHAR (elapsed: ${elapsed}ms, interval: ${currentDeleteInterval}ms)")
+            onKeyEvent?.invoke(KeyEvent.Backspace)
+        }
+        
+        // Increase speed (decrease interval) after each delete
+        backspaceDeleteCount++
+        currentDeleteInterval = maxOf(MIN_DELETE_INTERVAL, (currentDeleteInterval * DELETE_SPEEDUP_FACTOR).toLong())
     }
     
     private fun determineTextSize(type: String, label: String, normalSize: Float, largeSize: Float): Float {

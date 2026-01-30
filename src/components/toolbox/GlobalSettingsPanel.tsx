@@ -3,8 +3,8 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   ScrollView,
+  Switch,
 } from 'react-native';
 import { useEditor } from '../../context/EditorContext';
 import { ColorPicker } from '../shared/ColorPicker';
@@ -20,7 +20,11 @@ export const GlobalSettingsPanel: React.FC = () => {
   const { 
     state, 
     updateBackgroundColor,
+    updateWordSuggestions,
   } = useEditor();
+
+  // Get current word suggestions setting (default to true)
+  const wordSuggestionsEnabled = state.config.wordSuggestionsEnabled !== false;
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -61,6 +65,25 @@ export const GlobalSettingsPanel: React.FC = () => {
           onChange={updateBackgroundColor}
           presets={BACKGROUND_PRESETS}
         />
+      </View>
+
+      {/* Features */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Features</Text>
+        <View style={styles.featureRow}>
+          <View style={styles.featureInfo}>
+            <Text style={styles.featureLabel}>Word Suggestions</Text>
+            <Text style={styles.featureDescription}>
+              Show word completion suggestions above keyboard
+            </Text>
+          </View>
+          <Switch
+            value={wordSuggestionsEnabled}
+            onValueChange={updateWordSuggestions}
+            trackColor={{ false: '#CCCCCC', true: '#81C784' }}
+            thumbColor={wordSuggestionsEnabled ? '#4CAF50' : '#F5F5F5'}
+          />
+        </View>
       </View>
 
       {/* Stats */}
@@ -109,6 +132,18 @@ const styles = StyleSheet.create({
   content: { padding: 16, paddingBottom: 32 },
   section: { marginBottom: 24 },
   sectionTitle: { fontSize: 14, fontWeight: '600', color: '#333', marginBottom: 12 },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F5F5F5',
+    padding: 14,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  featureInfo: { flex: 1, marginRight: 12 },
+  featureLabel: { fontSize: 15, fontWeight: '500', color: '#333' },
+  featureDescription: { fontSize: 12, color: '#666', marginTop: 4 },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   statItem: {
     flex: 1,

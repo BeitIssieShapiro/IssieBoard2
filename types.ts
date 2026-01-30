@@ -155,6 +155,7 @@ export interface KeyboardConfig {
     diacritics?: DiacriticsDefinition;  // Backward compatibility: merged diacritics from keyboard definition
     allDiacritics?: Record<string, DiacriticsDefinition>;  // Per-keyboard diacritics definitions
     diacriticsSettings?: Record<string, DiacriticsSettings>;  // From profile
+    wordSuggestionsEnabled?: boolean;  // Whether word suggestions bar is shown (default: true)
 }
 
 // Config from storage - could be a built KeyboardConfig or ProfileDefinition that needs building

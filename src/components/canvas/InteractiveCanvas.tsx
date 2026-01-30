@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
   },
   preview: {
-    height: 280,
+    height: 380,  // Height for 5 rows + suggestions bar: 44 (suggestions) + 4 (top) + 5*50 (rows) + 4*10 (spacing) + 4 (bottom) = 342 + buffer
   },
 });
 

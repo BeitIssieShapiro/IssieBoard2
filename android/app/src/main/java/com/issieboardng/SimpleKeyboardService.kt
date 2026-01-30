@@ -390,6 +390,14 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
                     detectCurrentWord()
                 }
             }
+            is KeyEvent.DeleteWord -> {
+                deleteWord()
+                // Update word state after word deletion
+                if (wordSuggestionsEnabled) {
+                    currentWord.clear()
+                    detectCurrentWord()
+                }
+            }
             is KeyEvent.Enter -> {
                 currentInputConnection?.performEditorAction(event.actionId)
                 // Clear current word on enter
@@ -424,6 +432,53 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
                 }
                 Log.d(TAG, "Custom key event: ${event.key.type}")
             }
+        }
+    }
+    
+    // ============================================================================
+    // WORD DELETION
+    // ============================================================================
+    
+    /**
+     * Delete an entire word (for backspace long-press after 6 seconds)
+     * Deletes characters going backwards until it hits a word boundary (space, newline, etc.)
+     */
+    private fun deleteWord() {
+        val ic = currentInputConnection ?: return
+        
+        // Get text before cursor to find word boundary
+        val beforeText = ic.getTextBeforeCursor(100, 0)?.toString()
+        if (beforeText.isNullOrEmpty()) {
+            // No text before cursor, just delete one character
+            ic.deleteSurroundingText(1, 0)
+            return
+        }
+        
+        // Find the start of the current word (going backwards from cursor)
+        var charsToDelete = 0
+        var foundNonSpace = false
+        
+        for (char in beforeText.reversed()) {
+            if (char == ' ' || char == '\n' || char == '\t') {
+                if (foundNonSpace) {
+                    // We've found a word boundary
+                    break
+                }
+                // Still in trailing spaces, continue
+                charsToDelete++
+            } else {
+                foundNonSpace = true
+                charsToDelete++
+            }
+        }
+        
+        // Delete the word
+        if (charsToDelete > 0) {
+            Log.d(TAG, "⌫ Deleting $charsToDelete characters (word delete)")
+            ic.deleteSurroundingText(charsToDelete, 0)
+        } else {
+            // Fallback: delete one character
+            ic.deleteSurroundingText(1, 0)
         }
     }
     

@@ -58,7 +58,6 @@
         },
         {
           "keys": [
-            { "type": "shift", "width": 1.5 },
             { "value": "ء" },
             { "value": "ؤ" },
             { "value": "ر" },
@@ -72,11 +71,11 @@
         },
         {
           "keys": [
-            { "type": "keyset", "keysetValue": "123", "label": "123", "width": 1.5 },
-            { "type": "next-keyboard", "width": 1 },
-            { "caption": "مسافة", "value": " ", "width": 4 },
+            { "type": "keyset", "keysetValue": "123", "label": "123"},
+            { "type": "language", "width": 1 },
+            { "caption": "مسافة", "value": " ", "width": 5 },
             { "value": ".", "sValue": "،" },
-            { "type": "enter", "width": 1.5 }
+            { "type": "enter" }
           ]
         }
       ]
@@ -120,14 +119,14 @@
             { "value": "؟" },
             { "value": "!" },
             { "value": "'" },
-            { "type": "backspace", "width": 2.5 }
+            { "type": "backspace", "width": 1.5 }
           ]
         },
         {
           "keys": [
-            { "type": "keyset", "keysetValue": "abc", "label": "أبج", "width": 1.5 },
-            { "type": "next-keyboard", "width": 1 },
-            { "caption": "مسافة", "value": " ", "width": 4 },
+            { "type": "keyset", "keysetValue": "abc", "label": "أبج" },
+            { "type": "language", "width": 1 },
+            { "caption": "مسافة", "value": " ", "width": 5 },
             { "value": "." },
             { "type": "enter", "width": 1.5 }
           ]
@@ -178,11 +177,11 @@
         },
         {
           "keys": [
-            { "type": "keyset", "keysetValue": "abc", "label": "أبج", "width": 1.5 },
-            { "type": "next-keyboard", "width": 1 },
-            { "caption": "مسافة", "value": " ", "width": 4 },
+            { "type": "keyset", "keysetValue": "abc", "label": "أبج" },
+            { "type": "language", "width": 1 },
+            { "caption": "مسافة", "value": " ", "width": 5 },
             { "value": "." },
-            { "type": "enter", "width": 1.5 }
+            { "type": "enter"}
           ]
         }
       ]

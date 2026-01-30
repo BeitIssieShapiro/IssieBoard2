@@ -25,20 +25,113 @@ import AddProfileModal from '../../components/AddProfileModal';
 // Import keyboard and profile files
 import enKeyboard from '../../keyboards/en.json';
 import heKeyboard from '../../keyboards/he.json';
+import heOrderedKeyboard from '../../keyboards/he_ordered.json';
 import arKeyboard from '../../keyboards/ar.json';
 import defaultProfile from '../../profiles/default.json';
 import multilingualProfile from '../../profiles/multilingual.json';
+import hebrewOrderedProfile from '../../profiles/hebrew_ordered.json';
 
 // Available keyboards and profiles
 const KEYBOARDS: Record<string, KeyboardDefinition> = {
   'en': enKeyboard,
   'he': heKeyboard,
+  'he_ordered': heOrderedKeyboard,
   'ar': arKeyboard,
 };
 
 const PROFILES: Record<string, ProfileDefinition> = {
   'default': defaultProfile,
   'multilingual': multilingualProfile,
+  'hebrew_ordered': hebrewOrderedProfile,
+};
+
+/**
+ * Normalized profile definition - stored in preferences
+ * Contains only references and customizations, not the full keyset data
+ */
+interface SavedProfileDefinition {
+  id: string;
+  name: string;
+  version: string;
+  keyboards: string[];
+  defaultKeyboard?: string;
+  defaultKeyset?: string;
+  backgroundColor?: string;
+  systemRow?: {
+    enabled: boolean;
+    keys: any[];
+  };
+  groups?: any[];
+  diacritics?: Record<string, any>;  // Per-keyboard diacritics settings
+}
+
+/**
+ * Extract normalized profile definition from a full config
+ * This is what gets saved to storage
+ */
+const extractProfileDefinition = (
+  config: KeyboardConfig,
+  profileId: string,
+  profileName: string
+): SavedProfileDefinition => {
+  return {
+    id: profileId,
+    name: profileName,
+    version: '1.0.0',
+    keyboards: config.keyboards || [],
+    defaultKeyboard: config.defaultKeyboard,
+    defaultKeyset: config.defaultKeyset,
+    backgroundColor: config.backgroundColor,
+    // Extract system row from first keyset if present
+    systemRow: extractSystemRow(config),
+    groups: config.groups,
+    diacritics: config.diacriticsSettings,
+  };
+};
+
+/**
+ * Extract system row configuration from config
+ */
+const extractSystemRow = (config: KeyboardConfig): { enabled: boolean; keys: any[] } | undefined => {
+  // System row is typically the first row of the first keyset
+  // Check if it contains system keys (settings, backspace, enter, close, language, nikkud)
+  if (config.keysets.length === 0) return undefined;
+  
+  const firstKeyset = config.keysets[0];
+  if (firstKeyset.rows.length === 0) return undefined;
+  
+  const firstRow = firstKeyset.rows[0];
+  const systemTypes = ['settings', 'backspace', 'enter', 'close', 'language', 'next-keyboard', 'nikkud'];
+  
+  // Check if most keys in the first row are system keys
+  const systemKeyCount = firstRow.keys.filter(k => systemTypes.includes(k.type?.toLowerCase() || '')).length;
+  
+  if (systemKeyCount >= firstRow.keys.length / 2) {
+    return {
+      enabled: true,
+      keys: firstRow.keys,
+    };
+  }
+  
+  return undefined;
+};
+
+/**
+ * Check if a stored config is in the old format (full keyset data) or new format (profile definition)
+ */
+const isOldFormatConfig = (stored: any): boolean => {
+  // Old format has keysets array with rows
+  // New format has keyboards array but no keysets (or minimal keysets)
+  return stored.keysets && Array.isArray(stored.keysets) && stored.keysets.length > 0 &&
+         stored.keysets[0].rows && Array.isArray(stored.keysets[0].rows);
+};
+
+/**
+ * Migrate old format config to new profile definition format
+ */
+const migrateOldConfig = (oldConfig: KeyboardConfig, profileId: string, profileName: string): SavedProfileDefinition => {
+  console.log(`📦 Migrating old format config for "${profileName}" to new format`);
+  return extractProfileDefinition(oldConfig, profileId, profileName);
 };
 
 /**
@@ -274,6 +367,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       let loadedStyleGroups: any[] = [];
       
       if (profile.isBuiltIn) {
+        // Built-in profile: always build fresh from bundled JSON
         const builtInProfile = PROFILES[profile.id];
         if (builtInProfile) {
           config = buildConfiguration(builtInProfile);
@@ -281,11 +375,35 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
           throw new Error('Profile not found');
         }
       } else {
-        const storedConfig = await KeyboardPreferences.getProfileObject(profile.id);
-        if (storedConfig) {
-          config = storedConfig as KeyboardConfig;
+        // Custom profile: load normalized definition and rebuild
+        // First try the new format (profile_def_*)
+        const profileDefJson = await KeyboardPreferences.getProfile(`profile_def_${profile.id}`);
+        
+        if (profileDefJson) {
+          // New format: normalized profile definition
+          const profileDef = JSON.parse(profileDefJson) as SavedProfileDefinition;
+          console.log(`📦 Loading normalized profile: ${profileDef.name}`);
+          console.log(`   keyboards: ${profileDef.keyboards.join(', ')}`);
+          
+          // Build fresh config from keyboards + apply customizations
+          config = buildConfiguration(profileDef as ProfileDefinition);
+          
+          // Apply saved customizations that aren't rebuilt
+          if (profileDef.groups) {
+            config.groups = profileDef.groups;
+          }
+          if (profileDef.diacritics) {
+            config.diacriticsSettings = profileDef.diacritics;
+          }
         } else {
-          throw new Error('Custom profile not found');
+          // Fallback: try old format (full config)
+          const storedConfig = await KeyboardPreferences.getProfileObject(profile.id);
+          if (storedConfig) {
+            console.log(`📦 Loading old format config for "${profile.name}" - will migrate on next save`);
+            config = storedConfig as KeyboardConfig;
+          } else {
+            throw new Error('Custom profile not found');
+          }
         }
       }
       
@@ -855,8 +973,15 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
   }, [propProfileId]);
 
   const handleSave = useCallback(async (config: KeyboardConfig, styleGroups: any[]) => {
-    // Save the config to storage so it persists across app restarts
-    await KeyboardPreferences.setProfileObject(config, currentProfileId);
+    // Extract and save the normalized profile definition (not the full config)
+    // This way, keyboard updates from bundled JSON files will take effect
+    const profileDef = extractProfileDefinition(config, currentProfileId, profileName);
+    
+    // Save the normalized profile definition
+    await KeyboardPreferences.setProfile(
+      JSON.stringify(profileDef),
+      `profile_def_${currentProfileId}`
+    );
     
     // Save style groups separately for the editor to reload
     await KeyboardPreferences.setProfile(
@@ -864,13 +989,16 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
       `${currentProfileId}_styleGroups`
     );
     
-    // If this is the active profile, also update the keyboard extension
+    // If this is the active profile, build the full config and update the keyboard extension
+    // The keyboard extension needs the de-normalized (full) config
     if (currentProfileId === activeKeyboardProfileId) {
       await KeyboardPreferences.setKeyboardConfigObject(config);
     }
     
-    console.log(`✅ Saved config and ${styleGroups.length} style groups for profile "${currentProfileId}"`);
-  }, [currentProfileId, activeKeyboardProfileId]);
+    console.log(`✅ Saved normalized profile definition for "${profileName}" (${currentProfileId})`);
+    console.log(`   keyboards: ${profileDef.keyboards.join(', ')}`);
+    console.log(`   groups: ${profileDef.groups?.length || 0}`);
+  }, [currentProfileId, activeKeyboardProfileId, profileName]);
 
   const handleSetActive = useCallback(async () => {
     // Set this profile as the active one for the keyboard
@@ -897,7 +1025,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
     // Generate a unique ID for the new profile
     const newProfileId = `custom_${Date.now()}`;
     
-    // Get current config
+    // Get current config to extract profile definition
     let config: KeyboardConfig;
     const storedConfig = await KeyboardPreferences.getProfileObject(currentProfileId);
     if (storedConfig) {
@@ -911,8 +1039,12 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
       }
     }
     
-    // Save the duplicated config
-    await KeyboardPreferences.setProfileObject(config, newProfileId);
+    // Extract and save the normalized profile definition (two-layer approach)
+    const profileDef = extractProfileDefinition(config, newProfileId, newName);
+    await KeyboardPreferences.setProfile(
+      JSON.stringify(profileDef),
+      `profile_def_${newProfileId}`
+    );
     
     // Copy style groups too
     try {
@@ -939,6 +1071,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
     setProfileName(newName);
     
     console.log(`✅ Duplicated profile as "${newName}" (${newProfileId})`);
+    console.log(`   keyboards: ${profileDef.keyboards.join(', ')}`);
   }, [currentProfileId]);
 
   const handleDelete = useCallback(async () => {
@@ -978,10 +1111,10 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
   }, []);
 
   const handleCreateNew = useCallback(async (name: string, languages: string[]) => {
-    // Create a new profile definition
+    // Create a new normalized profile definition (two-layer approach)
     const newProfileId = `custom_${Date.now()}`;
     
-    const newProfile: ProfileDefinition = {
+    const profileDef: SavedProfileDefinition = {
       id: newProfileId,
       name: name,
       version: '1.0.0',
@@ -1026,11 +1159,14 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
       ],
     };
 
-    // Build the configuration from the profile
-    const config = buildConfiguration(newProfile);
+    // Save the normalized profile definition (two-layer approach)
+    await KeyboardPreferences.setProfile(
+      JSON.stringify(profileDef),
+      `profile_def_${newProfileId}`
+    );
 
-    // Save the profile definition
-    await KeyboardPreferences.setProfileObject(config, newProfileId);
+    // Build the full configuration for display
+    const config = buildConfiguration(profileDef as ProfileDefinition);
 
     // Add to saved profiles list
     let savedList: { name: string; key: string }[] = [];
@@ -1051,6 +1187,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
     setInitialStyleGroups([]);
 
     console.log(`✅ Created new profile "${name}" with languages: ${languages.join(', ')}`);
+    console.log(`   (normalized profile definition saved, keyboards will always be fresh)`);
   }, []);
 
   // Check if current profile is a custom (non-built-in) profile

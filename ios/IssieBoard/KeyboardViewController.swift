@@ -113,6 +113,15 @@ class KeyboardViewController: UIInputViewController {
             self?.handleKeyPress(key)
         }
         
+        // Set up backspace long-press callbacks
+        renderer.onDeleteCharacter = { [weak self] in
+            self?.deleteCharacter()
+        }
+        
+        renderer.onDeleteWord = { [weak self] in
+            self?.deleteWord()
+        }
+        
         renderer.onNikkudSelected = { [weak self] value in
             self?.textDocumentProxy.insertText(value)
             // Clear current word after nikkud selection
@@ -351,6 +360,63 @@ class KeyboardViewController: UIInputViewController {
         }
         
         return (true, enterLabel, returnKeyType.rawValue)
+    }
+    
+    // MARK: - Backspace Actions
+    
+    /// Delete a single character (for backspace long-press)
+    private func deleteCharacter() {
+        textDocumentProxy.deleteBackward()
+        // Update current word after backspace
+        if !currentWord.isEmpty {
+            currentWord.removeLast()
+            updateWordSuggestions()
+        } else {
+            detectCurrentWord()
+        }
+    }
+    
+    /// Delete an entire word (for backspace long-press after 6 seconds)
+    private func deleteWord() {
+        // Get text before cursor to find word boundary
+        guard let beforeText = textDocumentProxy.documentContextBeforeInput, !beforeText.isEmpty else {
+            // No text before cursor, just delete one character
+            textDocumentProxy.deleteBackward()
+            return
+        }
+        
+        // Find the start of the current word (going backwards from cursor)
+        var charsToDelete = 0
+        var foundNonSpace = false
+        
+        for char in beforeText.reversed() {
+            if char == " " || char == "\n" || char == "\t" {
+                if foundNonSpace {
+                    // We've found a word boundary
+                    break
+                }
+                // Still in trailing spaces, continue
+                charsToDelete += 1
+            } else {
+                foundNonSpace = true
+                charsToDelete += 1
+            }
+        }
+        
+        // Delete the word
+        if charsToDelete > 0 {
+            print("⌫ Deleting \(charsToDelete) characters (word delete)")
+            for _ in 0..<charsToDelete {
+                textDocumentProxy.deleteBackward()
+            }
+        } else {
+            // Fallback: delete one character
+            textDocumentProxy.deleteBackward()
+        }
+        
+        // Update word state
+        currentWord = ""
+        detectCurrentWord()
     }
     
     // MARK: - Key Press Handling
