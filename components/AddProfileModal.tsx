@@ -1,61 +1,100 @@
-import { useState } from "react";
-import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useState, useEffect } from "react";
+import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView } from "react-native";
 import { useLocalization } from "../src/localization";
+
+type LanguageId = 'he' | 'en' | 'ar';
+
+interface LanguageDefinition {
+  id: LanguageId;
+  name: string;
+  nativeName: string;
+  keyboards: { id: string; name: string }[];
+}
+
+const LANGUAGES: LanguageDefinition[] = [
+  {
+    id: 'he',
+    name: 'Hebrew',
+    nativeName: 'עברית',
+    keyboards: [
+      { id: 'he', name: 'Standard' },
+      { id: 'he_ordered', name: 'Ordered (א-ב)' },
+    ],
+  },
+  {
+    id: 'en',
+    name: 'English',
+    nativeName: 'English',
+    keyboards: [
+      { id: 'en', name: 'QWERTY' },
+    ],
+  },
+  {
+    id: 'ar',
+    name: 'Arabic',
+    nativeName: 'العربية',
+    keyboards: [
+      { id: 'ar', name: 'Standard' },
+    ],
+  },
+];
 
 interface AddProfileModalProps {
   visible: boolean;
   onClose: () => void;
-  onCreate: (name: string, selectedLanguages: string[]) => void;
+  onCreate: (name: string, language: string, keyboardId: string) => void;
+  initialLanguage?: LanguageId;
 }
 
-const AVAILABLE_LANGUAGES = [
-  { id: 'en', name: 'English' },
-  { id: 'he', name: 'עברית (Hebrew)' },
-  { id: 'ar', name: 'العربية (Arabic)' },
-];
-
-const AddProfileModal = ({ visible, onClose, onCreate }: AddProfileModalProps) => {
+const AddProfileModal = ({ visible, onClose, onCreate, initialLanguage = 'he' }: AddProfileModalProps) => {
   const { strings } = useLocalization();
   const [profileName, setProfileName] = useState('');
-  const [selectedLanguages, setSelectedLanguages] = useState<string[]>(['en']);
+  const [selectedLanguage, setSelectedLanguage] = useState<LanguageId>(initialLanguage);
+  const [selectedKeyboard, setSelectedKeyboard] = useState<string>('');
 
-  const toggleLanguage = (langId: string) => {
-    setSelectedLanguages(prev => {
-      if (prev.includes(langId)) {
-        // Don't allow deselecting if it's the last one
-        if (prev.length === 1) {
-          return prev;
-        }
-        return prev.filter(id => id !== langId);
-      } else {
-        return [...prev, langId];
+  // Get current language definition
+  const currentLangDef = LANGUAGES.find(l => l.id === selectedLanguage) || LANGUAGES[0];
+
+  // Update keyboard when language changes
+  useEffect(() => {
+    const langDef = LANGUAGES.find(l => l.id === selectedLanguage);
+    if (langDef && langDef.keyboards.length > 0) {
+      setSelectedKeyboard(langDef.keyboards[0].id);
+    }
+  }, [selectedLanguage]);
+
+  // Reset state when modal opens with initial language
+  useEffect(() => {
+    if (visible) {
+      setSelectedLanguage(initialLanguage);
+      const langDef = LANGUAGES.find(l => l.id === initialLanguage);
+      if (langDef && langDef.keyboards.length > 0) {
+        setSelectedKeyboard(langDef.keyboards[0].id);
       }
-    });
-  };
+    }
+  }, [visible, initialLanguage]);
 
   const handleCreate = () => {
     if (!profileName.trim()) {
       return;
     }
-    if (selectedLanguages.length === 0) {
+    if (!selectedKeyboard) {
       return;
     }
-    onCreate(profileName.trim(), selectedLanguages);
+    onCreate(profileName.trim(), selectedLanguage, selectedKeyboard);
     // Reset state
     setProfileName('');
-    setSelectedLanguages(['en']);
   };
 
   const handleClose = () => {
     // Reset state
     setProfileName('');
-    setSelectedLanguages(['en']);
     onClose();
   };
 
   if (!visible) return null;
 
-  const isCreateDisabled = !profileName.trim() || selectedLanguages.length === 0;
+  const isCreateDisabled = !profileName.trim() || !selectedKeyboard;
 
   return (
     <Modal
@@ -74,45 +113,63 @@ const AddProfileModal = ({ visible, onClose, onCreate }: AddProfileModalProps) =
             style={styles.input}
             value={profileName}
             onChangeText={setProfileName}
-            placeholder={strings.profileNamePlaceholder || 'Profile name'}
+            placeholder={strings.profileNamePlaceholder || 'My Custom Keyboard'}
             autoFocus
           />
 
           {/* Language Selection */}
-          <Text style={styles.label}>{strings.selectLanguages || 'Select Languages'}</Text>
-          <Text style={styles.hint}>{strings.atLeastOneLanguage || 'At least one language must be selected'}</Text>
-          
-          <View style={styles.languagesContainer}>
-            {AVAILABLE_LANGUAGES.map(lang => {
-              const isSelected = selectedLanguages.includes(lang.id);
-              const isLastSelected = isSelected && selectedLanguages.length === 1;
-              
-              return (
-                <TouchableOpacity
-                  key={lang.id}
-                  style={[
-                    styles.languageItem,
-                    isSelected && styles.languageItemSelected,
-                  ]}
-                  onPress={() => toggleLanguage(lang.id)}
-                  activeOpacity={isLastSelected ? 1 : 0.7}
-                >
-                  <View style={[
-                    styles.checkbox,
-                    isSelected && styles.checkboxSelected,
-                  ]}>
-                    {isSelected && <Text style={styles.checkmark}>✓</Text>}
-                  </View>
-                  <Text style={[
-                    styles.languageName,
-                    isSelected && styles.languageNameSelected,
-                  ]}>
-                    {lang.name}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+          <Text style={styles.label}>Language</Text>
+          <View style={styles.languageContainer}>
+            {LANGUAGES.map(lang => (
+              <TouchableOpacity
+                key={lang.id}
+                style={[
+                  styles.languageOption,
+                  selectedLanguage === lang.id && styles.languageOptionSelected,
+                ]}
+                onPress={() => setSelectedLanguage(lang.id)}
+              >
+                <Text style={[
+                  styles.languageOptionText,
+                  selectedLanguage === lang.id && styles.languageOptionTextSelected,
+                ]}>
+                  {lang.nativeName}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
+
+          {/* Keyboard Selection (if language has multiple keyboards) */}
+          {currentLangDef.keyboards.length > 1 && (
+            <>
+              <Text style={styles.label}>Keyboard Layout</Text>
+              <View style={styles.keyboardContainer}>
+                {currentLangDef.keyboards.map(kb => (
+                  <TouchableOpacity
+                    key={kb.id}
+                    style={[
+                      styles.keyboardOption,
+                      selectedKeyboard === kb.id && styles.keyboardOptionSelected,
+                    ]}
+                    onPress={() => setSelectedKeyboard(kb.id)}
+                  >
+                    <View style={[
+                      styles.radioCircle,
+                      selectedKeyboard === kb.id && styles.radioCircleSelected,
+                    ]}>
+                      {selectedKeyboard === kb.id && <View style={styles.radioInner} />}
+                    </View>
+                    <Text style={[
+                      styles.keyboardOptionText,
+                      selectedKeyboard === kb.id && styles.keyboardOptionTextSelected,
+                    ]}>
+                      {kb.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
+          )}
 
           <View style={styles.divider} />
           
@@ -153,7 +210,7 @@ const styles = StyleSheet.create({
   dialog: {
     backgroundColor: 'white',
     borderRadius: 14,
-    width: 300,
+    width: 320,
     overflow: 'hidden',
   },
   title: {
@@ -169,29 +226,50 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#333',
     paddingHorizontal: 16,
-    marginBottom: 4,
-  },
-  hint: {
-    fontSize: 11,
-    color: '#888',
-    paddingHorizontal: 16,
     marginBottom: 8,
+    marginTop: 8,
   },
   input: {
     marginHorizontal: 16,
-    marginBottom: 16,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderWidth: 1,
     borderColor: '#ccc',
-    borderRadius: 6,
-    fontSize: 14,
+    borderRadius: 8,
+    fontSize: 15,
   },
-  languagesContainer: {
+  languageContainer: {
+    flexDirection: 'row',
     marginHorizontal: 16,
-    marginBottom: 16,
+    marginBottom: 8,
   },
-  languageItem: {
+  languageOption: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    backgroundColor: '#f9f9f9',
+    alignItems: 'center',
+  },
+  languageOptionSelected: {
+    borderColor: '#2196F3',
+    backgroundColor: '#E3F2FD',
+  },
+  languageOptionText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  languageOptionTextSelected: {
+    color: '#2196F3',
+    fontWeight: '600',
+  },
+  keyboardContainer: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+  },
+  keyboardOption: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
@@ -202,41 +280,41 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     backgroundColor: '#f9f9f9',
   },
-  languageItemSelected: {
-    borderColor: '#007AFF',
+  keyboardOptionSelected: {
+    borderColor: '#2196F3',
     backgroundColor: '#E3F2FD',
   },
-  checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 4,
+  radioCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     borderWidth: 2,
     borderColor: '#ccc',
     marginRight: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'white',
   },
-  checkboxSelected: {
-    borderColor: '#007AFF',
-    backgroundColor: '#007AFF',
+  radioCircleSelected: {
+    borderColor: '#2196F3',
   },
-  checkmark: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: 'bold',
+  radioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#2196F3',
   },
-  languageName: {
+  keyboardOptionText: {
     fontSize: 15,
     color: '#333',
   },
-  languageNameSelected: {
-    color: '#007AFF',
+  keyboardOptionTextSelected: {
+    color: '#2196F3',
     fontWeight: '500',
   },
   divider: {
     height: 1,
     backgroundColor: '#ccc',
+    marginTop: 8,
   },
   buttons: {
     flexDirection: 'row',

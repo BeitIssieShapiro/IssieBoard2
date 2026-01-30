@@ -53,6 +53,10 @@ class KeyboardRenderer {
     // Callback for word suggestion selection
     var onSuggestionSelected: ((String) -> Void)?
     
+    // Whether to show the globe (next-keyboard) button
+    // This is controlled by needsInputModeSwitchKey from the keyboard extension
+    private var showGlobeButton: Bool = true
+    
     // Callbacks for system keyboard actions (only used by actual keyboard)
     var onNextKeyboard: (() -> Void)?
     var onDismissKeyboard: (() -> Void)?
@@ -176,6 +180,16 @@ class KeyboardRenderer {
         updateSuggestionsBar()
     }
     
+    /// Set whether to show the globe (next-keyboard) button
+    /// Called by the keyboard extension based on needsInputModeSwitchKey
+    func setShowGlobeButton(_ show: Bool) {
+        if showGlobeButton != show {
+            showGlobeButton = show
+            print("🌐 setShowGlobeButton: \(show)")
+            rerender()
+        }
+    }
+    
     // MARK: - Public Rendering
     
     func renderKeyboard(
@@ -224,10 +238,17 @@ class KeyboardRenderer {
             }
         }
         
-        // Set background color
-        if let bgColorString = config.backgroundColor,
-           let bgColor = UIColor(hexString: bgColorString) {
-            container.backgroundColor = bgColor
+        // Set background color - support "default" for theme-aware coloring
+        if let bgColorString = config.backgroundColor {
+            if bgColorString.lowercased() == "default" || bgColorString.isEmpty {
+                // Use system adaptive colors for light/dark mode
+                container.backgroundColor = UIColor.systemBackground
+            } else if let bgColor = UIColor(hexString: bgColorString) {
+                container.backgroundColor = bgColor
+            }
+        } else {
+            // No color specified - use system default
+            container.backgroundColor = UIColor.systemBackground
         }
         
         // Find current keyset (use self.currentKeysetId - the renderer's internal state)
@@ -322,7 +343,7 @@ class KeyboardRenderer {
                 
                 // Skip language/next-keyboard keys if only one language
                 let keyType = parsedKey.type.lowercased()
-                if hasOnlyOneLanguage && (keyType == "language" || keyType == "next-keyboard") {
+                if hasOnlyOneLanguage && keyType == "language" || !showGlobeButton && keyType == "next-keyboard" {
                     continue
                 }
                 
@@ -360,9 +381,12 @@ class KeyboardRenderer {
                                      defaultTextColor: .black,
                                      defaultBgColor: .white)
             
-            // Skip language/next-keyboard keys if only one language
+            // Skip language/next-keyboard keys based on:
+            // 1. Only one language configured, OR
+            // 2. System is showing globe button (needsInputModeSwitchKey is false)
             let keyType = parsedKey.type.lowercased()
-            if hasOnlyOneLanguage && (keyType == "language" || keyType == "next-keyboard") {
+            if (keyType == "language" && hasOnlyOneLanguage || keyType == "next-keyboard" && !showGlobeButton) {
+                // Skip if only one language OR if system doesn't need us to show the globe
                 keyIndex += 1
                 continue
             }
@@ -661,15 +685,7 @@ class KeyboardRenderer {
             if !key.keysetValue.isEmpty {
                 switchKeyset(key.keysetValue)
             }
-            
-        case "language":
-            // Language switching handled internally AND notify React
-            print("   → Handling LANGUAGE")
-            switchLanguage()
-            // Emit key press so React can sync its state
-            print("   → Emitting onKeyPress for language change to React")
-            onKeyPress?(key)
-            
+                        
         case "next-keyboard":
             // For actual keyboard: call system callback
             // For preview: switch language internally AND notify React
@@ -1588,13 +1604,15 @@ class KeyboardRenderer {
             // Create tappable label/button with transparent background
             let button = UIButton(type: .system)
             button.setTitle(suggestion, for: .normal)
-            button.titleLabel?.font = UIFont.systemFont(ofSize: 15, weight: .regular)
+            // Larger font for better readability
+            button.titleLabel?.font = UIFont.systemFont(ofSize: 18, weight: .medium)
             button.titleLabel?.adjustsFontSizeToFitWidth = true
-            button.titleLabel?.minimumScaleFactor = 0.5
+            button.titleLabel?.minimumScaleFactor = 0.6
             button.titleLabel?.textAlignment = .center
             button.backgroundColor = .clear
-            button.setTitleColor(.darkGray, for: .normal)
-            button.setTitleColor(.black, for: .highlighted)
+            // Use adaptive colors for dark mode support - brighter text
+            button.setTitleColor(.label, for: .normal)
+            button.setTitleColor(.secondaryLabel, for: .highlighted)
             
             // Store suggestion in accessibility identifier for retrieval on tap
             button.accessibilityIdentifier = suggestion

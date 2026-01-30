@@ -43,7 +43,7 @@ const KEYBOARD_CONFIGS = [
 
 // Default iOS keyboard config template
 const DEFAULT_CONFIG_TEMPLATE = {
-  backgroundColor: '#E0E0E0',
+  backgroundColor: 'default',  // Uses system light/dark theme colors
   defaultKeyset: 'abc',
   wordSuggestionsEnabled: true,
   groups: [

@@ -12,7 +12,6 @@
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { EditorScreen } from './screens/EditorScreen';
-import { LegacyConfigScreen } from './screens/LegacyConfigScreen';
 
 type Screen = 
   | { type: 'legacy' }
@@ -32,16 +31,12 @@ export const AppNavigator: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {currentScreen.type === 'legacy' ? (
-        <LegacyConfigScreen 
-          onSwitchToEditor={() => navigateToEditor()} 
-        />
-      ) : (
+      
         <EditorScreen 
           profileId={currentScreen.profileId}
           onBack={navigateToLegacy}
         />
-      )}
+      
     </View>
   );
 };

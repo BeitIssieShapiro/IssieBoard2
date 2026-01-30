@@ -48,9 +48,9 @@
         },
         {
           "keys": [
+            { "type": "next-keyboard", "width": 1 },
             { "type": "keyset", "keysetValue": "123", "label": "123" },
-            { "type": "language", "width": 1 },
-            { "caption": "SPACE", "value": " ", "width": 5 },
+            { "caption": "SPACE", "value": " ", "width": 4 },
             { "value": ".", "sValue": "," },
             { "type": "enter" }
           ]
@@ -101,9 +101,9 @@
         },
         {
           "keys": [
+            { "type": "next-keyboard", "width": 1 },
             { "type": "keyset", "keysetValue": "abc", "label": "ABC" },
-            { "type": "language", "width": 1 },
-            { "caption": "SPACE", "value": " ", "width": 5 },
+            { "caption": "SPACE", "value": " ", "width": 4 },
             { "value": "." },
             { "type": "enter" }
           ]
@@ -154,9 +154,9 @@
         },
         {
           "keys": [
+            { "type": "next-keyboard", "width": 1 },
             { "type": "keyset", "keysetValue": "abc", "label": "ABC" },
-            { "type": "language", "width": 1 },
-            { "caption": "SPACE", "value": " ", "width": 5 },
+            { "caption": "SPACE", "value": " ", "width": 4 },
             { "value": "." },
             { "type": "enter" }
           ]

@@ -71,10 +71,10 @@
         },
         {
           "keys": [
-            { "type": "keyset", "keysetValue": "123", "label": "123"},
-            { "type": "language", "width": 1 },
-            { "caption": "مسافة", "value": " ", "width": 5 },
+            { "type": "next-keyboard", "width": 1 },
+            { "type": "keyset", "keysetValue": "123", "label": "123"},            { "caption": "مسافة", "value": " ", "width": 4 },
             { "value": ".", "sValue": "،" },
+            { "type": "nikkud" },
             { "type": "enter" }
           ]
         }
@@ -125,9 +125,10 @@
         {
           "keys": [
             { "type": "keyset", "keysetValue": "abc", "label": "أبج" },
-            { "type": "language", "width": 1 },
-            { "caption": "مسافة", "value": " ", "width": 5 },
+            { "type": "next-keyboard", "width": 1 },
+            { "caption": "مسافة", "value": " ", "width": 4 },
             { "value": "." },
+            { "type": "nikkud" },
             { "type": "enter", "width": 1.5 }
           ]
         }
@@ -177,10 +178,11 @@
         },
         {
           "keys": [
+            { "type": "next-keyboard", "width": 1 },
             { "type": "keyset", "keysetValue": "abc", "label": "أبج" },
-            { "type": "language", "width": 1 },
-            { "caption": "مسافة", "value": " ", "width": 5 },
+            { "caption": "مسافة", "value": " ", "width": 4 },
             { "value": "." },
+            { "type": "nikkud" },
             { "type": "enter"}
           ]
         }

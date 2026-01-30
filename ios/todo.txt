@@ -16,3 +16,11 @@ suggestion:
 - if some chars (not typed by kb) already exist it should use them
 - start with I The I'm ??
 - not offer suggestion for certain input type? then ommit the header row?
+
+---
+- make keys as large with margin
+- theme default
+- suggestion larger font
+- backspace
+- suggestion for second word
+

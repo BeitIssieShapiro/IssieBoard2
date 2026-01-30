@@ -1,5 +1,5 @@
 {
-  "backgroundColor": "#E0E0E0",
+  "backgroundColor": "default",
   "defaultKeyset": "abc",
   "wordSuggestionsEnabled": true,
   "groups": [
@@ -331,12 +331,13 @@
         {
           "keys": [
             {
+              "type": "next-keyboard",
+              "width": 1
+            },
+            {
               "type": "keyset",
               "keysetValue": "123",
               "label": "123"
-            },
-            {
-              "type": "next-keyboard"
             },
             {
               "caption": "רווח",
@@ -477,6 +478,9 @@
         {
           "keys": [
             {
+              "type": "next-keyboard"
+            },
+            {
               "type": "keyset",
               "keysetValue": "abc",
               "label": "אבג",
@@ -485,7 +489,7 @@
             {
               "caption": "רווח",
               "value": " ",
-              "width": 5
+              "width": 4
             },
             {
               "value": ".",
@@ -621,14 +625,14 @@
         {
           "keys": [
             {
+              "type": "next-keyboard",
+              "width": 1
+            },
+            {
               "type": "keyset",
               "keysetValue": "abc",
               "label": "אבג",
               "width": 1.5
-            },
-            {
-              "type": "next-keyboard",
-              "width": 1
             },
             {
               "caption": "רווח",
@@ -637,6 +641,9 @@
             },
             {
               "value": "."
+            },
+            {
+              "type": "nikkud"
             },
             {
               "type": "enter",

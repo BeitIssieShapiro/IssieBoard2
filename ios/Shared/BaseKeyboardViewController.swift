@@ -65,6 +65,9 @@ class BaseKeyboardViewController: UIInputViewController {
         super.viewDidLayoutSubviews()
         print("📐 viewDidLayoutSubviews: view.bounds = \(view.bounds)")
         
+        // Update globe button visibility based on needsInputModeSwitchKey
+        updateGlobeButtonVisibility()
+        
         // Renderer handles its own width change detection
         if parsedConfig != nil {
             renderer.rerenderIfNeeded()
@@ -483,7 +486,7 @@ class BaseKeyboardViewController: UIInputViewController {
             // Keyset change - no language change for single-language keyboard
             break
             
-        case "language", "next-keyboard":
+        case "next-keyboard":
             // Language switch - advance to next system keyboard
             advanceToNextInputMode()
             
@@ -563,6 +566,27 @@ class BaseKeyboardViewController: UIInputViewController {
         
         print("📝 Detected current word: '\(currentWord)'")
         updateWordSuggestions()
+    }
+    
+    // MARK: - Globe Button Visibility
+    
+    /// Track the last known needsInputModeSwitchKey state to avoid unnecessary re-renders
+    private var lastNeedsInputModeSwitchKey: Bool?
+    
+    /// Update globe button visibility based on needsInputModeSwitchKey
+    /// This is called from viewDidLayoutSubviews to handle iPad keyboard state changes
+    private func updateGlobeButtonVisibility() {
+        // Check if system needs us to show the globe button
+        let shouldShowGlobe = self.needsInputModeSwitchKey
+        
+        // Only update if the state changed
+        if lastNeedsInputModeSwitchKey != shouldShowGlobe {
+            print("🌐 Globe button visibility changed: \(shouldShowGlobe ? "SHOW" : "HIDE")")
+            lastNeedsInputModeSwitchKey = shouldShowGlobe
+            
+            // Update renderer's globe visibility setting
+            renderer.setShowGlobeButton(shouldShowGlobe)
+        }
     }
     
     // MARK: - System Keyboard Actions
