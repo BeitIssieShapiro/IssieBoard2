@@ -36,6 +36,16 @@ RCT_EXTERN_METHOD(getProfile:(NSString *)key
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
 
+// Generic String Storage (no prefix)
+RCT_EXTERN_METHOD(setString:(NSString *)value
+                  forKey:(NSString *)key
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+
+RCT_EXTERN_METHOD(getString:(NSString *)key
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+
 // Debugging
 RCT_EXTERN_METHOD(printAllPreferences:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)

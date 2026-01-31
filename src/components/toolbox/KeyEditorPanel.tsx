@@ -295,8 +295,10 @@ export const KeyEditorPanel: React.FC = () => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Key Background Color</Text>
         <ColorPicker
-          value={computedStyle.bgColor || baseKey.bgColor || '#FFFFFF'}
+          value={computedStyle.bgColor || ''}
           onChange={handleColorChange}
+          showSystemDefault
+          systemDefaultLabel="Default"
         />
       </View>
 
@@ -304,12 +306,14 @@ export const KeyEditorPanel: React.FC = () => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Text Color</Text>
         <ColorPicker
-          value={computedStyle.color || baseKey.color || '#000000'}
+          value={computedStyle.color || ''}
           onChange={handleTextColorChange}
           presets={[
             '#000000', '#FFFFFF', '#F44336', '#2196F3', 
             '#4CAF50', '#FF9800', '#9C27B0', '#607D8B',
           ]}
+          showSystemDefault
+          systemDefaultLabel="Default"
         />
       </View>
 

@@ -198,10 +198,32 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
     return JSON.stringify(state.selectedKeys);
   }, [state.selectedKeys]);
 
+  // Calculate dynamic height based on number of rows in active keyset
+  const previewHeight = useMemo(() => {
+    const activeKeyset = state.config.keysets.find(ks => ks.id === state.activeKeyset);
+    const numRows = activeKeyset?.rows?.length || 4;
+    
+    // Height calculation:
+    // - Suggestions bar: ~44px
+    // - Top padding: ~4px
+    // - Each row: ~50px
+    // - Row spacing: ~10px between rows (numRows - 1 spacings)
+    // - Bottom padding: ~4px
+    // - Buffer: ~20px for safety
+    const suggestionsHeight = 44;
+    const topPadding = 4;
+    const rowHeight = 50;
+    const rowSpacing = 10;
+    const bottomPadding = 4;
+    const buffer = 20;
+    
+    return suggestionsHeight + topPadding + (numRows * rowHeight) + ((numRows - 1) * rowSpacing) + bottomPadding + buffer;
+  }, [state.config.keysets, state.activeKeyset]);
+
   return (
     <View style={styles.container}>
       <KeyboardPreview
-        style={styles.preview}
+        style={[styles.preview, { height: previewHeight }]}
         configJson={configJson}
         selectedKeys={selectedKeysJson}
         onKeyPress={handleKeyPress}
@@ -215,7 +237,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
   },
   preview: {
-    height: 380,  // Height for 5 rows + suggestions bar: 44 (suggestions) + 4 (top) + 5*50 (rows) + 4*10 (spacing) + 4 (bottom) = 342 + buffer
+    // Height is now calculated dynamically based on number of rows
   },
 });
 

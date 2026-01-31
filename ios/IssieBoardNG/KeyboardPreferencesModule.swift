@@ -88,6 +88,24 @@ class KeyboardPreferencesModule: NSObject {
         }
     }
     
+    // MARK: - Generic String Storage (no prefix)
+    
+    @objc
+    func setString(_ value: String, forKey key: String, resolver: RCTPromiseResolveBlock, rejecter: RCTPromiseRejectBlock) {
+        preferences.setString(value, forKey: key)
+        print("📝 String saved from React Native: key=\(key), length=\(value.count)")
+        resolver(["success": true, "key": key])
+    }
+    
+    @objc
+    func getString(_ key: String, resolver: RCTPromiseResolveBlock, rejecter: RCTPromiseRejectBlock) {
+        if let value = preferences.getString(forKey: key) {
+            resolver(value)
+        } else {
+            resolver(NSNull())
+        }
+    }
+    
     // MARK: - Debugging
     
     @objc

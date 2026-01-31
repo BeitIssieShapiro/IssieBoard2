@@ -8,7 +8,25 @@ import { DiacriticsPanel } from './DiacriticsPanel';
 
 type TabId = 'settings' | 'groups' | 'diacritics';
 
-export const Toolbox: React.FC = () => {
+export interface KeyboardVariantOption {
+  id: string;
+  name: string;
+}
+
+export interface ToolboxProps {
+  /** Available keyboard variants for current language */
+  keyboardVariants?: KeyboardVariantOption[];
+  /** Currently selected keyboard variant */
+  currentKeyboardId?: string;
+  /** Callback when keyboard variant changes */
+  onKeyboardVariantChange?: (keyboardId: string) => void;
+}
+
+export const Toolbox: React.FC<ToolboxProps> = ({
+  keyboardVariants,
+  currentKeyboardId,
+  onKeyboardVariantChange,
+}) => {
   const { state } = useEditor();
   const [activeTab, setActiveTab] = useState<TabId>('settings');
 
@@ -55,7 +73,13 @@ export const Toolbox: React.FC = () => {
 
       {/* Tab Content */}
       <View style={styles.content}>
-        {activeTab === 'settings' && <GlobalSettingsPanel />}
+        {activeTab === 'settings' && (
+          <GlobalSettingsPanel
+            keyboardVariants={keyboardVariants}
+            currentKeyboardId={currentKeyboardId}
+            onKeyboardVariantChange={onKeyboardVariantChange}
+          />
+        )}
         {activeTab === 'groups' && <GroupsPanel />}
         {activeTab === 'diacritics' && <DiacriticsPanel />}
       </View>

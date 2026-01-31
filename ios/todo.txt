@@ -23,4 +23,6 @@ suggestion:
 - suggestion larger font
 - backspace
 - suggestion for second word
+- most wanted sugegstion in he - on the right 
+- first suggestion always what was typed
 

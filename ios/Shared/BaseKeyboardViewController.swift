@@ -663,9 +663,13 @@ class BaseKeyboardViewController: UIInputViewController {
             return
         }
         
-        // Try to open the main app using a URL scheme
+        // Save the current keyboard language to preferences so the app opens with the right tab
+        preferences.setString(keyboardLanguage, forKey: "launch_keyboard")
+        print("📱 Saved launch_keyboard=\(keyboardLanguage) to preferences")
+        
+        // Try to open the main app using a URL scheme with keyboard parameter
         // The URL scheme "issieboard" is registered in the main app's Info.plist
-        guard let url = URL(string: "issieboard://settings") else {
+        guard let url = URL(string: "issieboard://settings?keyboard=\(keyboardLanguage)") else {
             print("❌ Failed to create URL")
             return
         }

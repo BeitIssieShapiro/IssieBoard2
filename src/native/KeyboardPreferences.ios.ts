@@ -73,7 +73,8 @@ class KeyboardPreferences {
   }
 
   /**
-   * Set the keyboard configuration as JSON string
+   * Set the keyboard configuration as JSON string (global - affects all keyboards)
+   * @deprecated Use setKeyboardConfigForLanguage instead for language-specific configs
    */
   async setKeyboardConfig(configJSON: string): Promise<SetResult> {
     if (!KeyboardPreferencesModule) {
@@ -83,11 +84,34 @@ class KeyboardPreferences {
   }
 
   /**
-   * Set the keyboard configuration from object
+   * Set the keyboard configuration for a specific language/keyboard
+   * This saves directly to keyboardConfig_{keyboardId} which each keyboard extension reads
+   * Note: Uses setKeyboardConfig's underlying native method but with a custom key
+   */
+  async setKeyboardConfigForLanguage(configJSON: string, keyboardId: string): Promise<SetResult> {
+    if (!KeyboardPreferencesModule) {
+      return { success: false, error: 'Native module not available' };
+    }
+    // Use setString to save directly without "profile_" prefix
+    // The iOS keyboard reads using preferences.getString(forKey: "keyboardConfig_\(keyboardLanguage)")
+    return KeyboardPreferencesModule.setString(configJSON, `keyboardConfig_${keyboardId}`);
+  }
+
+  /**
+   * Set the keyboard configuration from object (global - affects all keyboards)
+   * @deprecated Use setKeyboardConfigObjectForLanguage instead
    */
   async setKeyboardConfigObject(config: any): Promise<SetResult> {
     const configJSON = JSON.stringify(config);
     return this.setKeyboardConfig(configJSON);
+  }
+
+  /**
+   * Set the keyboard configuration from object for a specific language
+   */
+  async setKeyboardConfigObjectForLanguage(config: any, language: string): Promise<SetResult> {
+    const configJSON = JSON.stringify(config);
+    return this.setKeyboardConfigForLanguage(configJSON, language);
   }
 
   /**

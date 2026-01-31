@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   Switch,
+  TouchableOpacity,
 } from 'react-native';
 import { useEditor } from '../../context/EditorContext';
 import { ColorPicker } from '../shared/ColorPicker';
@@ -16,7 +17,25 @@ const BACKGROUND_PRESETS = [
   '#E8F5E9', '#FFF3E0', '#E3F2FD', '#FFEBEE',
 ];
 
-export const GlobalSettingsPanel: React.FC = () => {
+export interface KeyboardVariantOption {
+  id: string;
+  name: string;
+}
+
+export interface GlobalSettingsPanelProps {
+  /** Available keyboard variants for current language */
+  keyboardVariants?: KeyboardVariantOption[];
+  /** Currently selected keyboard variant */
+  currentKeyboardId?: string;
+  /** Callback when keyboard variant changes */
+  onKeyboardVariantChange?: (keyboardId: string) => void;
+}
+
+export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
+  keyboardVariants,
+  currentKeyboardId,
+  onKeyboardVariantChange,
+}) => {
   const { 
     state, 
     updateBackgroundColor,
@@ -57,13 +76,41 @@ export const GlobalSettingsPanel: React.FC = () => {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {/* Keyboard Layout (only show if multiple variants available) */}
+      {keyboardVariants && keyboardVariants.length > 1 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Keyboard Layout</Text>
+          <View style={styles.variantSelector}>
+            {keyboardVariants.map(variant => (
+              <TouchableOpacity
+                key={variant.id}
+                style={[
+                  styles.variantButton,
+                  currentKeyboardId === variant.id && styles.variantButtonActive,
+                ]}
+                onPress={() => onKeyboardVariantChange?.(variant.id)}
+              >
+                <Text style={[
+                  styles.variantButtonText,
+                  currentKeyboardId === variant.id && styles.variantButtonTextActive,
+                ]}>
+                  {variant.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
+
       {/* Background Color */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Background Color</Text>
         <ColorPicker
-          value={state.config.backgroundColor}
+          value={state.config.backgroundColor || ''}
           onChange={updateBackgroundColor}
           presets={BACKGROUND_PRESETS}
+          showSystemDefault
+          systemDefaultLabel="Default"
         />
       </View>
 
@@ -132,6 +179,31 @@ const styles = StyleSheet.create({
   content: { padding: 16, paddingBottom: 32 },
   section: { marginBottom: 24 },
   sectionTitle: { fontSize: 14, fontWeight: '600', color: '#333', marginBottom: 12 },
+  variantSelector: {
+    flexDirection: 'row',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    padding: 4,
+  },
+  variantButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  variantButtonActive: {
+    backgroundColor: '#2196F3',
+  },
+  variantButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#666',
+  },
+  variantButtonTextActive: {
+    color: '#FFF',
+    fontWeight: '600',
+  },
   featureRow: {
     flexDirection: 'row',
     alignItems: 'center',

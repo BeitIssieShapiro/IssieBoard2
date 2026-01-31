@@ -40,7 +40,6 @@
       "rows": [
         {
           "keys": [
-            { "value": "י" },
             { "value": "ט" },
             { "value": "ח" },
             { "value": "ז" },
@@ -49,43 +48,47 @@
             { "value": "ד" },
             { "value": "ג" },
             { "value": "ב" },
-            { "value": "א" }
+            { "value": "א" },
+            { "type": "backspace", "width": 1 }
+
           ]
         },
         {
           "keys": [
-            { "value": "ר" },
-            { "value": "ק" },
-            { "value": "צ", "sValue": "ץ" },
-            { "value": "פ", "sValue": "ף" },
-            { "value": "ע" },
+            { "hidden":true, "width":0.5},
             { "value": "ס" },
-            { "value": "נ", "sValue": "ן" },
-            { "value": "מ", "sValue": "ם" },
+            { "value": "ן" },
+            { "value": "נ" },
+            { "value": "ם" },
+            { "value": "מ" },
             { "value": "ל" },
-            { "value": "כ", "sValue": "ך" }
+            { "value": "ך" },
+            { "value": "כ" },
+            { "value": "י" }
           ]
         },
         {
           "keys": [
-            { "type": "backspace", "width": 1.5 },
-            { "value": "ץ" },
-            { "value": "ף" },
-            { "value": "ן" },
-            { "value": "ם" },
-            { "value": "ך" },
             { "value": "ת" },
             { "value": "ש" },
-            { "type": "shift", "width": 1.5 }
+            { "value": "ר" },
+            { "value": "ק" },
+            { "value": "ץ" },
+            { "value": "צ" },
+            { "value": "ף" },
+            { "value": "פ" },
+            { "value": "ע" }
           ]
         },
         {
           "keys": [
+            { "hidden":true, "width":0.5},
             { "type": "keyset", "keysetValue": "123", "label": "123", "width": 1.5 },
             { "type": "next-keyboard", "width": 1 },
+            { "type": "settings" },
             { "caption": "רווח", "value": " ", "width": 4 },
-            { "value": ".", "sValue": "," },
-            { "type": "enter", "width": 1.5 }
+            { "type": "nikkud" },
+            { "type": "enter" }
           ]
         }
       ]
@@ -134,11 +137,13 @@
         },
         {
           "keys": [
+            { "hidden":true, "width":0.5},
             { "type": "keyset", "keysetValue": "abc", "label": "אבג", "width": 1.5 },
             { "type": "next-keyboard", "width": 1 },
+            { "type": "settings" },
             { "caption": "רווח", "value": " ", "width": 4 },
-            { "value": "." },
-            { "type": "enter", "width": 1.5 }
+            { "type": "nikkud" },
+            { "type": "enter" }
           ]
         }
       ]
@@ -187,11 +192,13 @@
         },
         {
           "keys": [
+            { "hidden":true, "width":0.5},
             { "type": "keyset", "keysetValue": "abc", "label": "אבג", "width": 1.5 },
             { "type": "next-keyboard", "width": 1 },
+            { "type": "settings" },
             { "caption": "רווח", "value": " ", "width": 4 },
-            { "value": "." },
-            { "type": "enter", "width": 1.5 }
+            { "type": "nikkud" },
+            { "type": "enter" }
           ]
         }
       ]

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView } from "react-native";
+import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import { useLocalization } from "../src/localization";
 
 type LanguageId = 'he' | 'en' | 'ar';
@@ -103,97 +103,107 @@ const AddProfileModal = ({ visible, onClose, onCreate, initialLanguage = 'he' }:
       animationType="fade"
       onRequestClose={handleClose}
     >
-      <View style={styles.overlay}>
-        <View style={styles.dialog}>
-          <Text style={styles.title}>{strings.addProfile || 'Add New Profile'}</Text>
-          
-          {/* Profile Name Input */}
-          <Text style={styles.label}>{strings.profileNameLabel || 'Profile Name'}</Text>
-          <TextInput
-            style={styles.input}
-            value={profileName}
-            onChangeText={setProfileName}
-            placeholder={strings.profileNamePlaceholder || 'My Custom Keyboard'}
-            autoFocus
-          />
+      <KeyboardAvoidingView 
+        style={styles.overlay}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          bounces={false}
+        >
+          <View style={styles.dialog}>
+            <Text style={styles.title}>{strings.addProfile || 'Add New Profile'}</Text>
+            
+            {/* Profile Name Input */}
+            <Text style={styles.label}>{strings.profileNameLabel || 'Profile Name'}</Text>
+            <TextInput
+              style={styles.input}
+              value={profileName}
+              onChangeText={setProfileName}
+              placeholder={strings.profileNamePlaceholder || 'My Custom Keyboard'}
+              autoFocus
+              returnKeyType="done"
+            />
 
-          {/* Language Selection */}
-          <Text style={styles.label}>Language</Text>
-          <View style={styles.languageContainer}>
-            {LANGUAGES.map(lang => (
-              <TouchableOpacity
-                key={lang.id}
-                style={[
-                  styles.languageOption,
-                  selectedLanguage === lang.id && styles.languageOptionSelected,
-                ]}
-                onPress={() => setSelectedLanguage(lang.id)}
+            {/* Language Selection */}
+            <Text style={styles.label}>Language</Text>
+            <View style={styles.languageContainer}>
+              {LANGUAGES.map(lang => (
+                <TouchableOpacity
+                  key={lang.id}
+                  style={[
+                    styles.languageOption,
+                    selectedLanguage === lang.id && styles.languageOptionSelected,
+                  ]}
+                  onPress={() => setSelectedLanguage(lang.id)}
+                >
+                  <Text style={[
+                    styles.languageOptionText,
+                    selectedLanguage === lang.id && styles.languageOptionTextSelected,
+                  ]}>
+                    {lang.nativeName}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Keyboard Selection (if language has multiple keyboards) */}
+            {currentLangDef.keyboards.length > 1 && (
+              <>
+                <Text style={styles.label}>Keyboard Layout</Text>
+                <View style={styles.keyboardContainer}>
+                  {currentLangDef.keyboards.map(kb => (
+                    <TouchableOpacity
+                      key={kb.id}
+                      style={[
+                        styles.keyboardOption,
+                        selectedKeyboard === kb.id && styles.keyboardOptionSelected,
+                      ]}
+                      onPress={() => setSelectedKeyboard(kb.id)}
+                    >
+                      <View style={[
+                        styles.radioCircle,
+                        selectedKeyboard === kb.id && styles.radioCircleSelected,
+                      ]}>
+                        {selectedKeyboard === kb.id && <View style={styles.radioInner} />}
+                      </View>
+                      <Text style={[
+                        styles.keyboardOptionText,
+                        selectedKeyboard === kb.id && styles.keyboardOptionTextSelected,
+                      ]}>
+                        {kb.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
+
+            <View style={styles.divider} />
+            
+            <View style={styles.buttons}>
+              <TouchableOpacity style={styles.button} onPress={handleClose}>
+                <Text style={styles.buttonText}>{strings.cancel}</Text>
+              </TouchableOpacity>
+              <View style={styles.buttonDivider} />
+              <TouchableOpacity 
+                style={[styles.button, isCreateDisabled && styles.buttonDisabled]} 
+                onPress={handleCreate}
+                disabled={isCreateDisabled}
               >
                 <Text style={[
-                  styles.languageOptionText,
-                  selectedLanguage === lang.id && styles.languageOptionTextSelected,
+                  styles.buttonText, 
+                  styles.createText,
+                  isCreateDisabled && styles.buttonTextDisabled,
                 ]}>
-                  {lang.nativeName}
+                  {strings.create || 'Create'}
                 </Text>
               </TouchableOpacity>
-            ))}
+            </View>
           </View>
-
-          {/* Keyboard Selection (if language has multiple keyboards) */}
-          {currentLangDef.keyboards.length > 1 && (
-            <>
-              <Text style={styles.label}>Keyboard Layout</Text>
-              <View style={styles.keyboardContainer}>
-                {currentLangDef.keyboards.map(kb => (
-                  <TouchableOpacity
-                    key={kb.id}
-                    style={[
-                      styles.keyboardOption,
-                      selectedKeyboard === kb.id && styles.keyboardOptionSelected,
-                    ]}
-                    onPress={() => setSelectedKeyboard(kb.id)}
-                  >
-                    <View style={[
-                      styles.radioCircle,
-                      selectedKeyboard === kb.id && styles.radioCircleSelected,
-                    ]}>
-                      {selectedKeyboard === kb.id && <View style={styles.radioInner} />}
-                    </View>
-                    <Text style={[
-                      styles.keyboardOptionText,
-                      selectedKeyboard === kb.id && styles.keyboardOptionTextSelected,
-                    ]}>
-                      {kb.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </>
-          )}
-
-          <View style={styles.divider} />
-          
-          <View style={styles.buttons}>
-            <TouchableOpacity style={styles.button} onPress={handleClose}>
-              <Text style={styles.buttonText}>{strings.cancel}</Text>
-            </TouchableOpacity>
-            <View style={styles.buttonDivider} />
-            <TouchableOpacity 
-              style={[styles.button, isCreateDisabled && styles.buttonDisabled]} 
-              onPress={handleCreate}
-              disabled={isCreateDisabled}
-            >
-              <Text style={[
-                styles.buttonText, 
-                styles.createText,
-                isCreateDisabled && styles.buttonTextDisabled,
-              ]}>
-                {strings.create || 'Create'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
@@ -204,8 +214,12 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.4)',
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingVertical: 20,
   },
   dialog: {
     backgroundColor: 'white',

@@ -9,6 +9,9 @@ import {
   Pressable,
 } from 'react-native';
 
+// Special value for system default
+export const SYSTEM_DEFAULT_COLOR = '';
+
 // Accessibility-friendly color presets
 const DEFAULT_PRESETS = [
   '#FFFFFF', // White
@@ -31,6 +34,8 @@ interface ColorPickerProps {
   presets?: string[];
   allowCustom?: boolean;
   label?: string;
+  showSystemDefault?: boolean;
+  systemDefaultLabel?: string;
 }
 
 export const ColorPicker: React.FC<ColorPickerProps> = ({
@@ -39,12 +44,18 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
   presets = DEFAULT_PRESETS,
   allowCustom = true,
   label,
+  showSystemDefault = false,
+  systemDefaultLabel = 'Default',
 }) => {
   const [showCustomModal, setShowCustomModal] = useState(false);
   const [customColor, setCustomColor] = useState(value);
 
   const handlePresetSelect = (color: string) => {
     onChange(color);
+  };
+
+  const handleSystemDefault = () => {
+    onChange(SYSTEM_DEFAULT_COLOR);
   };
 
   const handleCustomSubmit = () => {
@@ -59,11 +70,33 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
   const isSelected = (color: string) => 
     value.toUpperCase() === color.toUpperCase();
 
+  const isSystemDefaultSelected = value === SYSTEM_DEFAULT_COLOR || value === '';
+
   return (
     <View style={styles.container}>
       {label && <Text style={styles.label}>{label}</Text>}
       
       <View style={styles.presetsRow}>
+        {/* System Default Button */}
+        {showSystemDefault && (
+          <TouchableOpacity
+            style={[
+              styles.systemDefaultButton,
+              isSystemDefaultSelected && styles.selectedCircle,
+            ]}
+            onPress={handleSystemDefault}
+            accessibilityLabel={`Select ${systemDefaultLabel}`}
+            accessibilityRole="button"
+          >
+            <Text style={[
+              styles.systemDefaultText,
+              isSystemDefaultSelected && styles.systemDefaultTextSelected,
+            ]}>
+              {systemDefaultLabel}
+            </Text>
+          </TouchableOpacity>
+        )}
+        
         {presets.map((color) => (
           <TouchableOpacity
             key={color}
@@ -269,6 +302,25 @@ const styles = StyleSheet.create({
   applyButtonText: {
     color: '#FFF',
     fontWeight: '600',
+  },
+  systemDefaultButton: {
+    minWidth: 60,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F0F0F0',
+    borderWidth: 1,
+    borderColor: '#CCC',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+  },
+  systemDefaultText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#666',
+  },
+  systemDefaultTextSelected: {
+    color: '#2196F3',
   },
 });
 
