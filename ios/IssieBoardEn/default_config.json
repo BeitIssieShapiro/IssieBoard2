@@ -143,6 +143,10 @@
         {
           "keys": [
             {
+              "hidden": true,
+              "width": 1
+            },
+            {
               "type": "keyset",
               "keysetValue": "123",
               "label": "123"
@@ -273,6 +277,10 @@
         {
           "keys": [
             {
+              "hidden": true,
+              "width": 1
+            },
+            {
               "type": "keyset",
               "keysetValue": "abc",
               "label": "ABC"
@@ -400,6 +408,10 @@
         },
         {
           "keys": [
+            {
+              "hidden": true,
+              "width": 1
+            },
             {
               "type": "keyset",
               "keysetValue": "abc",

@@ -53,6 +53,10 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
     private var wordSuggestionsEnabled: Boolean = true
     private var currentWord: StringBuilder = StringBuilder()
     private var currentLanguage: String = "en"
+    
+    // Double-space shortcut (". " instead of "  ")
+    private var lastSpaceTime: Long = 0
+    private val doubleSpaceThreshold: Long = 2000  // 2 seconds in milliseconds
 
     // ============================================================================
     // LIFECYCLE
@@ -365,19 +369,24 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
     private fun handleKeyEvent(event: KeyEvent) {
         when (event) {
             is KeyEvent.TextInput -> {
-                currentInputConnection?.commitText(event.text, 1)
-                // Track the current word for suggestions
-                if (wordSuggestionsEnabled) {
-                    // Check if this is a word separator (space, punctuation)
-                    val isWordSeparator = event.text.all { it.isWhitespace() || it in ".,;:!?-()[]{}\"'" }
-                    if (isWordSeparator) {
-                        // Word completed - clear current word
-                        currentWord.clear()
-                    } else {
-                        // Continue building the word
-                        currentWord.append(event.text)
+                // Check for space key - handle double-space shortcut
+                if (event.text == " ") {
+                    handleSpaceKey()
+                } else {
+                    currentInputConnection?.commitText(event.text, 1)
+                    // Track the current word for suggestions
+                    if (wordSuggestionsEnabled) {
+                        // Check if this is a word separator (punctuation, etc.)
+                        val isWordSeparator = event.text.all { it.isWhitespace() || it in ".,;:!?-()[]{}\"'" }
+                        if (isWordSeparator) {
+                            // Word completed - clear current word
+                            currentWord.clear()
+                        } else {
+                            // Continue building the word
+                            currentWord.append(event.text)
+                        }
+                        updateSuggestionsBar()
                     }
-                    updateSuggestionsBar()
                 }
             }
             is KeyEvent.Backspace -> {
@@ -433,6 +442,62 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
                 }
                 Log.d(TAG, "Custom key event: ${event.key.type}")
             }
+        }
+    }
+    
+    // ============================================================================
+    // SPACE KEY HANDLING
+    // ============================================================================
+    
+    /**
+     * Handle space key with double-space shortcut
+     * If space is pressed twice within 2 seconds, replace " " with ". "
+     */
+    private fun handleSpaceKey() {
+        val now = System.currentTimeMillis()
+        val ic = currentInputConnection
+        
+        Log.d(TAG, "⌨️ handleSpaceKey called, lastSpaceTime=$lastSpaceTime, now=$now, diff=${now - lastSpaceTime}ms")
+        
+        // Check if this is a double-space (within threshold)
+        if (lastSpaceTime > 0 && (now - lastSpaceTime) < doubleSpaceThreshold) {
+            // Double-space detected!
+            // Check if the last character was a space (we can replace it)
+            // But only if it's a single space (not after ". " or "  ")
+            val beforeText = ic?.getTextBeforeCursor(2, 0)?.toString() ?: ""
+            if (beforeText.endsWith(" ")) {
+                // Check if the character before the space is NOT a space or period
+                // This prevents ".  " from becoming ".. "
+                val charBeforeSpace = if (beforeText.length >= 2) beforeText[beforeText.length - 2] else null
+                
+                if (charBeforeSpace != ' ' && charBeforeSpace != '.') {
+                    Log.d(TAG, "⌨️ Double-space shortcut: replacing ' ' with '. '")
+                    // Delete the previous space
+                    ic?.deleteSurroundingText(1, 0)
+                    // Insert period and space
+                    ic?.commitText(". ", 1)
+                    // Reset the timer so triple-space doesn't trigger again
+                    lastSpaceTime = 0
+                } else {
+                    // Already have space or period before, just insert space normally
+                    ic?.commitText(" ", 1)
+                    lastSpaceTime = now
+                }
+            } else {
+                // No space before cursor, just insert space normally
+                ic?.commitText(" ", 1)
+                lastSpaceTime = now
+            }
+        } else {
+            // Single space - insert normally
+            ic?.commitText(" ", 1)
+            lastSpaceTime = now
+        }
+        
+        // Clear current word on space (word completed), update suggestions
+        if (wordSuggestionsEnabled) {
+            currentWord.clear()
+            updateSuggestionsBar()
         }
     }
     

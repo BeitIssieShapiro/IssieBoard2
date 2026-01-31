@@ -503,7 +503,7 @@ class BaseKeyboardViewController: UIInputViewController {
             
         case "space":
             handleSpaceKey()
-            
+        
         case "keyset":
             // Keyset change - no language change for single-language keyboard
             break
@@ -516,10 +516,15 @@ class BaseKeyboardViewController: UIInputViewController {
             // Regular character key
             let value = key.value
             if !value.isEmpty {
-                textDocumentProxy.insertText(value)
-                // Add to current word and update suggestions
-                currentWord += value
-                updateWordSuggestions()
+                // Check if this is a space key (by value, not type)
+                if value == " " {
+                    handleSpaceKey()
+                } else {
+                    textDocumentProxy.insertText(value)
+                    // Add to current word and update suggestions
+                    currentWord += value
+                    updateWordSuggestions()
+                }
             }
         }
     }
@@ -582,15 +587,27 @@ class BaseKeyboardViewController: UIInputViewController {
            now.timeIntervalSince(lastTime) < doubleSpaceThreshold {
             // Double-space detected!
             // Check if the last character was a space (we can replace it)
+            // But only if it's a single space (not after ". " or "  ")
             if let beforeText = textDocumentProxy.documentContextBeforeInput,
                beforeText.hasSuffix(" ") {
-                print("⌨️ Double-space shortcut: replacing ' ' with '. '")
-                // Delete the previous space
-                textDocumentProxy.deleteBackward()
-                // Insert period and space
-                textDocumentProxy.insertText(". ")
-                // Reset the timer so triple-space doesn't trigger again
-                lastSpaceTime = nil
+                // Check if the character before the space is NOT a space or period
+                // This prevents ".  " from becoming ".. "
+                let textBeforeSpace = String(beforeText.dropLast())
+                let charBeforeSpace = textBeforeSpace.last
+                
+                if charBeforeSpace != " " && charBeforeSpace != "." {
+                    print("⌨️ Double-space shortcut: replacing ' ' with '. '")
+                    // Delete the previous space
+                    textDocumentProxy.deleteBackward()
+                    // Insert period and space
+                    textDocumentProxy.insertText(". ")
+                    // Reset the timer so triple-space doesn't trigger again
+                    lastSpaceTime = nil
+                } else {
+                    // Already have space or period before, just insert space normally
+                    textDocumentProxy.insertText(" ")
+                    lastSpaceTime = now
+                }
             } else {
                 // No space before cursor, just insert space normally
                 textDocumentProxy.insertText(" ")

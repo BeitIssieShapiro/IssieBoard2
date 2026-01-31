@@ -260,8 +260,11 @@
         {
           "keys": [
             {
-              "type": "next-keyboard",
+              "hidden": true,
               "width": 1
+            },
+            {
+              "type": "next-keyboard"
             },
             {
               "type": "keyset",
@@ -388,6 +391,10 @@
         },
         {
           "keys": [
+            {
+              "hidden": true,
+              "width": 1
+            },
             {
               "type": "next-keyboard"
             },
@@ -517,6 +524,10 @@
         },
         {
           "keys": [
+            {
+              "hidden": true,
+              "width": 1
+            },
             {
               "type": "next-keyboard",
               "width": 1
