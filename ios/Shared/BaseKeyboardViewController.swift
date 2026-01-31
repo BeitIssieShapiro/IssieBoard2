@@ -23,6 +23,10 @@ class BaseKeyboardViewController: UIInputViewController {
     private var currentWord: String = ""
     private var currentLanguage: String = "en"
     
+    // Double-space shortcut (". " instead of "  ")
+    private var lastSpaceTime: Date?
+    private let doubleSpaceThreshold: TimeInterval = 2.0  // 2 seconds
+    
     /// Override this in subclasses to specify the keyboard language
     var keyboardLanguage: String {
         // Try to read from Info.plist first
@@ -105,20 +109,38 @@ class BaseKeyboardViewController: UIInputViewController {
     
     // MARK: - Setup
     
+    /// Height constraint for dynamic keyboard height
+    private var keyboardHeightConstraint: NSLayoutConstraint?
+    
     private func setupKeyboard() {
         keyboardView = UIView()
-        keyboardView.backgroundColor = UIColor(red: 0.82, green: 0.82, blue: 0.82, alpha: 1.0)
+        keyboardView.backgroundColor = .clear  // Transparent for liquid glass effect
         view.addSubview(keyboardView)
         
         keyboardView.translatesAutoresizingMaskIntoConstraints = false
+        
+        // Create height constraint that we can update dynamically
+        let heightConstraint = keyboardView.heightAnchor.constraint(equalToConstant: 216)  // Default iOS keyboard height
+        keyboardHeightConstraint = heightConstraint
+        
         NSLayoutConstraint.activate([
             keyboardView.leftAnchor.constraint(equalTo: view.leftAnchor),
             keyboardView.rightAnchor.constraint(equalTo: view.rightAnchor),
             keyboardView.topAnchor.constraint(equalTo: view.topAnchor),
             keyboardView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            // Increased height to accommodate all rows plus suggestions bar
-            keyboardView.heightAnchor.constraint(greaterThanOrEqualToConstant: 340)
+            heightConstraint
         ])
+    }
+    
+    /// Update keyboard height based on number of rows in current keyset
+    private func updateKeyboardHeight() {
+        guard let config = parsedConfig else { return }
+        
+        let requiredHeight = renderer.calculateKeyboardHeight(for: config, keysetId: renderer.currentKeysetId)
+        print("📐 Calculated keyboard height: \(requiredHeight)")
+        
+        keyboardHeightConstraint?.constant = requiredHeight
+        view.setNeedsLayout()
     }
     
     private func setupRenderer() {
@@ -329,6 +351,9 @@ class BaseKeyboardViewController: UIInputViewController {
             editorContext: editorContext
         )
         
+        // Update keyboard height dynamically based on number of rows
+        updateKeyboardHeight()
+        
         // Show default suggestions initially (if word completion is enabled and no current word)
         if wordCompletionEnabled && currentWord.isEmpty {
             showDefaultSuggestions()
@@ -477,10 +502,7 @@ class BaseKeyboardViewController: UIInputViewController {
             showDefaultSuggestions()
             
         case "space":
-            textDocumentProxy.insertText(" ")
-            // Clear current word on space (word completed), show default suggestions
-            currentWord = ""
-            showDefaultSuggestions()
+            handleSpaceKey()
             
         case "keyset":
             // Keyset change - no language change for single-language keyboard
@@ -546,6 +568,43 @@ class BaseKeyboardViewController: UIInputViewController {
         let suggestions = WordCompletionManager.shared.getSuggestions(for: "")
         print("📝 Showing default suggestions: \(suggestions)")
         renderer.updateSuggestions(suggestions)
+    }
+    
+    // MARK: - Space Key Handling
+    
+    /// Handle space key with double-space shortcut
+    /// If space is pressed twice within 2 seconds, replace " " with ". "
+    private func handleSpaceKey() {
+        let now = Date()
+        
+        // Check if this is a double-space (within threshold)
+        if let lastTime = lastSpaceTime,
+           now.timeIntervalSince(lastTime) < doubleSpaceThreshold {
+            // Double-space detected!
+            // Check if the last character was a space (we can replace it)
+            if let beforeText = textDocumentProxy.documentContextBeforeInput,
+               beforeText.hasSuffix(" ") {
+                print("⌨️ Double-space shortcut: replacing ' ' with '. '")
+                // Delete the previous space
+                textDocumentProxy.deleteBackward()
+                // Insert period and space
+                textDocumentProxy.insertText(". ")
+                // Reset the timer so triple-space doesn't trigger again
+                lastSpaceTime = nil
+            } else {
+                // No space before cursor, just insert space normally
+                textDocumentProxy.insertText(" ")
+                lastSpaceTime = now
+            }
+        } else {
+            // Single space - insert normally
+            textDocumentProxy.insertText(" ")
+            lastSpaceTime = now
+        }
+        
+        // Clear current word on space (word completed), show default suggestions
+        currentWord = ""
+        showDefaultSuggestions()
     }
     
     /// Detect current word from text document proxy context

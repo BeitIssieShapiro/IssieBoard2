@@ -25,19 +25,19 @@ const KEYBOARD_CONFIGS = [
     sourceFile: 'he.json',
     targetDir: 'IssieBoardHe',
     language: 'he',
-    systemRowAtTop: true, // Add system row (settings, backspace, enter, close) at top
+    systemRowAtTop: false, // Add system row (settings, backspace, enter, close) at top
   },
   {
     sourceFile: 'en.json',
     targetDir: 'IssieBoardEn',
     language: 'en',
-    systemRowAtTop: true,
+    systemRowAtTop: false,
   },
   {
     sourceFile: 'ar.json',
     targetDir: 'IssieBoardAr',
     language: 'ar',
-    systemRowAtTop: true,
+    systemRowAtTop: false,
   },
 ];
 
@@ -69,17 +69,6 @@ const SYSTEM_ROW = {
 };
 
 /**
- * Convert "language" type keys to "next-keyboard" for iOS
- * iOS uses advanceToNextInputMode() instead of internal language switching
- */
-function convertLanguageToNextKeyboard(key) {
-  if (key.type === 'language') {
-    return { ...key, type: 'next-keyboard' };
-  }
-  return key;
-}
-
-/**
  * Process a keyset to add system row and convert language keys
  */
 function processKeyset(keyset, addSystemRow) {
@@ -88,7 +77,7 @@ function processKeyset(keyset, addSystemRow) {
   // Process all rows
   processedKeyset.rows = keyset.rows.map(row => ({
     ...row,
-    keys: row.keys.map(convertLanguageToNextKeyboard)
+    keys: row.keys,
   }));
   
   // Add system row at the top if requested
@@ -152,14 +141,14 @@ function buildIOSConfig(sourceKeyboard, config) {
   
   // Set up groups with language-specific letters
   iosConfig.groups = [
-    {
-      items: getLetterItems(config.language),
-      template: { color: '#000000', bgColor: '#FFFFFF' }
-    },
-    {
-      items: getNumberItems(config.language),
-      template: { color: '#000000', bgColor: '#E8E8E8' }
-    }
+    // {
+    //   items: getLetterItems(config.language),
+    //   template: { color: '#000000', bgColor: '#FFFFFF' }
+    // },
+    // {
+    //   items: getNumberItems(config.language),
+    //   template: { color: '#000000', bgColor: '#E8E8E8' }
+    // }
   ];
   
   return iosConfig;

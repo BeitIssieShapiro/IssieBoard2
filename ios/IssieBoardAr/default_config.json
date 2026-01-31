@@ -2,67 +2,7 @@
   "backgroundColor": "default",
   "defaultKeyset": "abc",
   "wordSuggestionsEnabled": true,
-  "groups": [
-    {
-      "items": [
-        "ا",
-        "ب",
-        "ت",
-        "ث",
-        "ج",
-        "ح",
-        "خ",
-        "د",
-        "ذ",
-        "ر",
-        "ز",
-        "س",
-        "ش",
-        "ص",
-        "ض",
-        "ط",
-        "ظ",
-        "ع",
-        "غ",
-        "ف",
-        "ق",
-        "ك",
-        "ل",
-        "م",
-        "ن",
-        "ه",
-        "و",
-        "ي",
-        "ء",
-        "ؤ",
-        "ئ",
-        "ة",
-        "ى"
-      ],
-      "template": {
-        "color": "#000000",
-        "bgColor": "#FFFFFF"
-      }
-    },
-    {
-      "items": [
-        "٠",
-        "١",
-        "٢",
-        "٣",
-        "٤",
-        "٥",
-        "٦",
-        "٧",
-        "٨",
-        "٩"
-      ],
-      "template": {
-        "color": "#000000",
-        "bgColor": "#E8E8E8"
-      }
-    }
-  ],
+  "groups": [],
   "keyboards": [
     "ar"
   ],
@@ -214,23 +154,6 @@
         {
           "keys": [
             {
-              "type": "settings"
-            },
-            {
-              "type": "backspace",
-              "width": 1.5
-            },
-            {
-              "type": "enter"
-            },
-            {
-              "type": "close"
-            }
-          ]
-        },
-        {
-          "keys": [
-            {
               "value": "ض"
             },
             {
@@ -365,23 +288,6 @@
         {
           "keys": [
             {
-              "type": "settings"
-            },
-            {
-              "type": "backspace",
-              "width": 1.5
-            },
-            {
-              "type": "enter"
-            },
-            {
-              "type": "close"
-            }
-          ]
-        },
-        {
-          "keys": [
-            {
               "value": "١"
             },
             {
@@ -509,23 +415,6 @@
     {
       "id": "#+=",
       "rows": [
-        {
-          "keys": [
-            {
-              "type": "settings"
-            },
-            {
-              "type": "backspace",
-              "width": 1.5
-            },
-            {
-              "type": "enter"
-            },
-            {
-              "type": "close"
-            }
-          ]
-        },
         {
           "keys": [
             {

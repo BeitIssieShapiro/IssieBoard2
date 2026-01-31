@@ -2,61 +2,7 @@
   "backgroundColor": "default",
   "defaultKeyset": "abc",
   "wordSuggestionsEnabled": true,
-  "groups": [
-    {
-      "items": [
-        "א",
-        "ב",
-        "ג",
-        "ד",
-        "ה",
-        "ו",
-        "ז",
-        "ח",
-        "ט",
-        "י",
-        "כ",
-        "ך",
-        "ל",
-        "מ",
-        "ם",
-        "נ",
-        "ן",
-        "ס",
-        "ע",
-        "פ",
-        "ף",
-        "צ",
-        "ץ",
-        "ק",
-        "ר",
-        "ש",
-        "ת"
-      ],
-      "template": {
-        "color": "#000000",
-        "bgColor": "#FFFFFF"
-      }
-    },
-    {
-      "items": [
-        "0",
-        "1",
-        "2",
-        "3",
-        "4",
-        "5",
-        "6",
-        "7",
-        "8",
-        "9"
-      ],
-      "template": {
-        "color": "#000000",
-        "bgColor": "#E8E8E8"
-      }
-    }
-  ],
+  "groups": [],
   "keyboards": [
     "he"
   ],
@@ -209,23 +155,6 @@
         {
           "keys": [
             {
-              "type": "settings"
-            },
-            {
-              "type": "backspace",
-              "width": 1.5
-            },
-            {
-              "type": "enter"
-            },
-            {
-              "type": "close"
-            }
-          ]
-        },
-        {
-          "keys": [
-            {
               "width": 0.5,
               "hidden": true
             },
@@ -340,13 +269,12 @@
               "label": "123"
             },
             {
+              "type": "settings"
+            },
+            {
               "caption": "רווח",
               "value": " ",
               "width": 5
-            },
-            {
-              "value": ".",
-              "sValue": ","
             },
             {
               "type": "nikkud"
@@ -361,23 +289,6 @@
     {
       "id": "123",
       "rows": [
-        {
-          "keys": [
-            {
-              "type": "settings"
-            },
-            {
-              "type": "backspace",
-              "width": 1.5
-            },
-            {
-              "type": "enter"
-            },
-            {
-              "type": "close"
-            }
-          ]
-        },
         {
           "keys": [
             {
@@ -487,13 +398,12 @@
               "width": 1.5
             },
             {
-              "caption": "רווח",
-              "value": " ",
-              "width": 4
+              "type": "settings"
             },
             {
-              "value": ".",
-              "sValue": ","
+              "caption": "רווח",
+              "value": " ",
+              "width": 5
             },
             {
               "type": "nikkud"
@@ -508,23 +418,6 @@
     {
       "id": "#+=",
       "rows": [
-        {
-          "keys": [
-            {
-              "type": "settings"
-            },
-            {
-              "type": "backspace",
-              "width": 1.5
-            },
-            {
-              "type": "enter"
-            },
-            {
-              "type": "close"
-            }
-          ]
-        },
         {
           "keys": [
             {
@@ -635,12 +528,12 @@
               "width": 1.5
             },
             {
+              "type": "settings"
+            },
+            {
               "caption": "רווח",
               "value": " ",
               "width": 5
-            },
-            {
-              "value": "."
             },
             {
               "type": "nikkud"

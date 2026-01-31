@@ -40,23 +40,23 @@ class KeyboardRenderer(
         private const val DEFAULT_KEYSET_ID = "abc"
         
         // UI Dimensions
-        private const val ROW_HEIGHT_PORTRAIT = 150
-        private const val ROW_HEIGHT_LANDSCAPE = 100
-        private const val ROW_HEIGHT_PREVIEW = 100
+        private const val ROW_HEIGHT_PORTRAIT = 130
+        private const val ROW_HEIGHT_LANDSCAPE = 90
+        private const val ROW_HEIGHT_PREVIEW = 90
         private const val KEY_CORNER_RADIUS = 8f
-        private const val KEY_MARGIN_HORIZONTAL = 8
-        private const val KEY_MARGIN_HORIZONTAL_PREVIEW = 6
-        private const val KEY_MARGIN_VERTICAL = 6
+        private const val KEY_MARGIN_HORIZONTAL = 6
+        private const val KEY_MARGIN_HORIZONTAL_PREVIEW = 5
+        private const val KEY_MARGIN_VERTICAL = 5
         private const val KEY_MARGIN_VERTICAL_PREVIEW = 4
-        private const val KEY_PADDING = 8
-        private const val ROW_PADDING_HORIZONTAL = 16
-        private const val ROW_PADDING_HORIZONTAL_PREVIEW = 12
+        private const val KEY_PADDING = 6
+        private const val ROW_PADDING_HORIZONTAL = 12
+        private const val ROW_PADDING_HORIZONTAL_PREVIEW = 10
         
         // Text Sizes
-        private const val TEXT_SIZE_NORMAL = 18f
-        private const val TEXT_SIZE_NORMAL_PREVIEW = 16f
-        private const val TEXT_SIZE_LARGE = 36f
-        private const val TEXT_SIZE_LARGE_PREVIEW = 24f
+        private const val TEXT_SIZE_NORMAL = 22f
+        private const val TEXT_SIZE_NORMAL_PREVIEW = 18f
+        private const val TEXT_SIZE_LARGE = 28f
+        private const val TEXT_SIZE_LARGE_PREVIEW = 22f
         private const val TEXT_SIZE_ERROR = 20f
         
         // Colors

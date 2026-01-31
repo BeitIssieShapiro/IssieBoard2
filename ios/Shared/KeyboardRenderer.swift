@@ -1,6 +1,25 @@
 import UIKit
 
 /**
+ * Custom container view that forwards all touches to its button subview
+ * This ensures taps in the padding area still trigger the key press
+ */
+class KeyContainerView: UIView {
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        // If the touch is within our bounds, forward it to the button
+        if self.bounds.contains(point) {
+            // Find the button subview and return it
+            for subview in subviews {
+                if subview is UIButton {
+                    return subview
+                }
+            }
+        }
+        return super.hitTest(point, with: event)
+    }
+}
+
+/**
  * Custom overlay view that intercepts all touches
  */
 class TouchInterceptingOverlay: UIView {
@@ -109,13 +128,15 @@ class KeyboardRenderer {
     private var lastRenderedWidth: CGFloat = 0
     
     // UI Constants - same for preview and keyboard
-    private let rowHeight: CGFloat = 50
-    private let keySpacing: CGFloat = 6
-    private let rowSpacing: CGFloat = 10
+    private let rowHeight: CGFloat = 50  // Increased from 44 for taller keys
+    private let keySpacing: CGFloat = 0       // No spacing between key tap areas
+    private let keyInternalPadding: CGFloat = 3  // Visual gap between keys (internal margin)
+    private let rowSpacing: CGFloat = 0       // No spacing between row tap areas (visual gap from keyInternalPadding)
     private let keyCornerRadius: CGFloat = 5
-    private let fontSize: CGFloat = 22
-    private let largeFontSize: CGFloat = 26
-    private let suggestionsBarHeight: CGFloat = 44
+    private let fontSize: CGFloat = 24
+    private let largeFontSize: CGFloat = 28
+    private let suggestionsBarHeight: CGFloat = 40
+    private let suggestionsFontSize: CGFloat = 26  // Larger than key font (24) for better readability
     
     // Suggestions bar view reference for updates
     private weak var suggestionsBar: UIView?
@@ -129,8 +150,8 @@ class KeyboardRenderer {
     private var lastBackspaceDeleteTime: Date?
     
     // Long-press timing constants
-    private let charDeleteStartDelay: TimeInterval = 2.0    // Start deleting after 2 seconds
-    private let wordDeleteStartDelay: TimeInterval = 6.0    // Switch to word delete after 6 seconds
+    private let charDeleteStartDelay: TimeInterval = 0.5    // Start deleting after 0.5 seconds (was 2.0)
+    private let wordDeleteStartDelay: TimeInterval = 3.0    // Switch to word delete after 3 seconds (was 6.0)
     private let initialDeleteInterval: TimeInterval = 0.2   // Initial delete interval (200ms)
     private let minDeleteInterval: TimeInterval = 0.05      // Minimum delete interval (50ms)
     private let deleteSpeedupFactor: Double = 0.9           // Speed up factor per delete
@@ -145,6 +166,28 @@ class KeyboardRenderer {
     }
     
     // MARK: - Public Methods
+    
+    /// Calculate the required keyboard height based on the current config
+    /// This returns the dynamic height needed to display the keyboard with all its rows
+    /// - Parameters:
+    ///   - config: The keyboard configuration
+    ///   - keysetId: The keyset ID to calculate height for
+    /// - Returns: The required height in points
+    func calculateKeyboardHeight(for config: KeyboardConfig, keysetId: String) -> CGFloat {
+        // Find the keyset
+        guard let keyset = config.keysets.first(where: { $0.id == keysetId }) else {
+            return 216  // Default iOS keyboard height
+        }
+        
+        let numberOfRows = keyset.rows.count
+        let rowsHeight = CGFloat(numberOfRows) * rowHeight
+        let spacingHeight = CGFloat(max(0, numberOfRows - 1)) * rowSpacing
+        let suggestionsHeight = config.isWordSuggestionsEnabled ? suggestionsBarHeight + 4 : 0
+        let topPadding: CGFloat = 4
+        let bottomPadding: CGFloat = 4
+        
+        return rowsHeight + spacingHeight + suggestionsHeight + topPadding + bottomPadding
+    }
     
     /// Check if width changed and re-render is needed
     func needsRender(for width: CGFloat) -> Bool {
@@ -238,17 +281,17 @@ class KeyboardRenderer {
             }
         }
         
-        // Set background color - support "default" for theme-aware coloring
+        // Set background color - support "default" for transparent/liquid glass effect
         if let bgColorString = config.backgroundColor {
             if bgColorString.lowercased() == "default" || bgColorString.isEmpty {
-                // Use system adaptive colors for light/dark mode
-                container.backgroundColor = UIColor.systemBackground
+                // Use transparent background for liquid glass effect like iOS system keyboard
+                container.backgroundColor = .clear
             } else if let bgColor = UIColor(hexString: bgColorString) {
                 container.backgroundColor = bgColor
             }
         } else {
-            // No color specified - use system default
-            container.backgroundColor = UIColor.systemBackground
+            // No color specified - use transparent for liquid glass effect
+            container.backgroundColor = .clear
         }
         
         // Find current keyset (use self.currentKeysetId - the renderer's internal state)
@@ -427,7 +470,13 @@ class KeyboardRenderer {
         height: CGFloat,
         editorContext: (enterVisible: Bool, enterLabel: String, enterAction: Int)?,
         isSelected: Bool = false
-    ) -> UIButton {
+    ) -> UIView {
+        // Create a container view that fills the entire tap area
+        // Using KeyContainerView which forwards touches to the button
+        let containerView = KeyContainerView()
+        containerView.backgroundColor = .clear  // Transparent container
+        
+        // Create the visual button inside with padding
         let button = UIButton(type: .system)
         
         // Display text based on shift state
@@ -445,7 +494,18 @@ class KeyboardRenderer {
             finalText = getDefaultLabel(for: key.type, editorContext: editorContext)
         }
         
-        button.setTitle(finalText, for: .normal)
+        // For settings key, use SF Symbol image instead of text
+        if key.type.lowercased() == "settings" {
+            if let gearImage = UIImage(systemName: "gearshape.fill") {
+                button.setImage(gearImage, for: .normal)
+                button.setTitle(nil, for: .normal)
+                button.imageView?.contentMode = .scaleAspectFit
+            } else {
+                button.setTitle(finalText, for: .normal)
+            }
+        } else {
+            button.setTitle(finalText, for: .normal)
+        }
         
         // Font size
         let isLargeKey = ["shift", "backspace", "enter"].contains(key.type.lowercased())
@@ -459,16 +519,41 @@ class KeyboardRenderer {
         button.titleLabel?.numberOfLines = 1
         button.contentEdgeInsets = UIEdgeInsets(top: 2, left: 2, bottom: 2, right: 2)
         
-        // Colors
+        // Colors - use darker key colors for dark mode to match system keyboard
         var bgColor = key.backgroundColor
         if key.type.lowercased() == "shift" && shiftState.isActive() {
             bgColor = .systemGreen
         } else if key.type.lowercased() == "nikkud" && nikkudActive {
             bgColor = .systemYellow
+        } else if bgColor == .white {
+            // Use a darker shade for regular keys in dark mode, similar to system keyboard
+            bgColor = UIColor { traitCollection in
+                if traitCollection.userInterfaceStyle == .dark {
+                    return UIColor(red: 0.35, green: 0.35, blue: 0.38, alpha: 1.0)  // Dark gray like iOS keyboard
+                } else {
+                    return UIColor.white
+                }
+            }
         }
         
         button.backgroundColor = bgColor
-        button.setTitleColor(key.textColor, for: .normal)
+        
+        // Text color - adaptive for dark/light mode
+        // Use white in dark mode, black in light mode (like iOS system keyboard)
+        let textColor: UIColor
+        if key.textColor == .black {
+            // Default text color - make it adaptive
+            textColor = UIColor { traitCollection in
+                if traitCollection.userInterfaceStyle == .dark {
+                    return UIColor.white
+                } else {
+                    return UIColor.black
+                }
+            }
+        } else {
+            textColor = key.textColor
+        }
+        button.setTitleColor(textColor, for: .normal)
         button.layer.cornerRadius = keyCornerRadius
         button.layer.shadowColor = UIColor.black.cgColor
         button.layer.shadowOffset = CGSize(width: 0, height: 1)
@@ -493,7 +578,21 @@ class KeyboardRenderer {
         }
         button.accessibilityIdentifier = encodeKeyInfo(key)
         
-        return button
+        // Add button to container with padding (visual gap)
+        containerView.addSubview(button)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            button.topAnchor.constraint(equalTo: containerView.topAnchor, constant: keyInternalPadding),
+            button.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: keyInternalPadding),
+            button.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -keyInternalPadding),
+            button.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -keyInternalPadding)
+        ])
+        
+        // Make the container forward all touches to the button
+        // This ensures taps in the padding area still trigger the button
+        containerView.isUserInteractionEnabled = true
+        
+        return containerView
     }
     
     // MARK: - Backspace Long Press Handling
@@ -1604,8 +1703,8 @@ class KeyboardRenderer {
             // Create tappable label/button with transparent background
             let button = UIButton(type: .system)
             button.setTitle(suggestion, for: .normal)
-            // Larger font for better readability
-            button.titleLabel?.font = UIFont.systemFont(ofSize: 18, weight: .medium)
+            // Use dedicated suggestions font size (larger than key font for better readability)
+            button.titleLabel?.font = UIFont.systemFont(ofSize: suggestionsFontSize, weight: .medium)
             button.titleLabel?.adjustsFontSizeToFitWidth = true
             button.titleLabel?.minimumScaleFactor = 0.6
             button.titleLabel?.textAlignment = .center

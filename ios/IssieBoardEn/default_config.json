@@ -2,60 +2,7 @@
   "backgroundColor": "default",
   "defaultKeyset": "abc",
   "wordSuggestionsEnabled": true,
-  "groups": [
-    {
-      "items": [
-        "a",
-        "b",
-        "c",
-        "d",
-        "e",
-        "f",
-        "g",
-        "h",
-        "i",
-        "j",
-        "k",
-        "l",
-        "m",
-        "n",
-        "o",
-        "p",
-        "q",
-        "r",
-        "s",
-        "t",
-        "u",
-        "v",
-        "w",
-        "x",
-        "y",
-        "z"
-      ],
-      "template": {
-        "color": "#000000",
-        "bgColor": "#FFFFFF"
-      }
-    },
-    {
-      "items": [
-        "0",
-        "1",
-        "2",
-        "3",
-        "4",
-        "5",
-        "6",
-        "7",
-        "8",
-        "9"
-      ],
-      "template": {
-        "color": "#000000",
-        "bgColor": "#E8E8E8"
-      }
-    }
-  ],
+  "groups": [],
   "keyboards": [
     "en"
   ],
@@ -65,23 +12,6 @@
     {
       "id": "abc",
       "rows": [
-        {
-          "keys": [
-            {
-              "type": "settings"
-            },
-            {
-              "type": "backspace",
-              "width": 1.5
-            },
-            {
-              "type": "enter"
-            },
-            {
-              "type": "close"
-            }
-          ]
-        },
         {
           "keys": [
             {
@@ -243,23 +173,6 @@
         {
           "keys": [
             {
-              "type": "settings"
-            },
-            {
-              "type": "backspace",
-              "width": 1.5
-            },
-            {
-              "type": "enter"
-            },
-            {
-              "type": "close"
-            }
-          ]
-        },
-        {
-          "keys": [
-            {
               "value": "1"
             },
             {
@@ -383,23 +296,6 @@
     {
       "id": "#+=",
       "rows": [
-        {
-          "keys": [
-            {
-              "type": "settings"
-            },
-            {
-              "type": "backspace",
-              "width": 1.5
-            },
-            {
-              "type": "enter"
-            },
-            {
-              "type": "close"
-            }
-          ]
-        },
         {
           "keys": [
             {
