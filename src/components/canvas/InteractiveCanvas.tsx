@@ -149,26 +149,13 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
   }, [state.mode, state.activeKeyset, state.config.keyboards, state.config.keysets, state.selectedKeys.length, dispatch, findKeyIdentifier, selectKey, toggleKeySelection, onTestInput]);
 
   // Convert StyleGroups to the GroupConfig format the native renderer expects
-  // The native renderer will apply groups at render time
+  // StyleGroup.members now stores key values directly (e.g., ["א", "ב"]) not position IDs
   const configWithGroups = useMemo((): KeyboardConfig => {
     // Convert styleGroups to the groups format expected by native renderer
+    // Since members are already key values, we can use them directly
     const groupConfigs = state.styleGroups.map(group => ({
       name: group.name,
-      items: group.members.map(memberId => {
-        // Extract the key value from the keyId (keysetId:rowIndex:keyIndex)
-        const [keysetId, rowIndexStr, keyIndexStr] = memberId.split(':');
-        const rowIndex = parseInt(rowIndexStr, 10);
-        const keyIndex = parseInt(keyIndexStr, 10);
-        
-        const keyset = state.config.keysets.find(ks => ks.id === keysetId);
-        if (!keyset) return null;
-        const row = keyset.rows[rowIndex];
-        if (!row) return null;
-        const key = row.keys[keyIndex];
-        if (!key) return null;
-        
-        return key.value || key.caption || key.label || key.type || null;
-      }).filter((v): v is string => v !== null),
+      items: group.members, // Already key values, no conversion needed
       template: {
         color: group.style.color || '',
         bgColor: group.style.bgColor || '',

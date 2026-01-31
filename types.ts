@@ -17,7 +17,7 @@ export interface KeyStyleOverride {
 export interface StyleGroup {
     id: string;                      // Unique ID: "group_1706270400000"
     name: string;                    // Display name: "Vowels", "Hidden Keys"
-    members: string[];               // Key identifiers: ["abc:0:4", "abc:1:0"]
+    members: string[];               // Key values: ["א", "ב", "ג"] - portable across keyboard layouts
     style: KeyStyleOverride;         // What to apply
     createdAt: string;               // ISO timestamp
     isBuiltIn?: boolean;             // System groups can't be deleted

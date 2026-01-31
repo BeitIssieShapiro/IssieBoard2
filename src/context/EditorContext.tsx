@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useReducer, useCallback, ReactNode } from 'react';
 import { KeyboardConfig, StyleGroup, KeyStyleOverride, DiacriticsSettings } from '../../types';
 
-// Key identifier for selection
+// Key identifier for selection (position-based, used for UI highlighting)
 export interface KeyIdentifier {
   keysetId: string;
   rowIndex: number;
@@ -14,6 +14,34 @@ export const keyIdToString = (id: KeyIdentifier): string =>
 export const stringToKeyId = (str: string): KeyIdentifier => {
   const [keysetId, rowIndex, keyIndex] = str.split(':');
   return { keysetId, rowIndex: parseInt(rowIndex, 10), keyIndex: parseInt(keyIndex, 10) };
+};
+
+// Helper to get key value from position ID
+export const getKeyValueFromPositionId = (
+  positionId: string,
+  keysets: { id: string; rows: { keys: { value?: string; caption?: string; label?: string; type?: string }[] }[] }[]
+): string | null => {
+  const [keysetId, rowIndexStr, keyIndexStr] = positionId.split(':');
+  const rowIndex = parseInt(rowIndexStr, 10);
+  const keyIndex = parseInt(keyIndexStr, 10);
+  
+  const keyset = keysets.find(ks => ks.id === keysetId);
+  if (!keyset) return null;
+  const row = keyset.rows[rowIndex];
+  if (!row) return null;
+  const key = row.keys[keyIndex];
+  if (!key) return null;
+  
+  return key.value || key.caption || key.label || key.type || null;
+};
+
+// Helper to check if a key matches a value (for group membership)
+export const keyMatchesValue = (
+  key: { value?: string; caption?: string; label?: string; type?: string },
+  targetValue: string
+): boolean => {
+  const keyValue = key.value || key.caption || key.label || key.type;
+  return keyValue === targetValue;
 };
 
 // Editor state
@@ -125,23 +153,63 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         selectedKeys: [], // Clear selection when switching keysets
       };
 
-    case 'SET_ACTIVE_GROUP':
+    case 'SET_ACTIVE_GROUP': {
+      if (!action.payload) {
+        return {
+          ...state,
+          activeGroupId: null,
+        };
+      }
+      
+      const group = state.styleGroups.find(g => g.id === action.payload);
+      if (!group) {
+        return {
+          ...state,
+          activeGroupId: null,
+        };
+      }
+      
+      // Convert key values back to position IDs for selection highlighting
+      // Find all keys in the current keyset that match the group's key values
+      const selectedPositionIds: string[] = [];
+      for (const keyset of state.config.keysets) {
+        for (let rowIndex = 0; rowIndex < keyset.rows.length; rowIndex++) {
+          const row = keyset.rows[rowIndex];
+          for (let keyIndex = 0; keyIndex < row.keys.length; keyIndex++) {
+            const key = row.keys[keyIndex];
+            const keyValue = key.value || key.caption || key.label || key.type;
+            if (keyValue && group.members.includes(keyValue)) {
+              selectedPositionIds.push(`${keyset.id}:${rowIndex}:${keyIndex}`);
+            }
+          }
+        }
+      }
+      
       return {
         ...state,
         activeGroupId: action.payload,
-        // Select all keys in the group
-        selectedKeys: action.payload
-          ? state.styleGroups.find(g => g.id === action.payload)?.members || []
-          : state.selectedKeys,
+        selectedKeys: selectedPositionIds,
       };
+    }
 
     case 'CREATE_GROUP': {
       if (state.selectedKeys.length === 0) return state;
       
+      // Convert position IDs to key values for storage
+      // This makes groups portable across keyboard layouts
+      const keyValues = state.selectedKeys
+        .map(posId => getKeyValueFromPositionId(posId, state.config.keysets))
+        .filter((v): v is string => v !== null);
+      
+      // Remove duplicates (same key value might be selected multiple times)
+      const uniqueKeyValues = [...new Set(keyValues)];
+      
+      if (uniqueKeyValues.length === 0) return state;
+      
       const newGroup: StyleGroup = {
         id: generateGroupId(),
         name: action.payload.name,
-        members: [...state.selectedKeys],
+        members: uniqueKeyValues, // Store key values, not position IDs
         style: action.payload.style,
         createdAt: new Date().toISOString(),
         active: true,
@@ -181,9 +249,14 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
     }
 
     case 'ADD_TO_GROUP': {
+      // Convert position IDs to key values
+      const keyValues = action.payload.keyIds
+        .map(posId => getKeyValueFromPositionId(posId, state.config.keysets))
+        .filter((v): v is string => v !== null);
+      
       const newGroups = state.styleGroups.map(g => {
         if (g.id !== action.payload.groupId) return g;
-        const newMembers = new Set([...g.members, ...action.payload.keyIds]);
+        const newMembers = new Set([...g.members, ...keyValues]);
         return { ...g, members: Array.from(newMembers) };
       });
       
@@ -195,11 +268,16 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
     }
 
     case 'REMOVE_FROM_GROUP': {
+      // Convert position IDs to key values
+      const keyValuesToRemove = action.payload.keyIds
+        .map(posId => getKeyValueFromPositionId(posId, state.config.keysets))
+        .filter((v): v is string => v !== null);
+      
       const newGroups = state.styleGroups.map(g => {
         if (g.id !== action.payload.groupId) return g;
         return {
           ...g,
-          members: g.members.filter(m => !action.payload.keyIds.includes(m)),
+          members: g.members.filter(m => !keyValuesToRemove.includes(m)),
         };
       });
       
@@ -241,6 +319,16 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
     case 'APPLY_STYLE_TO_SELECTION': {
       if (state.selectedKeys.length === 0) return state;
       
+      // Convert position IDs to key values for storage
+      const keyValues = state.selectedKeys
+        .map(posId => getKeyValueFromPositionId(posId, state.config.keysets))
+        .filter((v): v is string => v !== null);
+      
+      // Remove duplicates
+      const uniqueKeyValues = [...new Set(keyValues)];
+      
+      if (uniqueKeyValues.length === 0) return state;
+      
       // Generate a unique group name
       const generateNewGroupName = (): string => {
         let counter = 1;
@@ -255,7 +343,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       const newGroup: StyleGroup = {
         id: generateGroupId(),
         name: generateNewGroupName(),
-        members: [...state.selectedKeys],
+        members: uniqueKeyValues, // Store key values, not position IDs
         style: action.payload,
         createdAt: new Date().toISOString(),
         active: true,
@@ -331,16 +419,18 @@ const createInitialState = (
 });
 
 // Helper to get computed key style (base + all applicable active groups)
+// keyValue: the actual key character/value (e.g., "א", "backspace")
 const getComputedKeyStyle = (
-  keyId: string,
+  keyValue: string,
   styleGroups: StyleGroup[]
 ): KeyStyleOverride => {
   const computedStyle: KeyStyleOverride = {};
   
   // Apply groups in order (later groups override), skip inactive groups
+  // group.members now contains key values, not position IDs
   for (const group of styleGroups) {
     // Only apply active groups (default to true if not specified)
-    if (group.active !== false && group.members.includes(keyId)) {
+    if (group.active !== false && group.members.includes(keyValue)) {
       Object.assign(computedStyle, group.style);
     }
   }
@@ -457,12 +547,14 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
     dispatch({ type: 'APPLY_STYLE_TO_SELECTION', payload: style });
   }, []);
 
-  const getComputedKeyStyleFn = useCallback((keyId: string): KeyStyleOverride => {
-    return getComputedKeyStyle(keyId, state.styleGroups);
+  // getComputedKeyStyle now expects a key VALUE (e.g., "א"), not a position ID
+  const getComputedKeyStyleFn = useCallback((keyValue: string): KeyStyleOverride => {
+    return getComputedKeyStyle(keyValue, state.styleGroups);
   }, [state.styleGroups]);
 
-  const getKeyGroups = useCallback((keyId: string): StyleGroup[] => {
-    return state.styleGroups.filter(g => g.members.includes(keyId));
+  // getKeyGroups now expects a key VALUE (e.g., "א"), not a position ID
+  const getKeyGroups = useCallback((keyValue: string): StyleGroup[] => {
+    return state.styleGroups.filter(g => g.members.includes(keyValue));
   }, [state.styleGroups]);
 
   const getGroupById = useCallback((groupId: string): StyleGroup | undefined => {

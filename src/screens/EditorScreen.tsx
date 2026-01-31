@@ -211,54 +211,20 @@ interface EditorScreenInnerProps {
   onCreateNew: (name: string, language: LanguageId, keyboardId: string) => Promise<void>;
 }
 
-// Helper: Get key value from keyId
-const getKeyValueFromId = (
-  keyId: string,
-  config: KeyboardConfig
-): string | null => {
-  const parts = keyId.split(':');
-  if (parts.length !== 3) return null;
-  
-  const [keysetId, rowIndexStr, keyIndexStr] = parts;
-  const rowIndex = parseInt(rowIndexStr, 10);
-  const keyIndex = parseInt(keyIndexStr, 10);
-  
-  const keyset = config.keysets.find(ks => ks.id === keysetId);
-  if (!keyset) return null;
-  
-  const row = keyset.rows[rowIndex];
-  if (!row) return null;
-  
-  const key = row.keys[keyIndex];
-  if (!key) return null;
-  
-  return key.value || key.caption || key.label || key.type || null;
-};
-
 // Convert StyleGroups to GroupConfig format
+// StyleGroup.members now stores key values directly (e.g., ["א", "ב"]) not position IDs
 const convertStyleGroupsToGroupConfig = (
-  styleGroups: { name: string; members: string[]; style: { hidden?: boolean; bgColor?: string; color?: string; label?: string } }[],
-  config: KeyboardConfig
+  styleGroups: { name: string; members: string[]; style: { hidden?: boolean; bgColor?: string; color?: string; label?: string } }[]
 ): { name: string; items: string[]; template: { color: string; bgColor: string; hidden?: boolean } }[] => {
-  return styleGroups.map(group => {
-    const items: string[] = [];
-    for (const memberId of group.members) {
-      const keyValue = getKeyValueFromId(memberId, config);
-      if (keyValue && !items.includes(keyValue)) {
-        items.push(keyValue);
-      }
-    }
-    
-    return {
-      name: group.name,
-      items,
-      template: {
-        color: group.style.color || '',
-        bgColor: group.style.bgColor || '',
-        hidden: group.style.hidden,
-      },
-    };
-  });
+  return styleGroups.map(group => ({
+    name: group.name,
+    items: group.members, // Already key values, no conversion needed
+    template: {
+      color: group.style.color || '',
+      bgColor: group.style.bgColor || '',
+      hidden: group.style.hidden,
+    },
+  }));
 };
 
 interface ProfileOption {
@@ -452,12 +418,14 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       language: currentLanguage,
       keyboardId: newKeyboardId,
       backgroundColor: state.config.backgroundColor,
-      groups: state.config.groups,
+      groups: state.config.groups, // Keep groups - they use key values which work across layouts
       diacritics: state.config.diacriticsSettings,
       wordSuggestionsEnabled: state.config.wordSuggestionsEnabled,
     };
     const newConfig = buildConfiguration(profileDef);
-    // Keep existing style groups when just switching keyboard variant
+    // Keep style groups when switching keyboard variant
+    // Style groups now store key values (e.g., "א") not position IDs,
+    // so they work correctly across different keyboard layouts
     setConfig(newConfig, state.styleGroups);
     
     onKeyboardChange(newKeyboardId);
@@ -616,7 +584,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
-      const groupConfigs = convertStyleGroupsToGroupConfig(state.styleGroups, state.config);
+      const groupConfigs = convertStyleGroupsToGroupConfig(state.styleGroups);
       
       const configToSave: KeyboardConfig = {
         ...state.config,
@@ -1136,9 +1104,10 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
     const effectiveActiveProfile = activeForThisLang || defaultProfileId;
     
     if (saveProfileId === effectiveActiveProfile) {
-      // Save to the keyboard-specific key (e.g., keyboardConfig_he, keyboardConfig_he_ordered)
-      await KeyboardPreferences.setKeyboardConfigObjectForLanguage(config, currentKeyboardId);
-      console.log(`📱 Updated active keyboard config for ${currentKeyboardId}`);
+      // Save to the language-specific key (e.g., keyboardConfig_he)
+      // The iOS keyboard reads from keyboardConfig_{keyboardLanguage} where keyboardLanguage is he/en/ar
+      await KeyboardPreferences.setKeyboardConfigObjectForLanguage(config, currentLanguage);
+      console.log(`📱 Updated active keyboard config for ${currentLanguage}`);
       
       // If no active profile was set before, set it now
       if (!activeForThisLang && saveProfileId === defaultProfileId) {
@@ -1187,9 +1156,10 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
     }
     
     if (config) {
-      // Save to keyboard-specific key (keyboardConfig_he, keyboardConfig_he_ordered, etc.)
-      await KeyboardPreferences.setKeyboardConfigObjectForLanguage(config, currentKeyboardId);
-      console.log(`✅ Saved config to keyboardConfig_${currentKeyboardId}`);
+      // Save to language-specific key (keyboardConfig_he, keyboardConfig_en, keyboardConfig_ar)
+      // The iOS keyboard reads from keyboardConfig_{keyboardLanguage} where keyboardLanguage is he/en/ar
+      await KeyboardPreferences.setKeyboardConfigObjectForLanguage(config, currentLanguage);
+      console.log(`✅ Saved config to keyboardConfig_${currentLanguage}`);
     }
     
     // Also save which profile is active for this language (not keyboard variant)
