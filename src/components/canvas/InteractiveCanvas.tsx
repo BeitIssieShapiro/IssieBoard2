@@ -150,18 +150,22 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
 
   // Convert StyleGroups to the GroupConfig format the native renderer expects
   // StyleGroup.members now stores key values directly (e.g., ["א", "ב"]) not position IDs
+  // Only include ACTIVE groups in the preview
   const configWithGroups = useMemo((): KeyboardConfig => {
     // Convert styleGroups to the groups format expected by native renderer
     // Since members are already key values, we can use them directly
-    const groupConfigs = state.styleGroups.map(group => ({
-      name: group.name,
-      items: group.members, // Already key values, no conversion needed
-      template: {
-        color: group.style.color || '',
-        bgColor: group.style.bgColor || '',
-        hidden: group.style.hidden,
-      },
-    }));
+    // Only include active groups
+    const groupConfigs = state.styleGroups
+      .filter(group => group.active !== false)
+      .map(group => ({
+        name: group.name,
+        items: group.members, // Already key values, no conversion needed
+        template: {
+          color: group.style.color || '',
+          bgColor: group.style.bgColor || '',
+          hidden: group.style.hidden,
+        },
+      }));
 
     // Return the base config with the current groups
     return {

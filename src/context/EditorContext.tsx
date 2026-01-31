@@ -70,6 +70,7 @@ type EditorAction =
   | { type: 'SET_ACTIVE_KEYSET'; payload: string }
   | { type: 'SET_ACTIVE_GROUP'; payload: string | null }
   | { type: 'CREATE_GROUP'; payload: { name: string; style: KeyStyleOverride } }
+  | { type: 'CREATE_GROUP_FROM_VALUES'; payload: { name: string; members: string[]; style: KeyStyleOverride; active?: boolean } }
   | { type: 'UPDATE_GROUP'; payload: { groupId: string; updates: Partial<StyleGroup> } }
   | { type: 'DELETE_GROUP'; payload: string }
   | { type: 'ADD_TO_GROUP'; payload: { groupId: string; keyIds: string[] } }
@@ -80,7 +81,8 @@ type EditorAction =
   | { type: 'UPDATE_BACKGROUND_COLOR'; payload: string }
   | { type: 'UPDATE_DIACRITICS_SETTINGS'; payload: { keyboardId: string; settings: DiacriticsSettings } }
   | { type: 'UPDATE_WORD_SUGGESTIONS'; payload: boolean }
-  | { type: 'MARK_SAVED' };
+  | { type: 'MARK_SAVED' }
+  | { type: 'MARK_DIRTY' };
 
 // Generate unique group ID
 const generateGroupId = (): string => `group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -213,6 +215,27 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         style: action.payload.style,
         createdAt: new Date().toISOString(),
         active: true,
+      };
+      
+      return {
+        ...state,
+        styleGroups: [...state.styleGroups, newGroup],
+        activeGroupId: newGroup.id,
+        isDirty: true,
+      };
+    }
+
+    case 'CREATE_GROUP_FROM_VALUES': {
+      // Create a group directly from key values (no selection required)
+      if (action.payload.members.length === 0) return state;
+      
+      const newGroup: StyleGroup = {
+        id: generateGroupId(),
+        name: action.payload.name,
+        members: action.payload.members,
+        style: action.payload.style,
+        createdAt: new Date().toISOString(),
+        active: action.payload.active !== false,
       };
       
       return {
@@ -392,6 +415,12 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         isDirty: false,
       };
 
+    case 'MARK_DIRTY':
+      return {
+        ...state,
+        isDirty: true,
+      };
+
     default:
       return state;
   }
@@ -451,6 +480,7 @@ interface EditorContextValue {
   
   // Group operations
   createGroup: (name: string, style: KeyStyleOverride) => void;
+  createGroupFromValues: (name: string, members: string[], style: KeyStyleOverride, active?: boolean) => void;
   updateGroup: (groupId: string, updates: Partial<StyleGroup>) => void;
   deleteGroup: (groupId: string) => void;
   addToGroup: (groupId: string, keyIds?: string[]) => void;
@@ -472,6 +502,7 @@ interface EditorContextValue {
   setConfig: (config: KeyboardConfig, styleGroups?: StyleGroup[]) => void;
   updateBackgroundColor: (color: string) => void;
   updateWordSuggestions: (enabled: boolean) => void;
+  markDirty: () => void;
 }
 
 const EditorContext = createContext<EditorContextValue | null>(null);
@@ -513,6 +544,10 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
 
   const createGroup = useCallback((name: string, style: KeyStyleOverride) => {
     dispatch({ type: 'CREATE_GROUP', payload: { name, style } });
+  }, []);
+
+  const createGroupFromValues = useCallback((name: string, members: string[], style: KeyStyleOverride, active: boolean = true) => {
+    dispatch({ type: 'CREATE_GROUP_FROM_VALUES', payload: { name, members, style, active } });
   }, []);
 
   const updateGroup = useCallback((groupId: string, updates: Partial<StyleGroup>) => {
@@ -577,6 +612,10 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
     dispatch({ type: 'UPDATE_WORD_SUGGESTIONS', payload: enabled });
   }, []);
 
+  const markDirty = useCallback(() => {
+    dispatch({ type: 'MARK_DIRTY' });
+  }, []);
+
   const value: EditorContextValue = {
     state,
     dispatch,
@@ -585,6 +624,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
     selectKeys,
     clearSelection,
     createGroup,
+    createGroupFromValues,
     updateGroup,
     deleteGroup,
     addToGroup,
@@ -600,6 +640,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
     setConfig,
     updateBackgroundColor,
     updateWordSuggestions,
+    markDirty,
   };
 
   return <EditorContext.Provider value={value}>{children}</EditorContext.Provider>;

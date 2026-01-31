@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -44,35 +44,6 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
 
   // Get current word suggestions setting (default to true)
   const wordSuggestionsEnabled = state.config.wordSuggestionsEnabled !== false;
-
-  // Calculate stats
-  const stats = useMemo(() => {
-    let totalKeys = 0;
-    state.config.keysets.forEach(keyset => {
-      keyset.rows.forEach(row => {
-        totalKeys += row.keys.length;
-      });
-    });
-
-    const hiddenKeyIds = new Set<string>();
-    state.styleGroups.forEach(group => {
-      if (group.style.hidden) {
-        group.members.forEach(keyId => hiddenKeyIds.add(keyId));
-      }
-    });
-
-    const styledKeyIds = new Set<string>();
-    state.styleGroups.forEach(group => {
-      group.members.forEach(keyId => styledKeyIds.add(keyId));
-    });
-
-    return {
-      totalKeys,
-      hiddenKeys: hiddenKeyIds.size,
-      styledKeys: styledKeyIds.size,
-      groupCount: state.styleGroups.length,
-    };
-  }, [state.config.keysets, state.styleGroups]);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -133,43 +104,6 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
         </View>
       </View>
 
-      {/* Stats */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Profile Stats</Text>
-        <View style={styles.statsGrid}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{stats.totalKeys}</Text>
-            <Text style={styles.statLabel}>Total Keys</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, stats.hiddenKeys > 0 && styles.statValueWarning]}>
-              {stats.hiddenKeys}
-            </Text>
-            <Text style={styles.statLabel}>Hidden</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, stats.styledKeys > 0 && styles.statValueHighlight]}>
-              {stats.styledKeys}
-            </Text>
-            <Text style={styles.statLabel}>Styled</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{stats.groupCount}</Text>
-            <Text style={styles.statLabel}>Groups</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Tips */}
-      <View style={styles.tipsSection}>
-        <Text style={styles.tipsTitle}>💡 Quick Tips</Text>
-        <Text style={styles.tipsText}>
-          • Tap a key to select and edit it{'\n'}
-          • Changes create Style Groups automatically{'\n'}
-          • Delete a group to restore keys to default{'\n'}
-          • Switch to Groups tab to manage all groups
-        </Text>
-      </View>
     </ScrollView>
   );
 };
@@ -216,22 +150,6 @@ const styles = StyleSheet.create({
   featureInfo: { flex: 1, marginRight: 12 },
   featureLabel: { fontSize: 15, fontWeight: '500', color: '#333' },
   featureDescription: { fontSize: 12, color: '#666', marginTop: 4 },
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  statItem: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: '#F5F5F5',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  statValue: { fontSize: 28, fontWeight: 'bold', color: '#333' },
-  statValueWarning: { color: '#FF9800' },
-  statValueHighlight: { color: '#2196F3' },
-  statLabel: { fontSize: 12, color: '#666', marginTop: 4 },
-  tipsSection: { backgroundColor: '#E3F2FD', padding: 16, borderRadius: 12, marginTop: 8 },
-  tipsTitle: { fontSize: 14, fontWeight: '600', color: '#1976D2', marginBottom: 8 },
-  tipsText: { fontSize: 12, color: '#333', lineHeight: 18 },
 });
 
 export default GlobalSettingsPanel;

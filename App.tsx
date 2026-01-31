@@ -24,12 +24,31 @@ import {
   StoredConfig,
 } from './types';
 
-// Import keyboard and profile files
+// Import keyboard files
 import enKeyboard from './keyboards/en.json';
 import heKeyboard from './keyboards/he.json';
 import arKeyboard from './keyboards/ar.json';
-import defaultProfile from './profiles/default.json';
-import multilingualProfile from './profiles/multilingual.json';
+
+// Define profiles inline (no longer loading from JSON files)
+const defaultProfile: ProfileDefinition = {
+  id: 'default',
+  name: 'Default',
+  keyboards: ['en'],
+  defaultKeyboard: 'en',
+  defaultKeyset: 'abc',
+  backgroundColor: '#E0E0E0',
+  groups: [],
+};
+
+const multilingualProfile: ProfileDefinition = {
+  id: 'multilingual',
+  name: 'Multilingual',
+  keyboards: ['he', 'en', 'ar'],
+  defaultKeyboard: 'he',
+  defaultKeyset: 'abc',
+  backgroundColor: '#E0E0E0',
+  groups: [],
+};
 
 // Type guard to check if a stored config needs building
 const needsBuilding = (config: StoredConfig): config is ProfileDefinition => {

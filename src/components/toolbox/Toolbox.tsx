@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useEditor } from '../../context/EditorContext';
-import { KeyEditorPanel } from './KeyEditorPanel';
 import { GlobalSettingsPanel } from './GlobalSettingsPanel';
-import { GroupsPanel } from './GroupsPanel';
+import { StyleRulesPanel } from './StyleRulesPanel';
 import { DiacriticsPanel } from './DiacriticsPanel';
 
-type TabId = 'settings' | 'groups' | 'diacritics';
+type TabId = 'settings' | 'styleRules' | 'diacritics';
 
 export interface KeyboardVariantOption {
   id: string;
@@ -27,33 +26,36 @@ export const Toolbox: React.FC<ToolboxProps> = ({
   currentKeyboardId,
   onKeyboardVariantChange,
 }) => {
-  const { state } = useEditor();
+  const { state, clearSelection } = useEditor();
   const [activeTab, setActiveTab] = useState<TabId>('settings');
 
-  // If keys are selected, show key editor
-  if (state.selectedKeys.length > 0) {
-    return <KeyEditorPanel />;
-  }
+  // Clear selection when switching tabs
+  const handleTabChange = (tab: TabId) => {
+    if (tab !== activeTab) {
+      clearSelection();
+      setActiveTab(tab);
+    }
+  };
 
-  // Otherwise show tabbed interface for global settings and groups
+  // Show tabbed interface for global settings, style rules, and nikkud
   return (
     <View style={styles.container}>
       {/* Tab Bar */}
       <View style={styles.tabBar}>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'settings' && styles.tabActive]}
-          onPress={() => setActiveTab('settings')}
+          onPress={() => handleTabChange('settings')}
         >
           <Text style={[styles.tabText, activeTab === 'settings' && styles.tabTextActive]}>
             ⚙️ Settings
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'groups' && styles.tabActive]}
-          onPress={() => setActiveTab('groups')}
+          style={[styles.tab, activeTab === 'styleRules' && styles.tabActive]}
+          onPress={() => handleTabChange('styleRules')}
         >
-          <Text style={[styles.tabText, activeTab === 'groups' && styles.tabTextActive]}>
-            📦 Groups
+          <Text style={[styles.tabText, activeTab === 'styleRules' && styles.tabTextActive]}>
+            🎨 Style Rules
             {state.styleGroups.length > 0 && (
               <Text style={styles.badge}> ({state.styleGroups.length})</Text>
             )}
@@ -62,7 +64,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
         {state.config.diacritics && (
           <TouchableOpacity
             style={[styles.tab, activeTab === 'diacritics' && styles.tabActive]}
-            onPress={() => setActiveTab('diacritics')}
+            onPress={() => handleTabChange('diacritics')}
           >
             <Text style={[styles.tabText, activeTab === 'diacritics' && styles.tabTextActive]}>
               ◌ָ Nikkud
@@ -80,7 +82,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
             onKeyboardVariantChange={onKeyboardVariantChange}
           />
         )}
-        {activeTab === 'groups' && <GroupsPanel />}
+        {activeTab === 'styleRules' && <StyleRulesPanel />}
         {activeTab === 'diacritics' && <DiacriticsPanel />}
       </View>
     </View>

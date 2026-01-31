@@ -32,12 +32,31 @@ import {
   StoredConfig,
 } from '../../types';
 
-// Import keyboard and profile files
+// Import keyboard files
 import enKeyboard from '../../keyboards/en.json';
 import heKeyboard from '../../keyboards/he.json';
 import arKeyboard from '../../keyboards/ar.json';
-import defaultProfile from '../../profiles/default.json';
-import multilingualProfile from '../../profiles/multilingual.json';
+
+// Define profiles inline (no longer loading from JSON files)
+const defaultProfile: ProfileDefinition = {
+  id: 'default',
+  name: 'Default',
+  keyboards: ['en'],
+  defaultKeyboard: 'en',
+  defaultKeyset: 'abc',
+  backgroundColor: '#E0E0E0',
+  groups: [],
+};
+
+const multilingualProfile: ProfileDefinition = {
+  id: 'multilingual',
+  name: 'Multilingual',
+  keyboards: ['he', 'en', 'ar'],
+  defaultKeyboard: 'he',
+  defaultKeyset: 'abc',
+  backgroundColor: '#E0E0E0',
+  groups: [],
+};
 
 // Type guard to check if a stored config needs building
 const needsBuilding = (config: StoredConfig): config is ProfileDefinition => {
@@ -448,7 +467,7 @@ export const LegacyConfigScreen: React.FC<LegacyConfigScreenProps> = ({ onSwitch
     }
   };
 
-  const handleCreateProfile = async (name: string, selectedLanguages: string[]) => {
+  const handleCreateProfile = async (name: string, language: string, keyboardId: string) => {
     try {
       setStatus(strings.savingConfiguration);
       
@@ -457,8 +476,8 @@ export const LegacyConfigScreen: React.FC<LegacyConfigScreenProps> = ({ onSwitch
         id: `custom_${Date.now()}`,
         name: name,
         version: '1.0.0',
-        keyboards: selectedLanguages,
-        defaultKeyboard: selectedLanguages[0],
+        keyboards: [keyboardId],
+        defaultKeyboard: keyboardId,
         defaultKeyset: 'abc',
         backgroundColor: '#E0E0E0',
         systemRow: {
@@ -512,7 +531,7 @@ export const LegacyConfigScreen: React.FC<LegacyConfigScreenProps> = ({ onSwitch
       const config = buildConfiguration(newProfile);
       await applyConfiguration(config, name, key);
 
-      console.log(`✅ ${Platform.OS}: New profile "${name}" created with languages: ${selectedLanguages.join(', ')}`);
+      console.log(`✅ ${Platform.OS}: New profile "${name}" created with language: ${language}, keyboard: ${keyboardId}`);
 
       setShowAddProfileModal(false);
       setStatus(`${strings.profileSaved} ${name}`);

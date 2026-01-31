@@ -213,18 +213,21 @@ interface EditorScreenInnerProps {
 
 // Convert StyleGroups to GroupConfig format
 // StyleGroup.members now stores key values directly (e.g., ["א", "ב"]) not position IDs
+// Only include active groups in the output config
 const convertStyleGroupsToGroupConfig = (
-  styleGroups: { name: string; members: string[]; style: { hidden?: boolean; bgColor?: string; color?: string; label?: string } }[]
+  styleGroups: { name: string; members: string[]; style: { hidden?: boolean; bgColor?: string; color?: string; label?: string }; active?: boolean }[]
 ): { name: string; items: string[]; template: { color: string; bgColor: string; hidden?: boolean } }[] => {
-  return styleGroups.map(group => ({
-    name: group.name,
-    items: group.members, // Already key values, no conversion needed
-    template: {
-      color: group.style.color || '',
-      bgColor: group.style.bgColor || '',
-      hidden: group.style.hidden,
-    },
-  }));
+  return styleGroups
+    .filter(group => group.active !== false) // Only include active groups
+    .map(group => ({
+      name: group.name,
+      items: group.members, // Already key values, no conversion needed
+      template: {
+        color: group.style.color || '',
+        bgColor: group.style.bgColor || '',
+        hidden: group.style.hidden,
+      },
+    }));
 };
 
 interface ProfileOption {
@@ -251,7 +254,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   onKeyboardChange,
   onCreateNew,
 }) => {
-  const { state, setMode, setConfig } = useEditor();
+  const { state, setMode, setConfig, markDirty, dispatch } = useEditor();
   const [testText, setTestText] = useState('');
   const [saving, setSaving] = useState(false);
   const [settingActive, setSettingActive] = useState(false);
@@ -428,8 +431,12 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     // so they work correctly across different keyboard layouts
     setConfig(newConfig, state.styleGroups);
     
+    // Mark as dirty after setConfig (since setConfig resets dirty flag)
+    // We need to use setTimeout to ensure the markDirty runs after setConfig's state update
+    setTimeout(() => markDirty(), 0);
+    
     onKeyboardChange(newKeyboardId);
-  }, [currentLanguage, currentProfileId, currentProfileName, state.config, state.styleGroups, setConfig, onKeyboardChange]);
+  }, [currentLanguage, currentProfileId, currentProfileName, state.config, state.styleGroups, setConfig, markDirty, onKeyboardChange]);
 
   const handleLoadProfile = useCallback(async (profile: ProfileOption) => {
     setShowProfilePicker(false);
@@ -592,13 +599,14 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       };
       
       await onSave(configToSave, state.styleGroups);
+      dispatch({ type: 'MARK_SAVED' }); // Mark as not dirty after successful save
       showToast('✓ Saved successfully');
     } catch (error) {
       showToast('✗ Failed to save configuration');
     } finally {
       setSaving(false);
     }
-  }, [state.config, state.styleGroups, onSave, showToast]);
+  }, [state.config, state.styleGroups, onSave, dispatch, showToast]);
 
   const handleBack = useCallback(() => {
     if (state.isDirty) {
@@ -809,15 +817,15 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       {/* Action Bar */}
       <View style={styles.actionBar}>
         <TouchableOpacity
-          style={[styles.actionButton, styles.saveButton, saving && styles.actionButtonDisabled]}
+          style={[styles.actionButton, styles.saveButton, (saving || !state.isDirty) && styles.actionButtonDisabled]}
           onPress={handleSave}
-          disabled={saving}
+          disabled={saving || !state.isDirty}
         >
           {saving ? (
             <ActivityIndicator color="#FFF" size="small" />
           ) : (
             <Text style={styles.actionButtonText}>
-              💾 Save{state.isDirty ? ' •' : ''}
+              💾 Save
             </Text>
           )}
         </TouchableOpacity>
