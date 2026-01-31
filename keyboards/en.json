@@ -48,6 +48,7 @@
         },
         {
           "keys": [
+            {"hidden": true, "width": 1},
             { "type": "keyset", "keysetValue": "123", "label": "123" },
             { "type": "settings"},
             { "type": "next-keyboard", "width": 1 },
@@ -102,6 +103,7 @@
         },
         {
           "keys": [
+            {"hidden": true, "width": 1},
             { "type": "keyset", "keysetValue": "abc", "label": "ABC" },
             { "type": "settings"},
             { "type": "next-keyboard", "width": 1 },
@@ -156,6 +158,7 @@
         },
         {
           "keys": [
+            {"hidden": true, "width": 1},
             { "type": "keyset", "keysetValue": "abc", "label": "ABC" },
             { "type": "settings" },
             { "type": "next-keyboard", "width": 1 },

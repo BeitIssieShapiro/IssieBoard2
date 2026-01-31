@@ -1,23 +1,5 @@
 import UIKit
 
-/**
- * Custom container view that forwards all touches to its button subview
- * This ensures taps in the padding area still trigger the key press
- */
-class KeyContainerView: UIView {
-    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        // If the touch is within our bounds, forward it to the button
-        if self.bounds.contains(point) {
-            // Find the button subview and return it
-            for subview in subviews {
-                if subview is UIButton {
-                    return subview
-                }
-            }
-        }
-        return super.hitTest(point, with: event)
-    }
-}
 
 /**
  * Custom overlay view that intercepts all touches
@@ -128,7 +110,7 @@ class KeyboardRenderer {
     private var lastRenderedWidth: CGFloat = 0
     
     // UI Constants - same for preview and keyboard
-    private let rowHeight: CGFloat = 50  // Increased from 44 for taller keys
+    private let rowHeight: CGFloat = 54  // Increased from 44 for taller keys
     private let keySpacing: CGFloat = 0       // No spacing between key tap areas
     private let keyInternalPadding: CGFloat = 3  // Visual gap between keys (internal margin)
     private let rowSpacing: CGFloat = 0       // No spacing between row tap areas (visual gap from keyInternalPadding)
@@ -412,6 +394,7 @@ class KeyboardRenderer {
         keysetId: String,
         rowIndex: Int
     ) -> UIView {
+        // Simple row container - buttons handle their own touches
         let rowContainer = UIView()
         var currentX: CGFloat = 0
         var keyIndex = 0
@@ -471,13 +454,61 @@ class KeyboardRenderer {
         editorContext: (enterVisible: Bool, enterLabel: String, enterAction: Int)?,
         isSelected: Bool = false
     ) -> UIView {
-        // Create a container view that fills the entire tap area
-        // Using KeyContainerView which forwards touches to the button
-        let containerView = KeyContainerView()
-        containerView.backgroundColor = .clear  // Transparent container
-        
-        // Create the visual button inside with padding
+        // Create the main button that fills the ENTIRE tap area (no gaps)
         let button = UIButton(type: .system)
+        // UIButton needs some visible content to have a hit area
+        // Using a nearly invisible background to ensure it's tappable
+        button.backgroundColor = UIColor(white: 1.0, alpha: 0.001)
+        
+        // For backspace key, add long-press handling using touch events
+        if key.type.lowercased() == "backspace" {
+            button.addTarget(self, action: #selector(backspaceTouchDown(_:)), for: .touchDown)
+            button.addTarget(self, action: #selector(backspaceTouchUp(_:)), for: .touchUpInside)
+            button.addTarget(self, action: #selector(backspaceTouchUp(_:)), for: .touchUpOutside)
+            button.addTarget(self, action: #selector(backspaceTouchCancelled(_:)), for: .touchCancel)
+        } else {
+            button.addTarget(self, action: #selector(keyTapped(_:)), for: .touchUpInside)
+        }
+        button.accessibilityIdentifier = encodeKeyInfo(key)
+        
+        // Create the VISUAL key view (smaller, with padding to create visual gap)
+        // This is a non-interactive view for display only
+        let visualKeyView = UIView()
+        visualKeyView.isUserInteractionEnabled = false  // Let touches pass through to button
+        
+        // Colors - use darker key colors for dark mode to match system keyboard
+        var bgColor = key.backgroundColor
+        if key.type.lowercased() == "shift" && shiftState.isActive() {
+            bgColor = .systemGreen
+        } else if key.type.lowercased() == "nikkud" && nikkudActive {
+            bgColor = .systemYellow
+        } else if bgColor == .white {
+            // Use a darker shade for regular keys in dark mode, similar to system keyboard
+            bgColor = UIColor { traitCollection in
+                if traitCollection.userInterfaceStyle == .dark {
+                    return UIColor(red: 0.35, green: 0.35, blue: 0.38, alpha: 1.0)
+                } else {
+                    return UIColor.white
+                }
+            }
+        }
+        
+        visualKeyView.backgroundColor = bgColor
+        visualKeyView.layer.cornerRadius = keyCornerRadius
+        visualKeyView.layer.shadowColor = UIColor.black.cgColor
+        visualKeyView.layer.shadowOffset = CGSize(width: 0, height: 1)
+        visualKeyView.layer.shadowOpacity = 0.2
+        visualKeyView.layer.shadowRadius = 1
+        
+        // Selection highlight for edit mode
+        if isSelected {
+            visualKeyView.layer.borderWidth = 3.0
+            visualKeyView.layer.borderColor = UIColor.systemBlue.cgColor
+        }
+        
+        // Create label for key text (inside the visual view)
+        let label = UILabel()
+        label.isUserInteractionEnabled = false
         
         // Display text based on shift state
         let displayText = shiftState.isActive() ? key.sCaption : key.caption
@@ -494,17 +525,26 @@ class KeyboardRenderer {
             finalText = getDefaultLabel(for: key.type, editorContext: editorContext)
         }
         
-        // For settings key, use SF Symbol image instead of text
+        // For settings key, use SF Symbol image
         if key.type.lowercased() == "settings" {
             if let gearImage = UIImage(systemName: "gearshape.fill") {
-                button.setImage(gearImage, for: .normal)
-                button.setTitle(nil, for: .normal)
-                button.imageView?.contentMode = .scaleAspectFit
+                let imageView = UIImageView(image: gearImage)
+                imageView.contentMode = .scaleAspectFit
+                imageView.tintColor = .label
+                imageView.isUserInteractionEnabled = false
+                visualKeyView.addSubview(imageView)
+                imageView.translatesAutoresizingMaskIntoConstraints = false
+                NSLayoutConstraint.activate([
+                    imageView.centerXAnchor.constraint(equalTo: visualKeyView.centerXAnchor),
+                    imageView.centerYAnchor.constraint(equalTo: visualKeyView.centerYAnchor),
+                    imageView.widthAnchor.constraint(equalToConstant: 24),
+                    imageView.heightAnchor.constraint(equalToConstant: 24)
+                ])
             } else {
-                button.setTitle(finalText, for: .normal)
+                label.text = finalText
             }
         } else {
-            button.setTitle(finalText, for: .normal)
+            label.text = finalText
         }
         
         // Font size
@@ -513,36 +553,15 @@ class KeyboardRenderer {
         let baseFontSize: CGFloat = isLargeKey ? largeFontSize : fontSize
         let finalFontSize = isMultiChar ? min(baseFontSize * 0.7, 14) : baseFontSize
         
-        button.titleLabel?.font = UIFont.systemFont(ofSize: finalFontSize, weight: .regular)
-        button.titleLabel?.adjustsFontSizeToFitWidth = true
-        button.titleLabel?.minimumScaleFactor = 0.3
-        button.titleLabel?.numberOfLines = 1
-        button.contentEdgeInsets = UIEdgeInsets(top: 2, left: 2, bottom: 2, right: 2)
-        
-        // Colors - use darker key colors for dark mode to match system keyboard
-        var bgColor = key.backgroundColor
-        if key.type.lowercased() == "shift" && shiftState.isActive() {
-            bgColor = .systemGreen
-        } else if key.type.lowercased() == "nikkud" && nikkudActive {
-            bgColor = .systemYellow
-        } else if bgColor == .white {
-            // Use a darker shade for regular keys in dark mode, similar to system keyboard
-            bgColor = UIColor { traitCollection in
-                if traitCollection.userInterfaceStyle == .dark {
-                    return UIColor(red: 0.35, green: 0.35, blue: 0.38, alpha: 1.0)  // Dark gray like iOS keyboard
-                } else {
-                    return UIColor.white
-                }
-            }
-        }
-        
-        button.backgroundColor = bgColor
+        label.font = UIFont.systemFont(ofSize: finalFontSize, weight: .regular)
+        label.adjustsFontSizeToFitWidth = true
+        label.minimumScaleFactor = 0.3
+        label.numberOfLines = 1
+        label.textAlignment = .center
         
         // Text color - adaptive for dark/light mode
-        // Use white in dark mode, black in light mode (like iOS system keyboard)
         let textColor: UIColor
         if key.textColor == .black {
-            // Default text color - make it adaptive
             textColor = UIColor { traitCollection in
                 if traitCollection.userInterfaceStyle == .dark {
                     return UIColor.white
@@ -553,83 +572,98 @@ class KeyboardRenderer {
         } else {
             textColor = key.textColor
         }
-        button.setTitleColor(textColor, for: .normal)
-        button.layer.cornerRadius = keyCornerRadius
-        button.layer.shadowColor = UIColor.black.cgColor
-        button.layer.shadowOffset = CGSize(width: 0, height: 1)
-        button.layer.shadowOpacity = 0.2
-        button.layer.shadowRadius = 1
+        label.textColor = textColor
         
-        // Selection highlight for edit mode
-        if isSelected {
-            button.layer.borderWidth = 3.0
-            button.layer.borderColor = UIColor.systemBlue.cgColor
+        // Add label to visual key view (centered)
+        if key.type.lowercased() != "settings" {
+            visualKeyView.addSubview(label)
+            label.translatesAutoresizingMaskIntoConstraints = false
+            NSLayoutConstraint.activate([
+                label.centerXAnchor.constraint(equalTo: visualKeyView.centerXAnchor),
+                label.centerYAnchor.constraint(equalTo: visualKeyView.centerYAnchor),
+                label.leadingAnchor.constraint(greaterThanOrEqualTo: visualKeyView.leadingAnchor, constant: 2),
+                label.trailingAnchor.constraint(lessThanOrEqualTo: visualKeyView.trailingAnchor, constant: -2)
+            ])
         }
         
-        // For backspace key, add long-press handling
-        if key.type.lowercased() == "backspace" {
-            // Add touch down/up/cancel handlers for long-press detection
-            button.addTarget(self, action: #selector(backspaceTouchDown(_:)), for: .touchDown)
-            button.addTarget(self, action: #selector(backspaceTouchUp(_:)), for: .touchUpInside)
-            button.addTarget(self, action: #selector(backspaceTouchUp(_:)), for: .touchUpOutside)
-            button.addTarget(self, action: #selector(backspaceTouchUp(_:)), for: .touchCancel)
-        } else {
-            button.addTarget(self, action: #selector(keyTapped(_:)), for: .touchUpInside)
-        }
-        button.accessibilityIdentifier = encodeKeyInfo(key)
-        
-        // Add button to container with padding (visual gap)
-        containerView.addSubview(button)
-        button.translatesAutoresizingMaskIntoConstraints = false
+        // Add visual key view to button (with padding for visual gap)
+        button.addSubview(visualKeyView)
+        visualKeyView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            button.topAnchor.constraint(equalTo: containerView.topAnchor, constant: keyInternalPadding),
-            button.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: keyInternalPadding),
-            button.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -keyInternalPadding),
-            button.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -keyInternalPadding)
+            visualKeyView.topAnchor.constraint(equalTo: button.topAnchor, constant: keyInternalPadding),
+            visualKeyView.leadingAnchor.constraint(equalTo: button.leadingAnchor, constant: keyInternalPadding),
+            visualKeyView.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -keyInternalPadding),
+            visualKeyView.bottomAnchor.constraint(equalTo: button.bottomAnchor, constant: -keyInternalPadding)
         ])
         
-        // Make the container forward all touches to the button
-        // This ensures taps in the padding area still trigger the button
-        containerView.isUserInteractionEnabled = true
-        
-        return containerView
+        return button
     }
     
-    // MARK: - Backspace Long Press Handling
+    // MARK: - Backspace Touch Handling
     
-    /// Called when backspace button is pressed down
+    // Track if backspace was held long enough to start continuous delete
+    private var backspaceStartedContinuousDelete: Bool = false
+    
+    // Reference to the backspace button for long press
+    private weak var backspaceButton: UIButton?
+    
+    /// Called when backspace button is touched down
     @objc private func backspaceTouchDown(_ sender: UIButton) {
-        print("⌫ Backspace touch DOWN")
+        print("⌫ Backspace touch DOWN - button: \(sender)")
         
-        // Record the start time
-        backspacePressStartTime = Date()
+        // Store reference
+        backspaceButton = sender
+        
+        // Record the start time BEFORE anything else
+        let startTime = Date()
+        
+        // Reset counters
         backspaceDeleteCount = 0
         currentDeleteInterval = initialDeleteInterval
+        lastBackspaceDeleteTime = nil
+        backspaceStartedContinuousDelete = false
         
         // Perform initial delete immediately
         performBackspaceDelete()
         
-        // Start the timer to check for long-press
+        // Set the start time AFTER performBackspaceDelete to avoid it being cleared
+        backspacePressStartTime = startTime
+        print("⌫ Start time set to: \(startTime)")
+        
+        // Start the timer for long-press detection and continuous deletion
         startBackspaceTimer()
     }
     
-    /// Called when backspace button is released or cancelled
+    /// Called when backspace button is released
     @objc private func backspaceTouchUp(_ sender: UIButton) {
-        print("⌫ Backspace touch UP")
+        print("⌫ Backspace touch UP - stopping timer")
+        stopBackspaceTimer()
+    }
+    
+    /// Called when backspace button touch is cancelled
+    @objc private func backspaceTouchCancelled(_ sender: UIButton) {
+        print("⌫ Backspace touch CANCELLED - stopping timer")
         stopBackspaceTimer()
     }
     
     /// Start the backspace long-press timer
     private func startBackspaceTimer() {
-        stopBackspaceTimer()
+        // Just invalidate any existing timer, don't clear other state
+        backspaceTimer?.invalidate()
+        backspaceTimer = nil
         
-        // Start a repeating timer that fires frequently to handle deletions
-        backspaceTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
+        // Create timer and add to common run loop modes for keyboard extension compatibility
+        let timer = Timer(timeInterval: 0.05, repeats: true) { [weak self] _ in
             self?.handleBackspaceTimerTick()
         }
+        // Add to common modes to ensure it fires during tracking (touch events)
+        RunLoop.main.add(timer, forMode: .common)
+        backspaceTimer = timer
+        
+        print("⌫ Timer started and added to run loop")
     }
     
-    /// Stop the backspace timer
+    /// Stop the backspace timer and clear all state
     private func stopBackspaceTimer() {
         backspaceTimer?.invalidate()
         backspaceTimer = nil
@@ -642,6 +676,7 @@ class KeyboardRenderer {
     /// Handle each tick of the backspace timer
     private func handleBackspaceTimerTick() {
         guard let startTime = backspacePressStartTime else {
+            print("⌫ Timer tick: No start time, stopping")
             stopBackspaceTimer()
             return
         }
@@ -649,8 +684,12 @@ class KeyboardRenderer {
         let now = Date()
         let elapsed = now.timeIntervalSince(startTime)
         
-        // Only start deleting after the initial delay (2 seconds)
+        // Only start deleting after the initial delay (0.5 seconds)
         guard elapsed >= charDeleteStartDelay else {
+            // Log occasionally to show timer is running
+            if Int(elapsed * 10) % 5 == 0 {
+                print("⌫ Timer tick: waiting... elapsed=\(String(format: "%.2f", elapsed))s, need \(charDeleteStartDelay)s")
+            }
             return
         }
         
@@ -1663,8 +1702,15 @@ class KeyboardRenderer {
     
     // MARK: - Suggestions Bar
     
+    /// Check if the current keyboard is RTL (Hebrew or Arabic)
+    private func isCurrentKeyboardRTL() -> Bool {
+        guard let keyboardId = currentKeyboardId else { return false }
+        return keyboardId == "he" || keyboardId == "ar"
+    }
+    
     /// Update the suggestions bar with current suggestions
     /// Renders suggestions as plain text with dividers, spread evenly across the row
+    /// For RTL languages (Hebrew, Arabic), the first suggestion is on the right
     private func updateSuggestionsBar() {
         guard let container = container else { return }
         
@@ -1699,6 +1745,10 @@ class KeyboardRenderer {
         let cellWidth = barWidth / CGFloat(suggestionCount)
         let dividerWidth: CGFloat = 1.0
         
+        // Check if we should use RTL layout (Hebrew or Arabic keyboards)
+        let isRTL = isCurrentKeyboardRTL()
+        print("📝 updateSuggestionsBar: isRTL=\(isRTL), keyboard=\(currentKeyboardId ?? "nil")")
+        
         for (index, suggestion) in currentSuggestions.prefix(4).enumerated() {
             // Create tappable label/button with transparent background
             let button = UIButton(type: .system)
@@ -1717,7 +1767,16 @@ class KeyboardRenderer {
             button.accessibilityIdentifier = suggestion
             button.addTarget(self, action: #selector(suggestionTapped(_:)), for: .touchUpInside)
             
-            let x = CGFloat(index) * cellWidth
+            // For RTL languages, reverse the position (first suggestion on the right)
+            let x: CGFloat
+            if isRTL {
+                // RTL: first suggestion at the rightmost position
+                x = barWidth - CGFloat(index + 1) * cellWidth
+            } else {
+                // LTR: first suggestion at the leftmost position
+                x = CGFloat(index) * cellWidth
+            }
+            
             button.frame = CGRect(x: x, y: 0, width: cellWidth, height: barHeight)
             bar.addSubview(button)
             
@@ -1725,8 +1784,18 @@ class KeyboardRenderer {
             if index < suggestionCount - 1 {
                 let divider = UIView()
                 divider.backgroundColor = UIColor.systemGray3
+                
+                let dividerX: CGFloat
+                if isRTL {
+                    // RTL: divider on the left side of each cell
+                    dividerX = x - (dividerWidth / 2)
+                } else {
+                    // LTR: divider on the right side of each cell
+                    dividerX = x + cellWidth - (dividerWidth / 2)
+                }
+                
                 divider.frame = CGRect(
-                    x: x + cellWidth - (dividerWidth / 2),
+                    x: dividerX,
                     y: barHeight * 0.2,
                     width: dividerWidth,
                     height: barHeight * 0.6

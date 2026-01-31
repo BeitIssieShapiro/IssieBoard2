@@ -82,7 +82,8 @@
         },
         {
           "keys": [
-            { "type": "next-keyboard", "width": 1 },
+            {"hidden": true, "width": 1},
+            { "type": "next-keyboard" },
             { "type": "keyset", "keysetValue": "123", "label": "123"},
             { "type": "settings" },
             { "caption": "רווח", "value": " ", "width": 5 },
@@ -136,7 +137,7 @@
         },
         {
            "keys": [
-            
+            {"hidden": true, "width": 1},
             { "type": "next-keyboard" },
             { "type": "keyset", "keysetValue": "abc", "label": "אבג", "width": 1.5 },
             { "type": "settings" },
@@ -191,6 +192,7 @@
         },
         {
           "keys": [
+            {"hidden": true, "width": 1},
             { "type": "next-keyboard", "width": 1 },
             { "type": "keyset", "keysetValue": "abc", "label": "אבג", "width": 1.5 },
             { "type": "settings" },
