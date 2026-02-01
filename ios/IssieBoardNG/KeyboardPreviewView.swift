@@ -32,6 +32,9 @@ class KeyboardPreviewView: UIView {
         
         backgroundColor = UIColor(red: 0.82, green: 0.82, blue: 0.82, alpha: 1.0)
         
+        // In preview mode, hide the globe (language) button - it's redundant
+        renderer.setShowGlobeButton(false)
+        
         // Set up renderer callbacks - only for FINAL key output
         renderer.onKeyPress = { [weak self] key in
             self?.emitKeyPress(key)
