@@ -5,6 +5,9 @@ import Foundation
  * 
  * Handles loading dictionaries for different languages and providing
  * word suggestions based on the current input prefix.
+ * 
+ * Supports fuzzy search when exact matches are insufficient,
+ * allowing for typos and keyboard neighbor mistakes.
  */
 class WordCompletionManager {
     
@@ -16,6 +19,14 @@ class WordCompletionManager {
     
     /// Maximum number of suggestions to return
     private let maxSuggestions = 4
+    
+    /// Maximum number of errors allowed in fuzzy search
+    /// Configurable: keyboard neighbors count as 0.5 error, others as 1.0
+    var fuzzyErrorBudget: Double = 3.0
+    
+    /// Minimum number of exact matches before triggering fuzzy search
+    /// If exact search returns <= this many results, fuzzy search is also performed
+    private let fuzzyTriggerThreshold = 1
     
     /// Cache of loaded TrieEngine instances by language code
     private var engines: [String: TrieEngine] = [:]
@@ -50,6 +61,7 @@ class WordCompletionManager {
     }
     
     /// Get word suggestions for the given prefix using current language
+    /// Uses fuzzy search when exact matches are insufficient
     /// - Parameter prefix: The current word prefix to complete
     /// - Returns: Array of suggested words (max 4)
     func getSuggestions(for prefix: String) -> [String] {
@@ -65,24 +77,11 @@ class WordCompletionManager {
             return []
         }
         
-        guard let engine = getEngine(for: language) else {
-            print("📚 WordCompletionManager: No engine available for '\(language)'")
-            return []
-        }
-        
-        print("📚 WordCompletionManager: Querying engine for prefix '\(prefix)' (length: \(prefix.count))")
-        
-        // Request extra suggestions to account for filtering
-        let suggestions = engine.getSuggestions(for: prefix, limit: maxSuggestions + 4)
-        print("📚 WordCompletionManager: Engine returned \(suggestions.count) raw suggestions: \(suggestions)")
-        
-        // Filter out single-letter suggestions - they're already typed
-        let filteredSuggestions = Array(suggestions.filter { $0.count > 1 }.prefix(maxSuggestions))
-        print("📚 WordCompletionManager: Returning \(filteredSuggestions.count) filtered suggestions for '\(prefix)': \(filteredSuggestions)")
-        return filteredSuggestions
+        return getSuggestionsWithFuzzy(for: prefix, language: language)
     }
     
     /// Get word suggestions using a specific language
+    /// Uses fuzzy search when exact matches are insufficient
     /// - Parameters:
     ///   - prefix: The current word prefix to complete
     ///   - languageCode: The language to use for suggestions
@@ -95,6 +94,11 @@ class WordCompletionManager {
             return defaults
         }
         
+        return getSuggestionsWithFuzzy(for: prefix, language: languageCode)
+    }
+    
+    /// Internal method that performs both exact and fuzzy search
+    private func getSuggestionsWithFuzzy(for prefix: String, language languageCode: String) -> [String] {
         guard let engine = getEngine(for: languageCode) else {
             print("📚 WordCompletionManager: No engine available for '\(languageCode)'")
             return []
@@ -102,14 +106,45 @@ class WordCompletionManager {
         
         print("📚 WordCompletionManager: Querying engine for prefix '\(prefix)' in '\(languageCode)' (length: \(prefix.count))")
         
-        // Request extra suggestions to account for filtering
-        let suggestions = engine.getSuggestions(for: prefix, limit: maxSuggestions + 4)
-        print("📚 WordCompletionManager: Engine returned \(suggestions.count) raw suggestions: \(suggestions)")
+        // Step 1: Try exact match first
+        let exactSuggestions = engine.getSuggestions(for: prefix, limit: maxSuggestions + 4)
+        print("📚 WordCompletionManager: Engine returned \(exactSuggestions.count) exact suggestions: \(exactSuggestions)")
         
-        // Filter out single-letter suggestions - they're already typed
-        let filteredSuggestions = Array(suggestions.filter { $0.count > 1 }.prefix(maxSuggestions))
-        print("📚 WordCompletionManager: Returning \(filteredSuggestions.count) filtered suggestions for '\(prefix)' in '\(languageCode)': \(filteredSuggestions)")
-        return filteredSuggestions
+        // Filter out single-letter suggestions
+        var filteredExact = exactSuggestions.filter { $0.count > 1 }
+        
+        // Step 2: If exact matches are insufficient, try fuzzy search
+        if filteredExact.count <= fuzzyTriggerThreshold && prefix.count >= 2 {
+            print("📚 WordCompletionManager: Few exact matches (\(filteredExact.count)), trying fuzzy search with budget \(fuzzyErrorBudget)")
+            
+            // Get keyboard neighbors for fuzzy search
+            let neighbors = KeyboardNeighbors.neighbors(for: languageCode)
+            
+            // Perform fuzzy search
+            let fuzzySuggestions = engine.getFuzzySuggestions(
+                for: prefix,
+                errorBudget: fuzzyErrorBudget,
+                neighbors: neighbors,
+                limit: maxSuggestions + 4
+            )
+            print("📚 WordCompletionManager: Fuzzy search returned \(fuzzySuggestions.count) suggestions: \(fuzzySuggestions)")
+            
+            // Merge results: exact matches first, then fuzzy matches (avoiding duplicates)
+            var seen = Set(filteredExact)
+            for fuzzySuggestion in fuzzySuggestions {
+                if fuzzySuggestion.count > 1 && !seen.contains(fuzzySuggestion) {
+                    filteredExact.append(fuzzySuggestion)
+                    seen.insert(fuzzySuggestion)
+                }
+            }
+            
+            print("📚 WordCompletionManager: After merging fuzzy results: \(filteredExact.count) total suggestions")
+        }
+        
+        // Return top N results
+        let finalSuggestions = Array(filteredExact.prefix(maxSuggestions))
+        print("📚 WordCompletionManager: Returning \(finalSuggestions.count) suggestions for '\(prefix)': \(finalSuggestions)")
+        return finalSuggestions
     }
     
     /// Check if a dictionary is available for the given language

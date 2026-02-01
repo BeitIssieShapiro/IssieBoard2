@@ -104,6 +104,212 @@ class TrieEngine {
         
         return results
     }
+    
+    // MARK: - Fuzzy Search
+    
+    /// Result structure for fuzzy search containing word and error count
+    private struct FuzzyResult: Comparable {
+        let word: String
+        let errors: Double
+        
+        static func < (lhs: FuzzyResult, rhs: FuzzyResult) -> Bool {
+            if lhs.errors != rhs.errors {
+                return lhs.errors < rhs.errors
+            }
+            return lhs.word.count < rhs.word.count
+        }
+    }
+    
+    /// Returns fuzzy word completions for the given prefix, allowing for typos.
+    /// Uses recursive DFS approach matching the proven TestTrie algorithm.
+    func getFuzzySuggestions(
+        for prefix: String,
+        errorBudget: Double = 3.0,
+        neighbors: [Character: [Character]]? = nil,
+        limit: Int = 3
+    ) -> [String] {
+        guard !prefix.isEmpty else { return [] }
+        
+        var results: [(String, Double)] = []
+        let prefixChars = Array(prefix.lowercased())
+        
+        // Get root's first child
+        let firstChildIndex = getInt32(at: 0, offset: 4)
+        if firstChildIndex == -1 {
+            return []
+        }
+        
+        // Iterate through ALL siblings at root level (all starting letters)
+        var siblingIndex = Int(firstChildIndex)
+        while siblingIndex != -1 {
+            // Get this node's character
+            let nodeChar = getUInt16(at: siblingIndex, offset: 0)
+            if let scalar = UnicodeScalar(nodeChar) {
+                let nodeCharacter = Character(scalar)
+                
+                fuzzySearchRecursive(
+                    nodeIndex: siblingIndex,
+                    nodeChar: nodeCharacter,
+                    prefixChars: prefixChars,
+                    prefixIndex: 0,
+                    currentPath: "",
+                    currentErrors: 0.0,
+                    maxErrors: errorBudget,
+                    neighbors: neighbors,
+                    results: &results
+                )
+            }
+            
+            let nextSibling = getInt32(at: siblingIndex, offset: 8)
+            siblingIndex = Int(nextSibling)
+        }
+        
+        // Sort by errors, then deduplicate and limit
+        let sorted = results.sorted { $0.1 < $1.1 }
+        var seen = Set<String>()
+        var uniqueResults: [String] = []
+        for (word, _) in sorted {
+            if !seen.contains(word) {
+                seen.insert(word)
+                uniqueResults.append(word)
+                if uniqueResults.count >= limit {
+                    break
+                }
+            }
+        }
+        
+        return uniqueResults
+    }
+    
+    /// Recursive fuzzy search - matches the working TestTrie algorithm
+    private func fuzzySearchRecursive(
+        nodeIndex: Int,
+        nodeChar: Character,
+        prefixChars: [Character],
+        prefixIndex: Int,
+        currentPath: String,
+        currentErrors: Double,
+        maxErrors: Double,
+        neighbors: [Character: [Character]]?,
+        results: inout [(String, Double)]
+    ) {
+        // Prune if over budget
+        if currentErrors > maxErrors {
+            return
+        }
+        
+        let newPath = currentPath + String(nodeChar)
+        
+        // If we still have input to match
+        if prefixIndex < prefixChars.count {
+            let targetChar = prefixChars[prefixIndex]
+            
+            // Calculate error for this character
+            var errorForChar: Double
+            if nodeChar == targetChar {
+                errorForChar = 0.0
+            } else if neighbors?[targetChar]?.contains(nodeChar) == true {
+                errorForChar = 0.5  // Keyboard neighbor
+            } else {
+                errorForChar = 1.0  // Non-neighbor substitution
+            }
+            
+            let newErrors = currentErrors + errorForChar
+            
+            if newErrors <= maxErrors {
+                // Get children and recurse
+                let firstChild = getInt32(at: nodeIndex, offset: 4)
+                if firstChild != -1 {
+                    var childIdx = Int(firstChild)
+                    while childIdx != -1 {
+                        let childChar = getUInt16(at: childIdx, offset: 0)
+                        if let scalar = UnicodeScalar(childChar) {
+                            fuzzySearchRecursive(
+                                nodeIndex: childIdx,
+                                nodeChar: Character(scalar),
+                                prefixChars: prefixChars,
+                                prefixIndex: prefixIndex + 1,
+                                currentPath: newPath,
+                                currentErrors: newErrors,
+                                maxErrors: maxErrors,
+                                neighbors: neighbors,
+                                results: &results
+                            )
+                        }
+                        let nextSib = getInt32(at: childIdx, offset: 8)
+                        childIdx = Int(nextSib)
+                    }
+                }
+                
+                // If consumed all input, collect results
+                if prefixIndex + 1 >= prefixChars.count {
+                    let flags = getUInt16(at: nodeIndex, offset: 2)
+                    let isWordEnd = (flags & 0x01) != 0
+                    if isWordEnd {
+                        results.append((newPath, newErrors))
+                    }
+                    // Collect completions from this node
+                    collectFuzzyCompletions(
+                        nodeIndex: nodeIndex,
+                        path: newPath,
+                        errors: newErrors,
+                        results: &results
+                    )
+                }
+            }
+        } else {
+            // All input consumed - add word if valid and collect completions
+            let flags = getUInt16(at: nodeIndex, offset: 2)
+            let isWordEnd = (flags & 0x01) != 0
+            if isWordEnd {
+                results.append((newPath, currentErrors))
+            }
+            collectFuzzyCompletions(
+                nodeIndex: nodeIndex,
+                path: newPath,
+                errors: currentErrors,
+                results: &results
+            )
+        }
+    }
+    
+    /// Collect word completions from a node (for fuzzy search)
+    private func collectFuzzyCompletions(
+        nodeIndex: Int,
+        path: String,
+        errors: Double,
+        results: inout [(String, Double)]
+    ) {
+        let firstChild = getInt32(at: nodeIndex, offset: 4)
+        if firstChild == -1 {
+            return
+        }
+        
+        var childIdx = Int(firstChild)
+        while childIdx != -1 {
+            let childChar = getUInt16(at: childIdx, offset: 0)
+            if let scalar = UnicodeScalar(childChar) {
+                let newPath = path + String(scalar)
+                
+                let flags = getUInt16(at: childIdx, offset: 2)
+                let isWordEnd = (flags & 0x01) != 0
+                if isWordEnd {
+                    results.append((newPath, errors))
+                }
+                
+                // Recurse into children
+                collectFuzzyCompletions(
+                    nodeIndex: childIdx,
+                    path: newPath,
+                    errors: errors,
+                    results: &results
+                )
+            }
+            
+            let nextSib = getInt32(at: childIdx, offset: 8)
+            childIdx = Int(nextSib)
+        }
+    }
 
     // MARK: - Traversal Logic
 
