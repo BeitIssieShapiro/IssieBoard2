@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+  <!-- Shadda - Arabic diacritic mark (w-like shape) -->
+  <!-- The shadda indicates consonant doubling -->
+  <path d="M8 28 Q14 16, 24 24 Q34 16, 40 28" stroke="currentColor" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

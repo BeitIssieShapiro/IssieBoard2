@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+  <!-- Hataf-kamatz (חטף-קמץ) - Hebrew combining mark -->
+  <!-- Kamatz (T-shape) on the left, Sheva (two dots stacked vertically) on the right -->
+  
+  <!-- Kamatz (T-shape) - on the left side -->
+  <!-- Horizontal bar -->
+  <rect x="8" y="14" width="22" height="5" rx="2" fill="currentColor"/>
+  <!-- Vertical stem -->
+  <rect x="16" y="17" width="6" height="14" rx="2" fill="currentColor"/>
+  
+  <!-- Sheva (two dots stacked) - on the right side -->
+  <!-- Top dot -->
+  <circle cx="36" cy="18" r="4" fill="currentColor"/>
+  <!-- Bottom dot -->
+  <circle cx="36" cy="29" r="4" fill="currentColor"/>
+</svg>

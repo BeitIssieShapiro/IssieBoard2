@@ -9,9 +9,12 @@ import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.widget.Button
+import android.widget.ImageView
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.content.res.Configuration
+import androidx.core.content.ContextCompat
 
 /**
  * Keyboard rendering and state management
@@ -572,14 +575,15 @@ class KeyboardRenderer(
             "language" -> "🌐"
             "next-keyboard" -> "🌐"
             "nikkud" -> {
-                // Language-specific nikkud caption (large and centered)
+                // Language-specific nikkud caption with dotted circle as base
+                // The dotted circle (U+25CC) is the standard base for displaying combining marks
                 // Hebrew: hataf-kamatz (חתף-קמץ)
                 // Arabic: shadda (شَدّة)
                 if (nikkudActive) {
                     when (currentKeyboardId) {
-                        "he" -> "◌ֳ"  // Hataf-kamatz \u05B3
-                        "ar" -> "◌ّ"  // Shadda \u0651
-                        else -> "◌ָ"  // Default: kamatz
+                        "he" -> "◌\u05B3"  // Dotted circle + Hataf-kamatz
+                        "ar" -> "◌\u0651"  // Dotted circle + Shadda
+                        else -> "◌"
                     }
                 } else {
                     "◌"
@@ -603,11 +607,19 @@ class KeyboardRenderer(
         label: String,
         editorContext: EditorContext?,
         isSelected: Boolean = false
-    ): Button {
+    ): View {
         val horizontalMargin = if (isPreview) KEY_MARGIN_HORIZONTAL_PREVIEW else KEY_MARGIN_HORIZONTAL
         val verticalMargin = if (isPreview) KEY_MARGIN_VERTICAL_PREVIEW else KEY_MARGIN_VERTICAL
         val normalSize = if (isPreview) TEXT_SIZE_NORMAL_PREVIEW else TEXT_SIZE_NORMAL
         val largeSize = if (isPreview) TEXT_SIZE_LARGE_PREVIEW else TEXT_SIZE_LARGE
+        
+        val bgColor = getKeyBackgroundColor(key)
+        val textColor = key.textColor
+        
+        // For nikkud key, use ImageView with vector drawable instead of text
+        if (key.type.lowercase() == "nikkud") {
+            return createNikkudKeyWithImage(key, horizontalMargin, verticalMargin, bgColor, isSelected, editorContext)
+        }
         
         return Button(context).apply {
             text = label
@@ -621,9 +633,6 @@ class KeyboardRenderer(
                 topMargin = verticalMargin
                 bottomMargin = verticalMargin
             }
-            
-            val bgColor = getKeyBackgroundColor(key)
-            val textColor = key.textColor
             
             background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
@@ -664,6 +673,79 @@ class KeyboardRenderer(
                     }
                 }
             }
+            
+            setOnClickListener {
+                handleKeyClick(key, this, editorContext)
+            }
+        }
+    }
+    
+    /**
+     * Create a nikkud key with an image (vector drawable) instead of text
+     * The image is centered and uses the appropriate nikkud icon for the current keyboard
+     */
+    private fun createNikkudKeyWithImage(
+        key: KeyConfig,
+        horizontalMargin: Int,
+        verticalMargin: Int,
+        bgColor: Int,
+        isSelected: Boolean,
+        editorContext: EditorContext?
+    ): View {
+        // Determine which drawable to use based on current keyboard
+        val drawableResId = when (currentKeyboardId) {
+            "he" -> R.drawable.ic_nikkud_hataf_kamatz
+            "ar" -> R.drawable.ic_nikkud_shadda
+            else -> R.drawable.ic_nikkud_hataf_kamatz  // Default to Hebrew
+        }
+        
+        // Create a FrameLayout to hold the image, centered
+        return FrameLayout(context).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.MATCH_PARENT, key.width
+            ).apply {
+                marginStart = horizontalMargin
+                marginEnd = horizontalMargin
+                topMargin = verticalMargin
+                bottomMargin = verticalMargin
+            }
+            
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                setColor(bgColor)
+                cornerRadius = KEY_CORNER_RADIUS
+                
+                // Selection highlight for edit mode
+                if (isSelected) {
+                    setStroke(6, Color.parseColor("#2196F3")) // Blue border
+                }
+            }
+            
+            isClickable = true
+            isFocusable = true
+            
+            // Add the image view, centered
+            val imageView = ImageView(context).apply {
+                layoutParams = FrameLayout.LayoutParams(
+                    80,  // 80dp width for the icon
+                    80   // 80dp height for the icon
+                ).apply {
+                    gravity = android.view.Gravity.CENTER
+                }
+                
+                // Load the vector drawable
+                try {
+                    val drawable = ContextCompat.getDrawable(context, drawableResId)
+                    setImageDrawable(drawable)
+                    // Tint the image to match text color (black/dark)
+                    setColorFilter(Color.BLACK)
+                } catch (e: Exception) {
+                    Log.e(logTag, "Failed to load nikkud drawable: $e")
+                }
+                
+                scaleType = ImageView.ScaleType.FIT_CENTER
+            }
+            addView(imageView)
             
             setOnClickListener {
                 handleKeyClick(key, this, editorContext)
@@ -777,6 +859,8 @@ class KeyboardRenderer(
         return when {
             type.lowercase() == "shift" -> largeSize
             (type.lowercase() == "enter" || type.lowercase() == "action") && label.length <= 1 -> largeSize
+            // Nikkud key when active: extra large for the diacritic mark to be readable
+            type.lowercase() == "nikkud" && nikkudActive -> 36f
             else -> normalSize
         }
     }

@@ -253,7 +253,11 @@ class KeyboardRenderer {
         }
         
         // Derive currentKeyboardId from keyset ID (e.g., "he_abc" -> "he", "abc" -> first keyboard)
+        // IMPORTANT: Reset currentKeyboardId before searching - this ensures it updates when switching languages
         if let keyboards = config.keyboards, !keyboards.isEmpty {
+            // Reset to nil first to ensure we re-derive from keyset ID
+            self.currentKeyboardId = nil
+            
             // Check if current keyset has a prefix matching a keyboard ID
             for keyboardId in keyboards {
                 if self.currentKeysetId.hasPrefix(keyboardId + "_") || self.currentKeysetId == keyboardId {
@@ -265,7 +269,7 @@ class KeyboardRenderer {
             if self.currentKeyboardId == nil {
                 self.currentKeyboardId = keyboards.first
             }
-            print("📱 Current keyboard ID set to: \(self.currentKeyboardId ?? "nil")")
+            print("📱 Current keyboard ID set to: \(self.currentKeyboardId ?? "nil") (keyset: \(self.currentKeysetId))")
         }
         
         // Clear existing views, but preserve nikkud picker overlay if present
@@ -549,6 +553,8 @@ class KeyboardRenderer {
             }
         }
         
+        let isNikkudKey = key.type.lowercased() == "nikkud"
+
         // For settings key, use SF Symbol image
         if key.type.lowercased() == "settings" {
             if let gearImage = UIImage(systemName: "gearshape.fill") {
@@ -567,18 +573,59 @@ class KeyboardRenderer {
             } else {
                 label.text = finalText
             }
+        } else if isNikkudKey {
+            // For nikkud key, use SVG image for the diacritical mark icon
+            // The SVG images are: NikkudHatafKamatz for Hebrew, NikkudShadda for Arabic
+            let imageName: String
+            // Note: currentKeyboardId is optional, so unwrap it first
+            if let keyboardId = currentKeyboardId {
+                switch keyboardId {
+                case "he":
+                    imageName = "NikkudHatafKamatz"
+                case "ar":
+                    imageName = "NikkudShadda"
+                default:
+                    imageName = "NikkudHatafKamatz"  // Default to Hebrew
+                }
+            } else {
+                imageName = "NikkudHatafKamatz"  // Default to Hebrew if not set
+            }
+            
+            if let nikkudImage = UIImage(named: imageName)?.withRenderingMode(.alwaysTemplate) {
+                let imageView = UIImageView(image: nikkudImage)
+                imageView.contentMode = .scaleAspectFit
+                imageView.tintColor = .label
+                imageView.isUserInteractionEnabled = false
+                visualKeyView.addSubview(imageView)
+                imageView.translatesAutoresizingMaskIntoConstraints = false
+                NSLayoutConstraint.activate([
+                    imageView.centerXAnchor.constraint(equalTo: visualKeyView.centerXAnchor),
+                    imageView.centerYAnchor.constraint(equalTo: visualKeyView.centerYAnchor),
+                    imageView.widthAnchor.constraint(equalToConstant: 32),
+                    imageView.heightAnchor.constraint(equalToConstant: 32)
+                ])
+            } else {
+                // Fallback to text if image not found
+                label.text = finalText
+            }
         } else {
             label.text = finalText
         }
         
-        // Font size
+        // Font size - special handling for nikkud key when showing just the diacritic mark
         let isLargeKey = ["shift", "backspace", "enter"].contains(key.type.lowercased())
         let isMultiChar = finalText.count > 1
         let baseFontSize: CGFloat = isLargeKey ? largeFontSize : fontSize
-        let finalFontSize = isMultiChar ? min(baseFontSize * 0.7, 14) : baseFontSize
+        var finalFontSize = isMultiChar ? min(baseFontSize * 0.7, 14) : baseFontSize
         
-        label.font = UIFont.systemFont(ofSize: finalFontSize, weight: .regular)
-        label.adjustsFontSizeToFitWidth = true
+        // Make nikkud diacritic mark larger and use bold weight for visibility
+        if isNikkudKey {
+            finalFontSize = 36  // Extra large for the diacritic mark to be readable
+        }
+        
+        let fontWeight: UIFont.Weight = .regular
+        label.font = UIFont.systemFont(ofSize: finalFontSize, weight: fontWeight)
+        label.adjustsFontSizeToFitWidth = isNikkudKey ? false : true
         label.minimumScaleFactor = 0.3
         label.numberOfLines = 1
         label.textAlignment = .center
@@ -800,7 +847,7 @@ class KeyboardRenderer {
         case "enter", "action":
             return editorContext?.enterLabel ?? "↵"
         case "shift":
-            return shiftState.isActive() ? "⇧" : "⬆"
+            return "⇧"
         case "settings":
             return "⚙"
         case "close":
@@ -810,20 +857,17 @@ class KeyboardRenderer {
         case "next-keyboard":
             return "🌐"
         case "nikkud":
-            // Language-specific nikkud caption (large and centered)
+            // Language-specific nikkud caption with dotted circle as base
+            // The dotted circle (U+25CC) is the standard base for displaying combining marks
             // Hebrew: hataf-kamatz (חתף-קמץ)
             // Arabic: shadda (شَدّة)
-            if nikkudActive {
-                switch currentKeyboardId {
-                case "he":
-                    return "◌ֳ"  // Hataf-kamatz \u05B3
-                case "ar":
-                    return "◌ّ"  // Shadda \u0651
-                default:
-                    return "◌ָ"  // Default: kamatz
-                }
-            } else {
-                return "◌"
+            switch currentKeyboardId {
+            case "he":
+                return " \u{05B3}"  // Dotted circle + Hataf-kamatz
+            case "ar":
+                return "◌\u{0651}"  // Dotted circle + Shadda
+            default:
+                return "◌"  
             }
         case "space":
             return "SPACE"

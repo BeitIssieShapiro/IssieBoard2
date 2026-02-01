@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48"
+    android:tint="?attr/colorControlNormal">
+    <!-- Hataf-kamatz - Hebrew combining mark -->
+    <!-- Kamatz (T-shape) on left, Sheva (two dots stacked) on right -->
+    
+    <!-- Kamatz horizontal bar -->
+    <path
+        android:fillColor="@android:color/black"
+        android:pathData="M4,12 L26,12 Q28,12 28,14 L28,15 Q28,17 26,17 L4,17 Q2,17 2,15 L2,14 Q2,12 4,12 Z"/>
+    <!-- Kamatz vertical stem -->
+    <path
+        android:fillColor="@android:color/black"
+        android:pathData="M12,15 L18,15 Q20,15 20,17 L20,29 Q20,31 18,31 L12,31 Q10,31 10,29 L10,17 Q10,15 12,15 Z"/>
+    
+    <!-- Sheva top dot -->
+    <path
+        android:fillColor="@android:color/black"
+        android:pathData="M38,16 m-5,0 a5,5 0 1,1 10,0 a5,5 0 1,1 -10,0"/>
+    <!-- Sheva bottom dot -->
+    <path
+        android:fillColor="@android:color/black"
+        android:pathData="M38,32 m-5,0 a5,5 0 1,1 10,0 a5,5 0 1,1 -10,0"/>
+</vector>
