@@ -84,9 +84,8 @@
         {
           "alwaysInclude": true,
           "keys": [
-            {"hidden": true, "width": 1},
             { "type": "next-keyboard" },
-            { "type": "keyset", "keysetValue": "123", "returnKeysetValue": "abc", "label": "123", "returnKeysetLabel": "אבג" },
+            { "type": "keyset", "keysetValue": "123", "returnKeysetValue": "abc", "label": "123", "returnKeysetLabel": "אבג", "width": 1.5 },
             { "type": "settings" },
             { "caption": "רווח", "value": " ", "width": 5 },
             { "type": "nikkud" },

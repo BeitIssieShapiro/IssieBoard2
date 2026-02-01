@@ -257,14 +257,15 @@
           "keys": [
             {
               "type": "next-keyboard",
-              "width": 1
+              "width": 0.5
             },
             {
               "type": "keyset",
               "keysetValue": "123",
               "returnKeysetValue": "abc",
               "label": "123",
-              "returnKeysetLabel": "أبج"
+              "returnKeysetLabel": "أبج",
+              "width": 1.5
             },
             {
               "caption": "مسافة",
@@ -393,14 +394,15 @@
           "keys": [
             {
               "type": "next-keyboard",
-              "width": 1
+              "width": 0.5
             },
             {
               "type": "keyset",
               "keysetValue": "abc",
               "returnKeysetValue": "123",
               "label": "أبج",
-              "returnKeysetLabel": "123"
+              "returnKeysetLabel": "123",
+              "width": 1.5
             },
             {
               "caption": "مسافة",
@@ -531,14 +533,15 @@
           "keys": [
             {
               "type": "next-keyboard",
-              "width": 1
+              "width": 0.5
             },
             {
               "type": "keyset",
               "keysetValue": "abc",
               "returnKeysetValue": "#+=",
               "label": "أبج",
-              "returnKeysetLabel": "123"
+              "returnKeysetLabel": "123",
+              "width": 1.5
             },
             {
               "caption": "مسافة",

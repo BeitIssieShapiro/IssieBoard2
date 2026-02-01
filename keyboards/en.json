@@ -50,8 +50,7 @@
         {
           "alwaysInclude": true,
           "keys": [
-            {"hidden": true, "width": 1},
-            { "type": "keyset", "keysetValue": "123", "returnKeysetValue": "abc", "label": "123", "returnKeysetLabel": "ABC" },
+            { "type": "keyset", "keysetValue": "123", "returnKeysetValue": "abc", "label": "123", "returnKeysetLabel": "ABC", "width": 1.5  },
             { "type": "settings"},
             { "type": "next-keyboard", "width": 1 },
             { "caption": "SPACE", "value": " ", "width": 4 },

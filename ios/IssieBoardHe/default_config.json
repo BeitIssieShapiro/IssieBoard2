@@ -261,10 +261,6 @@
         {
           "keys": [
             {
-              "hidden": true,
-              "width": 1
-            },
-            {
               "type": "next-keyboard"
             },
             {
@@ -272,7 +268,8 @@
               "keysetValue": "123",
               "returnKeysetValue": "abc",
               "label": "123",
-              "returnKeysetLabel": "אבג"
+              "returnKeysetLabel": "אבג",
+              "width": 1.5
             },
             {
               "type": "settings"
@@ -400,10 +397,6 @@
         {
           "keys": [
             {
-              "hidden": true,
-              "width": 1
-            },
-            {
               "type": "next-keyboard"
             },
             {
@@ -411,7 +404,8 @@
               "keysetValue": "abc",
               "returnKeysetValue": "123",
               "label": "אבג",
-              "returnKeysetLabel": "123"
+              "returnKeysetLabel": "123",
+              "width": 1.5
             },
             {
               "type": "settings"
@@ -541,10 +535,6 @@
         {
           "keys": [
             {
-              "hidden": true,
-              "width": 1
-            },
-            {
               "type": "next-keyboard"
             },
             {
@@ -552,7 +542,8 @@
               "keysetValue": "abc",
               "returnKeysetValue": "#+=",
               "label": "אבג",
-              "returnKeysetLabel": "123"
+              "returnKeysetLabel": "123",
+              "width": 1.5
             },
             {
               "type": "settings"
