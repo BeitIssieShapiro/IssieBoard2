@@ -70,6 +70,10 @@ class KeyboardRenderer {
     // Word suggestions to display
     private var currentSuggestions: [String] = []
     
+    // Index of suggestion to highlight (for fuzzy matches)
+    // nil = no highlight, 0 = first suggestion, 1 = second, etc.
+    private var suggestionHighlightIndex: Int?
+    
     // Whether word suggestions are enabled (from config)
     private var wordSuggestionsEnabled: Bool = true
     
@@ -197,10 +201,13 @@ class KeyboardRenderer {
     }
     
     /// Update word suggestions displayed in the suggestions bar
-    /// - Parameter suggestions: Array of suggested words (max 4)
-    func updateSuggestions(_ suggestions: [String]) {
-        print("📝 KeyboardRenderer updateSuggestions: \(suggestions)")
+    /// - Parameters:
+    ///   - suggestions: Array of suggested words (max 4)
+    ///   - highlightIndex: Optional index of the suggestion to highlight (for fuzzy match indication)
+    func updateSuggestions(_ suggestions: [String], highlightIndex: Int? = nil) {
+        print("📝 KeyboardRenderer updateSuggestions: \(suggestions), highlight: \(highlightIndex?.description ?? "none")")
         currentSuggestions = suggestions
+        suggestionHighlightIndex = highlightIndex
         updateSuggestionsBar()
     }
     
@@ -1794,21 +1801,38 @@ class KeyboardRenderer {
         print("📝 updateSuggestionsBar: isRTL=\(isRTL), keyboard=\(currentKeyboardId ?? "nil")")
         
         for (index, suggestion) in currentSuggestions.prefix(4).enumerated() {
+            // Check if this suggestion should be highlighted (fuzzy match indication)
+            let isHighlighted = suggestionHighlightIndex == index
+            
             // Create tappable label/button with transparent background
             let button = UIButton(type: .system)
             button.setTitle(suggestion, for: .normal)
             // Use dedicated suggestions font size (larger than key font for better readability)
-            button.titleLabel?.font = UIFont.systemFont(ofSize: suggestionsFontSize, weight: .medium)
+            let fontWeight: UIFont.Weight = isHighlighted ? .bold : .medium
+            button.titleLabel?.font = UIFont.systemFont(ofSize: suggestionsFontSize, weight: fontWeight)
             button.titleLabel?.adjustsFontSizeToFitWidth = true
             button.titleLabel?.minimumScaleFactor = 0.6
             button.titleLabel?.textAlignment = .center
-            button.backgroundColor = .clear
-            // Use adaptive colors for dark mode support - brighter text
-            button.setTitleColor(.label, for: .normal)
+            
+            // Highlighted suggestion (fuzzy match) gets special styling
+            if isHighlighted {
+                // Highlighted: blue background with white text to indicate "press space to use this"
+                button.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.15)
+                button.setTitleColor(.systemBlue, for: .normal)
+                button.layer.cornerRadius = 6
+            } else {
+                button.backgroundColor = .clear
+                // Use adaptive colors for dark mode support - brighter text
+                button.setTitleColor(.label, for: .normal)
+            }
             button.setTitleColor(.secondaryLabel, for: .highlighted)
             
             // Store suggestion in accessibility identifier for retrieval on tap
-            button.accessibilityIdentifier = suggestion
+            // For quoted literals (like "qhy"), strip the quotes for insertion
+            let insertValue = suggestion.hasPrefix("\"") && suggestion.hasSuffix("\"") 
+                ? String(suggestion.dropFirst().dropLast())
+                : suggestion
+            button.accessibilityIdentifier = insertValue
             button.addTarget(self, action: #selector(suggestionTapped(_:)), for: .touchUpInside)
             
             // For RTL languages, reverse the position (first suggestion on the right)

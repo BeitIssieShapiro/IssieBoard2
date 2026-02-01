@@ -286,7 +286,8 @@
               "type": "nikkud"
             },
             {
-              "type": "enter"
+              "type": "enter",
+              "width": 1.5
             }
           ]
         }
@@ -424,7 +425,8 @@
               "type": "nikkud"
             },
             {
-              "type": "enter"
+              "type": "enter",
+              "width": 1.5
             }
           ]
         }
@@ -564,7 +566,8 @@
               "type": "nikkud"
             },
             {
-              "type": "enter"
+              "type": "enter",
+              "width": 1.5
             }
           ]
         }

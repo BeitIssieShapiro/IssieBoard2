@@ -164,8 +164,26 @@ class TrieEngine {
             siblingIndex = Int(nextSibling)
         }
         
-        // Sort by errors, then deduplicate and limit
-        let sorted = results.sorted { $0.1 < $1.1 }
+        // Sort by:
+        // 1. Primary: errors (lower is better)
+        // 2. Secondary: prefer words closer to input length (exact match is best, then +1, +2, etc.)
+        // 3. Tertiary: shorter words first (if same distance from input)
+        let inputLength = prefix.count
+        let sorted = results.sorted { (a, b) in
+            // First compare errors
+            if a.1 != b.1 {
+                return a.1 < b.1
+            }
+            // Then compare length distance from input
+            let aDist = abs(a.0.count - inputLength)
+            let bDist = abs(b.0.count - inputLength)
+            if aDist != bDist {
+                return aDist < bDist  // Prefer words closer to input length
+            }
+            // Finally, prefer shorter words
+            return a.0.count < b.0.count
+        }
+        
         var seen = Set<String>()
         var uniqueResults: [String] = []
         for (word, _) in sorted {

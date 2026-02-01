@@ -15,6 +15,16 @@ class WordCompletionManager {
     
     static let shared = WordCompletionManager()
     
+    // MARK: - Suggestion Result Types
+    
+    /// Represents a suggestion result with metadata
+    struct SuggestionResult {
+        let suggestions: [String]
+        let hasFuzzyOnly: Bool           // True if all suggestions are from fuzzy search
+        let bestFuzzyMatch: String?       // The best fuzzy match (for auto-replace on space)
+        let originalPrefix: String        // The original typed text
+    }
+    
     // MARK: - Properties
     
     /// Maximum number of suggestions to return
@@ -27,6 +37,9 @@ class WordCompletionManager {
     /// Minimum number of exact matches before triggering fuzzy search
     /// If exact search returns <= this many results, fuzzy search is also performed
     private let fuzzyTriggerThreshold = 1
+    
+    /// Whether smart auto-replace is enabled (space replaces with best fuzzy match)
+    var smartAutoReplaceEnabled: Bool = true
     
     /// Cache of loaded TrieEngine instances by language code
     private var engines: [String: TrieEngine] = [:]
@@ -99,52 +112,111 @@ class WordCompletionManager {
     
     /// Internal method that performs both exact and fuzzy search
     private func getSuggestionsWithFuzzy(for prefix: String, language languageCode: String) -> [String] {
-        guard let engine = getEngine(for: languageCode) else {
-            print("📚 WordCompletionManager: No engine available for '\(languageCode)'")
-            return []
+        let result = getSuggestionsStructured(for: prefix, language: languageCode)
+        return result.suggestions
+    }
+    
+    /// Get structured suggestion results with metadata about fuzzy matches
+    /// - Parameters:
+    ///   - prefix: The current word prefix to complete
+    ///   - languageCode: The language to use for suggestions
+    /// - Returns: SuggestionResult with suggestions and fuzzy metadata
+    func getSuggestionsStructured(for prefix: String, language languageCode: String? = nil) -> SuggestionResult {
+        let language = languageCode ?? currentLanguage ?? "en"
+        
+        guard !prefix.isEmpty else {
+            let defaults = getDefaultSuggestions(for: language)
+            return SuggestionResult(
+                suggestions: defaults,
+                hasFuzzyOnly: false,
+                bestFuzzyMatch: nil,
+                originalPrefix: prefix
+            )
         }
         
-        print("📚 WordCompletionManager: Querying engine for prefix '\(prefix)' in '\(languageCode)' (length: \(prefix.count))")
+        guard let engine = getEngine(for: language) else {
+            print("📚 WordCompletionManager: No engine available for '\(language)'")
+            return SuggestionResult(
+                suggestions: [],
+                hasFuzzyOnly: false,
+                bestFuzzyMatch: nil,
+                originalPrefix: prefix
+            )
+        }
+        
+        print("📚 WordCompletionManager: Querying engine for prefix '\(prefix)' in '\(language)' (length: \(prefix.count))")
         
         // Step 1: Try exact match first
         let exactSuggestions = engine.getSuggestions(for: prefix, limit: maxSuggestions + 4)
         print("📚 WordCompletionManager: Engine returned \(exactSuggestions.count) exact suggestions: \(exactSuggestions)")
         
         // Filter out single-letter suggestions
-        var filteredExact = exactSuggestions.filter { $0.count > 1 }
+        let filteredExact = exactSuggestions.filter { $0.count > 1 }
         
-        // Step 2: If exact matches are insufficient, try fuzzy search
-        if filteredExact.count <= fuzzyTriggerThreshold && prefix.count >= 2 {
-            print("📚 WordCompletionManager: Few exact matches (\(filteredExact.count)), trying fuzzy search with budget \(fuzzyErrorBudget)")
-            
-            // Get keyboard neighbors for fuzzy search
-            let neighbors = KeyboardNeighbors.neighbors(for: languageCode)
-            
-            // Perform fuzzy search
-            let fuzzySuggestions = engine.getFuzzySuggestions(
-                for: prefix,
-                errorBudget: fuzzyErrorBudget,
-                neighbors: neighbors,
-                limit: maxSuggestions + 4
+        // Step 2: If exact matches are sufficient, return them
+        if filteredExact.count > fuzzyTriggerThreshold || prefix.count < 2 {
+            let finalSuggestions = Array(filteredExact.prefix(maxSuggestions))
+            return SuggestionResult(
+                suggestions: finalSuggestions,
+                hasFuzzyOnly: false,
+                bestFuzzyMatch: nil,
+                originalPrefix: prefix
             )
-            print("📚 WordCompletionManager: Fuzzy search returned \(fuzzySuggestions.count) suggestions: \(fuzzySuggestions)")
-            
-            // Merge results: exact matches first, then fuzzy matches (avoiding duplicates)
-            var seen = Set(filteredExact)
-            for fuzzySuggestion in fuzzySuggestions {
-                if fuzzySuggestion.count > 1 && !seen.contains(fuzzySuggestion) {
-                    filteredExact.append(fuzzySuggestion)
-                    seen.insert(fuzzySuggestion)
-                }
-            }
-            
-            print("📚 WordCompletionManager: After merging fuzzy results: \(filteredExact.count) total suggestions")
         }
         
+        // Step 3: Exact matches insufficient, try fuzzy search
+        print("📚 WordCompletionManager: Few exact matches (\(filteredExact.count)), trying fuzzy search with budget \(fuzzyErrorBudget)")
+        
+        // Get keyboard neighbors for fuzzy search
+        let neighbors = KeyboardNeighbors.neighbors(for: language)
+        
+        // Perform fuzzy search
+        let fuzzySuggestions = engine.getFuzzySuggestions(
+            for: prefix,
+            errorBudget: fuzzyErrorBudget,
+            neighbors: neighbors,
+            limit: maxSuggestions + 4
+        )
+        print("📚 WordCompletionManager: Fuzzy search returned \(fuzzySuggestions.count) suggestions: \(fuzzySuggestions)")
+        
+        // Determine if we have ONLY fuzzy matches (no exact matches)
+        let hasFuzzyOnly = filteredExact.isEmpty && !fuzzySuggestions.isEmpty
+        
+        // Get the best fuzzy match (first one is best due to error sorting)
+        let bestFuzzyMatch = fuzzySuggestions.first { $0.count > 1 }
+        
+        // Merge results: exact matches first, then fuzzy matches (avoiding duplicates)
+        var merged: [String] = []
+        var seen = Set<String>()
+        
+        // Add exact matches first
+        for suggestion in filteredExact {
+            if suggestion.count > 1 && !seen.contains(suggestion) {
+                merged.append(suggestion)
+                seen.insert(suggestion)
+            }
+        }
+        
+        // Add fuzzy matches
+        for suggestion in fuzzySuggestions {
+            if suggestion.count > 1 && !seen.contains(suggestion) {
+                merged.append(suggestion)
+                seen.insert(suggestion)
+            }
+        }
+        
+        print("📚 WordCompletionManager: After merging fuzzy results: \(merged.count) total suggestions")
+        
         // Return top N results
-        let finalSuggestions = Array(filteredExact.prefix(maxSuggestions))
-        print("📚 WordCompletionManager: Returning \(finalSuggestions.count) suggestions for '\(prefix)': \(finalSuggestions)")
-        return finalSuggestions
+        let finalSuggestions = Array(merged.prefix(maxSuggestions))
+        print("📚 WordCompletionManager: Returning \(finalSuggestions.count) suggestions for '\(prefix)': \(finalSuggestions), hasFuzzyOnly: \(hasFuzzyOnly), bestFuzzy: \(bestFuzzyMatch ?? "none")")
+        
+        return SuggestionResult(
+            suggestions: finalSuggestions,
+            hasFuzzyOnly: hasFuzzyOnly,
+            bestFuzzyMatch: bestFuzzyMatch,
+            originalPrefix: prefix
+        )
     }
     
     /// Check if a dictionary is available for the given language

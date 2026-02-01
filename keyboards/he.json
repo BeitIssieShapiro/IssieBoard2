@@ -90,7 +90,7 @@
             { "type": "settings" },
             { "caption": "רווח", "value": " ", "width": 5 },
             { "type": "nikkud" },
-            { "type": "enter" }
+            { "type": "enter", "width": 1.5 }
           ]
         }
       ]

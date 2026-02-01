@@ -18,4 +18,4 @@ suggestion:
 - not offer suggestion for certain input type? then ommit the header row?
 
 ---
-
+preview: backspace, suggestions

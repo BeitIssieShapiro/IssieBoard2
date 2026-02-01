@@ -23,6 +23,9 @@ class BaseKeyboardViewController: UIInputViewController {
     private var currentWord: String = ""
     private var currentLanguage: String = "en"
     
+    // Fuzzy suggestion state - for smart auto-replace on space
+    private var currentSuggestionResult: WordCompletionManager.SuggestionResult?
+    
     // Double-space shortcut (". " instead of "  ")
     private var lastSpaceTime: Date?
     private let doubleSpaceThreshold: TimeInterval = 2.0  // 2 seconds
@@ -63,6 +66,9 @@ class BaseKeyboardViewController: UIInputViewController {
         super.viewWillAppear(animated)
         print("📐 viewWillAppear: view.bounds = \(view.bounds)")
         loadPreferences()
+        
+        // Detect existing text before cursor when keyboard appears
+        detectCurrentWordFromContext()
     }
     
     override func viewDidLayoutSubviews() {
@@ -96,6 +102,14 @@ class BaseKeyboardViewController: UIInputViewController {
         // Re-rendering on every keystroke was causing suggestions to be cleared
         // because renderKeyboard() creates a fresh suggestions bar
         print("📝 textWillChange called - NOT re-rendering to preserve suggestions")
+    }
+    
+    override func textDidChange(_ textInput: UITextInput?) {
+        super.textDidChange(textInput)
+        // Detect existing text when switching between text fields
+        // This is called when cursor moves or text field changes
+        print("📝 textDidChange called - detecting current word from context")
+        detectCurrentWordFromContext()
     }
     
     override func viewDidDisappear(_ animated: Bool) {
@@ -535,17 +549,39 @@ class BaseKeyboardViewController: UIInputViewController {
     private func updateWordSuggestions() {
         // Skip if word completion is disabled
         guard wordCompletionEnabled else {
+            currentSuggestionResult = nil
             return
         }
         
         guard !currentWord.isEmpty else {
+            currentSuggestionResult = nil
             renderer.clearSuggestions()
             return
         }
         
-        print("📝 Getting suggestions for: '\(currentWord)'")
-        let suggestions = WordCompletionManager.shared.getSuggestions(for: currentWord)
-        renderer.updateSuggestions(suggestions)
+        print("📝 Getting structured suggestions for: '\(currentWord)'")
+        let result = WordCompletionManager.shared.getSuggestionsStructured(for: currentWord, language: currentLanguage)
+        currentSuggestionResult = result
+        
+        // Build display suggestions based on fuzzy state
+        var displaySuggestions: [String] = []
+        
+        if result.hasFuzzyOnly && !result.suggestions.isEmpty {
+            // Only fuzzy matches - show quoted literal first, then best fuzzy highlighted
+            let quotedLiteral = "\"\(currentWord)\""
+            displaySuggestions.append(quotedLiteral)
+            
+            // Add fuzzy suggestions
+            displaySuggestions.append(contentsOf: result.suggestions)
+            
+            print("📝 Fuzzy only mode: literal='\(quotedLiteral)', fuzzy=\(result.suggestions)")
+        } else {
+            // Has exact matches - show them normally
+            displaySuggestions = result.suggestions
+        }
+        
+        // Update renderer with suggestions and fuzzy state
+        renderer.updateSuggestions(displaySuggestions, highlightIndex: result.hasFuzzyOnly ? 1 : nil)
     }
     
     /// Handle suggestion selection - replace current word with suggestion
@@ -577,10 +613,35 @@ class BaseKeyboardViewController: UIInputViewController {
     
     // MARK: - Space Key Handling
     
-    /// Handle space key with double-space shortcut
-    /// If space is pressed twice within 2 seconds, replace " " with ". "
+    /// Handle space key with double-space shortcut and smart fuzzy auto-replace
+    /// 1. If fuzzy-only mode with smart replace enabled: replace word with best fuzzy match
+    /// 2. Double-space within 2 seconds: replace " " with ". "
     private func handleSpaceKey() {
         let now = Date()
+        
+        // Check for smart fuzzy auto-replace first
+        if let result = currentSuggestionResult,
+           result.hasFuzzyOnly,
+           WordCompletionManager.shared.smartAutoReplaceEnabled,
+           let bestMatch = result.bestFuzzyMatch,
+           !currentWord.isEmpty {
+            print("⌨️ Smart fuzzy replace: '\(currentWord)' → '\(bestMatch)'")
+            
+            // Delete the current word
+            for _ in 0..<currentWord.count {
+                textDocumentProxy.deleteBackward()
+            }
+            
+            // Insert the best fuzzy match followed by space
+            textDocumentProxy.insertText(bestMatch + " ")
+            
+            // Clear state and show default suggestions
+            currentWord = ""
+            currentSuggestionResult = nil
+            lastSpaceTime = now
+            showDefaultSuggestions()
+            return
+        }
         
         // Check if this is a double-space (within threshold)
         if let lastTime = lastSpaceTime,
@@ -621,6 +682,7 @@ class BaseKeyboardViewController: UIInputViewController {
         
         // Clear current word on space (word completed), show default suggestions
         currentWord = ""
+        currentSuggestionResult = nil
         showDefaultSuggestions()
     }
     
@@ -642,6 +704,59 @@ class BaseKeyboardViewController: UIInputViewController {
         
         print("📝 Detected current word: '\(currentWord)'")
         updateWordSuggestions()
+    }
+    
+    /// Detect current word from existing text when keyboard appears or text field changes
+    /// This allows suggestions to be shown based on text that was already typed before keyboard appeared
+    private func detectCurrentWordFromContext() {
+        // Skip if word completion is disabled or renderer not ready
+        guard wordCompletionEnabled, renderer != nil else {
+            print("📝 detectCurrentWordFromContext: Word completion disabled or renderer not ready")
+            return
+        }
+        
+        guard let beforeInput = textDocumentProxy.documentContextBeforeInput, !beforeInput.isEmpty else {
+            // No text before cursor - show default suggestions
+            print("📝 detectCurrentWordFromContext: No text before cursor")
+            currentWord = ""
+            currentSuggestionResult = nil
+            showDefaultSuggestions()
+            return
+        }
+        
+        // Check if cursor is right after whitespace (no word in progress)
+        if beforeInput.last == " " || beforeInput.last == "\n" || beforeInput.last == "\t" {
+            print("📝 detectCurrentWordFromContext: Cursor after whitespace, showing defaults")
+            currentWord = ""
+            currentSuggestionResult = nil
+            showDefaultSuggestions()
+            return
+        }
+        
+        // Find the word before cursor (characters after the last space/newline)
+        // Don't trim - we want to see exactly where the cursor is
+        var wordStart = beforeInput.endIndex
+        for i in beforeInput.indices.reversed() {
+            let char = beforeInput[i]
+            if char == " " || char == "\n" || char == "\t" {
+                wordStart = beforeInput.index(after: i)
+                break
+            }
+            if i == beforeInput.startIndex {
+                wordStart = i
+            }
+        }
+        
+        let detectedWord = String(beforeInput[wordStart...])
+        
+        // Only update if it's different from what we're tracking
+        if detectedWord != currentWord {
+            print("📝 detectCurrentWordFromContext: Detected existing word '\(detectedWord)' (was '\(currentWord)')")
+            currentWord = detectedWord
+            updateWordSuggestions()
+        } else {
+            print("📝 detectCurrentWordFromContext: Same word '\(currentWord)', skipping update")
+        }
     }
     
     // MARK: - Globe Button Visibility
