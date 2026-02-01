@@ -43,6 +43,9 @@
 		6ACC1EA72F2D024000F1FA30 /* KeyboardPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A1E336D2F220FCA00035455 /* KeyboardPreferences.swift */; };
 		6ACC1EA92F2D024000F1FA30 /* WordCompletionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AWORD00042F300100035455 /* WordCompletionManager.swift */; };
 		6ACC1F452F2F755E00F1FA30 /* KeyboardNeighbors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AKBNG00002F400100035455 /* KeyboardNeighbors.swift */; };
+		6ACC1F492F2F983A00F1FA30 /* ar_50k.bin in Resources */ = {isa = PBXBuildFile; fileRef = 6ACC1F482F2F983A00F1FA30 /* ar_50k.bin */; };
+		6ACC1F4B2F2F991C00F1FA30 /* en_50k.bin in Resources */ = {isa = PBXBuildFile; fileRef = 6ACC1F4A2F2F991C00F1FA30 /* en_50k.bin */; };
+		6ACC1F4D2F2F992B00F1FA30 /* he_50k.bin in Resources */ = {isa = PBXBuildFile; fileRef = 6ACC1F4C2F2F992B00F1FA30 /* he_50k.bin */; };
 		6AKBNG00012F400100035455 /* KeyboardNeighbors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AKBNG00002F400100035455 /* KeyboardNeighbors.swift */; };
 		6AKBNG00022F400100035455 /* KeyboardNeighbors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AKBNG00002F400100035455 /* KeyboardNeighbors.swift */; };
 		6AKBNG00032F400100035455 /* KeyboardNeighbors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AKBNG00002F400100035455 /* KeyboardNeighbors.swift */; };
@@ -123,6 +126,9 @@
 		6ACC1E6B2F2CDEA800F1FA30 /* IssieBoardHe.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = IssieBoardHe.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		6ACC1E802F2CDEBE00F1FA30 /* IssieBoardAr.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = IssieBoardAr.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		6ACC1E932F2D007500F1FA30 /* BaseKeyboardViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaseKeyboardViewController.swift; sourceTree = "<group>"; };
+		6ACC1F482F2F983A00F1FA30 /* ar_50k.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = ar_50k.bin; path = IssieBoardNG/ar_50k.bin; sourceTree = "<group>"; };
+		6ACC1F4A2F2F991C00F1FA30 /* en_50k.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = en_50k.bin; path = IssieBoardNG/en_50k.bin; sourceTree = "<group>"; };
+		6ACC1F4C2F2F992B00F1FA30 /* he_50k.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = he_50k.bin; path = IssieBoardNG/he_50k.bin; sourceTree = "<group>"; };
 		6AKBNG00002F400100035455 /* KeyboardNeighbors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardNeighbors.swift; sourceTree = "<group>"; };
 		6AWORD00042F300100035455 /* WordCompletionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordCompletionManager.swift; sourceTree = "<group>"; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = IssieBoardNG/AppDelegate.swift; sourceTree = "<group>"; };
@@ -216,6 +222,9 @@
 				6A73B68D2F24E9B1003898A5 /* KeyboardPreviewViewManager.swift */,
 				6A1E33742F22170B00035455 /* KeyboardPreferencesModule.swift */,
 				6A1E33732F2216F000035455 /* IssieBoardNG-Bridging-Header.h */,
+				6ACC1F4C2F2F992B00F1FA30 /* he_50k.bin */,
+				6ACC1F4A2F2F991C00F1FA30 /* en_50k.bin */,
+				6ACC1F482F2F983A00F1FA30 /* ar_50k.bin */,
 			);
 			name = IssieBoardNG;
 			sourceTree = "<group>";
@@ -463,8 +472,11 @@
 			buildActionMask = 2147483647;
 			files = (
 				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
+				6ACC1F4D2F2F992B00F1FA30 /* he_50k.bin in Resources */,
+				6ACC1F4B2F2F991C00F1FA30 /* en_50k.bin in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				5326AF4A4DECB80A70586DB4 /* PrivacyInfo.xcprivacy in Resources */,
+				6ACC1F492F2F983A00F1FA30 /* ar_50k.bin in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

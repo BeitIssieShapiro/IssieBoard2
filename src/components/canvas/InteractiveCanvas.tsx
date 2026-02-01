@@ -129,6 +129,26 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
     }
     
     if (state.mode === 'test') {
+      // Handle special key types
+      if (type === 'backspace') {
+        if (onTestInput) {
+          onTestInput('backspace');
+        }
+        return;
+      }
+      
+      // Handle suggestion selection - the value contains the replacement text
+      if (type === 'suggestion' && value) {
+        if (onTestInput) {
+          // For suggestions, we need to handle backspace to remove current word
+          // then add the suggestion. The native side already handled this,
+          // so we just set the new text directly
+          onTestInput(value);
+        }
+        return;
+      }
+      
+      // Regular keys
       if (onTestInput && value) {
         onTestInput(value);
       }

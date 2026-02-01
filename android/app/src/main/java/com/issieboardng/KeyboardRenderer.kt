@@ -571,7 +571,20 @@ class KeyboardRenderer(
             "close" -> "⬇"
             "language" -> "🌐"
             "next-keyboard" -> "🌐"
-            "nikkud" -> if (nikkudActive) "◌ָ" else "◌"
+            "nikkud" -> {
+                // Language-specific nikkud caption (large and centered)
+                // Hebrew: hataf-kamatz (חתף-קמץ)
+                // Arabic: shadda (شَدّة)
+                if (nikkudActive) {
+                    when (currentKeyboardId) {
+                        "he" -> "◌ֳ"  // Hataf-kamatz \u05B3
+                        "ar" -> "◌ّ"  // Shadda \u0651
+                        else -> "◌ָ"  // Default: kamatz
+                    }
+                } else {
+                    "◌"
+                }
+            }
             "space" -> "SPACE"
             else -> type.uppercase()
         }

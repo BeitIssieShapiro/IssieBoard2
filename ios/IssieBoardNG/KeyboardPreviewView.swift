@@ -4,6 +4,7 @@ import React
 /**
  * iOS keyboard preview component for React Native
  * Thin wrapper around KeyboardRenderer - renderer handles all UI logic
+ * In testing mode, also tracks typed text and shows word suggestions
  */
 @objc(KeyboardPreviewView)
 class KeyboardPreviewView: UIView {
@@ -16,11 +17,19 @@ class KeyboardPreviewView: UIView {
     // Event callback for React Native
     @objc var onKeyPress: RCTBubblingEventBlock?
     
+    // Event callback for suggestion selection
+    @objc var onSuggestionSelect: RCTBubblingEventBlock?
+    
     // Selected keys for edit mode visualization
     private var selectedKeyIds: Set<String> = []
     
     // Layout tracking to prevent infinite loops
     private var lastRenderedWidth: CGFloat = 0
+    
+    // Testing mode: track typed text for suggestions
+    private var typedText: String = ""
+    private var currentWord: String = ""
+    private var currentLanguage: String = "en"
     
     // MARK: - Initialization
     
@@ -37,8 +46,25 @@ class KeyboardPreviewView: UIView {
         
         // Set up renderer callbacks - only for FINAL key output
         renderer.onKeyPress = { [weak self] key in
-            self?.emitKeyPress(key)
+            self?.handleKeyPress(key)
         }
+        
+        // Set up backspace long-press callbacks
+        renderer.onDeleteCharacter = { [weak self] in
+            self?.handleBackspace()
+        }
+        
+        renderer.onDeleteWord = { [weak self] in
+            self?.handleDeleteWord()
+        }
+        
+        // Set up suggestion selection callback
+        renderer.onSuggestionSelected = { [weak self] suggestion in
+            self?.handleSuggestionSelected(suggestion)
+        }
+        
+        // Initialize word completion manager
+        WordCompletionManager.shared.setLanguage(currentLanguage)
         
         print("📱 KeyboardPreviewView initialized with frame: \(frame)")
     }
@@ -99,6 +125,13 @@ class KeyboardPreviewView: UIView {
             
             print("✅ Config parsed: keysets=\(parsedConfig?.keysets.map { $0.id }.joined(separator: ", ") ?? "none")")
             
+            // Update language from config's first keyboard
+            if let keyboards = parsedConfig?.keyboards, let firstKeyboard = keyboards.first {
+                currentLanguage = firstKeyboard
+                WordCompletionManager.shared.setLanguage(currentLanguage)
+                print("📱 Preview language set to: \(currentLanguage)")
+            }
+            
             // Check if nikkud picker is showing
             let hasNikkudPicker = subviews.contains(where: { $0.tag == 999 })
             
@@ -123,6 +156,7 @@ class KeyboardPreviewView: UIView {
         
         let currentWidth = bounds.width
         print("🎨 Preview: Rendering keyboard, width = \(currentWidth), lastRenderedWidth = \(lastRenderedWidth)")
+        print("🎨 Preview: wordSuggestionsEnabled = \(config.isWordSuggestionsEnabled)")
         
         // Update last rendered width
         lastRenderedWidth = currentWidth
@@ -135,6 +169,238 @@ class KeyboardPreviewView: UIView {
             currentKeysetId: renderer.currentKeysetId.isEmpty ? (config.defaultKeyset ?? "abc") : renderer.currentKeysetId,
             editorContext: nil  // No editor context in preview
         )
+        
+        // Show initial suggestions if word completion is enabled and no text typed yet
+        if config.isWordSuggestionsEnabled && currentWord.isEmpty {
+            // Use a slight delay to ensure renderer has finished setting up the suggestions bar
+            DispatchQueue.main.async { [weak self] in
+                self?.showDefaultSuggestions()
+            }
+        } else if config.isWordSuggestionsEnabled && !currentWord.isEmpty {
+            // If there's text already, show suggestions for it
+            DispatchQueue.main.async { [weak self] in
+                self?.updateWordSuggestions()
+            }
+        }
+    }
+    
+    // MARK: - Key Press Handling
+    
+    /// Handle key press in preview - track text for suggestions and emit to React Native
+    private func handleKeyPress(_ key: ParsedKey) {
+        print("🔘 Preview handleKeyPress: type=\(key.type), value=\(key.value)")
+        
+        switch key.type.lowercased() {
+        case "backspace":
+            handleBackspace()
+            
+        case "enter", "action":
+            // Clear current word on enter
+            typedText += "\n"
+            currentWord = ""
+            showDefaultSuggestions()
+            
+        case "space":
+            typedText += " "
+            currentWord = ""
+            showDefaultSuggestions()
+            
+        default:
+            // Regular character key
+            let value = key.value
+            if !value.isEmpty {
+                if value == " " {
+                    typedText += " "
+                    currentWord = ""
+                    showDefaultSuggestions()
+                } else {
+                    typedText += value
+                    currentWord += value
+                    updateWordSuggestions()
+                }
+            }
+        }
+        
+        // Emit event to React Native
+        emitKeyPress(key)
+    }
+    
+    /// Handle backspace - delete from typed text and update suggestions
+    private func handleBackspace() {
+        print("⌫ Preview handleBackspace: currentWord='\(currentWord)', typedText='\(typedText)'")
+        
+        // Delete from typedText
+        if !typedText.isEmpty {
+            typedText.removeLast()
+        }
+        
+        // Update current word
+        if !currentWord.isEmpty {
+            currentWord.removeLast()
+            updateWordSuggestions()
+        } else {
+            // Detect current word from typedText
+            detectCurrentWord()
+        }
+        
+        // Emit backspace event to React Native directly
+        if let onKeyPress = onKeyPress {
+            onKeyPress([
+                "type": "backspace",
+                "value": "",
+                "label": "⌫",
+                "hasNikkud": false
+            ])
+        }
+    }
+    
+    /// Handle delete word (long-press backspace)
+    private func handleDeleteWord() {
+        print("⌫ Preview handleDeleteWord: currentWord='\(currentWord)', typedText='\(typedText)'")
+        
+        // Delete entire current word from typedText
+        if !currentWord.isEmpty {
+            // Remove current word
+            for _ in 0..<currentWord.count {
+                if !typedText.isEmpty {
+                    typedText.removeLast()
+                }
+            }
+            currentWord = ""
+        } else if !typedText.isEmpty {
+            // Delete backwards to previous word boundary
+            while !typedText.isEmpty {
+                let lastChar = typedText.removeLast()
+                if lastChar == " " || lastChar == "\n" {
+                    break
+                }
+            }
+        }
+        
+        detectCurrentWord()
+        
+        // Emit backspace event to React Native directly
+        if let onKeyPress = onKeyPress {
+            onKeyPress([
+                "type": "backspace",
+                "value": "",
+                "label": "⌫",
+                "hasNikkud": false
+            ])
+        }
+    }
+    
+    /// Handle suggestion selection - replace current word with suggestion
+    private func handleSuggestionSelected(_ suggestion: String) {
+        print("📝 Preview suggestion selected: '\(suggestion)', currentWord='\(currentWord)'")
+        
+        // Remove current word from typedText
+        for _ in 0..<currentWord.count {
+            if !typedText.isEmpty {
+                typedText.removeLast()
+            }
+        }
+        
+        // Add the suggestion + space
+        typedText += suggestion + " "
+        currentWord = ""
+        
+        // Show default suggestions for next word
+        showDefaultSuggestions()
+        
+        // Emit suggestion selection to React Native
+        if let onSuggestionSelect = onSuggestionSelect {
+            onSuggestionSelect([
+                "suggestion": suggestion,
+                "replacedWord": currentWord
+            ])
+        }
+        
+        // Also emit as a special key press so React can update the text field
+        if let onKeyPress = onKeyPress {
+            onKeyPress([
+                "type": "suggestion",
+                "value": suggestion + " "
+            ])
+        }
+    }
+    
+    // MARK: - Word Suggestions
+    
+    /// Update word suggestions based on current word
+    private func updateWordSuggestions() {
+        guard parsedConfig?.isWordSuggestionsEnabled == true else {
+            return
+        }
+        
+        guard !currentWord.isEmpty else {
+            showDefaultSuggestions()
+            return
+        }
+        
+        print("📝 Preview updateWordSuggestions: '\(currentWord)'")
+        let result = WordCompletionManager.shared.getSuggestionsStructured(for: currentWord, language: currentLanguage)
+        
+        // Build display suggestions based on fuzzy state
+        var displaySuggestions: [String] = []
+        
+        if result.hasFuzzyOnly && !result.suggestions.isEmpty {
+            // Only fuzzy matches - show quoted literal first, then best fuzzy highlighted
+            let quotedLiteral = "\"\(currentWord)\""
+            displaySuggestions.append(quotedLiteral)
+            displaySuggestions.append(contentsOf: result.suggestions)
+            print("📝 Preview fuzzy only mode: literal='\(quotedLiteral)', fuzzy=\(result.suggestions)")
+        } else {
+            // Has exact matches - show them normally
+            displaySuggestions = result.suggestions
+        }
+        
+        // Update renderer with suggestions and fuzzy state
+        renderer.updateSuggestions(displaySuggestions, highlightIndex: result.hasFuzzyOnly ? 1 : nil)
+    }
+    
+    /// Show default suggestions (when no text is being typed)
+    private func showDefaultSuggestions() {
+        guard parsedConfig?.isWordSuggestionsEnabled == true else {
+            return
+        }
+        
+        let suggestions = WordCompletionManager.shared.getSuggestions(for: "")
+        print("📝 Preview showing default suggestions: \(suggestions)")
+        renderer.updateSuggestions(suggestions)
+    }
+    
+    /// Detect current word from typed text
+    private func detectCurrentWord() {
+        guard !typedText.isEmpty else {
+            currentWord = ""
+            showDefaultSuggestions()
+            return
+        }
+        
+        // Check if cursor is right after whitespace
+        if let lastChar = typedText.last, lastChar == " " || lastChar == "\n" || lastChar == "\t" {
+            currentWord = ""
+            showDefaultSuggestions()
+            return
+        }
+        
+        // Find word before cursor
+        var wordStart = typedText.endIndex
+        for i in typedText.indices.reversed() {
+            let char = typedText[i]
+            if char == " " || char == "\n" || char == "\t" {
+                wordStart = typedText.index(after: i)
+                break
+            }
+            if i == typedText.startIndex {
+                wordStart = i
+            }
+        }
+        
+        currentWord = String(typedText[wordStart...])
+        print("📝 Preview detected current word: '\(currentWord)'")
+        updateWordSuggestions()
     }
     
     // MARK: - Key Press Output to React Native

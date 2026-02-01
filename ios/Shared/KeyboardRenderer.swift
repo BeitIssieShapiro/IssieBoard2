@@ -810,7 +810,21 @@ class KeyboardRenderer {
         case "next-keyboard":
             return "🌐"
         case "nikkud":
-            return nikkudActive ? "◌ָ" : "◌"
+            // Language-specific nikkud caption (large and centered)
+            // Hebrew: hataf-kamatz (חתף-קמץ)
+            // Arabic: shadda (شَدّة)
+            if nikkudActive {
+                switch currentKeyboardId {
+                case "he":
+                    return "◌ֳ"  // Hataf-kamatz \u05B3
+                case "ar":
+                    return "◌ّ"  // Shadda \u0651
+                default:
+                    return "◌ָ"  // Default: kamatz
+                }
+            } else {
+                return "◌"
+            }
         case "space":
             return "SPACE"
         default:

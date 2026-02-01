@@ -70,6 +70,27 @@ class TrieEngine {
                     print("📚 TrieEngine: Found '\(name).bin' in dict/bin directory at \(path)")
                     return data
                 }
+                
+                // Try bundle resources directory directly (for files copied via Copy Bundle Resources phase)
+                let bundleDir = bundle.bundlePath
+                let directPath = "\(bundleDir)/\(name).bin"
+                if FileManager.default.fileExists(atPath: directPath),
+                   let data = try? Data(contentsOf: URL(fileURLWithPath: directPath)) {
+                    print("📚 TrieEngine: Found '\(name).bin' directly in bundle at \(directPath)")
+                    return data
+                }
+            }
+        }
+        
+        // Also try shared app group container (for sharing dictionaries between app and extensions)
+        for name in filenames {
+            if let groupContainerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.issie.IssieBoardNG") {
+                let dictPath = groupContainerURL.appendingPathComponent("\(name).bin")
+                if FileManager.default.fileExists(atPath: dictPath.path),
+                   let data = try? Data(contentsOf: dictPath) {
+                    print("📚 TrieEngine: Found '\(name).bin' in app group container at \(dictPath.path)")
+                    return data
+                }
             }
         }
         

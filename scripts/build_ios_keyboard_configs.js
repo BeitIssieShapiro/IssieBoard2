@@ -449,5 +449,39 @@ function buildKeyboardConfigs() {
   }
 }
 
+/**
+ * Copy dictionary files to iOS main app for preview functionality
+ * The keyboard preview in the main app also needs the dictionary files
+ * to show word suggestions.
+ */
+function copyDictionaryFilesToMainApp() {
+  console.log('\n📚 Copying dictionary files to main app...');
+  
+  const dictSourceDir = path.join(__dirname, '..', 'dict', 'bin');
+  const mainAppDir = path.join(IOS_DIR, 'IssieBoardNG');
+  
+  const dictFiles = ['he_50k.bin', 'en_50k.bin', 'ar_50k.bin'];
+  
+  for (const filename of dictFiles) {
+    const sourcePath = path.join(dictSourceDir, filename);
+    const targetPath = path.join(mainAppDir, filename);
+    
+    if (!fs.existsSync(sourcePath)) {
+      console.log(`   ⚠️  Source dict not found: ${sourcePath}`);
+      continue;
+    }
+    
+    try {
+      fs.copyFileSync(sourcePath, targetPath);
+      console.log(`   ✅ Copied ${filename} to main app`);
+    } catch (error) {
+      console.log(`   ❌ Failed to copy ${filename}: ${error.message}`);
+    }
+  }
+}
+
 // Run the build
 buildKeyboardConfigs();
+
+// Also copy dictionary files to main app
+copyDictionaryFilesToMainApp();
