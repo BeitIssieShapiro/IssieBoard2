@@ -248,7 +248,8 @@
             },
             {
               "type": "backspace",
-              "width": 1.5
+              "width": 1.5,
+              "alwaysInclude": true
             }
           ]
         },
@@ -261,7 +262,9 @@
             {
               "type": "keyset",
               "keysetValue": "123",
-              "label": "123"
+              "returnKeysetValue": "abc",
+              "label": "123",
+              "returnKeysetLabel": "أبج"
             },
             {
               "caption": "مسافة",
@@ -288,34 +291,34 @@
         {
           "keys": [
             {
-              "value": "١"
+              "value": "1"
             },
             {
-              "value": "٢"
+              "value": "2"
             },
             {
-              "value": "٣"
+              "value": "3"
             },
             {
-              "value": "٤"
+              "value": "4"
             },
             {
-              "value": "٥"
+              "value": "5"
             },
             {
-              "value": "٦"
+              "value": "6"
             },
             {
-              "value": "٧"
+              "value": "7"
             },
             {
-              "value": "٨"
+              "value": "8"
             },
             {
-              "value": "٩"
+              "value": "9"
             },
             {
-              "value": "٠"
+              "value": "0"
             }
           ]
         },
@@ -331,13 +334,15 @@
               "value": ":"
             },
             {
-              "value": "؛"
+              "value": ";"
             },
             {
-              "value": "("
-            },
-            {
+              "caption": "(",
               "value": ")"
+            },
+            {
+              "caption": ")",
+              "value": "("
             },
             {
               "value": "$"
@@ -358,14 +363,16 @@
             {
               "type": "keyset",
               "keysetValue": "#+=",
+              "returnKeysetValue": "123",
               "label": "#+=",
+              "returnKeysetLabel": "123",
               "width": 1.5
             },
             {
               "value": "."
             },
             {
-              "value": "،"
+              "value": ","
             },
             {
               "value": "؟"
@@ -385,13 +392,15 @@
         {
           "keys": [
             {
-              "type": "keyset",
-              "keysetValue": "abc",
-              "label": "أبج"
-            },
-            {
               "type": "next-keyboard",
               "width": 1
+            },
+            {
+              "type": "keyset",
+              "keysetValue": "abc",
+              "returnKeysetValue": "123",
+              "label": "أبج",
+              "returnKeysetLabel": "123"
             },
             {
               "caption": "مسافة",
@@ -399,14 +408,14 @@
               "width": 4
             },
             {
-              "value": "."
+              "value": ".",
+              "sValue": "،"
             },
             {
               "type": "nikkud"
             },
             {
-              "type": "enter",
-              "width": 1.5
+              "type": "enter"
             }
           ]
         }
@@ -418,16 +427,20 @@
         {
           "keys": [
             {
-              "value": "["
-            },
-            {
+              "caption": "[",
               "value": "]"
             },
             {
-              "value": "{"
+              "caption": "]",
+              "value": "["
             },
             {
+              "caption": "{",
               "value": "}"
+            },
+            {
+              "caption": "}",
+              "value": "{"
             },
             {
               "value": "#"
@@ -488,14 +501,16 @@
             {
               "type": "keyset",
               "keysetValue": "123",
+              "returnKeysetValue": "#+=",
               "label": "123",
+              "returnKeysetLabel": "#+=",
               "width": 1.5
             },
             {
               "value": "."
             },
             {
-              "value": "،"
+              "value": ","
             },
             {
               "value": "؟"
@@ -508,7 +523,7 @@
             },
             {
               "type": "backspace",
-              "width": 2.5
+              "width": 1.5
             }
           ]
         },
@@ -521,7 +536,9 @@
             {
               "type": "keyset",
               "keysetValue": "abc",
-              "label": "أبج"
+              "returnKeysetValue": "#+=",
+              "label": "أبج",
+              "returnKeysetLabel": "123"
             },
             {
               "caption": "مسافة",
@@ -529,7 +546,8 @@
               "width": 4
             },
             {
-              "value": "."
+              "value": ".",
+              "sValue": "،"
             },
             {
               "type": "nikkud"

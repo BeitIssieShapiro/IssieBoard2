@@ -28,6 +28,9 @@ import heKeyboard from '../../keyboards/he.json';
 import heOrderedKeyboard from '../../keyboards/he_ordered.json';
 import arKeyboard from '../../keyboards/ar.json';
 
+// Import keyboard config merger utilities
+import { buildKeyboardConfig, SourceKeyboard, mergeCommonKeysets, getCommonKeysets } from '../utils/keyboardConfigMerger';
+
 // Language definitions
 type LanguageId = 'he' | 'en' | 'ar';
 
@@ -120,7 +123,7 @@ const extractProfileDefinition = (
 
 /**
  * Build configuration from profile definition (single keyboard)
- * Uses keysets directly from the keyboard JSON - no system row manipulation
+ * Uses the shared keyboardConfigMerger to include common keysets (123, #+=)
  */
 const buildConfiguration = (profile: SavedProfileDefinition): KeyboardConfig => {
   const keyboard = KEYBOARDS[profile.keyboardId];
@@ -131,31 +134,20 @@ const buildConfiguration = (profile: SavedProfileDefinition): KeyboardConfig => 
   // Use 'default' for empty/undefined background color to trigger transparent/liquid glass effect
   const bgColor = profile.backgroundColor !== undefined ? profile.backgroundColor : 'default';
 
+  // Use the shared config builder to merge common keysets
+  const baseConfig = buildKeyboardConfig(keyboard as SourceKeyboard, profile.language);
+
   const config: KeyboardConfig = {
+    ...baseConfig,
     backgroundColor: bgColor || 'default',
-    defaultKeyset: 'abc',
-    keysets: [],
     groups: profile.groups || [],
     keyboards: [profile.keyboardId],
     defaultKeyboard: profile.keyboardId,
-    diacritics: undefined,
     allDiacritics: {},
     diacriticsSettings: profile.diacritics || {},
     wordSuggestionsEnabled: profile.wordSuggestionsEnabled,
   };
 
-  // Build keysets directly from the keyboard
-  const keysets = keyboard.keysets.map((keyset: any) => ({
-    ...keyset,
-    rows: [...keyset.rows],
-  }));
-
-  if (keysets.length > 0) {
-    config.defaultKeyset = keysets[0].id;
-  }
-
-  config.keysets = keysets;
-  
   // Load diacritics from keyboard
   if ((keyboard as any).diacritics) {
     config.allDiacritics![profile.keyboardId] = (keyboard as any).diacritics;

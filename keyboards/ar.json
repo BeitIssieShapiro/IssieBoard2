@@ -1,6 +1,7 @@
 {
   "id": "ar",
   "name": "Arabic",
+  "includeKeysets": ["123", "#+="],
   "diacritics": {
     "appliesTo": ["ا", "ب", "ت", "ث", "ج", "ح", "خ", "د", "ذ", "ر", "ز", "س", "ش", "ص", "ض", "ط", "ظ", "ع", "غ", "ف", "ق", "ك", "ل", "م", "ن", "ه", "و", "ي", "ء", "ؤ", "ئ", "ة", "ى"],
     "items": [
@@ -66,124 +67,18 @@
             { "value": "و" },
             { "value": "ز" },
             { "value": "ظ" },
-            { "type": "backspace", "width": 1.5 }
+            { "type": "backspace", "width": 1.5, "alwaysInclude": true }
           ]
         },
         {
+          "alwaysInclude": true,
           "keys": [
             { "type": "next-keyboard", "width": 1 },
-            { "type": "keyset", "keysetValue": "123", "label": "123"},            { "caption": "مسافة", "value": " ", "width": 4 },
+            { "type": "keyset", "keysetValue": "123", "returnKeysetValue": "abc", "label": "123", "returnKeysetLabel": "أبج" },
+            { "caption": "مسافة", "value": " ", "width": 4 },
             { "value": ".", "sValue": "،" },
             { "type": "nikkud" },
             { "type": "enter" }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "123",
-      "rows": [
-        {
-          "keys": [
-            { "value": "١" },
-            { "value": "٢" },
-            { "value": "٣" },
-            { "value": "٤" },
-            { "value": "٥" },
-            { "value": "٦" },
-            { "value": "٧" },
-            { "value": "٨" },
-            { "value": "٩" },
-            { "value": "٠" }
-          ]
-        },
-        {
-          "keys": [
-            { "value": "-" },
-            { "value": "/" },
-            { "value": ":" },
-            { "value": "؛" },
-            { "value": "(" },
-            { "value": ")" },
-            { "value": "$" },
-            { "value": "&" },
-            { "value": "@" },
-            { "value": "\"" }
-          ]
-        },
-        {
-          "keys": [
-            { "type": "keyset", "keysetValue": "#+=", "label": "#+=", "width": 1.5 },
-            { "value": "." },
-            { "value": "،" },
-            { "value": "؟" },
-            { "value": "!" },
-            { "value": "'" },
-            { "type": "backspace", "width": 1.5 }
-          ]
-        },
-        {
-          "keys": [
-            { "type": "keyset", "keysetValue": "abc", "label": "أبج" },
-            { "type": "next-keyboard", "width": 1 },
-            { "caption": "مسافة", "value": " ", "width": 4 },
-            { "value": "." },
-            { "type": "nikkud" },
-            { "type": "enter", "width": 1.5 }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "#+=",
-      "rows": [
-        {
-          "keys": [
-            { "value": "[" },
-            { "value": "]" },
-            { "value": "{" },
-            { "value": "}" },
-            { "value": "#" },
-            { "value": "%" },
-            { "value": "^" },
-            { "value": "*" },
-            { "value": "+" },
-            { "value": "=" }
-          ]
-        },
-        {
-          "keys": [
-            { "value": "_" },
-            { "value": "\\" },
-            { "value": "|" },
-            { "value": "~" },
-            { "value": "<" },
-            { "value": ">" },
-            { "value": "€" },
-            { "value": "£" },
-            { "value": "¥" },
-            { "value": "•" }
-          ]
-        },
-        {
-          "keys": [
-            { "type": "keyset", "keysetValue": "123", "label": "123", "width": 1.5 },
-            { "value": "." },
-            { "value": "،" },
-            { "value": "؟" },
-            { "value": "!" },
-            { "value": "'" },
-            { "type": "backspace", "width": 2.5 }
-          ]
-        },
-        {
-          "keys": [
-            { "type": "next-keyboard", "width": 1 },
-            { "type": "keyset", "keysetValue": "abc", "label": "أبج" },
-            { "caption": "مسافة", "value": " ", "width": 4 },
-            { "value": "." },
-            { "type": "nikkud" },
-            { "type": "enter"}
           ]
         }
       ]

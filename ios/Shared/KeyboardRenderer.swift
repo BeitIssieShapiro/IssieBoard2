@@ -80,6 +80,11 @@ class KeyboardRenderer {
     var currentKeysetId: String = "abc"  // Public so container can read it (but shouldn't write)
     private var editorContext: (enterVisible: Bool, enterLabel: String, enterAction: Int)?
     
+    // Keyset button return state tracking
+    // When a keyset button is pressed, it enters "return mode" where pressing again returns to the original keyset
+    // Key: keysetValue (the keyset we navigated TO), Value: (returnKeysetValue, returnKeysetLabel)
+    private var keysetButtonReturnState: [String: (returnValue: String, returnLabel: String)] = [:]
+    
     // Diacritics settings (from profile, keyed by keyboard ID)
     private var diacriticsSettings: [String: DiacriticsSettings] = [:]
     
@@ -514,7 +519,7 @@ class KeyboardRenderer {
         let displayText = shiftState.isActive() ? key.sCaption : key.caption
         
         // Determine final text
-        let finalText: String
+        var finalText: String
         if !key.label.isEmpty {
             finalText = key.label
         } else if !displayText.isEmpty {
@@ -523,6 +528,18 @@ class KeyboardRenderer {
             finalText = key.value
         } else {
             finalText = getDefaultLabel(for: key.type, editorContext: editorContext)
+        }
+        
+        // For keyset buttons in "return mode", show the return label instead
+        // When we're on a keyset (e.g., "123") that has a return state, and this button
+        // points to the return destination (e.g., "abc"), show the return label
+        if key.type.lowercased() == "keyset" && !key.keysetValue.isEmpty {
+            if let returnState = keysetButtonReturnState[currentKeysetId],
+               key.keysetValue == returnState.returnValue {
+                // This button points to the return destination - show the return label
+                print("🔄 Keyset button '\(key.keysetValue)' in return mode, showing label: '\(returnState.returnLabel)'")
+                finalText = returnState.returnLabel
+            }
         }
         
         // For settings key, use SF Symbol image
@@ -746,6 +763,8 @@ class KeyboardRenderer {
                 bgColor: nil,
                 label: nil,
                 keysetValue: nil,
+                returnKeysetValue: nil,
+                returnKeysetLabel: nil,
                 nikkud: nil
             )
             let parsedKey = ParsedKey(from: backspaceKey, groups: [:], defaultTextColor: .black, defaultBgColor: .white)
@@ -819,9 +838,26 @@ class KeyboardRenderer {
             
         case "keyset":
             // Switch keyset and re-render internally
-            print("   → Handling KEYSET: keysetValue='\(key.keysetValue)'")
+            // Supports return state: first press goes to keysetValue, second press returns to returnKeysetValue
+            print("   → Handling KEYSET: keysetValue='\(key.keysetValue)', returnKeysetValue='\(key.returnKeysetValue)', returnKeysetLabel='\(key.returnKeysetLabel)'")
+            
             if !key.keysetValue.isEmpty {
-                switchKeyset(key.keysetValue)
+                // Check if we're in "return mode" for this keyset
+                if let returnState = keysetButtonReturnState[currentKeysetId],
+                   key.returnKeysetValue == returnState.returnValue {
+                    // We're in return mode - pressing should return to the original keyset
+                    print("   → Return mode detected! Returning to '\(returnState.returnValue)'")
+                    keysetButtonReturnState.removeValue(forKey: currentKeysetId)
+                    switchKeyset(returnState.returnValue)
+                } else {
+                    // Normal mode - switch to the target keyset and store return state
+                    if !key.returnKeysetValue.isEmpty && !key.returnKeysetLabel.isEmpty {
+                        // Store the return state for when we're on the target keyset
+                        keysetButtonReturnState[key.keysetValue] = (returnValue: key.returnKeysetValue, returnLabel: key.returnKeysetLabel)
+                        print("   → Storing return state for '\(key.keysetValue)': return to '\(key.returnKeysetValue)'")
+                    }
+                    switchKeyset(key.keysetValue)
+                }
             }
                         
         case "next-keyboard":
@@ -914,6 +950,9 @@ class KeyboardRenderer {
             "value": key.value,
             "sValue": key.sValue,
             "keysetValue": key.keysetValue,
+            "returnKeysetValue": key.returnKeysetValue,
+            "returnKeysetLabel": key.returnKeysetLabel,
+            "label": key.label,
             "hasNikkud": !key.nikkud.isEmpty
         ]
         
@@ -948,6 +987,9 @@ class KeyboardRenderer {
         let value = info["value"] as? String ?? ""
         let sValue = info["sValue"] as? String ?? ""
         let keysetValue = info["keysetValue"] as? String ?? ""
+        let returnKeysetValue = info["returnKeysetValue"] as? String ?? ""
+        let returnKeysetLabel = info["returnKeysetLabel"] as? String ?? ""
+        let label = info["label"] as? String ?? ""
         
         var nikkudOptions: [NikkudOption] = []
         if let nikkudArray = info["nikkud"] as? [[String: String]] {
@@ -975,8 +1017,10 @@ class KeyboardRenderer {
             hidden: false,
             color: nil,
             bgColor: nil,
-            label: "",
+            label: label,
             keysetValue: keysetValue,
+            returnKeysetValue: returnKeysetValue,
+            returnKeysetLabel: returnKeysetLabel,
             nikkud: nikkudOptions.isEmpty ? nil : nikkudOptions
         )
         
@@ -1824,46 +1868,22 @@ class KeyboardRenderer {
     // MARK: - Keyset Switching
     
     /// Switch to a different keyset (abc, 123, #+=) while staying on the same keyboard/language
+    /// Keyset IDs are plain (e.g., "abc", "123", "#+=") without language prefixes
     private func switchKeyset(_ keysetValue: String) {
         guard !keysetValue.isEmpty, let config = config else { return }
         
-        // Use currentKeyboardId to determine which keyboard we're on
-        // This is more reliable than extracting prefix from keyset ID
-        let keyboardId = currentKeyboardId
-        
-        // Try to find the keyset for the current keyboard
-        // Priority: 1. prefixed keyset (e.g., "he_abc"), 2. plain keyset (e.g., "abc")
-        var candidates: [String] = []
-        
-        // Add prefixed version if we know the keyboard
-        if let keyboardId = keyboardId, !keyboardId.isEmpty {
-            candidates.append("\(keyboardId)_\(keysetValue)")
-        }
-        
-        // Also try the keyset ID that matches the pattern of the current keyset
-        // If current is "he_123", target should be "he_abc"
-        if currentKeysetId.contains("_") {
-            let prefix = currentKeysetId.components(separatedBy: "_").first ?? ""
-            if !prefix.isEmpty {
-                candidates.append("\(prefix)_\(keysetValue)")
-            }
-        }
-        
-        // Finally, try the plain keyset value (for first keyboard which has no prefix)
-        candidates.append(keysetValue)
-        
-        // Find the first matching keyset
+        // Check if the target keyset exists in the config
         let allKeysetIds = config.keysets.map { $0.id }
-        let targetKeysetId = candidates.first { allKeysetIds.contains($0) }
+        print("switchKeyset: switching to '\(keysetValue)', available: \(allKeysetIds)")
         
-        if let targetKeysetId = targetKeysetId {
-            print("switchKeyset: switching from '\(currentKeysetId)' to '\(targetKeysetId)' (candidates: \(candidates))")
-            currentKeysetId = targetKeysetId
+        if allKeysetIds.contains(keysetValue) {
+            print("switchKeyset: switching from '\(currentKeysetId)' to '\(keysetValue)'")
+            currentKeysetId = keysetValue
             shiftState = .inactive
             nikkudActive = false
             rerender()
         } else {
-            print("⚠️ Keyset not found for value '\(keysetValue)'. Tried: \(candidates)")
+            print("⚠️ Keyset not found: '\(keysetValue)'. Available: \(allKeysetIds)")
         }
     }
     

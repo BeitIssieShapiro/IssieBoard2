@@ -6,10 +6,19 @@
  * This script generates the default_config.json files for each iOS keyboard extension
  * from the source keyboard definitions in keyboards/*.json
  * 
- * Source files: keyboards/he.json, keyboards/en.json, keyboards/ar.json
+ * The script merges common keysets (from common.js) with language-specific keysets,
+ * filtering keys by language and appending the "alwaysInclude" bottom row.
+ * 
+ * Source files: keyboards/he.json, keyboards/en.json, keyboards/ar.json, keyboards/common.js
  * Output files: ios/IssieBoardHe/default_config.json, ios/IssieBoardEn/default_config.json, ios/IssieBoardAr/default_config.json
  * 
  * Usage: node scripts/build_ios_keyboard_configs.js
+ * 
+ * NOTE: The keyboard merging logic in this file is duplicated in:
+ *   src/utils/keyboardConfigMerger.ts
+ * 
+ * The TypeScript module is used by the React Native settings app for runtime config building.
+ * If you modify the merging logic here, please update the TypeScript version as well.
  */
 
 const fs = require('fs');
@@ -25,7 +34,7 @@ const KEYBOARD_CONFIGS = [
     sourceFile: 'he.json',
     targetDir: 'IssieBoardHe',
     language: 'he',
-    systemRowAtTop: false, // Add system row (settings, backspace, enter, close) at top
+    systemRowAtTop: false,
   },
   {
     sourceFile: 'en.json',
@@ -46,19 +55,10 @@ const DEFAULT_CONFIG_TEMPLATE = {
   backgroundColor: 'default',  // Uses system light/dark theme colors
   defaultKeyset: 'abc',
   wordSuggestionsEnabled: true,
-  groups: [
-    {
-      items: [],
-      template: { color: '#000000', bgColor: '#FFFFFF' }
-    },
-    {
-      items: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'],
-      template: { color: '#000000', bgColor: '#E8E8E8' }
-    }
-  ]
+  groups: []
 };
 
-// System row that gets added at the top of each keyset
+// System row that gets added at the top of each keyset (if enabled)
 const SYSTEM_ROW = {
   keys: [
     { type: 'settings' },
@@ -69,16 +69,239 @@ const SYSTEM_ROW = {
 };
 
 /**
+ * Load common keysets from common.js
+ */
+function loadCommonKeysets() {
+  const commonPath = path.join(KEYBOARDS_DIR, 'common.js');
+  if (!fs.existsSync(commonPath)) {
+    console.log('   ⚠️  common.js not found, skipping common keysets');
+    return [];
+  }
+  
+  // Clear require cache to ensure fresh load
+  delete require.cache[require.resolve(commonPath)];
+  const common = require(commonPath);
+  return common.keysets || [];
+}
+
+/**
+ * Filter keys by language
+ * Keys with forLanguages array are only included if the language matches
+ * Keys without forLanguages are included for all languages
+ */
+function filterKeysByLanguage(keys, language) {
+  return keys.filter(key => {
+    if (!key.forLanguages) {
+      return true;  // No language restriction
+    }
+    return key.forLanguages.includes(language);
+  }).map(key => {
+    // Remove forLanguages from the output (it's build-time only)
+    const { forLanguages, ...keyWithoutForLanguages } = key;
+    return keyWithoutForLanguages;
+  });
+}
+
+/**
+ * Filter rows by language (filter keys within each row)
+ */
+function filterRowsByLanguage(rows, language) {
+  return rows.map(row => {
+    return {
+      ...row,
+      keys: filterKeysByLanguage(row.keys, language)
+    };
+  });
+}
+
+/**
+ * Find the alwaysInclude row from the abc keyset
+ */
+function findAlwaysIncludeRow(sourceKeyboard) {
+  const abcKeyset = sourceKeyboard.keysets?.find(ks => ks.id === 'abc');
+  if (!abcKeyset) return null;
+  
+  return abcKeyset.rows?.find(row => row.alwaysInclude === true);
+}
+
+/**
+ * Transform a keyset button key for a different target keyset
+ * When the alwaysInclude row's keyset button is used on a non-abc keyset (like "123" or "#+="),
+ * we need to update it to point BACK to the abc keyset with the return label.
+ * 
+ * The original button on abc keyset has: keysetValue="123", label="123", returnKeysetValue="abc", returnKeysetLabel="אבג"
+ * 
+ * When copied to ANY non-abc keyset, we want:
+ * - keysetValue="abc" (always return to abc)
+ * - label=returnKeysetLabel (e.g., "אבג")
+ * - returnKeysetValue=targetKeysetId (so pressing again can go back)
+ * - returnKeysetLabel=original label
+ */
+function transformKeysetButtonForTarget(key, targetKeysetId) {
+  // Only transform keyset type buttons
+  if (key.type !== 'keyset') {
+    return key;
+  }
+  
+  // If target is 'abc', no transformation needed (button is correct as-is)
+  if (targetKeysetId === 'abc') {
+    return key;
+  }
+  
+  // For any non-abc keyset, transform the button to point back to abc
+  // This handles both "123" and "#+=" keysets
+  return {
+    ...key,
+    keysetValue: key.returnKeysetValue || 'abc',  // Always point back to abc
+    label: key.returnKeysetLabel || key.returnKeysetValue || 'abc',  // Show return label (e.g., "אבג")
+    // Set up for reverse navigation (if user presses again on abc)
+    returnKeysetValue: targetKeysetId,  // Point to the current keyset
+    returnKeysetLabel: key.label || targetKeysetId,  // Show the current keyset's label
+  };
+}
+
+/**
+ * Find alwaysInclude keys from non-alwaysInclude rows in the abc keyset
+ * Returns an object with:
+ * - prependKeys: array of keys to prepend to the LAST content row
+ * - appendKeys: array of keys to append to the LAST content row
+ * 
+ * For simplicity, all alwaysInclude keys are applied to the LAST content row
+ * of the target keyset, regardless of which row they came from in the source.
+ * This is because the "last content row" typically has utility keys like backspace,
+ * keyset switchers, etc.
+ */
+function findAlwaysIncludeKeys(sourceKeyboard) {
+  const abcKeyset = sourceKeyboard.keysets?.find(ks => ks.id === 'abc');
+  if (!abcKeyset) return { prependKeys: [], appendKeys: [] };
+  
+  const prependKeys = [];
+  const appendKeys = [];
+  
+  (abcKeyset.rows || []).forEach((row) => {
+    // Skip rows that are themselves alwaysInclude (those are handled separately)
+    if (row.alwaysInclude) return;
+    
+    const keys = row.keys || [];
+    keys.forEach((key, keyIndex) => {
+      if (key.alwaysInclude) {
+        // Clone the key without the alwaysInclude property
+        const { alwaysInclude, ...keyWithoutFlag } = key;
+        
+        if (keyIndex === 0) {
+          // Key is first in the row - prepend to last content row
+          prependKeys.push(keyWithoutFlag);
+        } else if (keyIndex === keys.length - 1) {
+          // Key is last in the row - append to last content row
+          appendKeys.push(keyWithoutFlag);
+        }
+        // Keys in the middle are ignored (per spec: "only works if the key is first or last in a row")
+      }
+    });
+  });
+  
+  return { prependKeys, appendKeys };
+}
+
+/**
+ * Apply alwaysInclude keys to a common keyset's rows
+ * - prependKeys: prepend to the beginning of the LAST row
+ * - appendKeys: append to the end of the LAST row
+ */
+function applyAlwaysIncludeKeys(rows, prependKeys, appendKeys) {
+  if (rows.length === 0) return rows;
+  
+  return rows.map((row, index) => {
+    // Only apply to the last row
+    if (index !== rows.length - 1) {
+      return row;
+    }
+    
+    let newKeys = [...row.keys];
+    
+    // Prepend keys to the start
+    for (const key of prependKeys) {
+      newKeys = [key, ...newKeys];
+    }
+    
+    // Append keys to the end
+    for (const key of appendKeys) {
+      newKeys = [...newKeys, key];
+    }
+    
+    return {
+      ...row,
+      keys: newKeys
+    };
+  });
+}
+
+/**
+ * Merge common keysets with language-specific configuration
+ */
+function mergeCommonKeysets(commonKeysets, sourceKeyboard, language) {
+  const includeKeysets = sourceKeyboard.includeKeysets || [];
+  const alwaysIncludeRow = findAlwaysIncludeRow(sourceKeyboard);
+  const { prependKeys, appendKeys } = findAlwaysIncludeKeys(sourceKeyboard);
+  
+  const mergedKeysets = [];
+  
+  for (const keysetId of includeKeysets) {
+    const commonKeyset = commonKeysets.find(ks => ks.id === keysetId);
+    if (!commonKeyset) {
+      console.log(`   ⚠️  Common keyset '${keysetId}' not found`);
+      continue;
+    }
+    
+    // Filter keys by language
+    let filteredRows = filterRowsByLanguage(commonKeyset.rows, language);
+    
+    // Apply alwaysInclude keys (prepend/append) to rows
+    filteredRows = applyAlwaysIncludeKeys(filteredRows, prependKeys, appendKeys);
+    
+    // Create merged keyset
+    const mergedKeyset = {
+      id: commonKeyset.id,
+      rows: [...filteredRows]
+    };
+    
+    // Append alwaysInclude row if found
+    if (alwaysIncludeRow) {
+      // Clone the row without the alwaysInclude property
+      const { alwaysInclude, ...bottomRowProps } = alwaysIncludeRow;
+      
+      // Transform keys for the target keyset:
+      // 1. Remove alwaysInclude flags
+      // 2. Transform keyset buttons to point back to the original keyset
+      const transformedKeys = bottomRowProps.keys.map(key => {
+        const { alwaysInclude: keyFlag, ...keyWithoutFlag } = key;
+        // Transform keyset buttons to show return label and point back to abc
+        return transformKeysetButtonForTarget(keyWithoutFlag, keysetId);
+      });
+      
+      mergedKeyset.rows.push({ ...bottomRowProps, keys: transformedKeys });
+    }
+    
+    mergedKeysets.push(mergedKeyset);
+  }
+  
+  return mergedKeysets;
+}
+
+/**
  * Process a keyset to add system row and convert language keys
  */
 function processKeyset(keyset, addSystemRow) {
   const processedKeyset = { ...keyset };
   
-  // Process all rows
-  processedKeyset.rows = keyset.rows.map(row => ({
-    ...row,
-    keys: row.keys,
-  }));
+  // Process all rows - remove alwaysInclude property from output
+  processedKeyset.rows = keyset.rows.map(row => {
+    const { alwaysInclude, ...rowWithoutAlwaysInclude } = row;
+    return {
+      ...rowWithoutAlwaysInclude,
+      keys: row.keys,
+    };
+  });
   
   // Add system row at the top if requested
   if (addSystemRow) {
@@ -107,16 +330,14 @@ function getLetterItems(language) {
  * Get number items for groups based on language
  */
 function getNumberItems(language) {
-  if (language === 'ar') {
-    return ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
-  }
+  // All languages now use Western numerals (modern)
   return ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 }
 
 /**
  * Build iOS config from source keyboard definition
  */
-function buildIOSConfig(sourceKeyboard, config) {
+function buildIOSConfig(sourceKeyboard, config, commonKeysets) {
   const iosConfig = { ...DEFAULT_CONFIG_TEMPLATE };
   
   // Set language-specific properties
@@ -129,27 +350,36 @@ function buildIOSConfig(sourceKeyboard, config) {
     iosConfig.diacritics = sourceKeyboard.diacritics;
   }
   
-  // Process keysets
+  // Start with language-specific keysets
+  let allKeysets = [];
+  
+  // Process language-specific keysets (abc, etc.)
   if (sourceKeyboard.keysets && Array.isArray(sourceKeyboard.keysets)) {
-    iosConfig.keysets = sourceKeyboard.keysets.map(keyset => 
+    allKeysets = sourceKeyboard.keysets.map(keyset => 
       processKeyset(keyset, config.systemRowAtTop)
     );
   }
   
+  // Merge common keysets if includeKeysets is specified
+  if (sourceKeyboard.includeKeysets && sourceKeyboard.includeKeysets.length > 0) {
+    const mergedCommonKeysets = mergeCommonKeysets(commonKeysets, sourceKeyboard, config.language);
+    
+    // Process merged keysets (add system row if needed)
+    const processedMergedKeysets = mergedCommonKeysets.map(keyset =>
+      processKeyset(keyset, config.systemRowAtTop)
+    );
+    
+    // Add merged keysets to the config
+    allKeysets = [...allKeysets, ...processedMergedKeysets];
+  }
+  
+  iosConfig.keysets = allKeysets;
+  
   // Set default keyset from source or use 'abc'
   iosConfig.defaultKeyset = sourceKeyboard.defaultKeyset || 'abc';
   
-  // Set up groups with language-specific letters
-  iosConfig.groups = [
-    // {
-    //   items: getLetterItems(config.language),
-    //   template: { color: '#000000', bgColor: '#FFFFFF' }
-    // },
-    // {
-    //   items: getNumberItems(config.language),
-    //   template: { color: '#000000', bgColor: '#E8E8E8' }
-    // }
-  ];
+  // Set up groups (empty by default)
+  iosConfig.groups = [];
   
   return iosConfig;
 }
@@ -159,6 +389,11 @@ function buildIOSConfig(sourceKeyboard, config) {
  */
 function buildKeyboardConfigs() {
   console.log('🔨 Building iOS keyboard configs...\n');
+  
+  // Load common keysets
+  console.log('📦 Loading common keysets...');
+  const commonKeysets = loadCommonKeysets();
+  console.log(`   Found ${commonKeysets.length} common keysets: ${commonKeysets.map(k => k.id).join(', ')}\n`);
   
   let successCount = 0;
   let errorCount = 0;
@@ -189,13 +424,16 @@ function buildKeyboardConfigs() {
       const sourceKeyboard = JSON.parse(sourceContent);
       
       // Build iOS config
-      const iosConfig = buildIOSConfig(sourceKeyboard, config);
+      const iosConfig = buildIOSConfig(sourceKeyboard, config, commonKeysets);
       
       // Write output
       const outputContent = JSON.stringify(iosConfig, null, 2);
       fs.writeFileSync(targetPath, outputContent, 'utf8');
       
-      console.log(`   ✅ Generated config with ${iosConfig.keysets?.length || 0} keysets`);
+      // Count keysets
+      const langKeysets = sourceKeyboard.keysets?.length || 0;
+      const includedKeysets = sourceKeyboard.includeKeysets?.length || 0;
+      console.log(`   ✅ Generated config with ${iosConfig.keysets?.length || 0} keysets (${langKeysets} language + ${includedKeysets} common)`);
       successCount++;
       
     } catch (error) {

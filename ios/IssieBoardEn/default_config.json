@@ -136,7 +136,8 @@
             },
             {
               "type": "backspace",
-              "width": 1.5
+              "width": 1.5,
+              "alwaysInclude": true
             }
           ]
         },
@@ -149,7 +150,9 @@
             {
               "type": "keyset",
               "keysetValue": "123",
-              "label": "123"
+              "returnKeysetValue": "abc",
+              "label": "123",
+              "returnKeysetLabel": "ABC"
             },
             {
               "type": "settings"
@@ -250,7 +253,9 @@
             {
               "type": "keyset",
               "keysetValue": "#+=",
+              "returnKeysetValue": "123",
               "label": "#+=",
+              "returnKeysetLabel": "123",
               "width": 1.5
             },
             {
@@ -270,7 +275,7 @@
             },
             {
               "type": "backspace",
-              "width": 2.5
+              "width": 1.5
             }
           ]
         },
@@ -283,7 +288,9 @@
             {
               "type": "keyset",
               "keysetValue": "abc",
-              "label": "ABC"
+              "returnKeysetValue": "123",
+              "label": "ABC",
+              "returnKeysetLabel": "123"
             },
             {
               "type": "settings"
@@ -298,7 +305,8 @@
               "width": 4
             },
             {
-              "value": "."
+              "value": ".",
+              "sValue": ","
             },
             {
               "type": "enter"
@@ -383,7 +391,10 @@
             {
               "type": "keyset",
               "keysetValue": "123",
-              "label": "123"
+              "returnKeysetValue": "#+=",
+              "label": "123",
+              "returnKeysetLabel": "#+=",
+              "width": 1.5
             },
             {
               "value": "."
@@ -402,7 +413,7 @@
             },
             {
               "type": "backspace",
-              "width": 2.5
+              "width": 1.5
             }
           ]
         },
@@ -415,7 +426,9 @@
             {
               "type": "keyset",
               "keysetValue": "abc",
-              "label": "ABC"
+              "returnKeysetValue": "#+=",
+              "label": "ABC",
+              "returnKeysetLabel": "123"
             },
             {
               "type": "settings"
@@ -430,7 +443,8 @@
               "width": 4
             },
             {
-              "value": "."
+              "value": ".",
+              "sValue": ","
             },
             {
               "type": "enter"

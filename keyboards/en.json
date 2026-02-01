@@ -1,6 +1,7 @@
 {
   "id": "en",
   "name": "English",
+  "includeKeysets": ["123", "#+="],
   "keysets": [
     {
       "id": "abc",
@@ -43,127 +44,18 @@
             { "value": "b", "sValue": "B" },
             { "value": "n", "sValue": "N" },
             { "value": "m", "sValue": "M" },
-            { "type": "backspace", "width": 1.5 }
+            { "type": "backspace", "width": 1.5, "alwaysInclude": true }
           ]
         },
         {
+          "alwaysInclude": true,
           "keys": [
             {"hidden": true, "width": 1},
-            { "type": "keyset", "keysetValue": "123", "label": "123" },
+            { "type": "keyset", "keysetValue": "123", "returnKeysetValue": "abc", "label": "123", "returnKeysetLabel": "ABC" },
             { "type": "settings"},
             { "type": "next-keyboard", "width": 1 },
             { "caption": "SPACE", "value": " ", "width": 4 },
             { "value": ".", "sValue": "," },
-            { "type": "enter" }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "123",
-      "rows": [
-        {
-          "keys": [
-            { "value": "1" },
-            { "value": "2" },
-            { "value": "3" },
-            { "value": "4" },
-            { "value": "5" },
-            { "value": "6" },
-            { "value": "7" },
-            { "value": "8" },
-            { "value": "9" },
-            { "value": "0" }
-          ]
-        },
-        {
-          "keys": [
-            { "value": "-" },
-            { "value": "/" },
-            { "value": ":" },
-            { "value": ";" },
-            { "value": "(" },
-            { "value": ")" },
-            { "value": "$" },
-            { "value": "&" },
-            { "value": "@" },
-            { "value": "\"" }
-          ]
-        },
-        {
-          "keys": [
-            { "type": "keyset", "keysetValue": "#+=", "label": "#+=", "width": 1.5 },
-            { "value": "." },
-            { "value": "," },
-            { "value": "?" },
-            { "value": "!" },
-            { "value": "'" },
-            { "type": "backspace", "width": 2.5 }
-          ]
-        },
-        {
-          "keys": [
-            {"hidden": true, "width": 1},
-            { "type": "keyset", "keysetValue": "abc", "label": "ABC" },
-            { "type": "settings"},
-            { "type": "next-keyboard", "width": 1 },
-            { "caption": "SPACE", "value": " ", "width": 4 },
-            { "value": "." },
-            { "type": "enter" }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "#+=",
-      "rows": [
-        {
-          "keys": [
-            { "value": "[" },
-            { "value": "]" },
-            { "value": "{" },
-            { "value": "}" },
-            { "value": "#" },
-            { "value": "%" },
-            { "value": "^" },
-            { "value": "*" },
-            { "value": "+" },
-            { "value": "=" }
-          ]
-        },
-        {
-          "keys": [
-            { "value": "_" },
-            { "value": "\\" },
-            { "value": "|" },
-            { "value": "~" },
-            { "value": "<" },
-            { "value": ">" },
-            { "value": "€" },
-            { "value": "£" },
-            { "value": "¥" },
-            { "value": "•" }
-          ]
-        },
-        {
-          "keys": [
-            { "type": "keyset", "keysetValue": "123", "label": "123" },
-            { "value": "." },
-            { "value": "," },
-            { "value": "?" },
-            { "value": "!" },
-            { "value": "'" },
-            { "type": "backspace", "width": 2.5 }
-          ]
-        },
-        {
-          "keys": [
-            {"hidden": true, "width": 1},
-            { "type": "keyset", "keysetValue": "abc", "label": "ABC" },
-            { "type": "settings" },
-            { "type": "next-keyboard", "width": 1 },
-            { "caption": "SPACE", "value": " ", "width": 4 },
-            { "value": "." },
             { "type": "enter" }
           ]
         }

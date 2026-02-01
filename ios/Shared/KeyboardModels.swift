@@ -64,6 +64,8 @@ struct Key: Codable {
     let bgColor: String?
     let label: String?
     let keysetValue: String?
+    let returnKeysetValue: String?
+    let returnKeysetLabel: String?
     let nikkud: [NikkudOption]?
     
     enum CodingKeys: String, CodingKey {
@@ -79,6 +81,8 @@ struct Key: Codable {
         case bgColor
         case label
         case keysetValue
+        case returnKeysetValue
+        case returnKeysetLabel
         case nikkud
     }
 }
@@ -255,6 +259,8 @@ struct ParsedKey {
     let backgroundColor: UIColor
     let label: String
     let keysetValue: String
+    let returnKeysetValue: String
+    let returnKeysetLabel: String
     let nikkud: [NikkudOption]
     
     init(from key: Key, groups: [String: GroupTemplate], defaultTextColor: UIColor, defaultBgColor: UIColor) {
@@ -266,6 +272,8 @@ struct ParsedKey {
         self.type = key.type ?? ""
         self.label = key.label ?? ""
         self.keysetValue = key.keysetValue ?? ""
+        self.returnKeysetValue = key.returnKeysetValue ?? ""
+        self.returnKeysetLabel = key.returnKeysetLabel ?? ""
         self.nikkud = key.nikkud ?? []
         
         // Get group template if exists
