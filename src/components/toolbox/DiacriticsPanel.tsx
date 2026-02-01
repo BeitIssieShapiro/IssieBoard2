@@ -121,6 +121,7 @@ export const DiacriticsPanel: React.FC = () => {
   const settings = state.config.diacriticsSettings?.[currentKeyboardId] || {};
   const hiddenItems = settings.hidden || [];
   const disabledModifiers = settings.disabledModifiers || [];
+  const isNikkudDisabled = settings.disabled || false;
   
   // Sample letter for preview based on keyboard language
   const sampleLetter = useMemo(() => {
@@ -235,6 +236,36 @@ export const DiacriticsPanel: React.FC = () => {
           ))}
         </View>
       )}
+      
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Disable Nikkud</Text>
+        <Text style={styles.sectionSubtitle}>
+          Completely disable nikkud for this keyboard (hides the nikkud key)
+        </Text>
+        
+        <View style={styles.disableRow}>
+          <View style={styles.disableInfo}>
+            <Text style={styles.disableLabel}>Disable Nikkud</Text>
+            <Text style={styles.disableDescription}>
+              When disabled, the nikkud key will be hidden from the keyboard
+            </Text>
+          </View>
+          <Switch
+            value={isNikkudDisabled}
+            onValueChange={(value) => {
+              dispatch({
+                type: 'UPDATE_DIACRITICS_SETTINGS',
+                payload: {
+                  keyboardId: currentKeyboardId,
+                  settings: { ...settings, disabled: value },
+                },
+              });
+            }}
+            trackColor={{ false: '#ccc', true: '#EF5350' }}
+            thumbColor={isNikkudDisabled ? '#D32F2F' : '#f4f3f4'}
+          />
+        </View>
+      </View>
     </ScrollView>
   );
 };
@@ -316,6 +347,30 @@ const styles = StyleSheet.create({
     color: '#FF9800',
     marginLeft: 6,
     fontStyle: 'italic',
+  },
+  disableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    backgroundColor: '#FFEBEE',
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  disableInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  disableLabel: {
+    fontSize: 14,
+    color: '#C62828',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  disableDescription: {
+    fontSize: 12,
+    color: '#666',
   },
 });
 

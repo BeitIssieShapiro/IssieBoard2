@@ -418,6 +418,9 @@ class KeyboardRenderer {
         // Check if we have only one language (keyboard)
         let hasOnlyOneLanguage = (config?.keyboards?.count ?? 0) <= 1
         
+        // Check if nikkud is disabled for the current keyboard
+        let isNikkudDisabled = config?.diacriticsSettings?[currentKeyboardId ?? ""]?.isDisabled ?? false
+        
         for key in row.keys {
             let parsedKey = ParsedKey(from: key, groups: groups,
                                      defaultTextColor: .black,
@@ -429,6 +432,12 @@ class KeyboardRenderer {
             let keyType = parsedKey.type.lowercased()
             if (keyType == "language" && hasOnlyOneLanguage || keyType == "next-keyboard" && !showGlobeButton) {
                 // Skip if only one language OR if system doesn't need us to show the globe
+                keyIndex += 1
+                continue
+            }
+            
+            // Skip nikkud key if nikkud is disabled for this keyboard
+            if keyType == "nikkud" && isNikkudDisabled {
                 keyIndex += 1
                 continue
             }
@@ -1375,6 +1384,7 @@ class KeyboardRenderer {
         let buttonSize: CGFloat = 50
         let spacing: CGFloat = 10
         let padding: CGFloat = 16
+        let topPadding: CGFloat = 40  // Extra top padding for close button
         let toggleHeight: CGFloat = hasModifier ? 44 : 0
         let toggleSpacing: CGFloat = hasModifier ? 12 : 0
         
@@ -1452,7 +1462,7 @@ class KeyboardRenderer {
         let buttonsHeight = currentY - spacing
         let containerWidth = maxRowWidth
         
-        // Add close button (X) in top-right corner
+        // Add close button (X) in top-right corner - positioned above the keys
         let closeButtonSize: CGFloat = 30
         let closeButton = UIButton(type: .system)
         closeButton.setTitle("✕", for: .normal)
@@ -1460,12 +1470,12 @@ class KeyboardRenderer {
         closeButton.setTitleColor(.systemGray, for: .normal)
         closeButton.addTarget(self, action: #selector(dismissNikkudPicker), for: .touchUpInside)
         picker.addSubview(closeButton)
-        closeButton.frame = CGRect(x: containerWidth + 2 * padding - closeButtonSize - 4, y: 4, width: closeButtonSize, height: closeButtonSize)
+        closeButton.frame = CGRect(x: containerWidth + 2 * padding - closeButtonSize - 8, y: 6, width: closeButtonSize, height: closeButtonSize)
         
-        flexContainer.frame = CGRect(x: padding, y: padding, width: containerWidth, height: buttonsHeight)
+        flexContainer.frame = CGRect(x: padding, y: topPadding, width: containerWidth, height: buttonsHeight)
         
         // Add modifier row if applicable - all modifiers on same row
-        var totalHeight = buttonsHeight + 2 * padding
+        var totalHeight = buttonsHeight + topPadding + padding
         let modifierY: CGFloat = buttonsHeight + toggleSpacing
         
         // Modifier button constants - smaller key-sized buttons
@@ -1569,9 +1579,9 @@ class KeyboardRenderer {
             }
             
             picker.addSubview(modifierRowContainer)
-            modifierRowContainer.frame = CGRect(x: padding, y: padding + modifierY, width: containerWidth, height: rowHeight)
+            modifierRowContainer.frame = CGRect(x: padding, y: topPadding + modifierY, width: containerWidth, height: rowHeight)
             
-            totalHeight = modifierY + rowHeight + padding
+            totalHeight = topPadding + modifierY + rowHeight + padding
         }
         
         overlay.addSubview(picker)

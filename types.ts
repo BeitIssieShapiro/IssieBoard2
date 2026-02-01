@@ -89,6 +89,7 @@ export interface DiacriticsSettings {
     hidden?: string[];            // Array of diacritic item IDs to hide
     disabledModifiers?: string[]; // Array of modifier IDs to disable (default: all enabled)
     modifierEnabled?: boolean;    // Backward compatibility: global toggle for all modifiers
+    disabled?: boolean;           // If true, completely disable nikkud for this keyboard (hide nikkud key)
 }
 
 // Row containing keys
