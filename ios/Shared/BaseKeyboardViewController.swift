@@ -324,10 +324,18 @@ class BaseKeyboardViewController: UIInputViewController {
         
         print("🎨 Rendering keyboard via KeyboardRenderer - Language: \(keyboardLanguage)")
         
-        // Update word completion enabled state from config
+        // Check if suggestions should be disabled for this input type
+        let shouldDisableForInputType = shouldDisableSuggestionsForKeyboardType()
+        
+        // Update word completion enabled state from config AND input type
         let wasEnabled = wordCompletionEnabled
-        wordCompletionEnabled = config.isWordSuggestionsEnabled
-        print("📝 Word completion enabled: \(wordCompletionEnabled)")
+        // Word completion is enabled only if config allows it AND input type supports it
+        wordCompletionEnabled = config.isWordSuggestionsEnabled && !shouldDisableForInputType
+        print("📝 Word completion enabled: \(wordCompletionEnabled) (config: \(config.isWordSuggestionsEnabled), inputType disable: \(shouldDisableForInputType))")
+        
+        // Tell the renderer whether word suggestions are enabled
+        // This overrides the config setting when input type requires disabling
+        renderer.setWordSuggestionsEnabled(wordCompletionEnabled)
         
         // Initialize word completion only if enabled and wasn't enabled before
         if wordCompletionEnabled && !wasEnabled {
@@ -433,6 +441,68 @@ class BaseKeyboardViewController: UIInputViewController {
         }
         
         return (true, enterLabel, returnKeyType.rawValue)
+    }
+    
+    /// Check if word suggestions should be disabled based on keyboard type
+    /// Returns true if suggestions should be disabled for the current input field
+    private func shouldDisableSuggestionsForKeyboardType() -> Bool {
+        // Get keyboard type from the text input
+        let keyboardType = textDocumentProxy.keyboardType ?? .default
+        
+        // Log the keyboard type for debugging
+        print("📝 Current keyboard type: \(keyboardType.rawValue) (\(keyboardTypeDescription(keyboardType)))")
+        
+        // Disable suggestions for these keyboard types:
+        switch keyboardType {
+        case .URL:
+            // URL input (Safari address bar, etc.)
+            print("📝 Keyboard type: URL - disabling suggestions")
+            return true
+        case .emailAddress:
+            // Email address input
+            print("📝 Keyboard type: Email - disabling suggestions")
+            return true
+        case .numberPad, .phonePad, .decimalPad, .numbersAndPunctuation:
+            // Number-only inputs
+            print("📝 Keyboard type: Numbers - disabling suggestions")
+            return true
+        case .asciiCapableNumberPad:
+            // ASCII number pad
+            print("📝 Keyboard type: ASCII Numbers - disabling suggestions")
+            return true
+        case .webSearch:
+            // Web search - could go either way, but URL-like content might be typed
+            // Keep suggestions for now as search queries are typically words
+            print("📝 Keyboard type: Web Search - keeping suggestions")
+            return false
+        case .twitter, .namePhonePad:
+            // Social/names - suggestions are useful
+            print("📝 Keyboard type: Twitter/NamePhone - keeping suggestions")
+            return false
+        default:
+            // Default and other types - keep suggestions
+            print("📝 Keyboard type: Default/Other - keeping suggestions")
+            return false
+        }
+    }
+    
+    /// Helper to get a human-readable description of keyboard type
+    private func keyboardTypeDescription(_ type: UIKeyboardType) -> String {
+        switch type {
+        case .default: return "default"
+        case .asciiCapable: return "asciiCapable"
+        case .numbersAndPunctuation: return "numbersAndPunctuation"
+        case .URL: return "URL"
+        case .numberPad: return "numberPad"
+        case .phonePad: return "phonePad"
+        case .namePhonePad: return "namePhonePad"
+        case .emailAddress: return "emailAddress"
+        case .decimalPad: return "decimalPad"
+        case .twitter: return "twitter"
+        case .webSearch: return "webSearch"
+        case .asciiCapableNumberPad: return "asciiCapableNumberPad"
+        @unknown default: return "unknown(\(type.rawValue))"
+        }
     }
     
     // MARK: - Backspace Actions
@@ -553,6 +623,13 @@ class BaseKeyboardViewController: UIInputViewController {
             return
         }
         
+        // Skip suggestions for URL, email, number fields, etc.
+        if shouldDisableSuggestionsForKeyboardType() {
+            currentSuggestionResult = nil
+            renderer.clearSuggestions()
+            return
+        }
+        
         guard !currentWord.isEmpty else {
             currentSuggestionResult = nil
             renderer.clearSuggestions()
@@ -604,6 +681,12 @@ class BaseKeyboardViewController: UIInputViewController {
     /// Show default suggestions (when no text is being typed)
     private func showDefaultSuggestions() {
         guard wordCompletionEnabled else { return }
+        
+        // Skip suggestions for URL, email, number fields, etc.
+        if shouldDisableSuggestionsForKeyboardType() {
+            renderer.clearSuggestions()
+            return
+        }
         
         // Get default suggestions for current language (empty prefix)
         let suggestions = WordCompletionManager.shared.getSuggestions(for: "")
@@ -712,6 +795,14 @@ class BaseKeyboardViewController: UIInputViewController {
         // Skip if word completion is disabled or renderer not ready
         guard wordCompletionEnabled, renderer != nil else {
             print("📝 detectCurrentWordFromContext: Word completion disabled or renderer not ready")
+            return
+        }
+        
+        // Skip suggestions for URL, email, number fields, etc.
+        if shouldDisableSuggestionsForKeyboardType() {
+            currentWord = ""
+            currentSuggestionResult = nil
+            renderer.clearSuggestions()
             return
         }
         

@@ -226,6 +226,11 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
             return
         }
         
+        // Skip suggestions for URL, email, password fields, etc.
+        if (shouldDisableSuggestionsForInputType()) {
+            return
+        }
+        
         // Get suggestions - WordCompletionManager will return defaults for empty string
         val suggestions = wordCompletionManager.getSuggestions(currentWord.toString())
         if (suggestions.isEmpty()) {
@@ -298,6 +303,84 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
     
     private fun dpToPx(dp: Int): Int {
         return (dp * resources.displayMetrics.density).toInt()
+    }
+    
+    // ============================================================================
+    // INPUT TYPE ANALYSIS
+    // ============================================================================
+    
+    /**
+     * Check if word suggestions should be disabled based on input type
+     * Returns true if suggestions should be disabled for the current input field
+     */
+    private fun shouldDisableSuggestionsForInputType(): Boolean {
+        val editorInfo = currentInputEditorInfo ?: return false
+        val inputType = editorInfo.inputType
+        
+        // Get the main input class
+        val inputClass = inputType and InputType.TYPE_MASK_CLASS
+        
+        // Get the variation (for text class)
+        val inputVariation = inputType and InputType.TYPE_MASK_VARIATION
+        
+        // Disable suggestions for these input types:
+        return when (inputClass) {
+            InputType.TYPE_CLASS_NUMBER -> {
+                // Number input
+                Log.d(TAG, "📝 Input type: Number - disabling suggestions")
+                true
+            }
+            InputType.TYPE_CLASS_PHONE -> {
+                // Phone number input
+                Log.d(TAG, "📝 Input type: Phone - disabling suggestions")
+                true
+            }
+            InputType.TYPE_CLASS_DATETIME -> {
+                // Date/time input
+                Log.d(TAG, "📝 Input type: DateTime - disabling suggestions")
+                true
+            }
+            InputType.TYPE_CLASS_TEXT -> {
+                // Check text variations
+                when (inputVariation) {
+                    InputType.TYPE_TEXT_VARIATION_URI -> {
+                        // URL input
+                        Log.d(TAG, "📝 Input type: URI - disabling suggestions")
+                        true
+                    }
+                    InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS,
+                    InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS -> {
+                        // Email address input
+                        Log.d(TAG, "📝 Input type: Email - disabling suggestions")
+                        true
+                    }
+                    InputType.TYPE_TEXT_VARIATION_PASSWORD,
+                    InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD,
+                    InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD -> {
+                        // Password input
+                        Log.d(TAG, "📝 Input type: Password - disabling suggestions")
+                        true
+                    }
+                    InputType.TYPE_TEXT_VARIATION_FILTER -> {
+                        // Filter/search input (usually for filtering lists)
+                        // Keep suggestions as they might be helpful
+                        false
+                    }
+                    InputType.TYPE_TEXT_VARIATION_WEB_EDIT_TEXT -> {
+                        // Web edit text - could be anything, keep suggestions
+                        false
+                    }
+                    else -> {
+                        // Other text variations - keep suggestions
+                        false
+                    }
+                }
+            }
+            else -> {
+                // Unknown class - keep suggestions
+                false
+            }
+        }
     }
     
     // ============================================================================
@@ -556,6 +639,12 @@ class SimpleKeyboardService : InputMethodService(), SharedPreferences.OnSharedPr
      * Detect current word from text document context
      */
     private fun detectCurrentWord() {
+        // Skip detection for URL, email, password fields, etc.
+        if (shouldDisableSuggestionsForInputType()) {
+            currentWord.clear()
+            return
+        }
+        
         val beforeText = currentInputConnection?.getTextBeforeCursor(50, 0)?.toString() ?: ""
         
         // Find the last word (characters after the last space/newline)

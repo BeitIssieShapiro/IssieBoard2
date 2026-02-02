@@ -53,6 +53,10 @@
 		6AWORD00032F300100035455 /* WordCompletionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AWORD00042F300100035455 /* WordCompletionManager.swift */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
+		6ASHARED0002000000035455 /* SharedAssets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6ASHARED0001000000035455 /* SharedAssets.xcassets */; };
+		6ASHARED0003000000035455 /* SharedAssets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6ASHARED0001000000035455 /* SharedAssets.xcassets */; };
+		6ASHARED0004000000035455 /* SharedAssets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6ASHARED0001000000035455 /* SharedAssets.xcassets */; };
+		6ASHARED0005000000035455 /* SharedAssets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6ASHARED0001000000035455 /* SharedAssets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -131,6 +135,7 @@
 		6ACC1F4C2F2F992B00F1FA30 /* he_50k.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = he_50k.bin; path = IssieBoardNG/he_50k.bin; sourceTree = "<group>"; };
 		6AKBNG00002F400100035455 /* KeyboardNeighbors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardNeighbors.swift; sourceTree = "<group>"; };
 		6AWORD00042F300100035455 /* WordCompletionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordCompletionManager.swift; sourceTree = "<group>"; };
+		6ASHARED0001000000035455 /* SharedAssets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = SharedAssets.xcassets; sourceTree = "<group>"; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = IssieBoardNG/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = IssieBoardNG/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
@@ -241,6 +246,7 @@
 		6A1E336E2F220FCA00035455 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
+				6ASHARED0001000000035455 /* SharedAssets.xcassets */,
 				6A73B6882F24E985003898A5 /* KeyboardRenderer.swift */,
 				6A1E33762F22198A00035455 /* KeyboardModels.swift */,
 				6ACC1E932F2D007500F1FA30 /* BaseKeyboardViewController.swift */,
@@ -475,6 +481,7 @@
 				6ACC1F4D2F2F992B00F1FA30 /* he_50k.bin in Resources */,
 				6ACC1F4B2F2F991C00F1FA30 /* en_50k.bin in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
+				6ASHARED0005000000035455 /* SharedAssets.xcassets in Resources */,
 				5326AF4A4DECB80A70586DB4 /* PrivacyInfo.xcprivacy in Resources */,
 				6ACC1F492F2F983A00F1FA30 /* ar_50k.bin in Resources */,
 			);
@@ -491,6 +498,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6ASHARED0002000000035455 /* SharedAssets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -498,6 +506,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6ASHARED0003000000035455 /* SharedAssets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -505,6 +514,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6ASHARED0004000000035455 /* SharedAssets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

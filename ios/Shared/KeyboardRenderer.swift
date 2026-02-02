@@ -74,8 +74,10 @@ class KeyboardRenderer {
     // nil = no highlight, 0 = first suggestion, 1 = second, etc.
     private var suggestionHighlightIndex: Int?
     
-    // Whether word suggestions are enabled (from config)
+    // Whether word suggestions are enabled (from config, can be overridden by controller)
     private var wordSuggestionsEnabled: Bool = true
+    // Override flag set by controller (e.g., for URL/email input types)
+    private var wordSuggestionsOverrideEnabled: Bool? = nil
     
     // Internal state - managed entirely by renderer
     private var shiftState: ShiftState = .inactive
@@ -227,6 +229,17 @@ class KeyboardRenderer {
         }
     }
     
+    /// Set whether word suggestions are enabled (override config setting)
+    /// Called by the controller when input type should disable suggestions (e.g., URL, email)
+    /// Pass nil to remove override and use config value
+    func setWordSuggestionsEnabled(_ enabled: Bool?) {
+        if wordSuggestionsOverrideEnabled != enabled {
+            wordSuggestionsOverrideEnabled = enabled
+            print("📝 setWordSuggestionsEnabled override: \(String(describing: enabled))")
+            // Don't rerender here - let the controller call renderKeyboard when ready
+        }
+    }
+    
     // MARK: - Public Rendering
     
     func renderKeyboard(
@@ -305,9 +318,15 @@ class KeyboardRenderer {
         // Calculate baseline width
         let baselineWidth = calculateBaselineWidth(keyset.rows, groups: groups)
         
-        // Update word suggestions enabled state from config
-        wordSuggestionsEnabled = config.isWordSuggestionsEnabled
-        print("📝 Word suggestions enabled: \(wordSuggestionsEnabled)")
+        // Update word suggestions enabled state from config and override
+        // If override is set, use it; otherwise use config value
+        if let override = wordSuggestionsOverrideEnabled {
+            wordSuggestionsEnabled = override
+            print("📝 Word suggestions enabled: \(wordSuggestionsEnabled) (from controller override)")
+        } else {
+            wordSuggestionsEnabled = config.isWordSuggestionsEnabled
+            print("📝 Word suggestions enabled: \(wordSuggestionsEnabled) (from config)")
+        }
         
         // Calculate top offset based on whether suggestions bar is shown
         var topOffset: CGFloat = 4
