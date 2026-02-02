@@ -47,27 +47,42 @@ abstract class BaseKeyboardService : InputMethodService() {
     
     override fun onCreate() {
         super.onCreate()
-        debugLog("🚀 BaseKeyboardService onCreate - Language: $keyboardLanguage")
+        alwaysLog("🚀 BaseKeyboardService onCreate - Language: $keyboardLanguage")
         
         setupRenderer()
         setupSuggestionController()
     }
     
     override fun onCreateInputView(): View {
-        debugLog("🎨 BaseKeyboardService onCreateInputView")
+        alwaysLog("🎨 BaseKeyboardService onCreateInputView - starting")
         
         // Create the keyboard container view
-        keyboardView = KeyboardContainerView(this).apply {
-            // Load preferences and render keyboard
-            loadPreferences()
-        }
+        keyboardView = KeyboardContainerView(this)
+        
+        alwaysLog("🎨 BaseKeyboardService onCreateInputView - created view: ${keyboardView != null}")
+        
+        // Load config and render SYNCHRONOUSLY before returning (like old SimpleKeyboardService)
+        loadPreferences()
+        renderKeyboard(null)
         
         return keyboardView!!
     }
     
+    override fun onEvaluateInputViewShown(): Boolean {
+        super.onEvaluateInputViewShown()
+        return true  // Always show the keyboard view
+    }
+    
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
-        debugLog("📱 onStartInputView - restarting: $restarting")
+        alwaysLog("📱 onStartInputView - restarting: $restarting, keyboardView: ${keyboardView != null}")
+        
+        // Ensure we have a keyboard view - create if needed
+        if (keyboardView == null) {
+            alwaysLog("📱 onStartInputView - creating keyboard view")
+            keyboardView = KeyboardContainerView(this)
+            setInputView(keyboardView)
+        }
         
         loadPreferences()
         suggestionController?.detectCurrentWord(currentInputConnection?.getTextBeforeCursor(100, 0)?.toString())
@@ -77,9 +92,25 @@ abstract class BaseKeyboardService : InputMethodService() {
         renderKeyboard(editorContext)
     }
     
+    override fun onShowInputRequested(flags: Int, configChange: Boolean): Boolean {
+        alwaysLog("📱 onShowInputRequested - flags: $flags, configChange: $configChange, keyboardView: ${keyboardView != null}")
+        
+        // Do NOT create views here - that happens in onCreateInputView()
+        // Just return true to indicate we want to show the keyboard
+        return true
+    }
+    
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
         debugLog("📱 onFinishInputView")
+    }
+    
+    override fun onWindowShown() {
+        super.onWindowShown()
+        alwaysLog("📱 onWindowShown called - now rendering keyboard")
+        loadPreferences()
+        val editorContext = analyzeEditorContext(currentInputEditorInfo)
+        renderKeyboard(editorContext)
     }
     
     override fun onDestroy() {
@@ -204,7 +235,14 @@ abstract class BaseKeyboardService : InputMethodService() {
             return
         }
         
-        val container = keyboardView as? android.view.ViewGroup ?: return
+        val container = keyboardView as? android.view.ViewGroup
+        if (container == null) {
+            alwaysLog("⚠️ renderKeyboard: container is null!")
+            return
+        }
+        
+        // Log container state
+        alwaysLog("📐 renderKeyboard: container width=${container.width}, height=${container.height}, visibility=${container.visibility}, isAttached=${container.isAttachedToWindow}")
         
         // Configure suggestion controller based on config and input type
         val shouldDisable = shouldDisableSuggestionsForInputType()
@@ -234,6 +272,10 @@ abstract class BaseKeyboardService : InputMethodService() {
         if (suggestionsEnabled && suggestionController?.currentWord?.isEmpty() == true) {
             suggestionController?.showDefaults()
         }
+        
+        // Force a layout pass after rendering
+        container.requestLayout()
+        container.invalidate()
     }
     
     private fun renderFallbackKeyboard() {
@@ -429,22 +471,61 @@ abstract class BaseKeyboardService : InputMethodService() {
     // MARK: - Input Method Switching
     
     private fun switchToNextInputMethod() {
+        alwaysLog("🌐 switchToNextInputMethod called")
         try {
-            // Try modern API first (API 28+)
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                switchToNextInputMethod(false)
+            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+            
+            // First, check if we should offer switching
+            val shouldOffer = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                shouldOfferSwitchingToNextInputMethod()
             } else {
-                // Fallback for older devices
-                @Suppress("DEPRECATION")
-                val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
-                val token = window?.window?.attributes?.token
-                if (token != null) {
-                    @Suppress("DEPRECATION")
-                    imm.switchToNextInputMethod(token, false)
+                true  // Assume yes for older devices
+            }
+            
+            alwaysLog("🌐 shouldOfferSwitching: $shouldOffer")
+            
+            if (shouldOffer) {
+                // Try to switch to next input method
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                    alwaysLog("🌐 Using API 28+ switchToNextInputMethod")
+                    val switched = switchToNextInputMethod(false)
+                    alwaysLog("🌐 switchToNextInputMethod returned: $switched")
+                    if (!switched) {
+                        // If switching failed, show the input method picker
+                        alwaysLog("🌐 Showing input method picker as fallback")
+                        imm.showInputMethodPicker()
+                    }
+                } else {
+                    // Fallback for older devices
+                    alwaysLog("🌐 Using legacy InputMethodManager")
+                    val token = window?.window?.attributes?.token
+                    if (token != null) {
+                        @Suppress("DEPRECATION")
+                        val switched = imm.switchToNextInputMethod(token, false)
+                        alwaysLog("🌐 legacy switchToNextInputMethod returned: $switched")
+                        if (!switched) {
+                            imm.showInputMethodPicker()
+                        }
+                    } else {
+                        alwaysLog("🌐 Token is null, showing picker instead")
+                        imm.showInputMethodPicker()
+                    }
                 }
+            } else {
+                // Show input method picker if we shouldn't offer switching
+                alwaysLog("🌐 Showing input method picker (no next keyboard)")
+                imm.showInputMethodPicker()
             }
         } catch (e: Exception) {
             errorLog("Failed to switch input method: ${e.message}")
+            e.printStackTrace()
+            // Final fallback - show the picker
+            try {
+                val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                imm.showInputMethodPicker()
+            } catch (e2: Exception) {
+                errorLog("Failed to show input method picker: ${e2.message}")
+            }
         }
     }
     
@@ -483,11 +564,34 @@ data class EditorContext(
 
 /**
  * Simple keyboard container view
- * This will be replaced with actual rendering from KeyboardRenderer
+ * Uses WRAP_CONTENT like the old SimpleKeyboardService that worked
  */
-class KeyboardContainerView(context: Context) : android.widget.FrameLayout(context) {
+class KeyboardContainerView(context: Context) : android.widget.LinearLayout(context) {
+    
     init {
-        // Set minimum height for keyboard
-        minimumHeight = (216 * context.resources.displayMetrics.density).toInt()
+        orientation = VERTICAL
+        
+        // Use WRAP_CONTENT like the old working SimpleKeyboardService
+        layoutParams = android.view.ViewGroup.LayoutParams(
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        
+        // Set background color so keyboard area is visible
+        setBackgroundColor(android.graphics.Color.parseColor("#D2D3D9"))
+        
+        // Handle navigation bar insets for modern Android versions
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            setOnApplyWindowInsetsListener { view, insets ->
+                val navInsets = insets.getInsets(android.view.WindowInsets.Type.navigationBars())
+                view.setPadding(0, 0, 0, navInsets.bottom)
+                insets
+            }
+        } else {
+            fitsSystemWindows = true
+        }
+        
+        // Log for debugging
+        alwaysLog("📱 KeyboardContainerView created with WRAP_CONTENT height and insets handling")
     }
 }

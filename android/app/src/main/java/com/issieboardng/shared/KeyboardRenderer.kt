@@ -258,8 +258,14 @@ class KeyboardRenderer(private val context: Context) {
         editorContext: EditorContext?,
         overlayContainer: ViewGroup? = null  // Optional FrameLayout for overlays like nikkud picker
     ) {
-        val currentWidth = container.width
-        debugLog("📐 RENDER START - keysetId: $currentKeysetId")
+        var currentWidth = container.width
+        debugLog("📐 RENDER START - keysetId: $currentKeysetId, width: $currentWidth")
+        
+        // If width is 0, use screen width as fallback (for InputMethodService where view may not be laid out)
+        if (currentWidth == 0) {
+            currentWidth = context.resources.displayMetrics.widthPixels
+            debugLog("📐 Width was 0, using screen width: $currentWidth")
+        }
         
         // Update last rendered width
         lastRenderedWidth = currentWidth
@@ -547,11 +553,15 @@ class KeyboardRenderer(private val context: Context) {
         // Create visual key view with padding
         val visualKeyView = FrameLayout(context).apply {
             val bgDrawable = GradientDrawable().apply {
-                // Default to white if key has default (transparent) background
-                var bgColor = if (key.backgroundColor == Color.WHITE || key.backgroundColor == Color.TRANSPARENT || key.backgroundColor == 0) {
-                    Color.WHITE
-                } else {
-                    key.backgroundColor
+                // Default to white for ALL keys on Android (no transparency)
+                // The key.backgroundColor might be transparent from iOS defaults which doesn't work on Android
+                var bgColor = Color.WHITE  // Always default to white
+                
+                // Only use the key's background color if it's actually a visible color (not transparent)
+                if (key.backgroundColor != Color.TRANSPARENT && 
+                    key.backgroundColor != 0 && 
+                    Color.alpha(key.backgroundColor) == 255) {
+                    bgColor = key.backgroundColor
                 }
                 
                 // Handle special key states

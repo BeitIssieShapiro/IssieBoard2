@@ -130,7 +130,7 @@ class SuggestionsBarView(private val context: Context) {
         
         val suggestionCount = minOf(currentSuggestions.size, 4)
         
-        // Use parent width if bar width is 0, or wait for layout
+        // Use parent width if bar width is 0, or use screen width as fallback
         var barWidth = bar.width
         if (barWidth <= 0) {
             // Try to get width from parent
@@ -138,10 +138,9 @@ class SuggestionsBarView(private val context: Context) {
             barWidth = parent?.width ?: 0
         }
         if (barWidth <= 0) {
-            // Post to render after layout
-            debugLog("📝 SuggestionsBarView: Bar width is 0, posting to render later")
-            bar.post { renderSuggestions() }
-            return
+            // Use screen width as fallback (don't post to avoid infinite loop)
+            barWidth = context.resources.displayMetrics.widthPixels
+            debugLog("📝 SuggestionsBarView: Bar width was 0, using screen width: $barWidth")
         }
         
         val barViewHeight = if (bar.height > 0) bar.height else barHeight
