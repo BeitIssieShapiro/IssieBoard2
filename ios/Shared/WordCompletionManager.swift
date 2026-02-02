@@ -41,6 +41,11 @@ class WordCompletionManager {
     /// Whether smart auto-replace is enabled (space replaces with best fuzzy match)
     var smartAutoReplaceEnabled: Bool = true
     
+    /// Hebrew prefixes that can be stripped for word lookup
+    /// These are common grammatical prefixes in Hebrew:
+    /// ה (the), ו (and), ב (in), כ (like/as), ל (to/for), מ (from), ש (that/which)
+    private let hebrewPrefixes: [Character] = ["ה", "ו", "ב", "כ", "ל", "מ", "ש"]
+    
     /// Cache of loaded TrieEngine instances by language code
     private var engines: [String: TrieEngine] = [:]
     
@@ -146,16 +151,44 @@ class WordCompletionManager {
         
         print("📚 WordCompletionManager: Querying engine for prefix '\(prefix)' in '\(language)' (length: \(prefix.count))")
         
-        // Step 1: Try exact match first
+        // Step 1: Check if prefix is an EXACT word in dictionary (prioritize exact matches)
+        let isExactWord = engine.wordExists(prefix)
+        if isExactWord {
+            print("📚 WordCompletionManager: '\(prefix)' is an exact word in dictionary - will prioritize")
+        }
+        
+        // Step 2: Try prefix-based suggestions
         let exactSuggestions = engine.getSuggestions(for: prefix, limit: maxSuggestions + 4)
         print("📚 WordCompletionManager: Engine returned \(exactSuggestions.count) exact suggestions: \(exactSuggestions)")
         
         // Filter out single-letter suggestions
-        let filteredExact = exactSuggestions.filter { $0.count > 1 }
+        var filteredExact = exactSuggestions.filter { $0.count > 1 }
         
-        // Step 2: If exact matches are sufficient, return them
-        if filteredExact.count > fuzzyTriggerThreshold || prefix.count < 2 {
-            let finalSuggestions = Array(filteredExact.prefix(maxSuggestions))
+        // Step 3: For Hebrew, try prefix stripping if we don't have enough results
+        var prefixStrippedSuggestions: [String] = []
+        if language == "he" && filteredExact.count <= fuzzyTriggerThreshold {
+            prefixStrippedSuggestions = getPrefixStrippedSuggestions(for: prefix, engine: engine)
+            print("📚 WordCompletionManager: Hebrew prefix stripping returned \(prefixStrippedSuggestions.count) suggestions: \(prefixStrippedSuggestions)")
+        }
+        
+        // Step 4: If exact word match, ensure it's in suggestions even if not in top results
+        if isExactWord && prefix.count > 1 && !filteredExact.contains(prefix) {
+            // Insert the exact match at the beginning
+            filteredExact.insert(prefix, at: 0)
+            print("📚 WordCompletionManager: Added exact match '\(prefix)' to suggestions")
+        }
+        
+        // Step 5: If exact matches are sufficient (including prefix-stripped), return them
+        let combinedExact = filteredExact + prefixStrippedSuggestions.filter { !filteredExact.contains($0) }
+        if combinedExact.count > fuzzyTriggerThreshold || prefix.count < 2 {
+            var finalSuggestions = Array(combinedExact.prefix(maxSuggestions))
+            // Ensure no duplicates
+            var seen = Set<String>()
+            finalSuggestions = finalSuggestions.filter { 
+                if seen.contains($0) { return false }
+                seen.insert($0)
+                return true
+            }
             return SuggestionResult(
                 suggestions: finalSuggestions,
                 hasFuzzyOnly: false,
@@ -164,8 +197,8 @@ class WordCompletionManager {
             )
         }
         
-        // Step 3: Exact matches insufficient, try fuzzy search
-        print("📚 WordCompletionManager: Few exact matches (\(filteredExact.count)), trying fuzzy search with budget \(fuzzyErrorBudget)")
+        // Step 6: Exact matches insufficient, try fuzzy search
+        print("📚 WordCompletionManager: Few exact matches (\(combinedExact.count)), trying fuzzy search with budget \(fuzzyErrorBudget)")
         
         // Get keyboard neighbors for fuzzy search
         let neighbors = KeyboardNeighbors.neighbors(for: language)
@@ -180,17 +213,31 @@ class WordCompletionManager {
         print("📚 WordCompletionManager: Fuzzy search returned \(fuzzySuggestions.count) suggestions: \(fuzzySuggestions)")
         
         // Determine if we have ONLY fuzzy matches (no exact matches)
-        let hasFuzzyOnly = filteredExact.isEmpty && !fuzzySuggestions.isEmpty
+        let hasFuzzyOnly = combinedExact.isEmpty && !fuzzySuggestions.isEmpty
         
         // Get the best fuzzy match (first one is best due to error sorting)
         let bestFuzzyMatch = fuzzySuggestions.first { $0.count > 1 }
         
-        // Merge results: exact matches first, then fuzzy matches (avoiding duplicates)
+        // Merge results: exact matches first, then prefix-stripped, then fuzzy matches (avoiding duplicates)
         var merged: [String] = []
         var seen = Set<String>()
         
-        // Add exact matches first
+        // Add exact word match first if it exists
+        if isExactWord && prefix.count > 1 {
+            merged.append(prefix)
+            seen.insert(prefix)
+        }
+        
+        // Add exact matches
         for suggestion in filteredExact {
+            if suggestion.count > 1 && !seen.contains(suggestion) {
+                merged.append(suggestion)
+                seen.insert(suggestion)
+            }
+        }
+        
+        // Add prefix-stripped suggestions (for Hebrew)
+        for suggestion in prefixStrippedSuggestions {
             if suggestion.count > 1 && !seen.contains(suggestion) {
                 merged.append(suggestion)
                 seen.insert(suggestion)
@@ -217,6 +264,45 @@ class WordCompletionManager {
             bestFuzzyMatch: bestFuzzyMatch,
             originalPrefix: prefix
         )
+    }
+    
+    /// For Hebrew: Try stripping common prefixes and find root words
+    /// - Parameters:
+    ///   - word: The word to check with prefix
+    ///   - engine: The TrieEngine to search in
+    /// - Returns: Array of suggestions based on stripped prefix + root word found
+    private func getPrefixStrippedSuggestions(for word: String, engine: TrieEngine) -> [String] {
+        guard word.count > 1 else { return [] }
+        
+        var suggestions: [String] = []
+        let firstChar = word.first!
+        
+        // Check if first character is a Hebrew prefix
+        if hebrewPrefixes.contains(firstChar) {
+            let strippedWord = String(word.dropFirst())
+            
+            // Check if the stripped word exists in dictionary
+            if engine.wordExists(strippedWord) {
+                // The original word with prefix is likely valid
+                // Add the original word as a suggestion (prefix + root)
+                suggestions.append(word)
+                print("📚 WordCompletionManager: Hebrew prefix '\(firstChar)' + root '\(strippedWord)' found in dictionary")
+            }
+            
+            // Also get suggestions for the stripped prefix
+            if strippedWord.count > 1 {
+                let strippedSuggestions = engine.getSuggestions(for: strippedWord, limit: 3)
+                for suggestion in strippedSuggestions {
+                    // Reconstruct with the original prefix
+                    let reconstructed = String(firstChar) + suggestion
+                    if !suggestions.contains(reconstructed) {
+                        suggestions.append(reconstructed)
+                    }
+                }
+            }
+        }
+        
+        return suggestions
     }
     
     /// Check if a dictionary is available for the given language

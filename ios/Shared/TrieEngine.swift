@@ -104,6 +104,24 @@ class TrieEngine {
     }
 
     // MARK: - Public API
+    
+    /// Check if a word exists exactly in the dictionary (is a complete word)
+    /// - Parameter word: The word to check
+    /// - Returns: true if the word exists as a complete word in the dictionary
+    func wordExists(_ word: String) -> Bool {
+        guard !word.isEmpty else { return false }
+        
+        // Find the node for this word
+        guard let nodeIndex = findNodeForPrefix(rootIndex: 0, prefix: word) else {
+            return false
+        }
+        
+        // Check if this node marks the end of a word
+        let flags = getUInt16(at: nodeIndex, offset: 2)
+        let isWordEnd = (flags & 0x01) != 0
+        
+        return isWordEnd
+    }
 
     /// Returns a list of word completions for the given prefix.
     /// - Parameters:

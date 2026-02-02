@@ -26,6 +26,9 @@ class BaseKeyboardViewController: UIInputViewController {
     // Fuzzy suggestion state - for smart auto-replace on space
     private var currentSuggestionResult: WordCompletionManager.SuggestionResult?
     
+    // Auto-correct enabled state (from config)
+    private var autoCorrectEnabled: Bool = true
+    
     // Double-space shortcut (". " instead of "  ")
     private var lastSpaceTime: Date?
     private let doubleSpaceThreshold: TimeInterval = 2.0  // 2 seconds
@@ -332,6 +335,10 @@ class BaseKeyboardViewController: UIInputViewController {
         // Word completion is enabled only if config allows it AND input type supports it
         wordCompletionEnabled = config.isWordSuggestionsEnabled && !shouldDisableForInputType
         print("📝 Word completion enabled: \(wordCompletionEnabled) (config: \(config.isWordSuggestionsEnabled), inputType disable: \(shouldDisableForInputType))")
+        
+        // Update auto-correct enabled state from config
+        autoCorrectEnabled = config.isAutoCorrectEnabled
+        print("📝 Auto-correct enabled: \(autoCorrectEnabled) (config: \(config.isAutoCorrectEnabled))")
         
         // Tell the renderer whether word suggestions are enabled
         // This overrides the config setting when input type requires disabling
@@ -658,7 +665,9 @@ class BaseKeyboardViewController: UIInputViewController {
         }
         
         // Update renderer with suggestions and fuzzy state
-        renderer.updateSuggestions(displaySuggestions, highlightIndex: result.hasFuzzyOnly ? 1 : nil)
+        // Only highlight the best fuzzy match if auto-correct is enabled
+        let highlightIndex: Int? = (result.hasFuzzyOnly && autoCorrectEnabled) ? 1 : nil
+        renderer.updateSuggestions(displaySuggestions, highlightIndex: highlightIndex)
     }
     
     /// Handle suggestion selection - replace current word with suggestion
@@ -702,8 +711,9 @@ class BaseKeyboardViewController: UIInputViewController {
     private func handleSpaceKey() {
         let now = Date()
         
-        // Check for smart fuzzy auto-replace first
-        if let result = currentSuggestionResult,
+        // Check for smart fuzzy auto-replace first (only if auto-correct is enabled)
+        if autoCorrectEnabled,
+           let result = currentSuggestionResult,
            result.hasFuzzyOnly,
            WordCompletionManager.shared.smartAutoReplaceEnabled,
            let bestMatch = result.bestFuzzyMatch,

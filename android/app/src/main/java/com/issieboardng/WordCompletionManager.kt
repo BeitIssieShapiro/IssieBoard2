@@ -17,6 +17,13 @@ class WordCompletionManager private constructor(private val context: Context) {
         private const val TAG = "WordCompletionManager"
         private const val MAX_SUGGESTIONS = 4
         
+        /**
+         * Hebrew prefixes that can be stripped for word lookup
+         * These are common grammatical prefixes in Hebrew:
+         * ה (the), ו (and), ב (in), כ (like/as), ל (to/for), מ (from), ש (that/which)
+         */
+        private val HEBREW_PREFIXES = listOf('ה', 'ו', 'ב', 'כ', 'ל', 'מ', 'ש')
+        
         @Volatile
         private var instance: WordCompletionManager? = null
         
@@ -72,17 +79,7 @@ class WordCompletionManager private constructor(private val context: Context) {
             return emptyList()
         }
         
-        val engine = getEngine(language)
-        if (engine == null) {
-            Log.d(TAG, "📚 No engine available for '$language'")
-            return emptyList()
-        }
-        
-        val suggestions = engine.getSuggestions(prefix, MAX_SUGGESTIONS)
-        // Filter out single-letter suggestions - they're already typed
-        val filteredSuggestions = suggestions.filter { it.length > 1 }
-        Log.d(TAG, "📚 Got ${filteredSuggestions.size} suggestions for '$prefix' (filtered from ${suggestions.size})")
-        return filteredSuggestions
+        return getSuggestionsInternal(prefix, language)
     }
     
     /**
@@ -96,17 +93,116 @@ class WordCompletionManager private constructor(private val context: Context) {
             return defaults
         }
         
+        return getSuggestionsInternal(prefix, languageCode)
+    }
+    
+    /**
+     * Internal method that implements exact match prioritization and Hebrew prefix stripping
+     */
+    private fun getSuggestionsInternal(prefix: String, languageCode: String): List<String> {
         val engine = getEngine(languageCode)
         if (engine == null) {
             Log.d(TAG, "📚 No engine available for '$languageCode'")
             return emptyList()
         }
         
-        val suggestions = engine.getSuggestions(prefix, MAX_SUGGESTIONS)
-        // Filter out single-letter suggestions - they're already typed
-        val filteredSuggestions = suggestions.filter { it.length > 1 }
-        Log.d(TAG, "📚 Got ${filteredSuggestions.size} suggestions for '$prefix' in '$languageCode' (filtered from ${suggestions.size})")
-        return filteredSuggestions
+        Log.d(TAG, "📚 Querying engine for prefix '$prefix' in '$languageCode' (length: ${prefix.length})")
+        
+        // Step 1: Check if prefix is an EXACT word in dictionary (prioritize exact matches)
+        val isExactWord = engine.wordExists(prefix)
+        if (isExactWord) {
+            Log.d(TAG, "📚 '$prefix' is an exact word in dictionary - will prioritize")
+        }
+        
+        // Step 2: Try prefix-based suggestions
+        val exactSuggestions = engine.getSuggestions(prefix, MAX_SUGGESTIONS + 4)
+        Log.d(TAG, "📚 Engine returned ${exactSuggestions.size} exact suggestions: $exactSuggestions")
+        
+        // Filter out single-letter suggestions
+        val filteredExact = exactSuggestions.filter { it.length > 1 }.toMutableList()
+        
+        // Step 3: For Hebrew, try prefix stripping if we don't have enough results
+        var prefixStrippedSuggestions = emptyList<String>()
+        if (languageCode == "he" && filteredExact.size <= 1) {
+            prefixStrippedSuggestions = getPrefixStrippedSuggestions(prefix, engine)
+            Log.d(TAG, "📚 Hebrew prefix stripping returned ${prefixStrippedSuggestions.size} suggestions: $prefixStrippedSuggestions")
+        }
+        
+        // Step 4: If exact word match, ensure it's in suggestions even if not in top results
+        if (isExactWord && prefix.length > 1 && !filteredExact.contains(prefix)) {
+            // Insert the exact match at the beginning
+            filteredExact.add(0, prefix)
+            Log.d(TAG, "📚 Added exact match '$prefix' to suggestions")
+        }
+        
+        // Merge results: exact matches first, then prefix-stripped (avoiding duplicates)
+        val merged = mutableListOf<String>()
+        val seen = mutableSetOf<String>()
+        
+        // Add exact word match first if it exists
+        if (isExactWord && prefix.length > 1) {
+            merged.add(prefix)
+            seen.add(prefix)
+        }
+        
+        // Add exact matches
+        for (suggestion in filteredExact) {
+            if (suggestion.length > 1 && !seen.contains(suggestion)) {
+                merged.add(suggestion)
+                seen.add(suggestion)
+            }
+        }
+        
+        // Add prefix-stripped suggestions (for Hebrew)
+        for (suggestion in prefixStrippedSuggestions) {
+            if (suggestion.length > 1 && !seen.contains(suggestion)) {
+                merged.add(suggestion)
+                seen.add(suggestion)
+            }
+        }
+        
+        // Return top N results
+        val finalSuggestions = merged.take(MAX_SUGGESTIONS)
+        Log.d(TAG, "📚 Returning ${finalSuggestions.size} suggestions for '$prefix': $finalSuggestions")
+        
+        return finalSuggestions
+    }
+    
+    /**
+     * For Hebrew: Try stripping common prefixes and find root words
+     */
+    private fun getPrefixStrippedSuggestions(word: String, engine: TrieEngine): List<String> {
+        if (word.length <= 1) return emptyList()
+        
+        val suggestions = mutableListOf<String>()
+        val firstChar = word.first()
+        
+        // Check if first character is a Hebrew prefix
+        if (HEBREW_PREFIXES.contains(firstChar)) {
+            val strippedWord = word.drop(1)
+            
+            // Check if the stripped word exists in dictionary
+            if (engine.wordExists(strippedWord)) {
+                // The original word with prefix is likely valid
+                // Add the original word as a suggestion (prefix + root)
+                suggestions.add(word)
+                Log.d(TAG, "📚 Hebrew prefix '$firstChar' + root '$strippedWord' found in dictionary")
+            }
+            
+            // Also get suggestions for the stripped prefix
+            if (strippedWord.length > 1) {
+                val strippedSuggestions = engine.getSuggestions(strippedWord, 3)
+                for (suggestion in strippedSuggestions) {
+                    // Reconstruct with the original prefix
+                    val reconstructed = "$firstChar$suggestion"
+                    if (!suggestions.contains(reconstructed)) {
+                        suggestions.add(reconstructed)
+                    }
+                }
+            }
+        }
+        
+        return suggestions
     }
     
     /**

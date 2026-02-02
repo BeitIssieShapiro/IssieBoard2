@@ -157,6 +157,7 @@ export interface KeyboardConfig {
     allDiacritics?: Record<string, DiacriticsDefinition>;  // Per-keyboard diacritics definitions
     diacriticsSettings?: Record<string, DiacriticsSettings>;  // From profile
     wordSuggestionsEnabled?: boolean;  // Whether word suggestions bar is shown (default: true)
+    autoCorrectEnabled?: boolean;  // Whether auto-correct replaces typed word with suggestion on space (default: true)
 }
 
 // Config from storage - could be a built KeyboardConfig or ProfileDefinition that needs building

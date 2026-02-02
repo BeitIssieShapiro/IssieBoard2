@@ -14,6 +14,7 @@ struct KeyboardConfig: Codable {
     let allDiacritics: [String: DiacriticsDefinition]?  // Per-keyboard diacritics definitions
     let diacriticsSettings: [String: DiacriticsSettings]?  // Per-keyboard settings from profile
     let wordSuggestionsEnabled: Bool?  // Enable/disable word suggestions (default: true)
+    let autoCorrectEnabled: Bool?  // Enable/disable auto-correct on space (default: true)
     
     enum CodingKeys: String, CodingKey {
         case backgroundColor
@@ -26,11 +27,17 @@ struct KeyboardConfig: Codable {
         case allDiacritics
         case diacriticsSettings
         case wordSuggestionsEnabled
+        case autoCorrectEnabled
     }
     
     /// Check if word suggestions are enabled (defaults to true if not specified)
     var isWordSuggestionsEnabled: Bool {
         return wordSuggestionsEnabled ?? true
+    }
+    
+    /// Check if auto-correct is enabled (defaults to true if not specified)
+    var isAutoCorrectEnabled: Bool {
+        return autoCorrectEnabled ?? true
     }
     
     /// Get diacritics for a specific keyboard ID

@@ -85,6 +85,24 @@ class TrieEngine private constructor(private val data: ByteBuffer) {
     }
     
     /**
+     * Check if a word exists exactly in the dictionary (is a complete word)
+     * @param word The word to check
+     * @return true if the word exists as a complete word in the dictionary
+     */
+    fun wordExists(word: String): Boolean {
+        if (word.isEmpty()) return false
+        
+        // Find the node for this word
+        val nodeIndex = findNodeForPrefix(0, word) ?: return false
+        
+        // Check if this node marks the end of a word
+        val flags = getUInt16(nodeIndex, 2)
+        val isWordEnd = (flags.toInt() and 0x01) != 0
+        
+        return isWordEnd
+    }
+    
+    /**
      * Get word suggestions for a prefix
      * @param prefix The letters typed so far
      * @param limit Maximum number of suggestions to return

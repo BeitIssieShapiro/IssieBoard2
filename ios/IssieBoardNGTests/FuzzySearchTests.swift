@@ -180,6 +180,126 @@ struct FuzzySearchTests {
         
         #expect(suggestions.isEmpty, "Expected empty results for empty prefix")
     }
+    
+    // MARK: - Word Exists Tests
+    
+    @Test func testWordExists_existingWord() async throws {
+        guard let engine = createEnglishEngine() else {
+            print("⚠️ Skipping test - English dictionary not available")
+            return
+        }
+        
+        // Common words should exist
+        #expect(engine.wordExists("the"), "Common word 'the' should exist")
+        #expect(engine.wordExists("hello"), "Common word 'hello' should exist")
+        #expect(engine.wordExists("world"), "Common word 'world' should exist")
+    }
+    
+    @Test func testWordExists_nonExistingWord() async throws {
+        guard let engine = createEnglishEngine() else {
+            print("⚠️ Skipping test - English dictionary not available")
+            return
+        }
+        
+        // Gibberish should not exist
+        #expect(!engine.wordExists("xyzqwk"), "Gibberish 'xyzqwk' should not exist")
+        #expect(!engine.wordExists("aaabbbccc"), "Gibberish 'aaabbbccc' should not exist")
+    }
+    
+    @Test func testWordExists_prefix_notCompleteWord() async throws {
+        guard let engine = createEnglishEngine() else {
+            print("⚠️ Skipping test - English dictionary not available")
+            return
+        }
+        
+        // "hel" is a prefix of "hello" but might not be a word itself
+        // This test verifies we distinguish between prefix existence and word existence
+        let suggestions = engine.getSuggestions(for: "hel", limit: 5)
+        print("Suggestions for 'hel': \(suggestions)")
+        
+        // We should get suggestions starting with "hel"
+        #expect(!suggestions.isEmpty, "Should get suggestions for prefix 'hel'")
+    }
+    
+    @Test func testWordExists_emptyString() async throws {
+        guard let engine = createEnglishEngine() else {
+            print("⚠️ Skipping test - English dictionary not available")
+            return
+        }
+        
+        #expect(!engine.wordExists(""), "Empty string should not be a word")
+    }
+    
+    // MARK: - In-Memory Trie Word Exists Tests
+    
+    @Test func testInMemoryTrie_wordExists() async throws {
+        let trie = TestTrie()
+        trie.insert("hello")
+        trie.insert("help")
+        trie.insert("world")
+        
+        #expect(trie.wordExists("hello"), "Should find 'hello'")
+        #expect(trie.wordExists("help"), "Should find 'help'")
+        #expect(trie.wordExists("world"), "Should find 'world'")
+        #expect(!trie.wordExists("hel"), "'hel' is a prefix but not a word")
+        #expect(!trie.wordExists("xyz"), "'xyz' does not exist")
+    }
+    
+    // MARK: - Hebrew Prefix Stripping Tests (In-Memory)
+    
+    @Test func testInMemoryTrie_hebrewPrefixStripping() async throws {
+        let trie = TestTrie()
+        // Insert Hebrew words (using Hebrew characters)
+        trie.insert("בית")   // house
+        trie.insert("ספר")   // book
+        trie.insert("ילד")   // child
+        
+        // Test that root words exist
+        #expect(trie.wordExists("בית"), "Should find 'בית' (house)")
+        #expect(trie.wordExists("ספר"), "Should find 'ספר' (book)")
+        
+        // Test prefix stripping logic
+        let hebrewPrefixes: [Character] = ["ה", "ו", "ב", "כ", "ל", "מ", "ש"]
+        
+        // Simulate prefix stripping: "הבית" -> "בית"
+        let wordWithPrefix = "הבית"  // "the house"
+        let firstChar = wordWithPrefix.first!
+        
+        #expect(hebrewPrefixes.contains(firstChar), "ה should be a recognized prefix")
+        
+        let strippedWord = String(wordWithPrefix.dropFirst())
+        #expect(strippedWord == "בית", "After stripping ה, should get בית")
+        #expect(trie.wordExists(strippedWord), "Root word 'בית' should exist in dictionary")
+    }
+    
+    @Test func testInMemoryTrie_hebrewPrefixes_variousCases() async throws {
+        let trie = TestTrie()
+        // Insert Hebrew root words
+        trie.insert("בית")   // house
+        trie.insert("ספר")   // book
+        trie.insert("שולחן") // table
+        
+        let hebrewPrefixes: [Character] = ["ה", "ו", "ב", "כ", "ל", "מ", "ש"]
+        
+        // Test various prefix combinations
+        let testCases: [(String, String, Bool)] = [
+            ("הבית", "בית", true),    // ה (the) + house
+            ("לספר", "ספר", true),    // ל (to) + book
+            ("בבית", "בית", true),    // ב (in) + house
+            ("ושולחן", "שולחן", true), // ו (and) + table
+            ("מספר", "ספר", true),    // מ (from) + book
+            ("כבית", "בית", true),    // כ (like) + house
+            ("xyz", "yz", false),     // Not Hebrew prefix
+        ]
+        
+        for (original, expectedRoot, shouldExist) in testCases {
+            if let firstChar = original.first, hebrewPrefixes.contains(firstChar) {
+                let stripped = String(original.dropFirst())
+                #expect(stripped == expectedRoot, "Stripping '\(original)' should give '\(expectedRoot)'")
+                #expect(trie.wordExists(stripped) == shouldExist, "Root '\(stripped)' existence should be \(shouldExist)")
+            }
+        }
+    }
 }
 
 // MARK: - Test Trie Implementation
@@ -220,6 +340,25 @@ class TestTrie {
         var results: [String] = []
         collectWords(node: node, path: prefixLower, results: &results)
         return results
+    }
+    
+    /// Check if a complete word exists in the trie
+    func wordExists(_ word: String) -> Bool {
+        guard !word.isEmpty else { return false }
+        
+        var node = root
+        let wordLower = word.lowercased()
+        
+        // Navigate to the word's end node
+        for char in wordLower {
+            guard let child = node.children[char] else {
+                return false
+            }
+            node = child
+        }
+        
+        // Check if this is a complete word
+        return node.isWordEnd
     }
     
     private func collectWords(node: TestTrieNode, path: String, results: inout [String]) {

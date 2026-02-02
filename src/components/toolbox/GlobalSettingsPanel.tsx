@@ -40,10 +40,14 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
     state, 
     updateBackgroundColor,
     updateWordSuggestions,
+    updateAutoCorrect,
   } = useEditor();
 
   // Get current word suggestions setting (default to true)
   const wordSuggestionsEnabled = state.config.wordSuggestionsEnabled !== false;
+  
+  // Get current auto-correct setting (default to true)
+  const autoCorrectEnabled = state.config.autoCorrectEnabled !== false;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -100,6 +104,21 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
             onValueChange={updateWordSuggestions}
             trackColor={{ false: '#CCCCCC', true: '#81C784' }}
             thumbColor={wordSuggestionsEnabled ? '#4CAF50' : '#F5F5F5'}
+          />
+        </View>
+        <View style={styles.featureRow}>
+          <View style={styles.featureInfo}>
+            <Text style={styles.featureLabel}>Auto-Correct</Text>
+            <Text style={styles.featureDescription}>
+              Replace typed word with suggestion when pressing space
+            </Text>
+          </View>
+          <Switch
+            value={autoCorrectEnabled}
+            onValueChange={updateAutoCorrect}
+            trackColor={{ false: '#CCCCCC', true: '#81C784' }}
+            thumbColor={autoCorrectEnabled ? '#4CAF50' : '#F5F5F5'}
+            disabled={!wordSuggestionsEnabled}
           />
         </View>
       </View>
