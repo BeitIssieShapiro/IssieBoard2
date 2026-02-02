@@ -1,3 +1,13 @@
 <resources>
     <string name="app_name">IssieBoardNG</string>
+    
+    <!-- Keyboard Service Labels -->
+    <string name="keyboard_label_he">IssieBoard (עברית)</string>
+    <string name="keyboard_label_en">IssieBoard (English)</string>
+    <string name="keyboard_label_ar">IssieBoard (العربية)</string>
+    
+    <!-- Keyboard Subtype Labels -->
+    <string name="subtype_label_he">עברית</string>
+    <string name="subtype_label_en">English</string>
+    <string name="subtype_label_ar">العربية</string>
 </resources>

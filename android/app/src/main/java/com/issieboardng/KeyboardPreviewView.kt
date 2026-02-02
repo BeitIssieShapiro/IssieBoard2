@@ -1,272 +1,251 @@
 package com.issieboardng
 
 import android.content.Context
-import android.widget.LinearLayout
+import android.graphics.Color
+import android.view.Gravity
+import android.view.View
+import android.view.View.MeasureSpec
 import android.widget.FrameLayout
+import android.widget.LinearLayout
+import android.widget.TextView
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.ReactContext
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.uimanager.UIManagerHelper
 import com.facebook.react.uimanager.events.Event
-import android.util.Log
+import com.issieboardng.shared.*
 
 /**
- * Android keyboard preview component that can be embedded in React Native
+ * Native keyboard preview view for React Native
+ * Port of ios/IssieBoardNG/KeyboardPreviewView.swift
  * 
- * This is a clean implementation that delegates all rendering and state management
- * to KeyboardRenderer. This view only handles:
- * - Config loading from JSON prop
- * - Emitting key events to React Native
+ * Renders a preview of the keyboard configuration for the editor UI.
+ * This is used in the main app to show a live preview of the keyboard
+ * while editing configurations.
  * 
- * Uses FrameLayout to support overlapping views (like nikkud popup)
+ * Architecture: FrameLayout (this) -> LinearLayout (keyboardContainer) -> Keyboard rows
+ * The LinearLayout is used because React Native handles LinearLayout children better than
+ * FrameLayout children for layout calculations.
  */
 class KeyboardPreviewView(context: Context) : FrameLayout(context) {
     
-    companion object {
-        private const val TAG = "KeyboardPreviewView"
-    }
-    
-    // Shared components
-    private val renderer = KeyboardRenderer(
-        context = context,
-        isPreview = true,
-        onKeyEvent = { event -> handleKeyEvent(event) },
-        onStateChange = { forceLayoutRefresh() }
-    )
-    private val configParser = KeyboardConfigParser(context)
-    
-    // Config JSON from React Native prop
     private var configJson: String? = null
+    private var selectedKeys: String? = null  // JSON array of selected key IDs
+    private var renderer: KeyboardRenderer? = null
+    private var parsedConfig: KeyboardConfig? = null
     
-    // Selected keys JSON from React Native prop
-    private var selectedKeysJson: String? = null
+    // Word suggestion controller - shared logic with keyboard extension
+    private var suggestionController: WordSuggestionController? = null
     
-    // Keyboard container that holds the keyboard rows
+    // Track typed text (for preview testing)
+    private var typedText: String = ""
+    
+    // Keyboard container - LinearLayout for better React Native compatibility
     private val keyboardContainer = LinearLayout(context).apply {
         orientation = LinearLayout.VERTICAL
         layoutParams = FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.MATCH_PARENT,
             FrameLayout.LayoutParams.MATCH_PARENT
         )
-        elevation = 0f  // Ensure keyboard is at bottom z-layer
+        setBackgroundColor(Color.parseColor("#D2D5DB"))  // Default keyboard background
     }
     
     init {
-        // Set initial background
-        setBackgroundColor(android.graphics.Color.parseColor("#E0E0E0"))
+        // Set default background
+        setBackgroundColor(Color.parseColor("#D2D5DB"))
         
         // Add keyboard container at index 0 (bottom layer)
         addView(keyboardContainer, 0)
         
-        // Add loading placeholder
-        val loadingText = android.widget.TextView(context).apply {
-            text = "PREVIEW LOADING..."
-            textSize = 20f
-            setTextColor(android.graphics.Color.BLACK)
-            setPadding(20, 20, 20, 20)
-        }
-        keyboardContainer.addView(loadingText)
+        // Create renderer
+        val r = KeyboardRenderer(context)
+        renderer = r
         
-        Log.d(TAG, "KeyboardPreviewView init")
-    }
-    
-    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
-        Log.d(TAG, "onMeasure: width=${MeasureSpec.getSize(widthMeasureSpec)}, height=${MeasureSpec.getSize(heightMeasureSpec)}")
+        // Setup suggestion controller with context for dictionary loading
+        suggestionController = WordSuggestionController(r).apply {
+            initialize(context)
+            setLanguage("en")
+        }
+        
+        // In preview mode, hide the globe (language) button - it's redundant
+        r.setShowGlobeButton(false)
+        
+        r.onKeyPress = { key ->
+            handleKeyPress(key)
+        }
+        
+        r.onDeleteCharacter = {
+            handleBackspace()
+        }
+        
+        r.onDeleteWord = {
+            handleDeleteWord()
+        }
+        
+        r.onSuggestionSelected = { suggestion ->
+            handleSuggestionSelected(suggestion)
+        }
+        
+        r.onNikkudSelected = { value ->
+            handleNikkudSelected(value)
+        }
+        
+        r.onKeysetChanged = { newKeyset ->
+            // Emit keyset-changed event to React Native
+            val eventData: WritableMap = Arguments.createMap().apply {
+                putString("type", "keyset-changed")
+                putString("value", newKeyset)
+                putString("label", "")
+                putBoolean("hasNikkud", false)
+            }
+            emitKeyPressEvent(eventData)
+        }
+        
+        r.onStateChange = {
+            // Force layout refresh when renderer state changes (shift, nikkud, keyset)
+            forceLayoutRefresh()
+        }
+        
+        // Show placeholder initially
+        showPlaceholder("Loading keyboard preview...")
+        
+        debugLog("🔧 KeyboardPreviewView init")
     }
     
     /**
-     * Set selected key IDs for visual highlighting in edit mode
-     * Format: JSON array of strings like ["abc:0:3", "abc:1:2"]
+     * Set the keyboard configuration JSON
+     * Only re-renders if the config actually changed
      */
-    fun setSelectedKeys(json: String?) {
-        Log.d(TAG, "setSelectedKeys called: ${json?.length ?: 0} chars")
+    fun setConfigJson(json: String?) {
+        debugLog("🔧 setConfigJson called, current length: ${configJson?.length ?: 0}, new length: ${json?.length ?: 0}")
         
-        val newKeyIds: Set<String> = if (json == null || json.isEmpty() || json == "[]") {
+        // Skip if config hasn't changed (compare content, not reference)
+        if (json != null && configJson != null && json == configJson) {
+            debugLog("🔧 Config unchanged, skipping render")
+            return
+        }
+        
+        // Also skip if both are null or empty
+        if (json.isNullOrEmpty() && configJson.isNullOrEmpty()) {
+            debugLog("🔧 Both configs empty, skipping")
+            return
+        }
+        
+        configJson = json
+        if (json.isNullOrEmpty()) {
+            showPlaceholder("No configuration")
+            return
+        }
+        
+        try {
+            debugLog("🔧 Parsing new config...")
+            parsedConfig = KeyboardConfigParser.parse(json)
+            renderKeyboard()
+        } catch (e: Exception) {
+            errorLog("Failed to parse config: ${e.message}")
+            showPlaceholder("Invalid configuration")
+        }
+    }
+    
+    /**
+     * Set selected key IDs for visual highlighting
+     * @param keys JSON array string, e.g., '["abc:0:3", "abc:1:2"]'
+     */
+    fun setSelectedKeys(keys: String?) {
+        // Skip if selected keys haven't changed
+        if (keys == selectedKeys) {
+            return
+        }
+        
+        selectedKeys = keys
+        // Parse selected keys and pass to renderer
+        val keyIds: Set<String> = if (keys == null || keys.isEmpty() || keys == "[]") {
             emptySet()
         } else {
             try {
-                val jsonArray = org.json.JSONArray(json)
-                val keyIds = mutableSetOf<String>()
+                val jsonArray = org.json.JSONArray(keys)
+                val parsedIds = mutableSetOf<String>()
                 for (i in 0 until jsonArray.length()) {
-                    keyIds.add(jsonArray.getString(i))
+                    parsedIds.add(jsonArray.getString(i))
                 }
-                Log.d(TAG, "setSelectedKeys: ${keyIds.size} keys parsed")
-                keyIds
+                parsedIds
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to parse selectedKeys JSON", e)
+                errorLog("Failed to parse selectedKeys JSON: ${e.message}")
                 emptySet()
             }
         }
         
-        // Only update if the value actually changed
-        if (selectedKeysJson == json) {
-            Log.d(TAG, "setSelectedKeys: no change, skipping")
-            return
-        }
+        renderer?.setSelectedKeys(keyIds)
         
-        selectedKeysJson = json
-        renderer.setSelectedKeys(newKeyIds)
-        
-        // Only re-render if config is already loaded AND renderer has config
-        // This prevents render when called before config is set
-        if (configJson != null && keyboardContainer.childCount > 0) {
-            // Use rerender instead of renderKeyboard to preserve renderer state
-            renderer.rerender()
-        }
-    }
-    
-    /**
-     * Set config JSON directly (used by React Native prop)
-     */
-    fun setConfigJson(json: String?) {
-        val newLength = json?.length ?: 0
-        val oldLength = configJson?.length ?: 0
-        Log.d(TAG, "setConfigJson called: newLength=$newLength, oldLength=$oldLength, same=${json == configJson}")
-        
-        // Always update and re-render if we have JSON
-        if (json != null && json.isNotEmpty()) {
-            val configChanged = json != configJson
-            configJson = json
-            
-            Log.d(TAG, "setConfigJson: configChanged=$configChanged, loading config...")
-            loadConfig()
-            
-            if (configChanged) {
-                // Notify renderer that config changed (for popup refresh)
-                renderer.onConfigUpdated()
-            }
-            
-            Log.d(TAG, "setConfigJson: config loaded, rendering...")
+        // Only re-render if we have a config
+        if (parsedConfig != null) {
             renderKeyboard()
-            Log.d(TAG, "setConfigJson: render complete")
-            
-            // Force additional layout refresh for config changes
-            forceLayoutRefresh()
-        } else {
-            Log.d(TAG, "setConfigJson: json is null or empty, skipping")
-        }
-    }
-    
-    private fun loadConfig() {
-        Log.d(TAG, "loadConfig called")
-        
-        val config = if (configJson != null) {
-            // Use provided config JSON
-            try {
-                val jsonObject = org.json.JSONObject(configJson!!)
-                val parsed = configParser.parseConfig(jsonObject)
-                Log.d(TAG, "Config parsed successfully, keysets: ${parsed.keysets.keys.joinToString()}")
-                parsed
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to parse provided config", e)
-                null
-            }
-        } else {
-            // Fall back to SharedPreferences
-            Log.d(TAG, "Falling back to SharedPreferences")
-            configParser.loadAndParseConfig()
-        }
-        
-        if (config != null) {
-            // Reset to default keyset when config changes from prop
-            // Don't reset keyset when config changes (e.g., diacritics settings toggled)
-            // Only reset if the current keyset doesn't exist in the new config
-            renderer.setConfig(config, resetKeyset = false)
-            Log.d(TAG, "Config set to renderer, current keyset: ${renderer.currentKeysetId}")
-        } else {
-            Log.e(TAG, "Failed to load config")
         }
     }
     
     private fun renderKeyboard() {
-        Log.d(TAG, "renderKeyboard called")
+        val config = parsedConfig ?: return
         
-        try {
-            // Render using the shared renderer (no editor context in preview mode)
-            renderer.renderKeyboard(keyboardContainer, null)
-            Log.d(TAG, "After render, childCount: $childCount")
-            
-            // Force layout update
-            post {
-                requestLayout()
-                invalidate()
-                (parent as? android.view.View)?.requestLayout()
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error rendering keyboard", e)
-            showError("Error rendering keyboard: ${e.message}")
-        }
-    }
-    
-    /**
-     * Handle key events from the renderer
-     * Emits events to React Native using the new architecture event dispatcher
-     */
-    private fun handleKeyEvent(event: KeyEvent) {
-        val eventData = Arguments.createMap()
-        
-        when (event) {
-            is KeyEvent.TextInput -> {
-                eventData.putString("type", "text")
-                eventData.putString("value", event.text)
-            }
-            is KeyEvent.Backspace -> {
-                eventData.putString("type", "backspace")
-                eventData.putString("value", "")
-            }
-            is KeyEvent.Enter -> {
-                eventData.putString("type", "enter")
-                eventData.putString("value", "")
-            }
-            is KeyEvent.Settings -> {
-                eventData.putString("type", "settings")
-                eventData.putString("value", "")
-            }
-            is KeyEvent.Close -> {
-                eventData.putString("type", "close")
-                eventData.putString("value", "")
-            }
-            is KeyEvent.NextKeyboard -> {
-                eventData.putString("type", "next-keyboard")
-                eventData.putString("value", "")
-            }
-            is KeyEvent.Custom -> {
-                eventData.putString("type", event.key.type)
-                eventData.putString("value", event.key.value)
-            }
+        // Wait for layout if width is 0
+        if (width == 0) {
+            debugLog("🔧 Width is 0, postponing render until layout")
+            post { renderKeyboard() }
+            return
         }
         
-        // Emit event to React Native using new architecture event dispatcher
-        emitEvent("onKeyPress", eventData)
-    }
-    
-    /**
-     * Emit event to React Native using UIManagerHelper (new architecture compatible)
-     */
-    private fun emitEvent(eventName: String, eventData: WritableMap) {
-        val reactContext = context as? ReactContext ?: return
-        val surfaceId = UIManagerHelper.getSurfaceId(this)
-        val eventDispatcher = UIManagerHelper.getEventDispatcherForReactTag(reactContext, id)
+        debugLog("🔧 renderKeyboard: width=$width, height=$height")
         
-        eventDispatcher?.dispatchEvent(
-            KeyPressEvent(surfaceId, id, eventName, eventData)
+        // Don't clear keyboardContainer here - the renderer handles it internally
+        
+        // Use config's default keyset, or first available keyset
+        val availableKeysets = config.keysets.map { it.id }
+        val defaultKeyset = config.defaultKeyset 
+            ?: availableKeysets.firstOrNull() 
+            ?: "abc"
+        
+        // Use renderer's current keyset if it's valid in this config
+        val rendererKeyset = renderer?.currentKeysetId
+        val currentKeyset = if (rendererKeyset != null && availableKeysets.contains(rendererKeyset)) {
+            rendererKeyset
+        } else {
+            defaultKeyset
+        }
+        
+        debugLog("🔧 Rendering with keyset: $currentKeyset (default: $defaultKeyset, available: $availableKeysets)")
+        
+        // Configure suggestion controller based on config
+        suggestionController?.setEnabled(config.isWordSuggestionsEnabled)
+        suggestionController?.setAutoCorrectEnabled(config.isAutoCorrectEnabled)
+        
+        // Update language from config's first keyboard
+        config.keyboards?.firstOrNull()?.let { firstKeyboard ->
+            suggestionController?.setLanguage(firstKeyboard)
+        }
+        
+        renderer?.setWordSuggestionsEnabled(config.isWordSuggestionsEnabled)
+        
+        renderer?.renderKeyboard(
+            container = keyboardContainer,
+            config = config,
+            currentKeysetId = currentKeyset,
+            editorContext = EditorContext(
+                enterVisible = true,
+                enterLabel = "↵",
+                enterAction = 0
+            ),
+            overlayContainer = this  // Pass this (FrameLayout) as overlay container for nikkud picker
         )
-    }
-    
-    /**
-     * Custom event class for key press events (new architecture compatible)
-     */
-    private class KeyPressEvent(
-        surfaceId: Int,
-        viewTag: Int,
-        private val myEventName: String,
-        private val myEventData: WritableMap
-    ) : Event<KeyPressEvent>(surfaceId, viewTag) {
         
-        override fun getEventName(): String = myEventName
+        // Show initial suggestions if enabled
+        if (config.isWordSuggestionsEnabled && (suggestionController?.currentWord?.isEmpty() == true)) {
+            post {
+                suggestionController?.showDefaults()
+            }
+        }
         
-        override fun getEventData(): WritableMap = myEventData
+        // Force layout update after rendering
+        debugLog("🔧 Forcing layout update, keyboardContainer.childCount=${keyboardContainer.childCount}")
+        forceLayoutRefresh()
     }
     
     /**
@@ -274,7 +253,7 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
      * This is needed because React Native views need explicit layout updates
      */
     private fun forceLayoutRefresh() {
-        Log.d(TAG, "forceLayoutRefresh called")
+        debugLog("🔧 forceLayoutRefresh called")
         post {
             // Force re-measure and re-layout the keyboard container
             keyboardContainer.measure(
@@ -287,28 +266,225 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
                 keyboardContainer.right,
                 keyboardContainer.bottom
             )
-            
+
             // Request layout updates
             keyboardContainer.requestLayout()
             keyboardContainer.invalidate()
             requestLayout()
             invalidate()
-            
+
             // Also request parent to update
-            (parent as? android.view.View)?.requestLayout()
-            
-            Log.d(TAG, "Layout refresh complete, keyboardContainer childCount: ${keyboardContainer.childCount}")
+            (parent as? View)?.requestLayout()
+
+            debugLog("🔧 Layout refresh complete, keyboardContainer childCount: ${keyboardContainer.childCount}")
         }
     }
     
-    private fun showError(message: String) {
+    private fun showPlaceholder(message: String) {
         keyboardContainer.removeAllViews()
-        val errorText = android.widget.TextView(context).apply {
+        
+        val placeholder = TextView(context).apply {
             text = message
-            textSize = 14f
-            setTextColor(android.graphics.Color.RED)
-            setPadding(20, 20, 20, 20)
+            gravity = Gravity.CENTER
+            setTextColor(Color.GRAY)
+            textSize = 16f
         }
-        keyboardContainer.addView(errorText)
+        
+        val params = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.MATCH_PARENT
+        )
+        keyboardContainer.addView(placeholder, params)
     }
+    
+    private fun sendKeyPressEvent(key: ParsedKey) {
+        val eventData: WritableMap = Arguments.createMap().apply {
+            putString("type", key.type)
+            putString("value", key.value)
+            putString("label", key.label.ifEmpty { key.caption })
+            putBoolean("hasNikkud", key.nikkud.isNotEmpty())
+        }
+        emitKeyPressEvent(eventData)
+    }
+    
+    private fun emitKeyPressEvent(eventData: WritableMap) {
+        val reactContext = context as? ReactContext ?: return
+        
+        // Use new architecture event dispatcher
+        val surfaceId = UIManagerHelper.getSurfaceId(reactContext)
+        val eventDispatcher = UIManagerHelper.getEventDispatcherForReactTag(reactContext, id)
+        
+        eventDispatcher?.dispatchEvent(
+            KeyPressEvent(surfaceId, id, eventData)
+        )
+    }
+    
+    // MARK: - Key Press Handling
+    
+    private fun handleKeyPress(key: ParsedKey) {
+        when (key.type.lowercase()) {
+            "backspace" -> {
+                handleBackspace()
+            }
+            "enter", "action" -> {
+                typedText += "\n"
+                suggestionController?.handleEnter()
+                emitKeyPress(key)
+            }
+            "space" -> {
+                typedText += " "
+                suggestionController?.handleSpace()
+                emitKeyPress(key)
+            }
+            else -> {
+                val value = key.value
+                if (value.isNotEmpty()) {
+                    if (value == " ") {
+                        typedText += " "
+                        suggestionController?.handleSpace()
+                    } else {
+                        typedText += value
+                        suggestionController?.handleCharacterTyped(value)
+                    }
+                }
+                emitKeyPress(key)
+            }
+        }
+    }
+    
+    private fun handleBackspace() {
+        if (typedText.isNotEmpty()) {
+            typedText = typedText.dropLast(1)
+        }
+        
+        if (suggestionController?.handleBackspace() != true) {
+            detectCurrentWord()
+        }
+        
+        // Emit backspace event
+        val eventData: WritableMap = Arguments.createMap().apply {
+            putString("type", "backspace")
+            putString("value", "")
+            putString("label", "⌫")
+            putBoolean("hasNikkud", false)
+        }
+        emitKeyPressEvent(eventData)
+    }
+    
+    private fun handleDeleteWord() {
+        val currentWord = suggestionController?.currentWord ?: ""
+        
+        // Delete from typedText
+        if (currentWord.isNotEmpty()) {
+            repeat(currentWord.length) {
+                if (typedText.isNotEmpty()) {
+                    typedText = typedText.dropLast(1)
+                }
+            }
+        } else if (typedText.isNotEmpty()) {
+            // Delete backwards to previous word boundary
+            while (typedText.isNotEmpty()) {
+                val lastChar = typedText.last()
+                typedText = typedText.dropLast(1)
+                if (lastChar == ' ' || lastChar == '\n') {
+                    break
+                }
+            }
+        }
+        
+        detectCurrentWord()
+        
+        val eventData: WritableMap = Arguments.createMap().apply {
+            putString("type", "backspace")
+            putString("value", "")
+            putString("label", "⌫")
+            putBoolean("hasNikkud", false)
+        }
+        emitKeyPressEvent(eventData)
+    }
+    
+    private fun handleSuggestionSelected(suggestion: String) {
+        val currentWord = suggestionController?.currentWord ?: ""
+        
+        // Remove current word from typedText
+        repeat(currentWord.length) {
+            if (typedText.isNotEmpty()) {
+                typedText = typedText.dropLast(1)
+            }
+        }
+        
+        // Add the suggestion + space
+        typedText += suggestion + " "
+        
+        suggestionController?.handleSuggestionSelected()
+        
+        // Emit event to React Native
+        val eventData: WritableMap = Arguments.createMap().apply {
+            putString("type", "suggestion")
+            putString("value", "$suggestion ")
+            putString("label", suggestion)
+            putBoolean("hasNikkud", false)
+        }
+        emitKeyPressEvent(eventData)
+    }
+    
+    private fun handleNikkudSelected(value: String) {
+        debugLog("🎯 KeyboardPreviewView handleNikkudSelected: '$value'")
+        
+        // Add the nikkud character to typed text
+        typedText += value
+        
+        // Notify suggestion controller
+        suggestionController?.handleCharacterTyped(value)
+        
+        // Emit event to React Native
+        val eventData: WritableMap = Arguments.createMap().apply {
+            putString("type", "nikkud")
+            putString("value", value)
+            putString("label", value)
+            putBoolean("hasNikkud", false)
+        }
+        emitKeyPressEvent(eventData)
+    }
+    
+    private fun detectCurrentWord() {
+        suggestionController?.detectCurrentWord(typedText)
+    }
+    
+    private fun emitKeyPress(key: ParsedKey) {
+        val eventData: WritableMap = Arguments.createMap().apply {
+            putString("type", key.type)
+            putString("value", key.value)
+            putString("label", key.label.ifEmpty { key.caption })
+            putBoolean("hasNikkud", key.nikkud.isNotEmpty())
+        }
+        emitKeyPressEvent(eventData)
+    }
+    
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+        
+        // Ensure minimum height for keyboard preview
+        val minHeight = (216 * resources.displayMetrics.density).toInt()
+        val measuredHeight = MeasureSpec.getSize(heightMeasureSpec)
+        
+        if (measuredHeight < minHeight) {
+            setMeasuredDimension(measuredWidth, minHeight)
+        }
+    }
+}
+
+/**
+ * Custom event class for key press events
+ * Used with the new React Native architecture event system
+ */
+class KeyPressEvent(
+    surfaceId: Int,
+    viewTag: Int,
+    private val eventData: WritableMap
+) : Event<KeyPressEvent>(surfaceId, viewTag) {
+    
+    override fun getEventName(): String = "onKeyPress"
+    
+    override fun getEventData(): WritableMap = eventData
 }

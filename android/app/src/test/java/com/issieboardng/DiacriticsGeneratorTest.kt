@@ -1,11 +1,10 @@
 package com.issieboardng
 
+import com.issieboardng.shared.*
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.*
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.Parameterized
 import java.io.File
 
 /**
@@ -309,7 +308,7 @@ class DiacriticsGeneratorTest {
     private fun verifyFixture(fixture: TestFixture) {
         val input = fixture.input
         
-        // Call the actual DiacriticsGenerator code
+        // Call the actual DiacriticsGenerator code from shared package
         val actualResults = DiacriticsGenerator.generateOptions(
             letter = input.letter,
             diacritics = input.diacritics,
@@ -354,124 +353,43 @@ class DiacriticsGeneratorTest {
     }
 }
 
-/**
- * DiacriticsGenerator - generates diacritic options at runtime.
- * This should match the implementation in KeyboardModels.kt or wherever it lives.
- */
-object DiacriticsGenerator {
-    
-    data class GeneratedOption(
-        val id: String,
-        val value: String,
-        val name: String
-    )
-    
-    /**
-     * Generate diacritic options for a specific letter
-     */
-    fun generateOptions(
-        letter: String,
-        diacritics: DiacriticsDefinition?,
-        settings: DiacriticsSettings?
-    ): List<GeneratedOption> {
-        if (diacritics == null) return emptyList()
-        
-        // Check if diacritics apply to this letter
-        if (!diacritics.appliesTo(letter)) {
-            return emptyList()
-        }
-        
-        val hidden = settings?.hidden ?: emptyList()
-        val result = mutableListOf<GeneratedOption>()
-        
-        for (item in diacritics.items) {
-            // Skip if hidden in settings
-            if (hidden.contains(item.id)) continue
-            
-            // Skip if not applicable to this letter (onlyFor check)
-            val onlyFor = item.onlyFor
-            if (onlyFor != null && !onlyFor.contains(letter)) continue
-            
-            // Skip if excluded for this letter
-            val excludeFor = item.excludeFor
-            if (excludeFor != null && excludeFor.contains(letter)) continue
-            
-            // Determine the output value
-            val value = if (item.isReplacement) item.mark else (letter + item.mark)
-            
-            result.add(GeneratedOption(
-                id = item.id,
-                value = value,
-                name = item.name
-            ))
-            
-            // Add modifier variants if applicable
-            for (modifier in diacritics.getAllModifiers()) {
-                // Skip if this modifier is disabled in settings
-                if (settings?.isModifierEnabled(modifier.id) == false) continue
-                
-                // Skip for replacements or plain items
-                if (item.isReplacement || item.id == "plain") continue
-                
-                // Check if modifier applies to this letter
-                if (!modifier.appliesTo(letter)) continue
-                
-                val modifierMark = modifier.mark
-                if (modifierMark != null) {
-                    // Simple toggle modifier: add mark
-                    val modifiedValue = letter + modifierMark + item.mark
-                    result.add(GeneratedOption(
-                        id = "${item.id}+${modifier.id}",
-                        value = modifiedValue,
-                        name = "${item.name} + ${modifier.name}"
-                    ))
-                }
-                // Note: Multi-option modifiers (shin/sin) are not generating combined variants
-                // in the current implementation - they're selected separately
-            }
-        }
-        
-        return result
-    }
-}
-
 // MARK: - ShiftState Tests
 
 class ShiftStateTest {
     
     @Test
     fun testInitialState() {
-        val state: ShiftState = ShiftState.Inactive
+        val state: ShiftState = ShiftState.INACTIVE
         assertFalse(state.isActive())
     }
     
     @Test
     fun testToggleFromInactive() {
-        val state: ShiftState = ShiftState.Inactive
+        val state: ShiftState = ShiftState.INACTIVE
         val newState = state.toggle()
         assertTrue(newState.isActive())
     }
     
     @Test
     fun testToggleFromActive() {
-        val state: ShiftState = ShiftState.Active
+        val state: ShiftState = ShiftState.ACTIVE
         val newState = state.toggle()
         assertFalse(newState.isActive())
     }
     
     @Test
     fun testToggleFromLocked() {
-        val state: ShiftState = ShiftState.Locked
+        val state: ShiftState = ShiftState.LOCKED
         val newState = state.toggle()
         assertFalse(newState.isActive())
     }
     
     @Test
     fun testLock() {
-        val state: ShiftState = ShiftState.Active
+        val state: ShiftState = ShiftState.ACTIVE
         val newState = state.lock()
         assertTrue(newState.isActive())
-        assertTrue(newState is ShiftState.Locked)
+        assertEquals(ShiftState.LOCKED, newState)
     }
 }
 

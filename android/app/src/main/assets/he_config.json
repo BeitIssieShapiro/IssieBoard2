@@ -4,148 +4,149 @@
   "wordSuggestionsEnabled": true,
   "groups": [],
   "keyboards": [
-    "ar"
+    "he"
   ],
-  "defaultKeyboard": "ar",
-  "keyboardLanguage": "ar",
+  "defaultKeyboard": "he",
+  "keyboardLanguage": "he",
   "diacritics": {
     "appliesTo": [
-      "ا",
-      "ب",
-      "ت",
-      "ث",
-      "ج",
-      "ح",
-      "خ",
-      "د",
-      "ذ",
-      "ر",
-      "ز",
-      "س",
-      "ش",
-      "ص",
-      "ض",
-      "ط",
-      "ظ",
-      "ع",
-      "غ",
-      "ف",
-      "ق",
-      "ك",
-      "ل",
-      "م",
-      "ن",
-      "ه",
-      "و",
-      "ي",
-      "ء",
-      "ؤ",
-      "ئ",
-      "ة",
-      "ى"
+      "א",
+      "ב",
+      "ג",
+      "ד",
+      "ה",
+      "ו",
+      "ז",
+      "ח",
+      "ט",
+      "י",
+      "כ",
+      "ך",
+      "ל",
+      "מ",
+      "ם",
+      "נ",
+      "ן",
+      "ס",
+      "ע",
+      "פ",
+      "ף",
+      "צ",
+      "ץ",
+      "ק",
+      "ר",
+      "ש",
+      "ת"
     ],
     "items": [
       {
         "id": "plain",
         "mark": "",
-        "name": "بدون"
+        "name": "ללא"
       },
       {
-        "id": "fatha",
-        "mark": "َ",
-        "name": "فَتحة"
+        "id": "kamatz",
+        "mark": "ָ",
+        "name": "קָמָץ"
       },
       {
-        "id": "kasra",
-        "mark": "ِ",
-        "name": "كَسرة"
+        "id": "patach",
+        "mark": "ַ",
+        "name": "פַּתָח"
       },
       {
-        "id": "damma",
-        "mark": "ُ",
-        "name": "ضَمّة"
+        "id": "segol",
+        "mark": "ֶ",
+        "name": "סֶגוֹל"
       },
       {
-        "id": "sukun",
-        "mark": "ْ",
-        "name": "سُكون",
-        "excludeFor": [
-          "ا",
-          "ء"
-        ]
+        "id": "tzere",
+        "mark": "ֵ",
+        "name": "צֵירֵי"
       },
       {
-        "id": "tanwinFath",
-        "mark": "ً",
-        "name": "تنوين فتح"
+        "id": "chirik",
+        "mark": "ִ",
+        "name": "חִירִיק"
       },
       {
-        "id": "tanwinKasr",
-        "mark": "ٍ",
-        "name": "تنوين كسر",
-        "excludeFor": [
-          "ة",
-          "ى"
-        ]
+        "id": "cholam",
+        "mark": "ֹ",
+        "name": "חוֹלָם"
       },
       {
-        "id": "tanwinDamm",
-        "mark": "ٌ",
-        "name": "تنوين ضم",
-        "excludeFor": [
-          "ة",
-          "ى"
-        ]
+        "id": "kubutz",
+        "mark": "ֻ",
+        "name": "קֻבּוּץ"
       },
       {
-        "id": "hamzaAbove",
-        "mark": "أ",
-        "name": "همزة فوق",
+        "id": "shva",
+        "mark": "ְ",
+        "name": "שְׁוָא"
+      },
+      {
+        "id": "cholamVav",
+        "mark": "וֹ",
+        "name": "חוֹלָם מָלֵא",
         "onlyFor": [
-          "ا"
+          "ו"
         ],
         "isReplacement": true
       },
       {
-        "id": "hamzaBelow",
-        "mark": "إ",
-        "name": "همزة تحت",
+        "id": "shuruk",
+        "mark": "וּ",
+        "name": "שׁוּרוּק",
         "onlyFor": [
-          "ا"
-        ],
-        "isReplacement": true
-      },
-      {
-        "id": "madda",
-        "mark": "آ",
-        "name": "مدّة",
-        "onlyFor": [
-          "ا"
-        ],
-        "isReplacement": true
-      },
-      {
-        "id": "wasla",
-        "mark": "ٱ",
-        "name": "وصلة",
-        "onlyFor": [
-          "ا"
+          "ו"
         ],
         "isReplacement": true
       }
     ],
-    "modifier": {
-      "id": "shadda",
-      "mark": "ّ",
-      "name": "شَدّة",
-      "excludeFor": [
-        "ا",
-        "ء",
-        "ؤ",
-        "ة",
-        "ى"
-      ]
-    }
+    "modifiers": [
+      {
+        "id": "dagesh",
+        "mark": "ּ",
+        "name": "דָּגֵשׁ",
+        "appliesTo": [
+          "ב",
+          "ג",
+          "ד",
+          "ז",
+          "כ",
+          "ך",
+          "ל",
+          "מ",
+          "נ",
+          "ס",
+          "פ",
+          "ף",
+          "צ",
+          "ק",
+          "ש",
+          "ת"
+        ]
+      },
+      {
+        "id": "shinSin",
+        "name": "שין/שׂין",
+        "appliesTo": [
+          "ש"
+        ],
+        "options": [
+          {
+            "id": "shin",
+            "mark": "ׁ",
+            "name": "שִׁין"
+          },
+          {
+            "id": "sin",
+            "mark": "ׂ",
+            "name": "שׂין"
+          }
+        ]
+      }
+    ]
   },
   "keysets": [
     {
@@ -154,97 +155,32 @@
         {
           "keys": [
             {
-              "value": "ض"
+              "width": 0.5,
+              "hidden": true
             },
             {
-              "value": "ص"
+              "value": "ק"
             },
             {
-              "value": "ث"
+              "value": "ר"
             },
             {
-              "value": "ق"
+              "value": "א"
             },
             {
-              "value": "ف"
+              "value": "ט"
             },
             {
-              "value": "غ"
+              "value": "ו"
             },
             {
-              "value": "ع"
+              "value": "ן"
             },
             {
-              "value": "ه"
+              "value": "ם"
             },
             {
-              "value": "خ"
-            },
-            {
-              "value": "ح"
-            }
-          ]
-        },
-        {
-          "keys": [
-            {
-              "hidden": true,
-              "width": 0.5
-            },
-            {
-              "value": "ش"
-            },
-            {
-              "value": "س"
-            },
-            {
-              "value": "ي"
-            },
-            {
-              "value": "ب"
-            },
-            {
-              "value": "ل"
-            },
-            {
-              "value": "ا"
-            },
-            {
-              "value": "ت"
-            },
-            {
-              "value": "ن"
-            },
-            {
-              "value": "م"
-            }
-          ]
-        },
-        {
-          "keys": [
-            {
-              "value": "ء"
-            },
-            {
-              "value": "ؤ"
-            },
-            {
-              "value": "ر"
-            },
-            {
-              "value": "ى"
-            },
-            {
-              "value": "ة"
-            },
-            {
-              "value": "و"
-            },
-            {
-              "value": "ز"
-            },
-            {
-              "value": "ظ"
+              "value": "פ"
             },
             {
               "type": "backspace",
@@ -256,31 +192,99 @@
         {
           "keys": [
             {
-              "type": "next-keyboard",
-              "width": 0.5
+              "value": "ש"
+            },
+            {
+              "value": "ד"
+            },
+            {
+              "value": "ג"
+            },
+            {
+              "value": "כ"
+            },
+            {
+              "value": "ע"
+            },
+            {
+              "value": "י"
+            },
+            {
+              "value": "ח"
+            },
+            {
+              "value": "ל"
+            },
+            {
+              "value": "ך"
+            },
+            {
+              "value": "ף"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "width": 0.5,
+              "hidden": true
+            },
+            {
+              "value": "ז"
+            },
+            {
+              "value": "ס"
+            },
+            {
+              "value": "ב"
+            },
+            {
+              "value": "ה"
+            },
+            {
+              "value": "נ"
+            },
+            {
+              "value": "מ"
+            },
+            {
+              "value": "צ"
+            },
+            {
+              "value": "ת"
+            },
+            {
+              "value": "ץ"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "type": "next-keyboard"
             },
             {
               "type": "keyset",
               "keysetValue": "123",
               "returnKeysetValue": "abc",
               "label": "123",
-              "returnKeysetLabel": "أبج",
+              "returnKeysetLabel": "אבג",
               "width": 1.5
             },
             {
-              "caption": "مسافة",
-              "value": " ",
-              "width": 4
+              "type": "settings"
             },
             {
-              "value": ".",
-              "sValue": "،"
+              "caption": "רווח",
+              "value": " ",
+              "width": 5
             },
             {
               "type": "nikkud"
             },
             {
-              "type": "enter"
+              "type": "enter",
+              "width": 1.5
             }
           ]
         }
@@ -346,7 +350,7 @@
               "value": "("
             },
             {
-              "value": "$"
+              "value": "₪"
             },
             {
               "value": "&"
@@ -376,7 +380,7 @@
               "value": ","
             },
             {
-              "value": "؟"
+              "value": "?"
             },
             {
               "value": "!"
@@ -393,31 +397,30 @@
         {
           "keys": [
             {
-              "type": "next-keyboard",
-              "width": 0.5
+              "type": "next-keyboard"
             },
             {
               "type": "keyset",
               "keysetValue": "abc",
               "returnKeysetValue": "123",
-              "label": "أبج",
+              "label": "אבג",
               "returnKeysetLabel": "123",
               "width": 1.5
             },
             {
-              "caption": "مسافة",
-              "value": " ",
-              "width": 4
+              "type": "settings"
             },
             {
-              "value": ".",
-              "sValue": "،"
+              "caption": "רווח",
+              "value": " ",
+              "width": 5
             },
             {
               "type": "nikkud"
             },
             {
-              "type": "enter"
+              "type": "enter",
+              "width": 1.5
             }
           ]
         }
@@ -509,17 +512,13 @@
               "width": 1.5
             },
             {
-              "hidden": true,
-              "width": 0.25
-            },
-            {
               "value": "."
             },
             {
               "value": ","
             },
             {
-              "value": "؟"
+              "value": "?"
             },
             {
               "value": "!"
@@ -536,31 +535,30 @@
         {
           "keys": [
             {
-              "type": "next-keyboard",
-              "width": 0.5
+              "type": "next-keyboard"
             },
             {
               "type": "keyset",
               "keysetValue": "abc",
               "returnKeysetValue": "#+=",
-              "label": "أبج",
+              "label": "אבג",
               "returnKeysetLabel": "123",
               "width": 1.5
             },
             {
-              "caption": "مسافة",
-              "value": " ",
-              "width": 4
+              "type": "settings"
             },
             {
-              "value": ".",
-              "sValue": "،"
+              "caption": "רווח",
+              "value": " ",
+              "width": 5
             },
             {
               "type": "nikkud"
             },
             {
-              "type": "enter"
+              "type": "enter",
+              "width": 1.5
             }
           ]
         }

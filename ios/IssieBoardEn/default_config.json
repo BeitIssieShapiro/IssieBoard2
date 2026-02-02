@@ -391,6 +391,10 @@
               "width": 1.5
             },
             {
+              "hidden": true,
+              "width": 0.25
+            },
+            {
               "value": "."
             },
             {

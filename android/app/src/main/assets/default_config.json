@@ -1,204 +1,1559 @@
 {
-  "backgroundColor": "#E0E0E0",
-  "defaultKeyset": "abc",
-  "keyboards": ["en"],
-  "defaultKeyboard": "en",
+  "backgroundColor": "default",
+  "defaultKeyset": "he_abc",
   "wordSuggestionsEnabled": true,
+  "keyboards": [
+    "he",
+    "en",
+    "ar"
+  ],
+  "defaultKeyboard": "he",
   "keysets": [
     {
-      "id": "abc",
+      "id": "he_abc",
       "rows": [
         {
           "keys": [
-            { "type": "settings" },
-            { "type": "backspace", "width": 1.5 },
-            { "type": "enter" },
-            { "type": "close" }
+            {
+              "width": 0.5,
+              "hidden": true
+            },
+            {
+              "value": "ק"
+            },
+            {
+              "value": "ר"
+            },
+            {
+              "value": "א"
+            },
+            {
+              "value": "ט"
+            },
+            {
+              "value": "ו"
+            },
+            {
+              "value": "ן"
+            },
+            {
+              "value": "ם"
+            },
+            {
+              "value": "פ"
+            },
+            {
+              "type": "backspace",
+              "width": 1.5,
+              "alwaysInclude": true
+            }
           ]
         },
         {
           "keys": [
-            { "value": "q", "sValue": "Q" },
-            { "value": "w", "sValue": "W" },
-            { "value": "e", "sValue": "E" },
-            { "value": "r", "sValue": "R" },
-            { "value": "t", "sValue": "T" },
-            { "value": "y", "sValue": "Y" },
-            { "value": "u", "sValue": "U" },
-            { "value": "i", "sValue": "I" },
-            { "value": "o", "sValue": "O" },
-            { "value": "p", "sValue": "P" }
+            {
+              "value": "ש"
+            },
+            {
+              "value": "ד"
+            },
+            {
+              "value": "ג"
+            },
+            {
+              "value": "כ"
+            },
+            {
+              "value": "ע"
+            },
+            {
+              "value": "י"
+            },
+            {
+              "value": "ח"
+            },
+            {
+              "value": "ל"
+            },
+            {
+              "value": "ך"
+            },
+            {
+              "value": "ף"
+            }
           ]
         },
         {
           "keys": [
-            { "hidden": true, "width": 0.5 },
-            { "value": "a", "sValue": "A" },
-            { "value": "s", "sValue": "S" },
-            { "value": "d", "sValue": "D" },
-            { "value": "f", "sValue": "F" },
-            { "value": "g", "sValue": "G" },
-            { "value": "h", "sValue": "H" },
-            { "value": "j", "sValue": "J" },
-            { "value": "k", "sValue": "K" },
-            { "value": "l", "sValue": "L" }
+            {
+              "width": 0.5,
+              "hidden": true
+            },
+            {
+              "value": "ז"
+            },
+            {
+              "value": "ס"
+            },
+            {
+              "value": "ב"
+            },
+            {
+              "value": "ה"
+            },
+            {
+              "value": "נ"
+            },
+            {
+              "value": "מ"
+            },
+            {
+              "value": "צ"
+            },
+            {
+              "value": "ת"
+            },
+            {
+              "value": "ץ"
+            }
           ]
         },
         {
           "keys": [
-            { "type": "shift", "width": 1.5 },
-            { "value": "z", "sValue": "Z" },
-            { "value": "x", "sValue": "X" },
-            { "value": "c", "sValue": "C" },
-            { "value": "v", "sValue": "V" },
-            { "value": "b", "sValue": "B" },
-            { "value": "n", "sValue": "N" },
-            { "value": "m", "sValue": "M" },
-            { "type": "backspace", "width": 1.5 }
-          ]
-        },
-        {
-          "keys": [
-            { "type": "keyset", "keysetValue": "123", "label": "123", "width": 1.5 },
-            { "type": "next-keyboard", "width": 1 },
-            { "caption": "SPACE", "value": " ", "type": "space", "width": 4 },
-            { "value": ".", "sValue": "," },
-            { "type": "enter", "width": 1.5 }
+            {
+              "type": "next-keyboard"
+            },
+            {
+              "type": "keyset",
+              "keysetValue": "he_123",
+              "returnKeysetValue": "he_abc",
+              "label": "123",
+              "returnKeysetLabel": "אבג",
+              "width": 1.5
+            },
+            {
+              "type": "settings"
+            },
+            {
+              "caption": "רווח",
+              "value": " ",
+              "width": 5
+            },
+            {
+              "type": "nikkud"
+            },
+            {
+              "type": "enter",
+              "width": 1.5
+            }
           ]
         }
       ]
     },
     {
-      "id": "123",
+      "id": "he_123",
       "rows": [
         {
           "keys": [
-            { "type": "settings" },
-            { "type": "backspace", "width": 1.5 },
-            { "type": "enter" },
-            { "type": "close" }
+            {
+              "value": "1"
+            },
+            {
+              "value": "2"
+            },
+            {
+              "value": "3"
+            },
+            {
+              "value": "4"
+            },
+            {
+              "value": "5"
+            },
+            {
+              "value": "6"
+            },
+            {
+              "value": "7"
+            },
+            {
+              "value": "8"
+            },
+            {
+              "value": "9"
+            },
+            {
+              "value": "0"
+            }
           ]
         },
         {
           "keys": [
-            { "value": "1" },
-            { "value": "2" },
-            { "value": "3" },
-            { "value": "4" },
-            { "value": "5" },
-            { "value": "6" },
-            { "value": "7" },
-            { "value": "8" },
-            { "value": "9" },
-            { "value": "0" }
+            {
+              "value": "-"
+            },
+            {
+              "value": "/"
+            },
+            {
+              "value": ":"
+            },
+            {
+              "value": ";"
+            },
+            {
+              "caption": "(",
+              "value": ")"
+            },
+            {
+              "caption": ")",
+              "value": "("
+            },
+            {
+              "value": "₪"
+            },
+            {
+              "value": "&"
+            },
+            {
+              "value": "@"
+            },
+            {
+              "value": "\""
+            }
           ]
         },
         {
           "keys": [
-            { "value": "-" },
-            { "value": "/" },
-            { "value": ":" },
-            { "value": ";" },
-            { "value": "(" },
-            { "value": ")" },
-            { "value": "$" },
-            { "value": "&" },
-            { "value": "@" },
-            { "value": "\"" }
+            {
+              "type": "keyset",
+              "keysetValue": "he_#+=",
+              "returnKeysetValue": "he_123",
+              "label": "#+=",
+              "returnKeysetLabel": "123",
+              "width": 1.5
+            },
+            {
+              "value": "."
+            },
+            {
+              "value": ","
+            },
+            {
+              "value": "?"
+            },
+            {
+              "value": "!"
+            },
+            {
+              "value": "'"
+            },
+            {
+              "type": "backspace",
+              "width": 1.5
+            }
           ]
         },
         {
           "keys": [
-            { "type": "keyset", "keysetValue": "#+=", "label": "#+=", "width": 1.5 },
-            { "value": "." },
-            { "value": "," },
-            { "value": "?" },
-            { "value": "!" },
-            { "value": "'" },
-            { "type": "backspace", "width": 2.5 }
-          ]
-        },
-        {
-          "keys": [
-            { "type": "keyset", "keysetValue": "abc", "label": "ABC", "width": 1.5 },
-            { "type": "next-keyboard", "width": 1 },
-            { "caption": "SPACE", "value": " ", "type": "space", "width": 4 },
-            { "value": "." },
-            { "type": "enter", "width": 1.5 }
+            {
+              "type": "next-keyboard"
+            },
+            {
+              "type": "keyset",
+              "keysetValue": "he_abc",
+              "returnKeysetValue": "he_123",
+              "label": "אבג",
+              "returnKeysetLabel": "123",
+              "width": 1.5
+            },
+            {
+              "type": "settings"
+            },
+            {
+              "caption": "רווח",
+              "value": " ",
+              "width": 5
+            },
+            {
+              "type": "nikkud"
+            },
+            {
+              "type": "enter",
+              "width": 1.5
+            }
           ]
         }
       ]
     },
     {
-      "id": "#+=",
+      "id": "he_#+=",
       "rows": [
         {
           "keys": [
-            { "type": "settings" },
-            { "type": "backspace", "width": 1.5 },
-            { "type": "enter" },
-            { "type": "close" }
+            {
+              "caption": "[",
+              "value": "]"
+            },
+            {
+              "caption": "]",
+              "value": "["
+            },
+            {
+              "caption": "{",
+              "value": "}"
+            },
+            {
+              "caption": "}",
+              "value": "{"
+            },
+            {
+              "value": "#"
+            },
+            {
+              "value": "%"
+            },
+            {
+              "value": "^"
+            },
+            {
+              "value": "*"
+            },
+            {
+              "value": "+"
+            },
+            {
+              "value": "="
+            }
           ]
         },
         {
           "keys": [
-            { "value": "[" },
-            { "value": "]" },
-            { "value": "{" },
-            { "value": "}" },
-            { "value": "#" },
-            { "value": "%" },
-            { "value": "^" },
-            { "value": "*" },
-            { "value": "+" },
-            { "value": "=" }
+            {
+              "value": "_"
+            },
+            {
+              "value": "\\"
+            },
+            {
+              "value": "|"
+            },
+            {
+              "value": "~"
+            },
+            {
+              "value": "<"
+            },
+            {
+              "value": ">"
+            },
+            {
+              "value": "€"
+            },
+            {
+              "value": "£"
+            },
+            {
+              "value": "¥"
+            },
+            {
+              "value": "•"
+            }
           ]
         },
         {
           "keys": [
-            { "value": "_" },
-            { "value": "\\" },
-            { "value": "|" },
-            { "value": "~" },
-            { "value": "<" },
-            { "value": ">" },
-            { "value": "€" },
-            { "value": "£" },
-            { "value": "¥" },
-            { "value": "•" }
+            {
+              "type": "keyset",
+              "keysetValue": "he_123",
+              "returnKeysetValue": "he_#+=",
+              "label": "123",
+              "returnKeysetLabel": "#+=",
+              "width": 1.5
+            },
+            {
+              "value": "."
+            },
+            {
+              "value": ","
+            },
+            {
+              "value": "?"
+            },
+            {
+              "value": "!"
+            },
+            {
+              "value": "'"
+            },
+            {
+              "type": "backspace",
+              "width": 1.5
+            }
           ]
         },
         {
           "keys": [
-            { "type": "keyset", "keysetValue": "123", "label": "123", "width": 1.5 },
-            { "value": "." },
-            { "value": "," },
-            { "value": "?" },
-            { "value": "!" },
-            { "value": "'" },
-            { "type": "backspace", "width": 2.5 }
+            {
+              "type": "next-keyboard"
+            },
+            {
+              "type": "keyset",
+              "keysetValue": "he_abc",
+              "returnKeysetValue": "he_#+=",
+              "label": "אבג",
+              "returnKeysetLabel": "123",
+              "width": 1.5
+            },
+            {
+              "type": "settings"
+            },
+            {
+              "caption": "רווח",
+              "value": " ",
+              "width": 5
+            },
+            {
+              "type": "nikkud"
+            },
+            {
+              "type": "enter",
+              "width": 1.5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "en_abc",
+      "rows": [
+        {
+          "keys": [
+            {
+              "value": "q",
+              "sValue": "Q"
+            },
+            {
+              "value": "w",
+              "sValue": "W"
+            },
+            {
+              "value": "e",
+              "sValue": "E"
+            },
+            {
+              "value": "r",
+              "sValue": "R"
+            },
+            {
+              "value": "t",
+              "sValue": "T"
+            },
+            {
+              "value": "y",
+              "sValue": "Y"
+            },
+            {
+              "value": "u",
+              "sValue": "U"
+            },
+            {
+              "value": "i",
+              "sValue": "I"
+            },
+            {
+              "value": "o",
+              "sValue": "O"
+            },
+            {
+              "value": "p",
+              "sValue": "P"
+            }
           ]
         },
         {
           "keys": [
-            { "type": "keyset", "keysetValue": "abc", "label": "ABC", "width": 1.5 },
-            { "type": "next-keyboard", "width": 1 },
-            { "caption": "SPACE", "value": " ", "type": "space", "width": 4 },
-            { "value": "." },
-            { "type": "enter", "width": 1.5 }
+            {
+              "hidden": true,
+              "width": 0.5
+            },
+            {
+              "value": "a",
+              "sValue": "A"
+            },
+            {
+              "value": "s",
+              "sValue": "S"
+            },
+            {
+              "value": "d",
+              "sValue": "D"
+            },
+            {
+              "value": "f",
+              "sValue": "F"
+            },
+            {
+              "value": "g",
+              "sValue": "G"
+            },
+            {
+              "value": "h",
+              "sValue": "H"
+            },
+            {
+              "value": "j",
+              "sValue": "J"
+            },
+            {
+              "value": "k",
+              "sValue": "K"
+            },
+            {
+              "value": "l",
+              "sValue": "L"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "type": "shift",
+              "width": 1.5
+            },
+            {
+              "value": "z",
+              "sValue": "Z"
+            },
+            {
+              "value": "x",
+              "sValue": "X"
+            },
+            {
+              "value": "c",
+              "sValue": "C"
+            },
+            {
+              "value": "v",
+              "sValue": "V"
+            },
+            {
+              "value": "b",
+              "sValue": "B"
+            },
+            {
+              "value": "n",
+              "sValue": "N"
+            },
+            {
+              "value": "m",
+              "sValue": "M"
+            },
+            {
+              "type": "backspace",
+              "width": 1.5,
+              "alwaysInclude": true
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "type": "keyset",
+              "keysetValue": "en_123",
+              "returnKeysetValue": "en_abc",
+              "label": "123",
+              "returnKeysetLabel": "ABC",
+              "width": 1.5
+            },
+            {
+              "type": "settings"
+            },
+            {
+              "type": "next-keyboard",
+              "width": 1
+            },
+            {
+              "caption": "SPACE",
+              "value": " ",
+              "width": 4
+            },
+            {
+              "value": ".",
+              "sValue": ","
+            },
+            {
+              "type": "enter"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "en_123",
+      "rows": [
+        {
+          "keys": [
+            {
+              "value": "1"
+            },
+            {
+              "value": "2"
+            },
+            {
+              "value": "3"
+            },
+            {
+              "value": "4"
+            },
+            {
+              "value": "5"
+            },
+            {
+              "value": "6"
+            },
+            {
+              "value": "7"
+            },
+            {
+              "value": "8"
+            },
+            {
+              "value": "9"
+            },
+            {
+              "value": "0"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "-"
+            },
+            {
+              "value": "/"
+            },
+            {
+              "value": ":"
+            },
+            {
+              "value": ";"
+            },
+            {
+              "value": "("
+            },
+            {
+              "value": ")"
+            },
+            {
+              "value": "$"
+            },
+            {
+              "value": "&"
+            },
+            {
+              "value": "@"
+            },
+            {
+              "value": "\""
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "type": "keyset",
+              "keysetValue": "en_#+=",
+              "returnKeysetValue": "en_123",
+              "label": "#+=",
+              "returnKeysetLabel": "123",
+              "width": 1.5
+            },
+            {
+              "value": "."
+            },
+            {
+              "value": ","
+            },
+            {
+              "value": "?"
+            },
+            {
+              "value": "!"
+            },
+            {
+              "value": "'"
+            },
+            {
+              "type": "backspace",
+              "width": 1.5
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "type": "keyset",
+              "keysetValue": "en_abc",
+              "returnKeysetValue": "en_123",
+              "label": "ABC",
+              "returnKeysetLabel": "123",
+              "width": 1.5
+            },
+            {
+              "type": "settings"
+            },
+            {
+              "type": "next-keyboard",
+              "width": 1
+            },
+            {
+              "caption": "SPACE",
+              "value": " ",
+              "width": 4
+            },
+            {
+              "value": ".",
+              "sValue": ","
+            },
+            {
+              "type": "enter"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "en_#+=",
+      "rows": [
+        {
+          "keys": [
+            {
+              "value": "["
+            },
+            {
+              "value": "]"
+            },
+            {
+              "value": "{"
+            },
+            {
+              "value": "}"
+            },
+            {
+              "value": "#"
+            },
+            {
+              "value": "%"
+            },
+            {
+              "value": "^"
+            },
+            {
+              "value": "*"
+            },
+            {
+              "value": "+"
+            },
+            {
+              "value": "="
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "_"
+            },
+            {
+              "value": "\\"
+            },
+            {
+              "value": "|"
+            },
+            {
+              "value": "~"
+            },
+            {
+              "value": "<"
+            },
+            {
+              "value": ">"
+            },
+            {
+              "value": "€"
+            },
+            {
+              "value": "£"
+            },
+            {
+              "value": "¥"
+            },
+            {
+              "value": "•"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "type": "keyset",
+              "keysetValue": "en_123",
+              "returnKeysetValue": "en_#+=",
+              "label": "123",
+              "returnKeysetLabel": "#+=",
+              "width": 1.5
+            },
+            {
+              "value": "."
+            },
+            {
+              "value": ","
+            },
+            {
+              "value": "?"
+            },
+            {
+              "value": "!"
+            },
+            {
+              "value": "'"
+            },
+            {
+              "type": "backspace",
+              "width": 1.5
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "type": "keyset",
+              "keysetValue": "en_abc",
+              "returnKeysetValue": "en_#+=",
+              "label": "ABC",
+              "returnKeysetLabel": "123",
+              "width": 1.5
+            },
+            {
+              "type": "settings"
+            },
+            {
+              "type": "next-keyboard",
+              "width": 1
+            },
+            {
+              "caption": "SPACE",
+              "value": " ",
+              "width": 4
+            },
+            {
+              "value": ".",
+              "sValue": ","
+            },
+            {
+              "type": "enter"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ar_abc",
+      "rows": [
+        {
+          "keys": [
+            {
+              "value": "ض"
+            },
+            {
+              "value": "ص"
+            },
+            {
+              "value": "ث"
+            },
+            {
+              "value": "ق"
+            },
+            {
+              "value": "ف"
+            },
+            {
+              "value": "غ"
+            },
+            {
+              "value": "ع"
+            },
+            {
+              "value": "ه"
+            },
+            {
+              "value": "خ"
+            },
+            {
+              "value": "ح"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "hidden": true,
+              "width": 0.5
+            },
+            {
+              "value": "ش"
+            },
+            {
+              "value": "س"
+            },
+            {
+              "value": "ي"
+            },
+            {
+              "value": "ب"
+            },
+            {
+              "value": "ل"
+            },
+            {
+              "value": "ا"
+            },
+            {
+              "value": "ت"
+            },
+            {
+              "value": "ن"
+            },
+            {
+              "value": "م"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "ء"
+            },
+            {
+              "value": "ؤ"
+            },
+            {
+              "value": "ر"
+            },
+            {
+              "value": "ى"
+            },
+            {
+              "value": "ة"
+            },
+            {
+              "value": "و"
+            },
+            {
+              "value": "ز"
+            },
+            {
+              "value": "ظ"
+            },
+            {
+              "type": "backspace",
+              "width": 1.5,
+              "alwaysInclude": true
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "type": "next-keyboard",
+              "width": 0.5
+            },
+            {
+              "type": "keyset",
+              "keysetValue": "ar_123",
+              "returnKeysetValue": "ar_abc",
+              "label": "123",
+              "returnKeysetLabel": "أبج",
+              "width": 1.5
+            },
+            {
+              "caption": "مسافة",
+              "value": " ",
+              "width": 4
+            },
+            {
+              "value": ".",
+              "sValue": "،"
+            },
+            {
+              "type": "nikkud"
+            },
+            {
+              "type": "enter"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ar_123",
+      "rows": [
+        {
+          "keys": [
+            {
+              "value": "1"
+            },
+            {
+              "value": "2"
+            },
+            {
+              "value": "3"
+            },
+            {
+              "value": "4"
+            },
+            {
+              "value": "5"
+            },
+            {
+              "value": "6"
+            },
+            {
+              "value": "7"
+            },
+            {
+              "value": "8"
+            },
+            {
+              "value": "9"
+            },
+            {
+              "value": "0"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "-"
+            },
+            {
+              "value": "/"
+            },
+            {
+              "value": ":"
+            },
+            {
+              "value": ";"
+            },
+            {
+              "caption": "(",
+              "value": ")"
+            },
+            {
+              "caption": ")",
+              "value": "("
+            },
+            {
+              "value": "$"
+            },
+            {
+              "value": "&"
+            },
+            {
+              "value": "@"
+            },
+            {
+              "value": "\""
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "type": "keyset",
+              "keysetValue": "ar_#+=",
+              "returnKeysetValue": "ar_123",
+              "label": "#+=",
+              "returnKeysetLabel": "123",
+              "width": 1.5
+            },
+            {
+              "value": "."
+            },
+            {
+              "value": ","
+            },
+            {
+              "value": "؟"
+            },
+            {
+              "value": "!"
+            },
+            {
+              "value": "'"
+            },
+            {
+              "type": "backspace",
+              "width": 1.5
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "type": "next-keyboard",
+              "width": 0.5
+            },
+            {
+              "type": "keyset",
+              "keysetValue": "ar_abc",
+              "returnKeysetValue": "ar_123",
+              "label": "أبج",
+              "returnKeysetLabel": "123",
+              "width": 1.5
+            },
+            {
+              "caption": "مسافة",
+              "value": " ",
+              "width": 4
+            },
+            {
+              "value": ".",
+              "sValue": "،"
+            },
+            {
+              "type": "nikkud"
+            },
+            {
+              "type": "enter"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ar_#+=",
+      "rows": [
+        {
+          "keys": [
+            {
+              "caption": "[",
+              "value": "]"
+            },
+            {
+              "caption": "]",
+              "value": "["
+            },
+            {
+              "caption": "{",
+              "value": "}"
+            },
+            {
+              "caption": "}",
+              "value": "{"
+            },
+            {
+              "value": "#"
+            },
+            {
+              "value": "%"
+            },
+            {
+              "value": "^"
+            },
+            {
+              "value": "*"
+            },
+            {
+              "value": "+"
+            },
+            {
+              "value": "="
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "_"
+            },
+            {
+              "value": "\\"
+            },
+            {
+              "value": "|"
+            },
+            {
+              "value": "~"
+            },
+            {
+              "value": "<"
+            },
+            {
+              "value": ">"
+            },
+            {
+              "value": "€"
+            },
+            {
+              "value": "£"
+            },
+            {
+              "value": "¥"
+            },
+            {
+              "value": "•"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "type": "keyset",
+              "keysetValue": "ar_123",
+              "returnKeysetValue": "ar_#+=",
+              "label": "123",
+              "returnKeysetLabel": "#+=",
+              "width": 1.5
+            },
+            {
+              "value": "."
+            },
+            {
+              "value": ","
+            },
+            {
+              "value": "؟"
+            },
+            {
+              "value": "!"
+            },
+            {
+              "value": "'"
+            },
+            {
+              "type": "backspace",
+              "width": 1.5
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "type": "next-keyboard",
+              "width": 0.5
+            },
+            {
+              "type": "keyset",
+              "keysetValue": "ar_abc",
+              "returnKeysetValue": "ar_#+=",
+              "label": "أبج",
+              "returnKeysetLabel": "123",
+              "width": 1.5
+            },
+            {
+              "caption": "مسافة",
+              "value": " ",
+              "width": 4
+            },
+            {
+              "value": ".",
+              "sValue": "،"
+            },
+            {
+              "type": "nikkud"
+            },
+            {
+              "type": "enter"
+            }
           ]
         }
       ]
     }
   ],
-  "groups": [
-    {
-      "items": ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"],
-      "template": { "color": "#000000", "bgColor": "#FFFFFF" }
+  "groups": [],
+  "allDiacritics": {
+    "he": {
+      "appliesTo": [
+        "א",
+        "ב",
+        "ג",
+        "ד",
+        "ה",
+        "ו",
+        "ז",
+        "ח",
+        "ט",
+        "י",
+        "כ",
+        "ך",
+        "ל",
+        "מ",
+        "ם",
+        "נ",
+        "ן",
+        "ס",
+        "ע",
+        "פ",
+        "ף",
+        "צ",
+        "ץ",
+        "ק",
+        "ר",
+        "ש",
+        "ת"
+      ],
+      "items": [
+        {
+          "id": "plain",
+          "mark": "",
+          "name": "ללא"
+        },
+        {
+          "id": "kamatz",
+          "mark": "ָ",
+          "name": "קָמָץ"
+        },
+        {
+          "id": "patach",
+          "mark": "ַ",
+          "name": "פַּתָח"
+        },
+        {
+          "id": "segol",
+          "mark": "ֶ",
+          "name": "סֶגוֹל"
+        },
+        {
+          "id": "tzere",
+          "mark": "ֵ",
+          "name": "צֵירֵי"
+        },
+        {
+          "id": "chirik",
+          "mark": "ִ",
+          "name": "חִירִיק"
+        },
+        {
+          "id": "cholam",
+          "mark": "ֹ",
+          "name": "חוֹלָם"
+        },
+        {
+          "id": "kubutz",
+          "mark": "ֻ",
+          "name": "קֻבּוּץ"
+        },
+        {
+          "id": "shva",
+          "mark": "ְ",
+          "name": "שְׁוָא"
+        },
+        {
+          "id": "cholamVav",
+          "mark": "וֹ",
+          "name": "חוֹלָם מָלֵא",
+          "onlyFor": [
+            "ו"
+          ],
+          "isReplacement": true
+        },
+        {
+          "id": "shuruk",
+          "mark": "וּ",
+          "name": "שׁוּרוּק",
+          "onlyFor": [
+            "ו"
+          ],
+          "isReplacement": true
+        }
+      ],
+      "modifiers": [
+        {
+          "id": "dagesh",
+          "mark": "ּ",
+          "name": "דָּגֵשׁ",
+          "appliesTo": [
+            "ב",
+            "ג",
+            "ד",
+            "ז",
+            "כ",
+            "ך",
+            "ל",
+            "מ",
+            "נ",
+            "ס",
+            "פ",
+            "ף",
+            "צ",
+            "ק",
+            "ש",
+            "ת"
+          ]
+        },
+        {
+          "id": "shinSin",
+          "name": "שין/שׂין",
+          "appliesTo": [
+            "ש"
+          ],
+          "options": [
+            {
+              "id": "shin",
+              "mark": "ׁ",
+              "name": "שִׁין"
+            },
+            {
+              "id": "sin",
+              "mark": "ׂ",
+              "name": "שׂין"
+            }
+          ]
+        }
+      ]
     },
-    {
-      "items": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
-      "template": { "color": "#000000", "bgColor": "#E8E8E8" }
+    "ar": {
+      "appliesTo": [
+        "ا",
+        "ب",
+        "ت",
+        "ث",
+        "ج",
+        "ح",
+        "خ",
+        "د",
+        "ذ",
+        "ر",
+        "ز",
+        "س",
+        "ش",
+        "ص",
+        "ض",
+        "ط",
+        "ظ",
+        "ع",
+        "غ",
+        "ف",
+        "ق",
+        "ك",
+        "ل",
+        "م",
+        "ن",
+        "ه",
+        "و",
+        "ي",
+        "ء",
+        "ؤ",
+        "ئ",
+        "ة",
+        "ى"
+      ],
+      "items": [
+        {
+          "id": "plain",
+          "mark": "",
+          "name": "بدون"
+        },
+        {
+          "id": "fatha",
+          "mark": "َ",
+          "name": "فَتحة"
+        },
+        {
+          "id": "kasra",
+          "mark": "ِ",
+          "name": "كَسرة"
+        },
+        {
+          "id": "damma",
+          "mark": "ُ",
+          "name": "ضَمّة"
+        },
+        {
+          "id": "sukun",
+          "mark": "ْ",
+          "name": "سُكون",
+          "excludeFor": [
+            "ا",
+            "ء"
+          ]
+        },
+        {
+          "id": "tanwinFath",
+          "mark": "ً",
+          "name": "تنوين فتح"
+        },
+        {
+          "id": "tanwinKasr",
+          "mark": "ٍ",
+          "name": "تنوين كسر",
+          "excludeFor": [
+            "ة",
+            "ى"
+          ]
+        },
+        {
+          "id": "tanwinDamm",
+          "mark": "ٌ",
+          "name": "تنوين ضم",
+          "excludeFor": [
+            "ة",
+            "ى"
+          ]
+        },
+        {
+          "id": "hamzaAbove",
+          "mark": "أ",
+          "name": "همزة فوق",
+          "onlyFor": [
+            "ا"
+          ],
+          "isReplacement": true
+        },
+        {
+          "id": "hamzaBelow",
+          "mark": "إ",
+          "name": "همزة تحت",
+          "onlyFor": [
+            "ا"
+          ],
+          "isReplacement": true
+        },
+        {
+          "id": "madda",
+          "mark": "آ",
+          "name": "مدّة",
+          "onlyFor": [
+            "ا"
+          ],
+          "isReplacement": true
+        },
+        {
+          "id": "wasla",
+          "mark": "ٱ",
+          "name": "وصلة",
+          "onlyFor": [
+            "ا"
+          ],
+          "isReplacement": true
+        }
+      ],
+      "modifier": {
+        "id": "shadda",
+        "mark": "ّ",
+        "name": "شَدّة",
+        "excludeFor": [
+          "ا",
+          "ء",
+          "ؤ",
+          "ة",
+          "ى"
+        ]
+      }
     }
-  ]
+  }
 }

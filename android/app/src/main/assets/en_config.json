@@ -4,149 +4,10 @@
   "wordSuggestionsEnabled": true,
   "groups": [],
   "keyboards": [
-    "ar"
+    "en"
   ],
-  "defaultKeyboard": "ar",
-  "keyboardLanguage": "ar",
-  "diacritics": {
-    "appliesTo": [
-      "ا",
-      "ب",
-      "ت",
-      "ث",
-      "ج",
-      "ح",
-      "خ",
-      "د",
-      "ذ",
-      "ر",
-      "ز",
-      "س",
-      "ش",
-      "ص",
-      "ض",
-      "ط",
-      "ظ",
-      "ع",
-      "غ",
-      "ف",
-      "ق",
-      "ك",
-      "ل",
-      "م",
-      "ن",
-      "ه",
-      "و",
-      "ي",
-      "ء",
-      "ؤ",
-      "ئ",
-      "ة",
-      "ى"
-    ],
-    "items": [
-      {
-        "id": "plain",
-        "mark": "",
-        "name": "بدون"
-      },
-      {
-        "id": "fatha",
-        "mark": "َ",
-        "name": "فَتحة"
-      },
-      {
-        "id": "kasra",
-        "mark": "ِ",
-        "name": "كَسرة"
-      },
-      {
-        "id": "damma",
-        "mark": "ُ",
-        "name": "ضَمّة"
-      },
-      {
-        "id": "sukun",
-        "mark": "ْ",
-        "name": "سُكون",
-        "excludeFor": [
-          "ا",
-          "ء"
-        ]
-      },
-      {
-        "id": "tanwinFath",
-        "mark": "ً",
-        "name": "تنوين فتح"
-      },
-      {
-        "id": "tanwinKasr",
-        "mark": "ٍ",
-        "name": "تنوين كسر",
-        "excludeFor": [
-          "ة",
-          "ى"
-        ]
-      },
-      {
-        "id": "tanwinDamm",
-        "mark": "ٌ",
-        "name": "تنوين ضم",
-        "excludeFor": [
-          "ة",
-          "ى"
-        ]
-      },
-      {
-        "id": "hamzaAbove",
-        "mark": "أ",
-        "name": "همزة فوق",
-        "onlyFor": [
-          "ا"
-        ],
-        "isReplacement": true
-      },
-      {
-        "id": "hamzaBelow",
-        "mark": "إ",
-        "name": "همزة تحت",
-        "onlyFor": [
-          "ا"
-        ],
-        "isReplacement": true
-      },
-      {
-        "id": "madda",
-        "mark": "آ",
-        "name": "مدّة",
-        "onlyFor": [
-          "ا"
-        ],
-        "isReplacement": true
-      },
-      {
-        "id": "wasla",
-        "mark": "ٱ",
-        "name": "وصلة",
-        "onlyFor": [
-          "ا"
-        ],
-        "isReplacement": true
-      }
-    ],
-    "modifier": {
-      "id": "shadda",
-      "mark": "ّ",
-      "name": "شَدّة",
-      "excludeFor": [
-        "ا",
-        "ء",
-        "ؤ",
-        "ة",
-        "ى"
-      ]
-    }
-  },
+  "defaultKeyboard": "en",
+  "keyboardLanguage": "en",
   "keysets": [
     {
       "id": "abc",
@@ -154,34 +15,44 @@
         {
           "keys": [
             {
-              "value": "ض"
+              "value": "q",
+              "sValue": "Q"
             },
             {
-              "value": "ص"
+              "value": "w",
+              "sValue": "W"
             },
             {
-              "value": "ث"
+              "value": "e",
+              "sValue": "E"
             },
             {
-              "value": "ق"
+              "value": "r",
+              "sValue": "R"
             },
             {
-              "value": "ف"
+              "value": "t",
+              "sValue": "T"
             },
             {
-              "value": "غ"
+              "value": "y",
+              "sValue": "Y"
             },
             {
-              "value": "ع"
+              "value": "u",
+              "sValue": "U"
             },
             {
-              "value": "ه"
+              "value": "i",
+              "sValue": "I"
             },
             {
-              "value": "خ"
+              "value": "o",
+              "sValue": "O"
             },
             {
-              "value": "ح"
+              "value": "p",
+              "sValue": "P"
             }
           ]
         },
@@ -192,59 +63,76 @@
               "width": 0.5
             },
             {
-              "value": "ش"
+              "value": "a",
+              "sValue": "A"
             },
             {
-              "value": "س"
+              "value": "s",
+              "sValue": "S"
             },
             {
-              "value": "ي"
+              "value": "d",
+              "sValue": "D"
             },
             {
-              "value": "ب"
+              "value": "f",
+              "sValue": "F"
             },
             {
-              "value": "ل"
+              "value": "g",
+              "sValue": "G"
             },
             {
-              "value": "ا"
+              "value": "h",
+              "sValue": "H"
             },
             {
-              "value": "ت"
+              "value": "j",
+              "sValue": "J"
             },
             {
-              "value": "ن"
+              "value": "k",
+              "sValue": "K"
             },
             {
-              "value": "م"
+              "value": "l",
+              "sValue": "L"
             }
           ]
         },
         {
           "keys": [
             {
-              "value": "ء"
+              "type": "shift",
+              "width": 1.5
             },
             {
-              "value": "ؤ"
+              "value": "z",
+              "sValue": "Z"
             },
             {
-              "value": "ر"
+              "value": "x",
+              "sValue": "X"
             },
             {
-              "value": "ى"
+              "value": "c",
+              "sValue": "C"
             },
             {
-              "value": "ة"
+              "value": "v",
+              "sValue": "V"
             },
             {
-              "value": "و"
+              "value": "b",
+              "sValue": "B"
             },
             {
-              "value": "ز"
+              "value": "n",
+              "sValue": "N"
             },
             {
-              "value": "ظ"
+              "value": "m",
+              "sValue": "M"
             },
             {
               "type": "backspace",
@@ -256,28 +144,28 @@
         {
           "keys": [
             {
-              "type": "next-keyboard",
-              "width": 0.5
-            },
-            {
               "type": "keyset",
               "keysetValue": "123",
               "returnKeysetValue": "abc",
               "label": "123",
-              "returnKeysetLabel": "أبج",
+              "returnKeysetLabel": "ABC",
               "width": 1.5
             },
             {
-              "caption": "مسافة",
+              "type": "settings"
+            },
+            {
+              "type": "next-keyboard",
+              "width": 1
+            },
+            {
+              "caption": "SPACE",
               "value": " ",
               "width": 4
             },
             {
               "value": ".",
-              "sValue": "،"
-            },
-            {
-              "type": "nikkud"
+              "sValue": ","
             },
             {
               "type": "enter"
@@ -338,12 +226,10 @@
               "value": ";"
             },
             {
-              "caption": "(",
-              "value": ")"
+              "value": "("
             },
             {
-              "caption": ")",
-              "value": "("
+              "value": ")"
             },
             {
               "value": "$"
@@ -376,7 +262,7 @@
               "value": ","
             },
             {
-              "value": "؟"
+              "value": "?"
             },
             {
               "value": "!"
@@ -393,28 +279,28 @@
         {
           "keys": [
             {
-              "type": "next-keyboard",
-              "width": 0.5
-            },
-            {
               "type": "keyset",
               "keysetValue": "abc",
               "returnKeysetValue": "123",
-              "label": "أبج",
+              "label": "ABC",
               "returnKeysetLabel": "123",
               "width": 1.5
             },
             {
-              "caption": "مسافة",
+              "type": "settings"
+            },
+            {
+              "type": "next-keyboard",
+              "width": 1
+            },
+            {
+              "caption": "SPACE",
               "value": " ",
               "width": 4
             },
             {
               "value": ".",
-              "sValue": "،"
-            },
-            {
-              "type": "nikkud"
+              "sValue": ","
             },
             {
               "type": "enter"
@@ -429,20 +315,16 @@
         {
           "keys": [
             {
-              "caption": "[",
-              "value": "]"
-            },
-            {
-              "caption": "]",
               "value": "["
             },
             {
-              "caption": "{",
-              "value": "}"
+              "value": "]"
             },
             {
-              "caption": "}",
               "value": "{"
+            },
+            {
+              "value": "}"
             },
             {
               "value": "#"
@@ -509,17 +391,13 @@
               "width": 1.5
             },
             {
-              "hidden": true,
-              "width": 0.25
-            },
-            {
               "value": "."
             },
             {
               "value": ","
             },
             {
-              "value": "؟"
+              "value": "?"
             },
             {
               "value": "!"
@@ -536,28 +414,28 @@
         {
           "keys": [
             {
-              "type": "next-keyboard",
-              "width": 0.5
-            },
-            {
               "type": "keyset",
               "keysetValue": "abc",
               "returnKeysetValue": "#+=",
-              "label": "أبج",
+              "label": "ABC",
               "returnKeysetLabel": "123",
               "width": 1.5
             },
             {
-              "caption": "مسافة",
+              "type": "settings"
+            },
+            {
+              "type": "next-keyboard",
+              "width": 1
+            },
+            {
+              "caption": "SPACE",
               "value": " ",
               "width": 4
             },
             {
               "value": ".",
-              "sValue": "،"
-            },
-            {
-              "type": "nikkud"
+              "sValue": ","
             },
             {
               "type": "enter"

@@ -104,6 +104,7 @@ module.exports = {
         {
           keys: [
             { type: "keyset", keysetValue: "123", returnKeysetValue: "#+=", label: "123", returnKeysetLabel: "#+=", width: 1.5 },
+            { hidden: true, width: 0.25 },
             { value: "." },
             { value: "," },
             { value: "?", forLanguages: ["he", "en"] },
