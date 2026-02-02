@@ -1,43 +1,5 @@
 import UIKit
 
-
-/**
- * Custom overlay view that intercepts all touches
- */
-class TouchInterceptingOverlay: UIView {
-    var onTapOutside: (() -> Void)?
-    
-    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        let result = super.hitTest(point, with: event)
-        // If the hit is on the overlay itself (not a subview), return self to capture the touch
-        if result == self {
-            return self
-        }
-        return result
-    }
-    
-    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        // Check if touch is outside the picker (on the dimmed area)
-        if let touch = touches.first {
-            let location = touch.location(in: self)
-            
-            // Check if touch is on the overlay background (not on picker)
-            var hitPicker = false
-            for subview in subviews {
-                if subview.frame.contains(location) {
-                    hitPicker = true
-                    break
-                }
-            }
-            
-            if !hitPicker {
-                print("🎯 Touch outside picker, dismissing")
-                onTapOutside?()
-            }
-        }
-    }
-}
-
 /**
  * Self-contained keyboard renderer that manages all keyboard logic internally.
  * Used for both the in-app preview and the actual keyboard extension.
@@ -97,13 +59,6 @@ class KeyboardRenderer {
     // Current keyboard ID for diacritics lookup
     private var currentKeyboardId: String?
     
-    // Modifier toggle states for nikkud picker
-    // Key: modifier ID, Value: selected option ID (nil = off, empty string = on for simple toggle, option ID for multi-option)
-    private var modifierStates: [String: String?] = [:]
-    
-    // Current letter being edited in nikkud picker (for modifier toggle refresh)
-    private var currentNikkudLetter: String = ""
-    
     // Shift double-click detection
     private var lastShiftClickTime: TimeInterval = 0
     private let doubleClickThreshold: TimeInterval = 0.5
@@ -134,28 +89,83 @@ class KeyboardRenderer {
     // Suggestions bar view reference for updates
     private weak var suggestionsBar: UIView?
     
-    // MARK: - Long Press Backspace
+    // MARK: - Modular Helper Classes
     
-    // Backspace long-press state
-    private var backspaceTimer: Timer?
-    private var backspacePressStartTime: Date?
-    private var backspaceDeleteCount: Int = 0
-    private var lastBackspaceDeleteTime: Date?
+    /// Handles long-press backspace logic
+    private let backspaceHandler = BackspaceHandler()
     
-    // Long-press timing constants
-    private let charDeleteStartDelay: TimeInterval = 0.5    // Start deleting after 0.5 seconds (was 2.0)
-    private let wordDeleteStartDelay: TimeInterval = 3.0    // Switch to word delete after 3 seconds (was 6.0)
-    private let initialDeleteInterval: TimeInterval = 0.2   // Initial delete interval (200ms)
-    private let minDeleteInterval: TimeInterval = 0.05      // Minimum delete interval (50ms)
-    private let deleteSpeedupFactor: Double = 0.9           // Speed up factor per delete
+    /// Manages the suggestions bar UI
+    private let suggestionsBarView = SuggestionsBarView()
     
-    // Current delete interval (decreases as user holds longer)
-    private var currentDeleteInterval: TimeInterval = 0.2
+    /// Manages the nikkud picker popup
+    private let nikkudPickerController = NikkudPickerController()
     
     // MARK: - Initialization
     
     init() {
-        print("🎨 KeyboardRenderer created")
+        debugLog("🎨 KeyboardRenderer created")
+        setupHelperCallbacks()
+    }
+    
+    /// Wire up callbacks for helper classes
+    private func setupHelperCallbacks() {
+        // BackspaceHandler callbacks
+        backspaceHandler.onDeleteCharacter = { [weak self] in
+            self?.performBackspaceDeleteViaCallback()
+        }
+        backspaceHandler.onDeleteWord = { [weak self] in
+            self?.performWordDeleteViaCallback()
+        }
+        
+        // SuggestionsBarView callbacks
+        suggestionsBarView.onSuggestionSelected = { [weak self] suggestion in
+            self?.onSuggestionSelected?(suggestion)
+        }
+        
+        // NikkudPickerController callbacks
+        nikkudPickerController.onNikkudSelected = { [weak self] value in
+            self?.onNikkudSelected?(value)
+        }
+        nikkudPickerController.onDismiss = { [weak self] in
+            self?.rerender()
+        }
+    }
+    
+    /// Internal delete character (called by backspace handler)
+    private func performBackspaceDeleteViaCallback() {
+        if let onDeleteCharacter = onDeleteCharacter {
+            onDeleteCharacter()
+        } else {
+            // Create a backspace key and emit through onKeyPress
+            let backspaceKey = Key(
+                value: "",
+                sValue: nil,
+                caption: nil,
+                sCaption: nil,
+                type: "backspace",
+                width: nil,
+                offset: nil,
+                hidden: nil,
+                color: nil,
+                bgColor: nil,
+                label: nil,
+                keysetValue: nil,
+                returnKeysetValue: nil,
+                returnKeysetLabel: nil,
+                nikkud: nil
+            )
+            let parsedKey = ParsedKey(from: backspaceKey, groups: [:], defaultTextColor: .black, defaultBgColor: .white)
+            onKeyPress?(parsedKey)
+        }
+    }
+    
+    /// Internal delete word (called by backspace handler)
+    private func performWordDeleteViaCallback() {
+        if let onDeleteWord = onDeleteWord {
+            onDeleteWord()
+        } else {
+            performBackspaceDeleteViaCallback()
+        }
     }
     
     // MARK: - Public Methods
@@ -333,12 +343,14 @@ class KeyboardRenderer {
         
         // Create suggestions bar at the top only if enabled
         if wordSuggestionsEnabled {
-            let bar = createSuggestionsBar(width: container.bounds.width)
+            // Use the modular SuggestionsBarView helper
+            suggestionsBarView.currentKeyboardId = currentKeyboardId
+            let bar = suggestionsBarView.createBar(width: container.bounds.width)
             container.addSubview(bar)
             suggestionsBar = bar
             
             // Update suggestions bar with current suggestions
-            updateSuggestionsBar()
+            suggestionsBarView.updateSuggestions(currentSuggestions, highlightIndex: suggestionHighlightIndex)
             
             topOffset = suggestionsBarHeight + 4
         } else {
@@ -698,171 +710,24 @@ class KeyboardRenderer {
         return button
     }
     
-    // MARK: - Backspace Touch Handling
-    
-    // Track if backspace was held long enough to start continuous delete
-    private var backspaceStartedContinuousDelete: Bool = false
-    
-    // Reference to the backspace button for long press
-    private weak var backspaceButton: UIButton?
+    // MARK: - Backspace Touch Handling (delegates to BackspaceHandler)
     
     /// Called when backspace button is touched down
     @objc private func backspaceTouchDown(_ sender: UIButton) {
-        print("⌫ Backspace touch DOWN - button: \(sender)")
-        
-        // Store reference
-        backspaceButton = sender
-        
-        // Record the start time BEFORE anything else
-        let startTime = Date()
-        
-        // Reset counters
-        backspaceDeleteCount = 0
-        currentDeleteInterval = initialDeleteInterval
-        lastBackspaceDeleteTime = nil
-        backspaceStartedContinuousDelete = false
-        
-        // Perform initial delete immediately
-        performBackspaceDelete()
-        
-        // Set the start time AFTER performBackspaceDelete to avoid it being cleared
-        backspacePressStartTime = startTime
-        print("⌫ Start time set to: \(startTime)")
-        
-        // Start the timer for long-press detection and continuous deletion
-        startBackspaceTimer()
+        debugLog("⌫ Backspace touch DOWN")
+        backspaceHandler.handleTouchDown()
     }
     
     /// Called when backspace button is released
     @objc private func backspaceTouchUp(_ sender: UIButton) {
-        print("⌫ Backspace touch UP - stopping timer")
-        stopBackspaceTimer()
+        debugLog("⌫ Backspace touch UP")
+        backspaceHandler.handleTouchUp()
     }
     
     /// Called when backspace button touch is cancelled
     @objc private func backspaceTouchCancelled(_ sender: UIButton) {
-        print("⌫ Backspace touch CANCELLED - stopping timer")
-        stopBackspaceTimer()
-    }
-    
-    /// Start the backspace long-press timer
-    private func startBackspaceTimer() {
-        // Just invalidate any existing timer, don't clear other state
-        backspaceTimer?.invalidate()
-        backspaceTimer = nil
-        
-        // Create timer and add to common run loop modes for keyboard extension compatibility
-        let timer = Timer(timeInterval: 0.05, repeats: true) { [weak self] _ in
-            self?.handleBackspaceTimerTick()
-        }
-        // Add to common modes to ensure it fires during tracking (touch events)
-        RunLoop.main.add(timer, forMode: .common)
-        backspaceTimer = timer
-        
-        print("⌫ Timer started and added to run loop")
-    }
-    
-    /// Stop the backspace timer and clear all state
-    private func stopBackspaceTimer() {
-        backspaceTimer?.invalidate()
-        backspaceTimer = nil
-        backspacePressStartTime = nil
-        lastBackspaceDeleteTime = nil
-        backspaceDeleteCount = 0
-        currentDeleteInterval = initialDeleteInterval
-    }
-    
-    /// Handle each tick of the backspace timer
-    private func handleBackspaceTimerTick() {
-        guard let startTime = backspacePressStartTime else {
-            print("⌫ Timer tick: No start time, stopping")
-            stopBackspaceTimer()
-            return
-        }
-        
-        let now = Date()
-        let elapsed = now.timeIntervalSince(startTime)
-        
-        // Only start deleting after the initial delay (0.5 seconds)
-        guard elapsed >= charDeleteStartDelay else {
-            // Log occasionally to show timer is running
-            if Int(elapsed * 10) % 5 == 0 {
-                print("⌫ Timer tick: waiting... elapsed=\(String(format: "%.2f", elapsed))s, need \(charDeleteStartDelay)s")
-            }
-            return
-        }
-        
-        // Check if enough time has passed since the last delete
-        let timeSinceLastDelete: TimeInterval
-        if let lastDelete = lastBackspaceDeleteTime {
-            timeSinceLastDelete = now.timeIntervalSince(lastDelete)
-        } else {
-            // First delete after the 2-second delay
-            timeSinceLastDelete = currentDeleteInterval  // Force immediate first delete
-        }
-        
-        // If we've waited long enough, perform a delete
-        if timeSinceLastDelete >= currentDeleteInterval {
-            lastBackspaceDeleteTime = now
-            performBackspaceAction(elapsed: elapsed)
-        }
-    }
-    
-    /// Perform the appropriate backspace action based on elapsed time
-    private func performBackspaceAction(elapsed: TimeInterval) {
-        if elapsed >= wordDeleteStartDelay {
-            // After 6 seconds: delete whole words
-            print("⌫ Deleting WORD (elapsed: \(String(format: "%.1f", elapsed))s)")
-            performWordDelete()
-        } else {
-            // Between 2-6 seconds: delete characters at increasing speed
-            print("⌫ Deleting CHAR (elapsed: \(String(format: "%.1f", elapsed))s, interval: \(String(format: "%.3f", currentDeleteInterval))s)")
-            performBackspaceDelete()
-        }
-        
-        // Increase speed (decrease interval) after each delete
-        backspaceDeleteCount += 1
-        currentDeleteInterval = max(minDeleteInterval, currentDeleteInterval * deleteSpeedupFactor)
-    }
-    
-    /// Delete a single character
-    private func performBackspaceDelete() {
-        // Use the onDeleteCharacter callback if available, otherwise fall back to onKeyPress
-        if let onDeleteCharacter = onDeleteCharacter {
-            onDeleteCharacter()
-        } else {
-            // Create a backspace key and emit through onKeyPress
-            let backspaceKey = Key(
-                value: "",
-                sValue: nil,
-                caption: nil,
-                sCaption: nil,
-                type: "backspace",
-                width: nil,
-                offset: nil,
-                hidden: nil,
-                color: nil,
-                bgColor: nil,
-                label: nil,
-                keysetValue: nil,
-                returnKeysetValue: nil,
-                returnKeysetLabel: nil,
-                nikkud: nil
-            )
-            let parsedKey = ParsedKey(from: backspaceKey, groups: [:], defaultTextColor: .black, defaultBgColor: .white)
-            onKeyPress?(parsedKey)
-        }
-    }
-    
-    /// Delete an entire word
-    private func performWordDelete() {
-        // Use the onDeleteWord callback if available
-        if let onDeleteWord = onDeleteWord {
-            onDeleteWord()
-        } else {
-            // Fall back to character delete
-            performBackspaceDelete()
-        }
+        debugLog("⌫ Backspace touch CANCELLED")
+        backspaceHandler.handleTouchCancelled()
     }
     
     private func getDefaultLabel(
@@ -1134,685 +999,58 @@ class KeyboardRenderer {
         ])
     }
     
-    // MARK: - Diacritics Generation
+    // MARK: - Nikkud Picker (delegates to NikkudPickerController)
     
-    /// Check if diacritics popup should be shown for this key
-    /// Returns true if:
-    /// 1. The key has explicit nikkud options, OR
-    /// 2. The key's character is in the diacritics appliesTo list for the current keyboard
+    /// Check if diacritics popup should be shown for this key (delegates to NikkudPickerController)
     private func shouldShowDiacriticsPopup(for key: ParsedKey) -> Bool {
-        // If the key has explicit nikkud options, always show popup
-        if !key.nikkud.isEmpty {
-            print("   → shouldShowDiacriticsPopup: YES (explicit nikkud)")
-            return true
-        }
-        
-        // Check if the character is in the appliesTo list
-        guard let config = config,
-              let diacritics = config.getDiacritics(for: currentKeyboardId) else {
-            print("   → shouldShowDiacriticsPopup: NO (no diacritics definition)")
-            return false
-        }
-        
-        let applies = diacritics.appliesTo(character: key.value)
-        print("   → shouldShowDiacriticsPopup: \(applies ? "YES" : "NO") (character '\(key.value)' \(applies ? "is" : "is NOT") in appliesTo)")
-        return applies
+        // Configure the picker with current state
+        nikkudPickerController.configure(config: config, keyboardId: currentKeyboardId, container: container)
+        return nikkudPickerController.shouldShowDiacriticsPopup(for: key)
     }
     
-    /// Get diacritics for a key, using explicit nikkud if present, otherwise generating from diacritics definition
+    /// Get diacritics for a key (delegates to NikkudPickerController)
     private func getDiacriticsForKey(_ key: ParsedKey) -> [NikkudOption] {
-        print("🔍 getDiacriticsForKey: value='\(key.value)', explicit nikkud=\(key.nikkud.count)")
-        
-        // If the key has explicit nikkud options, use them (backward compatibility)
-        if !key.nikkud.isEmpty {
-            print("   → Using explicit nikkud (\(key.nikkud.count) options)")
-            return key.nikkud
-        }
-        
-        // Try to generate diacritics from the keyboard's diacritics definition
-        guard let config = config else {
-            print("   → No config available!")
-            return []
-        }
-        
-        // Get diacritics for the current keyboard (uses allDiacritics or falls back to legacy diacritics)
-        let diacritics = config.getDiacritics(for: currentKeyboardId)
-        print("   → Config available, diacritics for '\(currentKeyboardId ?? "nil")': \(diacritics != nil ? "YES" : "NO")")
-        
-        guard let diacritics = diacritics else {
-            print("   → No diacritics definition for this keyboard")
-            return []
-        }
-        
-        print("   → Diacritics definition found with \(diacritics.items.count) items")
-        
-        // Get settings for the current keyboard (if available)
-        let settings = config.diacriticsSettings?[currentKeyboardId ?? ""] ?? nil
-        
-        // Generate diacritics using the DiacriticsGenerator
-        let generated = DiacriticsGenerator.getDiacritics(
-            for: key,
-            diacritics: diacritics,
-            settings: settings
-        )
-        print("   → Generated \(generated.count) diacritics options")
-        return generated
+        nikkudPickerController.configure(config: config, keyboardId: currentKeyboardId, container: container)
+        return nikkudPickerController.getDiacriticsForKey(key)
     }
     
-    // MARK: - Nikkud Picker
-    
-    /// Show nikkud picker for a letter, with modifier toggle if applicable
+    /// Show nikkud picker for a key (delegates to NikkudPickerController)
     private func showNikkudPicker(_ nikkudOptions: [NikkudOption], anchorView: UIView) {
-        print("📋 showNikkudPicker called with \(nikkudOptions.count) options")
-        
-        // Get the letter from the first option (for modifier toggle refresh)
-        if let firstOption = nikkudOptions.first {
-            // Extract the base letter from the first option's value
-            if let firstChar = firstOption.value.first {
-                currentNikkudLetter = String(firstChar)
-                print("   Current letter set to: '\(currentNikkudLetter)'")
-            }
-        }
-        
-        // Check if we should use the diacritics system (with modifier toggle)
-        // We use the diacritics system if:
-        // 1. We have a diacritics config available for the current keyboard
-        // 2. We have a valid current letter
-        if config?.getDiacritics(for: currentKeyboardId) != nil && !currentNikkudLetter.isEmpty {
-            print("   Using diacritics system with modifier toggle")
-            showNikkudPickerInternal(forLetter: currentNikkudLetter, anchorView: anchorView)
-        } else if !nikkudOptions.isEmpty {
-            // Fallback to explicit options (backward compatibility)
-            print("   Using explicit nikkud options (backward compatibility)")
-            showNikkudPickerWithOptions(nikkudOptions, anchorView: anchorView)
-        }
-    }
-    
-    /// Show nikkud picker with explicit options (backward compatibility)
-    private func showNikkudPickerWithOptions(_ nikkudOptions: [NikkudOption], anchorView: UIView) {
-        print("🎯 Showing nikkud picker with \(nikkudOptions.count) explicit options")
-        
-        guard let container = container else {
-            print("❌ No container available for nikkud picker")
-            return
-        }
-        
-        // Remove existing overlay if any
-        container.subviews.filter { $0.tag == 999 }.forEach { $0.removeFromSuperview() }
-        
-        // Create overlay
-        let overlay = TouchInterceptingOverlay()
-        overlay.backgroundColor = UIColor.black.withAlphaComponent(0.3)
-        overlay.tag = 999
-        overlay.translatesAutoresizingMaskIntoConstraints = false
-        overlay.layer.zPosition = 9999
-        overlay.isUserInteractionEnabled = true
-        
-        overlay.onTapOutside = { [weak self] in
-            self?.dismissNikkudPicker()
-        }
-        
-        container.addSubview(overlay)
-        container.bringSubviewToFront(overlay)
-        overlay.frame = container.bounds
-        
-        NSLayoutConstraint.activate([
-            overlay.leftAnchor.constraint(equalTo: container.leftAnchor),
-            overlay.rightAnchor.constraint(equalTo: container.rightAnchor),
-            overlay.topAnchor.constraint(equalTo: container.topAnchor),
-            overlay.bottomAnchor.constraint(equalTo: container.bottomAnchor)
-        ])
-        
-        // Layout constants
-        let buttonSize: CGFloat = 50
-        let spacing: CGFloat = 10
-        let padding: CGFloat = 16
-        let maxAvailableWidth = container.bounds.width * 0.85
-        let itemsPerRow = min(6, max(3, nikkudOptions.count))
-        let totalSpacing = spacing * CGFloat(itemsPerRow - 1) + 2 * padding
-        let calculatedButtonSize = (maxAvailableWidth - totalSpacing) / CGFloat(itemsPerRow)
-        let finalButtonSize = min(buttonSize, calculatedButtonSize)
-        
-        // Create picker container
-        let picker = UIView()
-        picker.backgroundColor = UIColor.systemGray6
-        picker.layer.cornerRadius = 16
-        picker.layer.shadowColor = UIColor.black.cgColor
-        picker.layer.shadowOffset = CGSize(width: 0, height: 4)
-        picker.layer.shadowOpacity = 0.3
-        picker.layer.shadowRadius = 8
-        
-        let flexContainer = UIView()
-        picker.addSubview(flexContainer)
-        
-        var rows: [[UIButton]] = [[]]
-        
-        for (index, option) in nikkudOptions.enumerated() {
-            let value = option.value
-            let caption = option.caption ?? value
-            
-            if index > 0 && index % itemsPerRow == 0 {
-                rows.append([])
-            }
-            
-            let button = UIButton(type: .system)
-            button.setTitle(caption, for: .normal)
-            button.titleLabel?.font = UIFont.systemFont(ofSize: 24)
-            button.titleLabel?.adjustsFontSizeToFitWidth = true
-            button.titleLabel?.minimumScaleFactor = 0.5
-            // Use systemBackground for dark mode support
-            button.backgroundColor = UIColor.systemBackground
-            button.setTitleColor(.label, for: .normal)
-            button.layer.cornerRadius = 8
-            button.layer.borderWidth = 1
-            button.layer.borderColor = UIColor.systemGray4.cgColor
-            button.contentEdgeInsets = UIEdgeInsets(top: 4, left: 4, bottom: 4, right: 4)
-            button.addTarget(self, action: #selector(nikkudOptionTapped(_:)), for: .touchUpInside)
-            button.accessibilityIdentifier = value
-            
-            rows[rows.count - 1].append(button)
-        }
-        
-        var currentY: CGFloat = 0
-        var maxRowWidth: CGFloat = 0
-        
-        for row in rows {
-            let rowWidth = CGFloat(row.count) * finalButtonSize + CGFloat(row.count - 1) * spacing
-            maxRowWidth = max(maxRowWidth, rowWidth)
-            
-            for (index, button) in row.enumerated() {
-                let reversedIndex = row.count - 1 - index
-                let x = CGFloat(reversedIndex) * (finalButtonSize + spacing)
-                button.frame = CGRect(x: x, y: currentY, width: finalButtonSize, height: finalButtonSize)
-                flexContainer.addSubview(button)
-            }
-            
-            currentY += finalButtonSize + spacing
-        }
-        
-        let buttonsHeight = currentY - spacing
-        let containerWidth = maxRowWidth
-        
-        flexContainer.frame = CGRect(x: padding, y: padding, width: containerWidth, height: buttonsHeight)
-        
-        let totalHeight = buttonsHeight + 2 * padding
-        
-        overlay.addSubview(picker)
-        picker.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            picker.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
-            picker.centerYAnchor.constraint(equalTo: overlay.centerYAnchor),
-            picker.widthAnchor.constraint(equalToConstant: containerWidth + 2 * padding),
-            picker.heightAnchor.constraint(equalToConstant: totalHeight)
-        ])
-        
-        print("✅ Nikkud picker displayed with \(nikkudOptions.count) explicit options")
-    }
-    
-    /// Internal method to show nikkud picker with modifier support
-    private func showNikkudPickerInternal(forLetter letter: String, anchorView: UIView) {
-        print("🎯 Showing nikkud picker for letter '\(letter)', modifiers: \(modifierStates)")
-        
-        guard let container = container else {
-            print("❌ No container available for nikkud picker")
-            return
-        }
-        
-        // Remove existing overlay if any
-        container.subviews.filter { $0.tag == 999 }.forEach { $0.removeFromSuperview() }
-        
-        // Check if modifier is available for this letter
-        let hasModifier = checkIfModifierApplies(to: letter)
-        
-        // Generate options - for now, pass the hasModifier flag
-        // TODO: Update to use modifierStates for each modifier
-        let anyModifierActive = !modifierStates.isEmpty && modifierStates.values.contains(where: { $0 != nil })
-        let nikkudOptions = generateNikkudOptions(forLetter: letter, withModifier: anyModifierActive && hasModifier)
-        
-        print("   Container bounds: \(container.bounds)")
-        print("   Has modifier: \(hasModifier)")
-        print("   Options count: \(nikkudOptions.count)")
-        
-        // Create overlay background - use custom touch-intercepting view
-        let overlay = TouchInterceptingOverlay()
-        overlay.backgroundColor = UIColor.black.withAlphaComponent(0.3)
-        overlay.tag = 999
-        overlay.translatesAutoresizingMaskIntoConstraints = false
-        
-        // Set high z-position for React Native compatibility
-        overlay.layer.zPosition = 9999
-        overlay.isUserInteractionEnabled = true
-        
-        // Set callback for tap outside
-        overlay.onTapOutside = { [weak self] in
-            self?.dismissNikkudPicker()
-        }
-        
-        container.addSubview(overlay)
-        container.bringSubviewToFront(overlay)
-        overlay.frame = container.bounds
-        
-        NSLayoutConstraint.activate([
-            overlay.leftAnchor.constraint(equalTo: container.leftAnchor),
-            overlay.rightAnchor.constraint(equalTo: container.rightAnchor),
-            overlay.topAnchor.constraint(equalTo: container.topAnchor),
-            overlay.bottomAnchor.constraint(equalTo: container.bottomAnchor)
-        ])
-        
-        // Layout constants
-        let buttonSize: CGFloat = 50
-        let spacing: CGFloat = 10
-        let padding: CGFloat = 16
-        let topPadding: CGFloat = 40  // Extra top padding for close button
-        let toggleHeight: CGFloat = hasModifier ? 44 : 0
-        let toggleSpacing: CGFloat = hasModifier ? 12 : 0
-        
-        // Calculate available width (85% of container width)
-        let maxAvailableWidth = container.bounds.width * 0.85
-        
-        // Calculate items per row (aim for 5-6 per row)
-        let itemsPerRow = min(6, max(3, nikkudOptions.count))
-        
-        // Calculate button size based on available width
-        let totalSpacing = spacing * CGFloat(itemsPerRow - 1) + 2 * padding
-        let calculatedButtonSize = (maxAvailableWidth - totalSpacing) / CGFloat(itemsPerRow)
-        let finalButtonSize = min(buttonSize, calculatedButtonSize)
-        
-        // Create picker container
-        let picker = UIView()
-        picker.backgroundColor = UIColor.systemGray6
-        picker.layer.cornerRadius = 16
-        picker.layer.shadowColor = UIColor.black.cgColor
-        picker.layer.shadowOffset = CGSize(width: 0, height: 4)
-        picker.layer.shadowOpacity = 0.3
-        picker.layer.shadowRadius = 8
-        
-        // Create flex container for buttons
-        let flexContainer = UIView()
-        picker.addSubview(flexContainer)
-        
-        // Create buttons in rows
-        var rows: [[UIButton]] = [[]]
-        
-        for (index, option) in nikkudOptions.enumerated() {
-            let value = option.value
-            let caption = option.caption ?? value
-            
-            if index > 0 && index % itemsPerRow == 0 {
-                rows.append([])
-            }
-            
-            let button = UIButton(type: .system)
-            button.setTitle(caption, for: .normal)
-            button.titleLabel?.font = UIFont.systemFont(ofSize: 24)
-            button.titleLabel?.adjustsFontSizeToFitWidth = true
-            button.titleLabel?.minimumScaleFactor = 0.5
-            // Use systemBackground for dark mode support
-            button.backgroundColor = UIColor.systemBackground
-            button.setTitleColor(.label, for: .normal)
-            button.layer.cornerRadius = 8
-            button.layer.borderWidth = 1
-            button.layer.borderColor = UIColor.systemGray4.cgColor
-            button.contentEdgeInsets = UIEdgeInsets(top: 4, left: 4, bottom: 4, right: 4)
-            button.addTarget(self, action: #selector(nikkudOptionTapped(_:)), for: .touchUpInside)
-            button.accessibilityIdentifier = value
-            
-            rows[rows.count - 1].append(button)
-        }
-        
-        // Position buttons RTL
-        var currentY: CGFloat = 0
-        var maxRowWidth: CGFloat = 0
-        
-        for row in rows {
-            let rowWidth = CGFloat(row.count) * finalButtonSize + CGFloat(row.count - 1) * spacing
-            maxRowWidth = max(maxRowWidth, rowWidth)
-            
-            for (index, button) in row.enumerated() {
-                let reversedIndex = row.count - 1 - index
-                let x = CGFloat(reversedIndex) * (finalButtonSize + spacing)
-                button.frame = CGRect(x: x, y: currentY, width: finalButtonSize, height: finalButtonSize)
-                flexContainer.addSubview(button)
-            }
-            
-            currentY += finalButtonSize + spacing
-        }
-        
-        let buttonsHeight = currentY - spacing
-        let containerWidth = maxRowWidth
-        
-        // Add close button (X) in top-right corner - positioned above the keys
-        let closeButtonSize: CGFloat = 30
-        let closeButton = UIButton(type: .system)
-        closeButton.setTitle("✕", for: .normal)
-        closeButton.titleLabel?.font = UIFont.systemFont(ofSize: 18, weight: .medium)
-        closeButton.setTitleColor(.systemGray, for: .normal)
-        closeButton.addTarget(self, action: #selector(dismissNikkudPicker), for: .touchUpInside)
-        picker.addSubview(closeButton)
-        closeButton.frame = CGRect(x: containerWidth + 2 * padding - closeButtonSize - 8, y: 6, width: closeButtonSize, height: closeButtonSize)
-        
-        flexContainer.frame = CGRect(x: padding, y: topPadding, width: containerWidth, height: buttonsHeight)
-        
-        // Add modifier row if applicable - all modifiers on same row
-        var totalHeight = buttonsHeight + topPadding + padding
-        let modifierY: CGFloat = buttonsHeight + toggleSpacing
-        
-        // Modifier button constants - smaller key-sized buttons
-        let modifierButtonSize: CGFloat = finalButtonSize * 0.85  // Slightly smaller than vowel keys
-        let modifierButtonSpacing: CGFloat = 6
-        let groupPadding: CGFloat = 8
-        
-        if hasModifier {
-            let applicableModifiers = getModifiersForLetter(letter)
-            
-            // Create a single row container for all modifiers
-            let modifierRowContainer = UIView()
-            var totalRowWidth: CGFloat = 0
-            var rowElements: [(view: UIView, width: CGFloat)] = []
-            
-            for modifier in applicableModifiers {
-                let currentState = modifierStates[modifier.id] ?? nil
-                
-                if modifier.isMultiOption, let options = modifier.options {
-                    // Multi-option modifier: bordered group with buttons
-                    let groupContainer = UIView()
-                    groupContainer.backgroundColor = UIColor.systemGray6.withAlphaComponent(0.5)
-                    groupContainer.layer.cornerRadius = 10
-                    groupContainer.layer.borderWidth = 1.5
-                    groupContainer.layer.borderColor = UIColor.systemGray3.cgColor
-                    
-                    let totalButtonCount = options.count + 1
-                    let groupWidth = CGFloat(totalButtonCount) * modifierButtonSize + CGFloat(totalButtonCount - 1) * modifierButtonSpacing + 2 * groupPadding
-                    
-                    var buttonX: CGFloat = groupPadding
-                    
-                    // "None" button
-                    let noneButton = createModifierKeyButton(
-                        title: letter,
-                        isSelected: currentState == nil,
-                        size: modifierButtonSize
-                    )
-                    noneButton.addTarget(self, action: #selector(multiOptionModifierTapped(_:)), for: .touchUpInside)
-                    noneButton.accessibilityHint = "\(modifier.id):none"
-                    noneButton.frame = CGRect(x: buttonX, y: groupPadding, width: modifierButtonSize, height: modifierButtonSize)
-                    groupContainer.addSubview(noneButton)
-                    buttonX += modifierButtonSize + modifierButtonSpacing
-                    
-                    // Option buttons
-                    for option in options {
-                        let displayText = letter + option.mark
-                        let optionButton = createModifierKeyButton(
-                            title: displayText,
-                            isSelected: currentState == option.id,
-                            size: modifierButtonSize
-                        )
-                        optionButton.addTarget(self, action: #selector(multiOptionModifierTapped(_:)), for: .touchUpInside)
-                        optionButton.accessibilityHint = "\(modifier.id):\(option.id)"
-                        optionButton.frame = CGRect(x: buttonX, y: groupPadding, width: modifierButtonSize, height: modifierButtonSize)
-                        groupContainer.addSubview(optionButton)
-                        buttonX += modifierButtonSize + modifierButtonSpacing
-                    }
-                    
-                    let groupHeight = modifierButtonSize + 2 * groupPadding
-                    groupContainer.frame = CGRect(x: 0, y: 0, width: groupWidth, height: groupHeight)
-                    rowElements.append((view: groupContainer, width: groupWidth))
-                    totalRowWidth += groupWidth
-                    
-                } else if let mark = modifier.mark {
-                    // Simple toggle modifier - single key button
-                    // Always show the letter WITH the modifier mark (e.g., בּ for dagesh)
-                    // The selected state shows the visual highlight, not the text
-                    let isActive = currentState != nil
-                    let displayText = letter + mark  // Always show with mark
-                    
-                    let toggleButton = createModifierKeyButton(
-                        title: displayText,
-                        isSelected: isActive,
-                        size: modifierButtonSize
-                    )
-                    toggleButton.addTarget(self, action: #selector(modifierToggleTapped(_:)), for: .touchUpInside)
-                    toggleButton.accessibilityHint = modifier.id
-                    toggleButton.frame = CGRect(x: 0, y: 0, width: modifierButtonSize, height: modifierButtonSize)
-                    rowElements.append((view: toggleButton, width: modifierButtonSize))
-                    totalRowWidth += modifierButtonSize
-                }
-            }
-            
-            // Add spacing between elements
-            if rowElements.count > 1 {
-                totalRowWidth += CGFloat(rowElements.count - 1) * modifierButtonSpacing
-            }
-            
-            // Position all elements in the row, centered
-            let rowHeight = modifierButtonSize + 2 * groupPadding
-            var currentX = (containerWidth - totalRowWidth) / 2
-            
-            for element in rowElements {
-                element.view.frame.origin.x = currentX
-                // Vertically center single buttons with grouped buttons
-                if element.view is UIButton {
-                    element.view.frame.origin.y = groupPadding
-                }
-                modifierRowContainer.addSubview(element.view)
-                currentX += element.width + modifierButtonSpacing
-            }
-            
-            picker.addSubview(modifierRowContainer)
-            modifierRowContainer.frame = CGRect(x: padding, y: topPadding + modifierY, width: containerWidth, height: rowHeight)
-            
-            totalHeight = topPadding + modifierY + rowHeight + padding
-        }
-        
-        overlay.addSubview(picker)
-        picker.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            picker.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
-            picker.centerYAnchor.constraint(equalTo: overlay.centerYAnchor),
-            picker.widthAnchor.constraint(equalToConstant: containerWidth + 2 * padding),
-            picker.heightAnchor.constraint(equalToConstant: totalHeight)
-        ])
-        
-        print("✅ Nikkud picker displayed with \(nikkudOptions.count) options, modifier toggle: \(hasModifier)")
-    }
-    
-    /// Create a raised key-style button for modifiers
-    private func createModifierKeyButton(title: String, isSelected: Bool, size: CGFloat) -> UIButton {
-        let button = UIButton(type: .system)
-        button.setTitle(title, for: .normal)
-        button.titleLabel?.font = UIFont.systemFont(ofSize: 20, weight: .medium)
-        button.titleLabel?.adjustsFontSizeToFitWidth = true
-        button.titleLabel?.minimumScaleFactor = 0.6
-        
-        // Raised key style with shadow - use adaptive colors for dark mode support
-        if isSelected {
-            button.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.3)
-            button.setTitleColor(.systemBlue, for: .normal)
-            button.layer.borderWidth = 2
-            button.layer.borderColor = UIColor.systemBlue.cgColor
-        } else {
-            // Use systemBackground instead of .white for dark mode support
-            button.backgroundColor = UIColor.systemBackground
-            button.setTitleColor(.label, for: .normal)
-            button.layer.borderWidth = 1
-            button.layer.borderColor = UIColor.systemGray4.cgColor
-        }
-        
-        button.layer.cornerRadius = keyCornerRadius
-        button.layer.shadowColor = UIColor.black.cgColor
-        button.layer.shadowOffset = CGSize(width: 0, height: 2)
-        button.layer.shadowOpacity = isSelected ? 0.15 : 0.25
-        button.layer.shadowRadius = isSelected ? 1 : 2
-        button.contentEdgeInsets = UIEdgeInsets(top: 4, left: 4, bottom: 4, right: 4)
-        
-        return button
-    }
-    
-    /// Get modifiers that apply to the given letter (filtered by settings)
-    private func getModifiersForLetter(_ letter: String) -> [DiacriticModifier] {
-        guard let diacritics = config?.getDiacritics(for: currentKeyboardId) else {
-            return []
-        }
-        
-        // Get settings to filter disabled modifiers
-        let settings = config?.diacriticsSettings?[currentKeyboardId ?? ""]
-        
-        // Get all applicable modifiers for this letter
-        let allModifiers = diacritics.getModifiers(for: letter)
-        
-        // Filter out disabled modifiers
-        return allModifiers.filter { modifier in
-            settings?.isModifierEnabled(modifier.id) ?? true
-        }
-    }
-    
-    /// Check if any modifier applies to the given letter
-    private func checkIfModifierApplies(to letter: String) -> Bool {
-        return !getModifiersForLetter(letter).isEmpty
-    }
-    
-    /// Generate nikkud options for a letter, applying active modifiers
-    private func generateNikkudOptions(forLetter letter: String, withModifier: Bool) -> [NikkudOption] {
-        guard let config = config,
-              let diacritics = config.getDiacritics(for: currentKeyboardId) else {
-            print("🔍 generateNikkudOptions: No config or diacritics for '\(currentKeyboardId ?? "nil")'!")
-            return []
-        }
-        
-        let keyboardId = currentKeyboardId ?? ""
-        let settings = config.diacriticsSettings?[keyboardId]
-        let hidden = settings?.hidden ?? []
-        let disabledMods = settings?.disabledModifiers ?? []
-        
-        print("🔍 generateNikkudOptions for '\(letter)':")
-        print("   keyboardId: '\(keyboardId)'")
-        print("   hidden items: \(hidden)")
-        print("   disabled modifiers: \(disabledMods)")
-        
-        // Get all applicable modifiers and their current states
-        let applicableModifiers = getModifiersForLetter(letter)
-        
-        var result: [NikkudOption] = []
-        
-        for item in diacritics.items {
-            // Skip if hidden in profile
-            if hidden.contains(item.id) { continue }
-            
-            // Skip if not applicable to this letter
-            if let onlyFor = item.onlyFor, !onlyFor.contains(letter) { continue }
-            if let excludeFor = item.excludeFor, excludeFor.contains(letter) { continue }
-            
-            let isReplacement = item.isReplacement ?? false
-            
-            // Start with base value
-            var value: String = isReplacement ? item.mark : letter
-            
-            // Apply each active modifier
-            if !isReplacement {
-                for modifier in applicableModifiers {
-                    // Check if this modifier is active
-                    guard let activeState = modifierStates[modifier.id], activeState != nil else {
-                        continue
-                    }
-                    
-                    if modifier.isMultiOption {
-                        // Multi-option modifier: find the selected option's mark
-                        if let selectedOptionId = activeState,
-                           let selectedOption = modifier.options?.first(where: { $0.id == selectedOptionId }) {
-                            value += selectedOption.mark
-                        }
-                    } else if let mark = modifier.mark {
-                        // Simple toggle modifier: add the mark if active
-                        value += mark
-                    }
-                }
-                
-                // Add the diacritic mark
-                value += item.mark
-            }
-            
-            result.append(NikkudOption(
-                value: value,
-                caption: value,
+        // Create a temporary ParsedKey from the first option to pass to the picker
+        if let firstOption = nikkudOptions.first, let firstChar = firstOption.value.first {
+            let tempKey = Key(
+                value: String(firstChar),
                 sValue: nil,
-                sCaption: nil
-            ))
-        }
-        
-        return result
-    }
-    
-    /// Handle modifier toggle tap (simple ON/OFF) - refresh the picker with new options
-    @objc private func modifierToggleTapped(_ sender: UIButton) {
-        // Get modifier ID from the button
-        let modifierId = sender.accessibilityHint ?? "dagesh"
-        let currentState = modifierStates[modifierId] ?? nil
-        
-        print("🔄 Modifier toggle tapped: '\(modifierId)', was: \(String(describing: currentState))")
-        
-        // Toggle the modifier state
-        // For simple toggle: nil (off) -> "" (on) -> nil (off)
-        if currentState != nil {
-            modifierStates[modifierId] = nil  // Turn off
-        } else {
-            modifierStates[modifierId] = ""  // Turn on (empty string = active for simple toggle)
-        }
-        
-        // Refresh the picker with the same letter but new modifier state
-        if !currentNikkudLetter.isEmpty, let container = container {
-            showNikkudPickerInternal(forLetter: currentNikkudLetter, anchorView: container)
+                caption: nil,
+                sCaption: nil,
+                type: "character",
+                width: nil,
+                offset: nil,
+                hidden: nil,
+                color: nil,
+                bgColor: nil,
+                label: nil,
+                keysetValue: nil,
+                returnKeysetValue: nil,
+                returnKeysetLabel: nil,
+                nikkud: nikkudOptions
+            )
+            let parsedKey = ParsedKey(from: tempKey, groups: [:], defaultTextColor: .black, defaultBgColor: .white)
+            
+            nikkudPickerController.configure(config: config, keyboardId: currentKeyboardId, container: container)
+            nikkudPickerController.showPicker(for: parsedKey, anchorView: anchorView)
         }
     }
     
-    /// Handle multi-option modifier button tap (None or specific option)
-    @objc private func multiOptionModifierTapped(_ sender: UIButton) {
-        // AccessibilityHint format: "modifierId:optionId" or "modifierId:none"
-        guard let hint = sender.accessibilityHint else { return }
-        
-        let parts = hint.split(separator: ":")
-        guard parts.count == 2 else { return }
-        
-        let modifierId = String(parts[0])
-        let optionId = String(parts[1])
-        
-        print("🔄 Multi-option modifier tapped: '\(modifierId)' option: '\(optionId)'")
-        
-        // Set the modifier state
-        if optionId == "none" {
-            modifierStates[modifierId] = nil  // Deactivate
-        } else {
-            modifierStates[modifierId] = optionId  // Set to specific option
-        }
-        
-        // Refresh the picker with the same letter but new modifier state
-        if !currentNikkudLetter.isEmpty, let container = container {
-            showNikkudPickerInternal(forLetter: currentNikkudLetter, anchorView: container)
-        }
+    /// Property to access current nikkud letter (for external refresh)
+    private var currentNikkudLetter: String {
+        return nikkudPickerController.currentNikkudLetter
     }
     
-    @objc private func nikkudOptionTapped(_ sender: UIButton) {
-        print("🎯 Nikkud option tapped: \(sender.accessibilityIdentifier ?? "nil")")
-        if let value = sender.accessibilityIdentifier {
-            onNikkudSelected?(value)
-        }
-        dismissNikkudPicker()
-    }
-    
-    @objc private func dismissNikkudPicker() {
-        print("🎯 Dismissing nikkud picker")
-        // Remove overlay - find by tag
-        if let overlay = container?.subviews.first(where: { $0.tag == 999 }) {
-            print("   Found overlay, removing...")
-            overlay.removeFromSuperview()
-        } else {
-            print("   ⚠️ Overlay not found!")
-        }
-        
-        // Reset all modifier toggle states when popup is closed
-        modifierStates.removeAll()
-        
-        // Do NOT deactivate nikkud mode here - it stays active until toggled off
-        // Just rerender to update the UI
-        rerender()
+    /// Internal method for showing nikkud picker - delegates to controller
+    private func showNikkudPickerInternal(forLetter letter: String, anchorView: UIView) {
+        nikkudPickerController.configure(config: config, keyboardId: currentKeyboardId, container: container)
+        nikkudPickerController.refreshIfOpen(anchorView: anchorView)
     }
     
     // MARK: - Shift Handling
@@ -1846,134 +1084,10 @@ class KeyboardRenderer {
         return keyboardId == "he" || keyboardId == "ar"
     }
     
-    /// Update the suggestions bar with current suggestions
-    /// Renders suggestions as plain text with dividers, spread evenly across the row
-    /// For RTL languages (Hebrew, Arabic), the first suggestion is on the right
+    /// Update the suggestions bar with current suggestions (delegates to SuggestionsBarView)
     private func updateSuggestionsBar() {
-        guard let container = container else { return }
-        
-        // Find existing suggestions bar or skip if not rendered yet
-        guard let bar = suggestionsBar else {
-            print("📝 updateSuggestionsBar: No suggestions bar found, skipping")
-            return
-        }
-        
-        // Clear existing subviews
-        bar.subviews.forEach { $0.removeFromSuperview() }
-        
-        // If no suggestions, show nothing
-        guard !currentSuggestions.isEmpty else {
-            print("📝 updateSuggestionsBar: No suggestions to display")
-            return
-        }
-        
-        print("📝 updateSuggestionsBar: Displaying \(currentSuggestions.count) suggestions")
-        
-        let suggestionCount = min(currentSuggestions.count, 4)
-        // Use container width if bar hasn't been laid out yet
-        let barWidth = bar.bounds.width > 0 ? bar.bounds.width : container.bounds.width
-        let barHeight = bar.bounds.height > 0 ? bar.bounds.height : suggestionsBarHeight
-        
-        // Skip if we still don't have valid dimensions
-        guard barWidth > 0, barHeight > 0 else {
-            print("📝 updateSuggestionsBar: Bar dimensions are 0, skipping")
-            return
-        }
-        
-        let cellWidth = barWidth / CGFloat(suggestionCount)
-        let dividerWidth: CGFloat = 1.0
-        
-        // Check if we should use RTL layout (Hebrew or Arabic keyboards)
-        let isRTL = isCurrentKeyboardRTL()
-        print("📝 updateSuggestionsBar: isRTL=\(isRTL), keyboard=\(currentKeyboardId ?? "nil")")
-        
-        for (index, suggestion) in currentSuggestions.prefix(4).enumerated() {
-            // Check if this suggestion should be highlighted (fuzzy match indication)
-            let isHighlighted = suggestionHighlightIndex == index
-            
-            // Create tappable label/button with transparent background
-            let button = UIButton(type: .system)
-            button.setTitle(suggestion, for: .normal)
-            // Use dedicated suggestions font size (larger than key font for better readability)
-            let fontWeight: UIFont.Weight = isHighlighted ? .bold : .medium
-            button.titleLabel?.font = UIFont.systemFont(ofSize: suggestionsFontSize, weight: fontWeight)
-            button.titleLabel?.adjustsFontSizeToFitWidth = true
-            button.titleLabel?.minimumScaleFactor = 0.6
-            button.titleLabel?.textAlignment = .center
-            
-            // Highlighted suggestion (fuzzy match) gets special styling
-            if isHighlighted {
-                // Highlighted: blue background with white text to indicate "press space to use this"
-                button.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.15)
-                button.setTitleColor(.systemBlue, for: .normal)
-                button.layer.cornerRadius = 6
-            } else {
-                button.backgroundColor = .clear
-                // Use adaptive colors for dark mode support - brighter text
-                button.setTitleColor(.label, for: .normal)
-            }
-            button.setTitleColor(.secondaryLabel, for: .highlighted)
-            
-            // Store suggestion in accessibility identifier for retrieval on tap
-            // For quoted literals (like "qhy"), strip the quotes for insertion
-            let insertValue = suggestion.hasPrefix("\"") && suggestion.hasSuffix("\"") 
-                ? String(suggestion.dropFirst().dropLast())
-                : suggestion
-            button.accessibilityIdentifier = insertValue
-            button.addTarget(self, action: #selector(suggestionTapped(_:)), for: .touchUpInside)
-            
-            // For RTL languages, reverse the position (first suggestion on the right)
-            let x: CGFloat
-            if isRTL {
-                // RTL: first suggestion at the rightmost position
-                x = barWidth - CGFloat(index + 1) * cellWidth
-            } else {
-                // LTR: first suggestion at the leftmost position
-                x = CGFloat(index) * cellWidth
-            }
-            
-            button.frame = CGRect(x: x, y: 0, width: cellWidth, height: barHeight)
-            bar.addSubview(button)
-            
-            // Add divider after each cell except the last one
-            if index < suggestionCount - 1 {
-                let divider = UIView()
-                divider.backgroundColor = UIColor.systemGray3
-                
-                let dividerX: CGFloat
-                if isRTL {
-                    // RTL: divider on the left side of each cell
-                    dividerX = x - (dividerWidth / 2)
-                } else {
-                    // LTR: divider on the right side of each cell
-                    dividerX = x + cellWidth - (dividerWidth / 2)
-                }
-                
-                divider.frame = CGRect(
-                    x: dividerX,
-                    y: barHeight * 0.2,
-                    width: dividerWidth,
-                    height: barHeight * 0.6
-                )
-                bar.addSubview(divider)
-            }
-        }
-    }
-    
-    /// Handle suggestion button tap
-    @objc private func suggestionTapped(_ sender: UIButton) {
-        guard let suggestion = sender.accessibilityIdentifier else { return }
-        print("📝 Suggestion tapped: '\(suggestion)'")
-        onSuggestionSelected?(suggestion)
-    }
-    
-    /// Create the suggestions bar view
-    private func createSuggestionsBar(width: CGFloat) -> UIView {
-        let bar = UIView()
-        bar.backgroundColor = UIColor.systemGray5
-        bar.frame = CGRect(x: 0, y: 0, width: width, height: suggestionsBarHeight)
-        bar.tag = 888  // Tag to identify suggestions bar
-        return bar
+        suggestionsBarView.currentKeyboardId = currentKeyboardId
+        suggestionsBarView.updateSuggestions(currentSuggestions, highlightIndex: suggestionHighlightIndex)
     }
     
     // MARK: - Keyset Switching

@@ -45,20 +45,6 @@ class KeyboardPreferences {
         }
     }
     
-    // MARK: - Keyboard Configuration
-    
-    var keyboardConfig: [String: Any]? {
-        get {
-            return userDefaults?.dictionary(forKey: Keys.keyboardConfig)
-        }
-        set {
-            userDefaults?.set(newValue, forKey: Keys.keyboardConfig)
-            userDefaults?.set(Date().timeIntervalSince1970, forKey: Keys.lastUpdateTime)
-            userDefaults?.synchronize()
-            notifyPreferencesChanged()
-        }
-    }
-    
     // MARK: - Language Selection
     
     var selectedLanguage: String? {
@@ -92,19 +78,6 @@ class KeyboardPreferences {
     /// Retrieve keyboard configuration as JSON string
     func getKeyboardConfigJSON() -> String? {
         return userDefaults?.string(forKey: Keys.keyboardConfig)
-    }
-    
-    /// Store keyboard configuration from Data
-    func setKeyboardConfigData(_ data: Data) {
-        if let jsonString = String(data: data, encoding: .utf8) {
-            setKeyboardConfigJSON(jsonString)
-        }
-    }
-    
-    /// Retrieve keyboard configuration as Data
-    func getKeyboardConfigData() -> Data? {
-        guard let jsonString = getKeyboardConfigJSON() else { return nil }
-        return jsonString.data(using: .utf8)
     }
     
     // MARK: - Profile Storage
@@ -158,10 +131,7 @@ class KeyboardPreferences {
         print("  Current Profile: \(currentProfile ?? "none")")
         print("  Selected Language: \(selectedLanguage ?? "none")")
         print("  Last Update: \(Date(timeIntervalSince1970: lastUpdateTime))")
-        
-        if let config = keyboardConfig {
-            print("  Config Keys: \(config.keys)")
-        }
+        print("  Has Config: \(getKeyboardConfigJSON() != nil)")
     }
     
     // MARK: - Clear Preferences
