@@ -95,11 +95,19 @@ export const StyleRulesPanel: React.FC = () => {
   const getStylePreview = (group: StyleGroup): React.ReactNode => {
     const indicators: React.ReactNode[] = [];
     
-    // Visibility indicator
-    if (group.style.hidden) {
+    // Visibility indicator - check for new visibilityMode first, then legacy hidden
+    const visMode = group.style.visibilityMode || (group.style.hidden ? 'hide' : 'default');
+    
+    if (visMode === 'hide') {
       indicators.push(
         <View key="hidden" style={[styles.indicator, styles.indicatorHidden]}>
           <Text style={styles.indicatorTextHidden}>Hidden</Text>
+        </View>
+      );
+    } else if (visMode === 'showOnly') {
+      indicators.push(
+        <View key="showOnly" style={[styles.indicator, styles.indicatorShowOnly]}>
+          <Text style={styles.indicatorTextShowOnly}>Show Only</Text>
         </View>
       );
     }
@@ -411,6 +419,14 @@ const styles = StyleSheet.create({
   indicatorTextHidden: {
     fontSize: 11,
     color: '#C62828',
+    fontWeight: '500',
+  },
+  indicatorShowOnly: {
+    backgroundColor: '#E3F2FD',
+  },
+  indicatorTextShowOnly: {
+    fontSize: 11,
+    color: '#1565C0',
     fontWeight: '500',
   },
   noStyleText: {

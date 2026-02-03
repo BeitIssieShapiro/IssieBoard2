@@ -44,6 +44,10 @@
               "value": "פ"
             },
             {
+              "width": 0.25,
+              "hidden": true
+            },
+            {
               "type": "backspace",
               "width": 1.5,
               "alwaysInclude": true

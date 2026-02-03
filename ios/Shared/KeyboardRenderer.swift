@@ -325,11 +325,11 @@ class KeyboardRenderer {
             return
         }
         
-        // Build groups map
-        let groups = buildGroupsMap(config.groups ?? [])
+        // Build groups map - returns both the map and any "showOnly" keys
+        let (groupsMap, showOnlyKeys) = buildGroupsMap(config.groups ?? [])
         
         // Calculate baseline width
-        let baselineWidth = calculateBaselineWidth(keyset.rows, groups: groups)
+        let baselineWidth = calculateBaselineWidth(keyset.rows, groups: groupsMap, showOnlyKeys: showOnlyKeys)
         
         // Update word suggestions enabled state from config and override
         // If override is set, use it; otherwise use config value
@@ -379,7 +379,8 @@ class KeyboardRenderer {
         print("📐 RENDER END ===================")
         
         for (rowIndex, row) in keyset.rows.enumerated() {
-            let rowView = createRow(row, groups: groups, baselineWidth: baselineWidth, 
+            let rowView = createRow(row, groups: groupsMap, showOnlyKeys: showOnlyKeys,
+                                   baselineWidth: baselineWidth, 
                                    availableWidth: availableWidth,
                                    editorContext: editorContext,
                                    keysetId: self.currentKeysetId,
@@ -393,17 +394,36 @@ class KeyboardRenderer {
     
     // MARK: - Private Helpers
     
-    private func buildGroupsMap(_ groups: [Group]) -> [String: GroupTemplate] {
+    /// Build a map of key values to their group templates
+    /// Also returns the set of keys that should be shown exclusively (if any "showOnly" group exists)
+    private func buildGroupsMap(_ groups: [Group]) -> (map: [String: GroupTemplate], showOnlyKeys: Set<String>?) {
         var groupsMap: [String: GroupTemplate] = [:]
+        var showOnlyKeys: Set<String>? = nil
+        
         for group in groups {
+            // Check if this group has "showOnly" visibility mode
+            let visMode = group.template.effectiveVisibilityMode
+            
+            if visMode == .showOnly {
+                // Collect keys that should be visible
+                if showOnlyKeys == nil {
+                    showOnlyKeys = Set<String>()
+                }
+                for item in group.items {
+                    showOnlyKeys?.insert(item)
+                }
+            }
+            
+            // Store template for all items (for colors, etc.)
             for item in group.items {
                 groupsMap[item] = group.template
             }
         }
-        return groupsMap
+        
+        return (groupsMap, showOnlyKeys)
     }
     
-    private func calculateBaselineWidth(_ rows: [KeyRow], groups: [String: GroupTemplate]) -> CGFloat {
+    private func calculateBaselineWidth(_ rows: [KeyRow], groups: [String: GroupTemplate], showOnlyKeys: Set<String>?) -> CGFloat {
         var maxRowWidth: CGFloat = 0
         
         // Check if we have only one language (keyboard)
@@ -422,7 +442,22 @@ class KeyboardRenderer {
                     continue
                 }
                 
-                if !parsedKey.hidden {
+                // For baseline width calculation, we include ALL keys (including hidden ones)
+                // This ensures hidden keys still take up space and preserve the layout.
+                // The only exception is keys that are hidden at the base level (parsedKey.hidden),
+                // OR keys hidden via "hide" visibility mode (explicit hide, not showOnly).
+                // For "showOnly" mode, we want hidden keys to still take up space.
+                let keyValue = key.value ?? key.type ?? ""
+                
+                // Check if key is hidden via explicit "hide" mode (not showOnly)
+                let isExplicitlyHidden = parsedKey.hidden || {
+                    if let template = groups[keyValue] {
+                        return template.effectiveVisibilityMode == .hide
+                    }
+                    return false
+                }()
+                
+                if !isExplicitlyHidden {
                     rowWidth += CGFloat(parsedKey.width + parsedKey.offset)
                 }
             }
@@ -435,9 +470,47 @@ class KeyboardRenderer {
         return maxRowWidth > 0 ? maxRowWidth : 10.0
     }
     
+    /// Determine if a key should be hidden based on visibility rules
+    /// - Parameters:
+    ///   - parsedKey: The parsed key configuration
+    ///   - keyValue: The key's value (for special keys, use type)
+    ///   - showOnlyKeys: If set, only these keys should be visible
+    ///   - groups: The groups map for checking individual key visibility
+    /// - Returns: True if the key should be hidden
+    private func isKeyHiddenByVisibility(parsedKey: ParsedKey, keyValue: String, showOnlyKeys: Set<String>?, groups: [String: GroupTemplate]) -> Bool {
+        // First check the base hidden property
+        if parsedKey.hidden {
+            return true
+        }
+        
+        // If there's a "showOnly" rule active, check if this key is in the whitelist
+        if let showOnly = showOnlyKeys {
+            // Special keys (shift, backspace, etc.) should always be visible unless explicitly hidden
+            let specialTypes = ["shift", "backspace", "enter", "space", "keyset", "nikkud", "settings", "close", "next-keyboard", "language"]
+            if specialTypes.contains(parsedKey.type.lowercased()) {
+                // Check if this special key is explicitly in the showOnly set
+                return !showOnly.contains(keyValue) && !showOnly.contains(parsedKey.type.lowercased())
+            }
+            
+            // For regular keys, hide if not in the showOnly set
+            return !showOnly.contains(keyValue)
+        }
+        
+        // Check if the key's group has a hide visibility mode
+        if let template = groups[keyValue] {
+            let visMode = template.effectiveVisibilityMode
+            if visMode == .hide {
+                return true
+            }
+        }
+        
+        return false
+    }
+    
     private func createRow(
         _ row: KeyRow,
         groups: [String: GroupTemplate],
+        showOnlyKeys: Set<String>?,
         baselineWidth: CGFloat,
         availableWidth: CGFloat,
         editorContext: (enterVisible: Bool, enterLabel: String, enterAction: Int)?,
@@ -486,7 +559,11 @@ class KeyboardRenderer {
             let keyId = "\(keysetId):\(rowIndex):\(keyIndex)"
             let isSelected = selectedKeyIds.contains(keyId)
             
-            if parsedKey.hidden {
+            // Check if key is hidden based on visibility rules
+            let keyValue = key.value ?? key.type ?? ""
+            let isKeyHidden = isKeyHiddenByVisibility(parsedKey: parsedKey, keyValue: keyValue, showOnlyKeys: showOnlyKeys, groups: groups)
+            
+            if isKeyHidden {
                 let hiddenWidth = (CGFloat(parsedKey.width) / baselineWidth) * availableWidth
                 currentX += hiddenWidth
             } else {

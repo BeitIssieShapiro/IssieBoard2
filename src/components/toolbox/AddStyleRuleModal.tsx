@@ -10,7 +10,7 @@ import {
   Switch,
 } from 'react-native';
 import { useEditor, getKeyValueFromPositionId } from '../../context/EditorContext';
-import { StyleGroup, KeyStyleOverride, KeyboardConfig } from '../../../types';
+import { StyleGroup, KeyStyleOverride, KeyboardConfig, VisibilityMode } from '../../../types';
 import { ColorPicker } from '../shared/ColorPicker';
 import { KeyboardPreview, KeyPressEvent } from '../KeyboardPreview';
 
@@ -38,7 +38,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
   const [selectedKeyValues, setSelectedKeyValues] = useState<string[]>([]);
   const [bgColor, setBgColor] = useState('');
   const [textColor, setTextColor] = useState('');
-  const [isHidden, setIsHidden] = useState(false);
+  const [visibilityMode, setVisibilityMode] = useState<VisibilityMode>('default');
   const [isActive, setIsActive] = useState(true);
 
   // Generate a unique name for new rules
@@ -60,7 +60,14 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
         setSelectedKeyValues([...editingGroup.members]);
         setBgColor(editingGroup.style.bgColor || '');
         setTextColor(editingGroup.style.color || '');
-        setIsHidden(editingGroup.style.hidden || false);
+        // Convert legacy hidden boolean to visibilityMode
+        if (editingGroup.style.visibilityMode) {
+          setVisibilityMode(editingGroup.style.visibilityMode);
+        } else if (editingGroup.style.hidden) {
+          setVisibilityMode('hide');
+        } else {
+          setVisibilityMode('default');
+        }
         setIsActive(editingGroup.active !== false);
       } else {
         // New rule - use initial selected keys if provided
@@ -68,7 +75,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
         setSelectedKeyValues(initialSelectedKeys || []);
         setBgColor('');
         setTextColor('');
-        setIsHidden(false);
+        setVisibilityMode('default');
         setIsActive(true);
       }
     }
@@ -78,7 +85,9 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
   const handleKeyPress = useCallback((event: KeyPressEvent) => {
     const { type, value } = event.nativeEvent;
     
-    // Skip special keys that aren't selectable via tap
+    console.log(`[AddStyleRuleModal] handleKeyPress: type='${type}', value='${value}'`);
+    
+    // Skip navigation/system keys that aren't selectable via tap
     if (type === 'keyset-changed' || type === 'next-keyboard' || type === 'language') {
       return;
     }
@@ -104,8 +113,14 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
       return;
     }
     
-    const keyValue = value || type;
+    // For special keys (enter, shift, backspace, space), use the type as the value for storage
+    // This ensures they can be selected and styled consistently
+    const specialKeyTypes = ['enter', 'shift', 'backspace', 'space', 'settings', 'close'];
+    const keyValue = specialKeyTypes.includes(type) ? type : (value || type);
+    
     if (!keyValue) return;
+    
+    console.log(`[AddStyleRuleModal] Toggling key selection: '${keyValue}'`);
     
     setSelectedKeyValues(prev => {
       if (prev.includes(keyValue)) {
@@ -129,7 +144,10 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
     const style: KeyStyleOverride = {};
     if (bgColor) style.bgColor = bgColor;
     if (textColor) style.color = textColor;
-    if (isHidden) style.hidden = true;
+    // Set visibility mode (only if not default)
+    if (visibilityMode !== 'default') {
+      style.visibilityMode = visibilityMode;
+    }
 
     if (editingGroup) {
       updateGroup(editingGroup.id, {
@@ -149,8 +167,12 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
   // Build config with:
   // 1. All existing style groups (except the one being edited)
   // 2. Current rule's style applied to selected keys
+  // IMPORTANT: In the modal preview, we DON'T apply visibility modes (hide/showOnly)
+  // because we need all keys visible for selection/deselection.
+  // Visibility only applies in the main editor preview.
   const previewConfig = useMemo((): KeyboardConfig => {
     // Start with existing groups, excluding the one being edited
+    // DON'T apply visibility modes from other groups in modal preview
     const otherGroups = state.styleGroups
       .filter(g => !editingGroup || g.id !== editingGroup.id)
       .map(group => ({
@@ -159,19 +181,25 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
         template: {
           color: group.style.color || '',
           bgColor: group.style.bgColor || '',
-          hidden: group.style.hidden,
+          // Don't hide keys in the modal preview - we need them visible for selection
+          hidden: false,
+          visibilityMode: 'default' as VisibilityMode,
         },
       }));
 
     // Add current rule's style for selected keys
+    // Only apply colors (not visibility) in the modal preview
     if (selectedKeyValues.length > 0) {
       otherGroups.push({
         name: '_current_rule_',
         items: selectedKeyValues,
         template: {
-          color: textColor || '',
-          bgColor: bgColor || '',
-          hidden: isHidden,
+          // Only apply colors if not in "hide" mode (hidden keys don't need colors)
+          color: visibilityMode !== 'hide' ? (textColor || '') : '',
+          bgColor: visibilityMode !== 'hide' ? (bgColor || '') : '',
+          // Don't apply visibility in modal preview - keep all keys visible for selection
+          hidden: false,
+          visibilityMode: 'default' as VisibilityMode,
         },
       });
     }
@@ -180,7 +208,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
       ...state.config,
       groups: otherGroups,
     };
-  }, [state.config, state.styleGroups, editingGroup, selectedKeyValues, bgColor, textColor, isHidden]);
+  }, [state.config, state.styleGroups, editingGroup, selectedKeyValues, bgColor, textColor, visibilityMode]);
 
   const previewConfigJson = useMemo(() => JSON.stringify(previewConfig), [previewConfig]);
 
@@ -308,45 +336,96 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Style Options</Text>
               
-              {/* Hidden Toggle */}
-              <View style={styles.optionRow}>
-                <View style={styles.optionInfo}>
-                  <Text style={styles.optionLabel}>Hidden</Text>
-                  <Text style={styles.optionDescription}>Hide these keys</Text>
+              {/* Visibility Mode Segmented Control */}
+              <View style={styles.visibilitySection}>
+                <Text style={styles.visibilityLabel}>Visibility</Text>
+                <View style={styles.segmentedControl}>
+                  <TouchableOpacity
+                    style={[
+                      styles.segment,
+                      styles.segmentFirst,
+                      visibilityMode === 'default' && styles.segmentSelected,
+                    ]}
+                    onPress={() => setVisibilityMode('default')}
+                  >
+                    <Text style={[
+                      styles.segmentText,
+                      visibilityMode === 'default' && styles.segmentTextSelected,
+                    ]}>
+                      Default
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.segment,
+                      visibilityMode === 'hide' && styles.segmentSelected,
+                    ]}
+                    onPress={() => setVisibilityMode('hide')}
+                  >
+                    <Text style={[
+                      styles.segmentText,
+                      visibilityMode === 'hide' && styles.segmentTextSelected,
+                    ]}>
+                      Hide Selected
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.segment,
+                      styles.segmentLast,
+                      visibilityMode === 'showOnly' && styles.segmentSelected,
+                    ]}
+                    onPress={() => setVisibilityMode('showOnly')}
+                  >
+                    <Text style={[
+                      styles.segmentText,
+                      visibilityMode === 'showOnly' && styles.segmentTextSelected,
+                    ]}>
+                      Show Only
+                    </Text>
+                  </TouchableOpacity>
                 </View>
-                <Switch
-                  value={isHidden}
-                  onValueChange={setIsHidden}
-                  trackColor={{ false: '#ccc', true: '#FFAB91' }}
-                  thumbColor={isHidden ? '#FF5722' : '#f4f3f4'}
-                />
+                {visibilityMode === 'showOnly' && (
+                  <Text style={styles.visibilityHint}>
+                    ⓘ All keys except these will be hidden
+                  </Text>
+                )}
+                {visibilityMode === 'hide' && (
+                  <Text style={styles.visibilityHint}>
+                    ⓘ Colors are not applicable for hidden keys
+                  </Text>
+                )}
               </View>
 
-              {/* Background Color */}
-              <View style={styles.colorSection}>
-                <Text style={styles.colorLabel}>Background Color</Text>
-                <ColorPicker
-                  value={bgColor}
-                  onChange={setBgColor}
-                  showSystemDefault
-                  systemDefaultLabel="Default"
-                />
-              </View>
+              {/* Background Color - only show if not in "hide" mode */}
+              {visibilityMode !== 'hide' && (
+                <View style={styles.colorSection}>
+                  <Text style={styles.colorLabel}>Background Color</Text>
+                  <ColorPicker
+                    value={bgColor}
+                    onChange={setBgColor}
+                    showSystemDefault
+                    systemDefaultLabel="Default"
+                  />
+                </View>
+              )}
 
-              {/* Text Color */}
-              <View style={styles.colorSection}>
-                <Text style={styles.colorLabel}>Text Color</Text>
-                <ColorPicker
-                  value={textColor}
-                  onChange={setTextColor}
-                  presets={[
-                    '#000000', '#FFFFFF', '#F44336', '#2196F3', 
-                    '#4CAF50', '#FF9800', '#9C27B0', '#607D8B',
-                  ]}
-                  showSystemDefault
-                  systemDefaultLabel="Default"
-                />
-              </View>
+              {/* Text Color - only show if not in "hide" mode */}
+              {visibilityMode !== 'hide' && (
+                <View style={styles.colorSection}>
+                  <Text style={styles.colorLabel}>Text Color</Text>
+                  <ColorPicker
+                    value={textColor}
+                    onChange={setTextColor}
+                    presets={[
+                      '#000000', '#FFFFFF', '#F44336', '#2196F3', 
+                      '#4CAF50', '#FF9800', '#9C27B0', '#607D8B',
+                    ]}
+                    showSystemDefault
+                    systemDefaultLabel="Default"
+                  />
+                </View>
+              )}
 
               {/* Active Toggle - at the end */}
               <View style={styles.optionRow}>
@@ -428,6 +507,7 @@ const styles = StyleSheet.create({
   previewSection: {
     backgroundColor: '#F5F5F5',
     paddingVertical: 8,
+    overflow: 'hidden',  // Prevent keyboard from overflowing
   },
   previewLabel: {
     fontSize: 12,
@@ -436,7 +516,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   keyboardPreview: {
-    height: 220,
+    height: 260,  // Increased to accommodate keyboard with suggestions bar
   },
   content: {
     flex: 1,
@@ -514,6 +594,63 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#555',
     marginBottom: 6,
+  },
+  // Visibility segmented control styles
+  visibilitySection: {
+    marginBottom: 16,
+  },
+  visibilityLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#555',
+    marginBottom: 8,
+  },
+  segmentedControl: {
+    flexDirection: 'row',
+    backgroundColor: '#E0E0E0',
+    borderRadius: 8,
+    padding: 2,
+  },
+  segment: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+  },
+  segmentFirst: {
+    borderTopLeftRadius: 6,
+    borderBottomLeftRadius: 6,
+  },
+  segmentLast: {
+    borderTopRightRadius: 6,
+    borderBottomRightRadius: 6,
+  },
+  segmentSelected: {
+    backgroundColor: '#FFF',
+    borderRadius: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  segmentText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#666',
+    textAlign: 'center',
+  },
+  segmentTextSelected: {
+    color: '#333',
+    fontWeight: '600',
+  },
+  visibilityHint: {
+    fontSize: 11,
+    color: '#FF9800',
+    marginTop: 8,
+    fontStyle: 'italic',
   },
 });
 

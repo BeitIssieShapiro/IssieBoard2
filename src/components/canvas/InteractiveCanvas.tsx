@@ -113,7 +113,9 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
         template: {
           color: group.style.color || '',
           bgColor: group.style.bgColor || '',
-          hidden: group.style.hidden,
+          // Support both legacy hidden boolean and new visibilityMode
+          hidden: group.style.hidden || group.style.visibilityMode === 'hide',
+          visibilityMode: group.style.visibilityMode,
         },
       }));
 

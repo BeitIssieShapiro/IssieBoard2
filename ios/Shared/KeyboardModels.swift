@@ -225,12 +225,37 @@ struct Group: Codable {
     let template: GroupTemplate
 }
 
+/// Visibility mode for style groups
+enum VisibilityMode: String, Codable {
+    case `default` = "default"   // No effect on visibility
+    case hide = "hide"           // Hide the selected keys
+    case showOnly = "showOnly"   // Show only the selected keys (hide all others)
+}
+
 struct GroupTemplate: Codable {
     let width: Double?
     let offset: Double?
-    let hidden: Bool?
+    let hidden: Bool?            // Backward compatibility
+    let visibilityMode: VisibilityMode?  // New tri-state visibility
     let color: String?
     let bgColor: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case width, offset, hidden, visibilityMode, color, bgColor
+    }
+    
+    /// Get effective visibility mode (handles backward compatibility with hidden boolean)
+    var effectiveVisibilityMode: VisibilityMode {
+        // New visibilityMode takes precedence
+        if let mode = visibilityMode {
+            return mode
+        }
+        // Fall back to legacy hidden boolean
+        if hidden == true {
+            return .hide
+        }
+        return .default
+    }
 }
 
 // MARK: - Shift State

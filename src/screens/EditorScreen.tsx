@@ -19,7 +19,7 @@ import { EditorProvider, useEditor } from '../context/EditorContext';
 import { InteractiveCanvas } from '../components/canvas/InteractiveCanvas';
 import { Toolbox } from '../components/toolbox/Toolbox';
 import KeyboardPreferences from '../native/KeyboardPreferences';
-import { KeyboardConfig, ProfileDefinition, KeyboardDefinition } from '../../types';
+import { KeyboardConfig, ProfileDefinition, KeyboardDefinition, VisibilityMode } from '../../types';
 import AddProfileModal from '../../components/AddProfileModal';
 
 // Import keyboard files
@@ -209,8 +209,8 @@ interface EditorScreenInnerProps {
 // StyleGroup.members now stores key values directly (e.g., ["א", "ב"]) not position IDs
 // Only include active groups in the output config
 const convertStyleGroupsToGroupConfig = (
-  styleGroups: { name: string; members: string[]; style: { hidden?: boolean; bgColor?: string; color?: string; label?: string }; active?: boolean }[]
-): { name: string; items: string[]; template: { color: string; bgColor: string; hidden?: boolean } }[] => {
+  styleGroups: { name: string; members: string[]; style: { hidden?: boolean; visibilityMode?: VisibilityMode; bgColor?: string; color?: string; label?: string }; active?: boolean }[]
+): { name: string; items: string[]; template: { color: string; bgColor: string; hidden?: boolean; visibilityMode?: VisibilityMode } }[] => {
   return styleGroups
     .filter(group => group.active !== false) // Only include active groups
     .map(group => ({
@@ -219,7 +219,9 @@ const convertStyleGroupsToGroupConfig = (
       template: {
         color: group.style.color || '',
         bgColor: group.style.bgColor || '',
-        hidden: group.style.hidden,
+        // Support both legacy hidden boolean and new visibilityMode
+        hidden: group.style.hidden || group.style.visibilityMode === 'hide',
+        visibilityMode: group.style.visibilityMode,
       },
     }));
 };

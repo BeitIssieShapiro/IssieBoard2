@@ -3,9 +3,13 @@ export interface SavedProfile {
     key: string;
 }
 
+// Visibility mode for style rules
+export type VisibilityMode = 'default' | 'hide' | 'showOnly';
+
 // Style override that can be applied via groups
 export interface KeyStyleOverride {
-    hidden?: boolean;
+    visibilityMode?: VisibilityMode;  // 'default' = no effect, 'hide' = hide selected, 'showOnly' = show only selected
+    hidden?: boolean;  // Backward compatibility - will be converted to visibilityMode: 'hide'
     bgColor?: string;
     color?: string;
     label?: string;
@@ -107,7 +111,8 @@ export interface KeysetConfig {
 export interface GroupTemplate {
     color: string;
     bgColor: string;
-    hidden?: boolean;
+    hidden?: boolean;  // Backward compatibility
+    visibilityMode?: VisibilityMode;  // New tri-state visibility
 }
 
 // Group configuration
