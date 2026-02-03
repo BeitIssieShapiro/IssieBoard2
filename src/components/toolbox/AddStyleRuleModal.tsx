@@ -78,8 +78,29 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
   const handleKeyPress = useCallback((event: KeyPressEvent) => {
     const { type, value } = event.nativeEvent;
     
-    // Skip special keys that aren't selectable
+    // Skip special keys that aren't selectable via tap
     if (type === 'keyset-changed' || type === 'next-keyboard' || type === 'language') {
+      return;
+    }
+    
+    // Handle long-press on keyset/nikkud keys - the value contains the key type
+    // This allows selecting keyset/nikkud keys for styling while they still function on tap
+    if (type === 'longpress') {
+      const keyType = value; // value is the key type (e.g., "keyset", "nikkud")
+      if (!keyType) return;
+      
+      setSelectedKeyValues(prev => {
+        if (prev.includes(keyType)) {
+          return prev.filter(k => k !== keyType);
+        } else {
+          return [...prev, keyType];
+        }
+      });
+      return;
+    }
+    
+    // Skip keyset and nikkud keys on regular tap - they should only be selectable via long-press
+    if (type === 'keyset' || type === 'nikkud') {
       return;
     }
     
@@ -174,8 +195,13 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
         const row = keyset.rows[rowIndex];
         for (let keyIndex = 0; keyIndex < row.keys.length; keyIndex++) {
           const key = row.keys[keyIndex];
+          // Check both the key value and the key type for special keys like keyset/nikkud
           const keyValue = key.value || key.caption || key.label || key.type;
-          if (keyValue && selectedKeyValues.includes(keyValue)) {
+          const keyType = key.type;
+          // Match by value OR by type (for special keys stored by type)
+          const isSelected = (keyValue && selectedKeyValues.includes(keyValue)) ||
+                            (keyType && selectedKeyValues.includes(keyType));
+          if (isSelected) {
             positionIds.push(`${keyset.id}:${rowIndex}:${keyIndex}`);
           }
         }
@@ -193,6 +219,8 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
       'space': '␣',
       'settings': '⚙️',
       'close': '✕',
+      'keyset': '123',
+      'nikkud': 'ניקוד',
     };
     return specialKeys[keyValue] || keyValue;
   };

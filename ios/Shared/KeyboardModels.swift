@@ -14,7 +14,7 @@ struct KeyboardConfig: Codable {
     let allDiacritics: [String: DiacriticsDefinition]?  // Per-keyboard diacritics definitions
     let diacriticsSettings: [String: DiacriticsSettings]?  // Per-keyboard settings from profile
     let wordSuggestionsEnabled: Bool?  // Enable/disable word suggestions (default: true)
-    let autoCorrectEnabled: Bool?  // Enable/disable auto-correct on space (default: true)
+    let autoCorrectEnabled: Bool?  // Enable/disable auto-correct on space (default: false)
     
     enum CodingKeys: String, CodingKey {
         case backgroundColor
@@ -35,9 +35,9 @@ struct KeyboardConfig: Codable {
         return wordSuggestionsEnabled ?? true
     }
     
-    /// Check if auto-correct is enabled (defaults to true if not specified)
+    /// Check if auto-correct is enabled (defaults to false if not specified)
     var isAutoCorrectEnabled: Bool {
-        return autoCorrectEnabled ?? true
+        return autoCorrectEnabled ?? false
     }
     
     /// Get diacritics for a specific keyboard ID
@@ -278,19 +278,20 @@ struct ParsedKey {
     
     init(from key: Key, groups: [String: GroupTemplate], defaultTextColor: UIColor, defaultBgColor: UIColor) {
         let value = key.value ?? ""
+        let keyType = key.type ?? ""
         self.value = value
         self.sValue = key.sValue ?? value
         self.caption = key.caption ?? value
         self.sCaption = key.sCaption ?? (key.sValue ?? (key.caption ?? value))
-        self.type = key.type ?? ""
+        self.type = keyType
         self.label = key.label ?? ""
         self.keysetValue = key.keysetValue ?? ""
         self.returnKeysetValue = key.returnKeysetValue ?? ""
         self.returnKeysetLabel = key.returnKeysetLabel ?? ""
         self.nikkud = key.nikkud ?? []
         
-        // Get group template if exists
-        let groupTemplate = groups[value]
+        // Get group template if exists - check by value first, then by type for special keys
+        let groupTemplate = groups[value] ?? (value.isEmpty ? groups[keyType] : nil)
         
         // Resolve width
         if let keyWidth = key.width {

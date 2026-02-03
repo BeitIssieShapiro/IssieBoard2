@@ -101,6 +101,17 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
             emitKeyPressEvent(eventData)
         }
         
+        r.onKeyLongPress = { key ->
+            // Emit long-press event for keyset/nikkud key selection in edit mode
+            val eventData: WritableMap = Arguments.createMap().apply {
+                putString("type", "longpress")
+                putString("value", key.type)  // Use type (e.g., "keyset", "nikkud") as the value for group matching
+                putString("label", key.label)
+                putBoolean("hasNikkud", false)
+            }
+            emitKeyPressEvent(eventData)
+        }
+        
         r.onStateChange = {
             // Force layout refresh when renderer state changes (shift, nikkud, keyset)
             forceLayoutRefresh()

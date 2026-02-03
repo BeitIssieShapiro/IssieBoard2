@@ -2,6 +2,7 @@
   "backgroundColor": "default",
   "defaultKeyset": "abc",
   "wordSuggestionsEnabled": true,
+  "autoCorrectEnabled": false,
   "groups": [],
   "keyboards": [
     "ar"
@@ -370,6 +371,10 @@
               "width": 1.5
             },
             {
+              "hidden": true,
+              "width": 0.25
+            },
+            {
               "value": "."
             },
             {
@@ -507,6 +512,10 @@
               "label": "123",
               "returnKeysetLabel": "#+=",
               "width": 1.5
+            },
+            {
+              "hidden": true,
+              "width": 0.25
             },
             {
               "value": "."

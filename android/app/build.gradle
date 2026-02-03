@@ -2,6 +2,25 @@ apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
+// Task to generate keyboard config files before build
+task generateKeyboardConfigs(type: Exec) {
+    description = 'Generates keyboard config JSON files from source definitions'
+    workingDir rootProject.projectDir.parentFile  // Project root (where package.json is)
+    
+    // Use node to run the build script
+    if (System.getProperty('os.name').toLowerCase().contains('windows')) {
+        commandLine 'cmd', '/c', 'node', 'scripts/build_keyboard_configs.js'
+    } else {
+        commandLine 'node', 'scripts/build_keyboard_configs.js'
+    }
+    
+    // Don't fail the build if the script has issues (e.g., node not found)
+    ignoreExitValue = false
+}
+
+// Make preBuild depend on generateKeyboardConfigs
+preBuild.dependsOn generateKeyboardConfigs
+
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.

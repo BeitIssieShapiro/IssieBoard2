@@ -62,6 +62,11 @@ class KeyboardPreviewView: UIView {
             self?.handleDeleteWord()
         }
         
+        // Set up long-press selection callback for keyset/nikkud keys
+        renderer.onKeyLongPress = { [weak self] key in
+            self?.handleKeyLongPress(key)
+        }
+        
         // Set up suggestion selection callback
         renderer.onSuggestionSelected = { [weak self] suggestion in
             self?.handleSuggestionSelected(suggestion)
@@ -294,6 +299,21 @@ class KeyboardPreviewView: UIView {
             "value": key.value,
             "label": key.label,
             "hasNikkud": !key.nikkud.isEmpty
+        ])
+    }
+    
+    /// Handle long-press on keyset/nikkud keys for selection in edit mode
+    /// This emits a special event type so React can select the key for styling
+    private func handleKeyLongPress(_ key: ParsedKey) {
+        print("🔑 KeyboardPreviewView handleKeyLongPress: type='\(key.type)'")
+        
+        // Emit a "longpress" event with the key's type as the value for selection
+        // The React side will use this to add the key type to the selected keys
+        onKeyPress?([
+            "type": "longpress",
+            "value": key.type,  // Use type (e.g., "keyset", "nikkud") as the value for group matching
+            "label": key.label,
+            "hasNikkud": false
         ])
     }
     

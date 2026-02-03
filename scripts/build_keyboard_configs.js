@@ -54,10 +54,13 @@ const KEYBOARD_CONFIGS = [
 ];
 
 // Default keyboard config template
+// wordSuggestionsEnabled: true (ON by default)
+// autoCorrectEnabled: false (OFF by default)
 const DEFAULT_CONFIG_TEMPLATE = {
   backgroundColor: 'default',
   defaultKeyset: 'abc',
   wordSuggestionsEnabled: true,
+  autoCorrectEnabled: false,
   groups: []
 };
 
@@ -404,6 +407,7 @@ function createCombinedAndroidConfig(commonKeysets) {
     backgroundColor: 'default',
     defaultKeyset: 'abc',
     wordSuggestionsEnabled: true,
+    autoCorrectEnabled: false,
     keyboards: ['he', 'en', 'ar'],
     defaultKeyboard: 'he',
     keysets: [],

@@ -53,6 +53,7 @@ module.exports = {
         {
           keys: [
             { type: "keyset", keysetValue: "#+=", returnKeysetValue: "123", label: "#+=", returnKeysetLabel: "123", width: 1.5 },
+            { hidden: true, width: 0.25 },
             { value: "." },
             { value: "," },
             { value: "?", forLanguages: ["he", "en"] },

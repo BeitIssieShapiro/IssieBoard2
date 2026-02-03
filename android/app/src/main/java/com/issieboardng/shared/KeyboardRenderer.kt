@@ -94,6 +94,9 @@ class KeyboardRenderer(private val context: Context) {
     // Callback for state changes (shift, nikkud, keyset) to trigger layout refresh
     var onStateChange: (() -> Unit)? = null
     
+    // Callback for long-press selection (for nikkud/keyset keys in edit mode)
+    var onKeyLongPress: ((ParsedKey) -> Unit)? = null
+    
     // Layout tracking to prevent infinite loops
     private var lastRenderedWidth: Int = 0
     
@@ -645,6 +648,16 @@ class KeyboardRenderer(private val context: Context) {
         } else {
             buttonContainer.setOnClickListener {
                 handleKeyClick(key, it)
+            }
+            
+            // Add long-press listener for keyset and nikkud keys (for selection in edit mode)
+            val keyType = key.type.lowercase()
+            if (keyType == "keyset" || keyType == "nikkud") {
+                buttonContainer.setOnLongClickListener {
+                    debugLog("🔑 Key long-pressed for selection: type='${key.type}'")
+                    onKeyLongPress?.invoke(key)
+                    true
+                }
             }
         }
         

@@ -125,7 +125,7 @@ class SuggestionsBarView {
             // Create tappable button
             let button = UIButton(type: .system)
             button.setTitle(suggestion, for: .normal)
-            let fontWeight: UIFont.Weight = isHighlighted ? .bold : .medium
+            let fontWeight: UIFont.Weight = isHighlighted ? .medium : .regular
             button.titleLabel?.font = UIFont.systemFont(ofSize: fontSize, weight: fontWeight)
             button.titleLabel?.adjustsFontSizeToFitWidth = true
             button.titleLabel?.minimumScaleFactor = 0.6

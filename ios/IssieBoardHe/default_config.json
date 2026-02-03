@@ -2,6 +2,7 @@
   "backgroundColor": "default",
   "defaultKeyset": "abc",
   "wordSuggestionsEnabled": true,
+  "autoCorrectEnabled": false,
   "groups": [],
   "keyboards": [
     "he"
@@ -372,6 +373,10 @@
               "label": "#+=",
               "returnKeysetLabel": "123",
               "width": 1.5
+            },
+            {
+              "hidden": true,
+              "width": 0.25
             },
             {
               "value": "."

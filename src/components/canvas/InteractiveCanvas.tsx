@@ -1,7 +1,7 @@
 import React, { useMemo, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { KeyboardPreview, KeyPressEvent } from '../KeyboardPreview';
-import { useEditor, KeyIdentifier } from '../../context/EditorContext';
+import { useEditor } from '../../context/EditorContext';
 
 // Helper to cycle to next keyset of the same type across keyboards
 const getNextKeysetId = (
@@ -44,59 +44,7 @@ interface InteractiveCanvasProps {
 }
 
 export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInput }) => {
-  const { state, dispatch, selectKey, toggleKeySelection } = useEditor();
-
-  // Find key by matching criteria
-  const findKeyIdentifier = useCallback((
-    eventType: string,
-    eventValue: string,
-    eventLabel: string
-  ): KeyIdentifier | null => {
-    const activeKeyset = state.config.keysets.find(ks => ks.id === state.activeKeyset);
-    
-    if (activeKeyset) {
-      for (let rowIndex = 0; rowIndex < activeKeyset.rows.length; rowIndex++) {
-        const row = activeKeyset.rows[rowIndex];
-        for (let keyIndex = 0; keyIndex < row.keys.length; keyIndex++) {
-          const key = row.keys[keyIndex];
-          
-          if (eventType && key.type === eventType) {
-            return { keysetId: activeKeyset.id, rowIndex, keyIndex };
-          }
-          
-          if (eventValue && (key.value === eventValue || key.sValue === eventValue)) {
-            return { keysetId: activeKeyset.id, rowIndex, keyIndex };
-          }
-          
-          if (eventLabel && key.label === eventLabel) {
-            return { keysetId: activeKeyset.id, rowIndex, keyIndex };
-          }
-        }
-      }
-    }
-    
-    // Fallback: search all keysets
-    for (const keyset of state.config.keysets) {
-      if (keyset.id === state.activeKeyset) continue;
-      
-      for (let rowIndex = 0; rowIndex < keyset.rows.length; rowIndex++) {
-        const row = keyset.rows[rowIndex];
-        for (let keyIndex = 0; keyIndex < row.keys.length; keyIndex++) {
-          const key = row.keys[keyIndex];
-          
-          if (eventType && key.type === eventType) {
-            return { keysetId: keyset.id, rowIndex, keyIndex };
-          }
-          
-          if (eventValue && (key.value === eventValue || key.sValue === eventValue)) {
-            return { keysetId: keyset.id, rowIndex, keyIndex };
-          }
-        }
-      }
-    }
-    
-    return null;
-  }, [state.config.keysets, state.activeKeyset]);
+  const { state, dispatch } = useEditor();
 
   const handleKeyPress = useCallback((event: KeyPressEvent) => {
     const { type, value, label } = event.nativeEvent;
@@ -128,45 +76,27 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
       return;
     }
     
-    if (state.mode === 'test') {
-      // Handle special key types
-      if (type === 'backspace') {
-        if (onTestInput) {
-          onTestInput('backspace');
-        }
-        return;
+    // Always in test mode - handle key input
+    if (type === 'backspace') {
+      if (onTestInput) {
+        onTestInput('backspace');
       }
-      
-      // Handle suggestion selection - the value contains the replacement text
-      if (type === 'suggestion' && value) {
-        if (onTestInput) {
-          // For suggestions, we need to handle backspace to remove current word
-          // then add the suggestion. The native side already handled this,
-          // so we just set the new text directly
-          onTestInput(value);
-        }
-        return;
-      }
-      
-      // Regular keys
-      if (onTestInput && value) {
+      return;
+    }
+    
+    // Handle suggestion selection - the value contains the replacement text
+    if (type === 'suggestion' && value) {
+      if (onTestInput) {
         onTestInput(value);
       }
       return;
     }
     
-    // In edit mode, select/toggle the key
-    const keyId = findKeyIdentifier(type, value, label);
-    if (keyId) {
-      // If there's already a selection, toggle (add/remove from multi-select)
-      // Otherwise, single-select
-      if (state.selectedKeys.length > 0) {
-        toggleKeySelection(keyId);
-      } else {
-        selectKey(keyId);
-      }
+    // Regular keys - pass value to test input
+    if (onTestInput && value) {
+      onTestInput(value);
     }
-  }, [state.mode, state.activeKeyset, state.config.keyboards, state.config.keysets, state.selectedKeys.length, dispatch, findKeyIdentifier, selectKey, toggleKeySelection, onTestInput]);
+  }, [state.activeKeyset, state.config.keyboards, state.config.keysets, dispatch, onTestInput]);
 
   // Convert StyleGroups to the GroupConfig format the native renderer expects
   // StyleGroup.members now stores key values directly (e.g., ["א", "ב"]) not position IDs
@@ -195,19 +125,8 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
   }, [state.config, state.styleGroups]);
 
   const configJson = useMemo(() => {
-    const json = JSON.stringify(configWithGroups);
-    // Debug: Log diacriticsSettings
-    console.log('[InteractiveCanvas] diacriticsSettings:', JSON.stringify(configWithGroups.diacriticsSettings));
-    console.log('[InteractiveCanvas] keyboards:', configWithGroups.keyboards);
-    return json;
+    return JSON.stringify(configWithGroups);
   }, [configWithGroups]);
-  
-  // Build selected keys JSON for native preview highlighting
-  // selectedKeys are already in string format "keysetId:rowIndex:keyIndex"
-  const selectedKeysJson = useMemo(() => {
-    if (state.selectedKeys.length === 0) return undefined;
-    return JSON.stringify(state.selectedKeys);
-  }, [state.selectedKeys]);
 
   // Calculate dynamic height based on number of rows in active keyset
   const previewHeight = useMemo(() => {
@@ -236,7 +155,6 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
       <KeyboardPreview
         style={[styles.preview, { height: previewHeight }]}
         configJson={configJson}
-        selectedKeys={selectedKeysJson}
         onKeyPress={handleKeyPress}
       />
     </View>

@@ -29,6 +29,9 @@ class KeyboardRenderer {
     var onDeleteCharacter: (() -> Void)?     // Delete single character
     var onDeleteWord: (() -> Void)?          // Delete entire word
     
+    // Callback for long-press selection (for nikkud/keyset keys in edit mode)
+    var onKeyLongPress: ((ParsedKey) -> Void)?
+    
     // Word suggestions to display
     private var currentSuggestions: [String] = []
     
@@ -524,6 +527,14 @@ class KeyboardRenderer {
             button.addTarget(self, action: #selector(backspaceTouchCancelled(_:)), for: .touchCancel)
         } else {
             button.addTarget(self, action: #selector(keyTapped(_:)), for: .touchUpInside)
+            
+            // Add long-press gesture for keyset and nikkud keys (for selection in edit mode)
+            let keyType = key.type.lowercased()
+            if keyType == "keyset" || keyType == "nikkud" {
+                let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(keyLongPressed(_:)))
+                longPressGesture.minimumPressDuration = 0.5
+                button.addGestureRecognizer(longPressGesture)
+            }
         }
         button.accessibilityIdentifier = encodeKeyInfo(key)
         
@@ -777,6 +788,23 @@ class KeyboardRenderer {
         
         // Handle key clicks internally, like Android does
         handleKeyClick(key, keyView: sender)
+    }
+    
+    /// Handle long-press on keyset/nikkud keys for selection in edit mode
+    @objc private func keyLongPressed(_ gesture: UILongPressGestureRecognizer) {
+        // Only trigger on initial recognition, not continued updates
+        guard gesture.state == .began else { return }
+        
+        guard let button = gesture.view as? UIButton,
+              let keyInfo = decodeKeyInfo(button.accessibilityIdentifier),
+              let key = parseKeyFromInfo(keyInfo) else {
+            return
+        }
+        
+        print("🔑 Key long-pressed for selection: type='\(key.type)', value='\(key.value)'")
+        
+        // Emit the long-press selection event
+        onKeyLongPress?(key)
     }
     
     private func handleKeyClick(_ key: ParsedKey, keyView: UIButton) {

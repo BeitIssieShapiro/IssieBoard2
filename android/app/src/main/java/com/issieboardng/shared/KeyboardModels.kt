@@ -20,15 +20,15 @@ data class KeyboardConfig(
     val allDiacritics: Map<String, DiacriticsDefinition>? = null,  // Per-keyboard diacritics definitions
     val diacriticsSettings: Map<String, DiacriticsSettings>? = null,  // Per-keyboard settings from profile
     val wordSuggestionsEnabled: Boolean? = null,  // Enable/disable word suggestions (default: true)
-    val autoCorrectEnabled: Boolean? = null  // Enable/disable auto-correct on space (default: true)
+    val autoCorrectEnabled: Boolean? = null  // Enable/disable auto-correct on space (default: false)
 ) {
     /** Check if word suggestions are enabled (defaults to true if not specified) */
     val isWordSuggestionsEnabled: Boolean
         get() = wordSuggestionsEnabled ?: true
     
-    /** Check if auto-correct is enabled (defaults to true if not specified) */
+    /** Check if auto-correct is enabled (defaults to false if not specified) */
     val isAutoCorrectEnabled: Boolean
-        get() = autoCorrectEnabled ?: true
+        get() = autoCorrectEnabled ?: false
     
     /** Get diacritics for a specific keyboard ID */
     fun getDiacritics(keyboardId: String?): DiacriticsDefinition? {
@@ -233,18 +233,18 @@ data class ParsedKey(
             defaultBgColor: Int
         ): ParsedKey {
             val value = key.value ?: ""
+            val keyType = key.type ?: ""
             val sValue = key.sValue ?: value
             val caption = key.caption ?: value
             val sCaption = key.sCaption ?: (key.sValue ?: (key.caption ?: value))
-            val type = key.type ?: ""
             val label = key.label ?: ""
             val keysetValue = key.keysetValue ?: ""
             val returnKeysetValue = key.returnKeysetValue ?: ""
             val returnKeysetLabel = key.returnKeysetLabel ?: ""
             val nikkud = key.nikkud ?: emptyList()
             
-            // Get group template if exists
-            val groupTemplate = groups[value]
+            // Get group template if exists - check by value first, then by type for special keys
+            val groupTemplate = groups[value] ?: if (value.isEmpty()) groups[keyType] else null
             
             // Resolve width
             val width = key.width ?: groupTemplate?.width ?: 1.0
@@ -275,7 +275,7 @@ data class ParsedKey(
                 sValue = sValue,
                 caption = caption,
                 sCaption = sCaption,
-                type = type,
+                type = keyType,
                 width = width,
                 offset = offset,
                 hidden = hidden,

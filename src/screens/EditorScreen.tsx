@@ -760,7 +760,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         ))}
       </View>
 
-      {/* Header Row: Profile & Mode Toggle */}
+      {/* Header Row: Profile */}
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.headerCenter}
@@ -776,34 +776,6 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
             </View>
           )}
         </TouchableOpacity>
-        
-        {/* Mode Toggle */}
-        <View style={styles.modeToggle}>
-          <TouchableOpacity
-            style={[
-              styles.modeButton,
-              state.mode === 'edit' && styles.modeButtonActive,
-            ]}
-            onPress={() => setMode('edit')}
-          >
-            <Text style={[
-              styles.modeButtonText,
-              state.mode === 'edit' && styles.modeButtonTextActive,
-            ]}>Edit</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.modeButton,
-              state.mode === 'test' && styles.modeButtonActive,
-            ]}
-            onPress={() => setMode('test')}
-          >
-            <Text style={[
-              styles.modeButtonText,
-              state.mode === 'test' && styles.modeButtonTextActive,
-            ]}>Test</Text>
-          </TouchableOpacity>
-        </View>
       </View>
 
       {/* Action Bar */}
@@ -877,35 +849,22 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         style={styles.content}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {state.mode === 'test' && (
-          <View style={styles.testArea}>
-            <TextInput
-              style={styles.testInput}
-              value={testText}
-              onChangeText={setTestText}
-              placeholder="Tap keys below to test..."
-              multiline
-              editable={false}
-            />
-            <TouchableOpacity 
-              style={styles.clearButton}
-              onPress={() => setTestText('')}
-            >
-              <Text style={styles.clearButtonText}>Clear</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        {/* Simple test input - one-liner */}
+        <View style={styles.testArea}>
+          <TextInput
+            style={styles.testInput}
+            value={testText}
+            onChangeText={setTestText}
+            placeholder="Tap keys to test..."
+            editable={false}
+          />
+        </View>
 
-        {!(keyboardVisible && state.selectedKeys.length > 0) && (
-          <View style={styles.canvasContainer}>
-            <InteractiveCanvas onTestInput={handleTestInput} />
-          </View>
-        )}
+        <View style={styles.canvasContainer}>
+          <InteractiveCanvas onTestInput={handleTestInput} />
+        </View>
 
-        <View style={[
-          styles.toolboxContainer,
-          keyboardVisible && state.selectedKeys.length > 0 && styles.toolboxExpanded
-        ]}>
+        <View style={styles.toolboxContainer}>
           <Toolbox 
             keyboardVariants={currentLanguageDef.keyboards}
             currentKeyboardId={currentKeyboardId}
@@ -1463,29 +1422,20 @@ const styles = StyleSheet.create({
   },
   testArea: {
     backgroundColor: '#FFF',
-    padding: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
   },
   testInput: {
-    height: 80,
+    height: 36,
     borderWidth: 1,
     borderColor: '#DDD',
     borderRadius: 8,
-    padding: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     fontSize: 16,
     backgroundColor: '#FAFAFA',
-    textAlignVertical: 'top',
-  },
-  clearButton: {
-    alignSelf: 'flex-end',
-    marginTop: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-  },
-  clearButtonText: {
-    fontSize: 14,
-    color: '#2196F3',
   },
   canvasContainer: {},
   toolboxContainer: {

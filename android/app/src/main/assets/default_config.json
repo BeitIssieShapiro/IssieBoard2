@@ -2,6 +2,7 @@
   "backgroundColor": "default",
   "defaultKeyset": "he_abc",
   "wordSuggestionsEnabled": true,
+  "autoCorrectEnabled": false,
   "keyboards": [
     "he",
     "en",
@@ -234,6 +235,10 @@
               "width": 1.5
             },
             {
+              "hidden": true,
+              "width": 0.25
+            },
+            {
               "value": "."
             },
             {
@@ -370,6 +375,10 @@
               "label": "123",
               "returnKeysetLabel": "#+=",
               "width": 1.5
+            },
+            {
+              "hidden": true,
+              "width": 0.25
             },
             {
               "value": "."
@@ -671,6 +680,10 @@
               "width": 1.5
             },
             {
+              "hidden": true,
+              "width": 0.25
+            },
+            {
               "value": "."
             },
             {
@@ -804,6 +817,10 @@
               "label": "123",
               "returnKeysetLabel": "#+=",
               "width": 1.5
+            },
+            {
+              "hidden": true,
+              "width": 0.25
             },
             {
               "value": "."
@@ -1081,6 +1098,10 @@
               "width": 1.5
             },
             {
+              "hidden": true,
+              "width": 0.25
+            },
+            {
               "value": "."
             },
             {
@@ -1218,6 +1239,10 @@
               "label": "123",
               "returnKeysetLabel": "#+=",
               "width": 1.5
+            },
+            {
+              "hidden": true,
+              "width": 0.25
             },
             {
               "value": "."

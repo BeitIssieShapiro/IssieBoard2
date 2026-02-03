@@ -43,11 +43,11 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
     updateAutoCorrect,
   } = useEditor();
 
-  // Get current word suggestions setting (default to true)
+  // Get current word suggestions setting (default to ON)
   const wordSuggestionsEnabled = state.config.wordSuggestionsEnabled !== false;
   
-  // Get current auto-correct setting (default to true)
-  const autoCorrectEnabled = state.config.autoCorrectEnabled !== false;
+  // Get current auto-correct setting (default to OFF)
+  const autoCorrectEnabled = state.config.autoCorrectEnabled === true;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -102,8 +102,8 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
           <Switch
             value={wordSuggestionsEnabled}
             onValueChange={updateWordSuggestions}
-            trackColor={{ false: '#CCCCCC', true: '#81C784' }}
-            thumbColor={wordSuggestionsEnabled ? '#4CAF50' : '#F5F5F5'}
+            trackColor={{ false: '#9E9E9E', true: '#81C784' }}
+            thumbColor={wordSuggestionsEnabled ? '#4CAF50' : '#FFFFFF'}
           />
         </View>
         <View style={styles.featureRow}>
@@ -116,8 +116,8 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
           <Switch
             value={autoCorrectEnabled}
             onValueChange={updateAutoCorrect}
-            trackColor={{ false: '#CCCCCC', true: '#81C784' }}
-            thumbColor={autoCorrectEnabled ? '#4CAF50' : '#F5F5F5'}
+            trackColor={{ false: '#9E9E9E', true: '#81C784' }}
+            thumbColor={autoCorrectEnabled ? '#4CAF50' : '#FFFFFF'}
             disabled={!wordSuggestionsEnabled}
           />
         </View>
