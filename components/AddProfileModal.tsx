@@ -98,24 +98,24 @@ const AddProfileModal = ({ visible, onClose, onCreate, initialLanguage = 'he' }:
 
   return (
     <Modal
-      visible
+      visible={visible}
       transparent
       animationType="fade"
+      supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']}
       onRequestClose={handleClose}
     >
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.overlay}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           bounces={false}
         >
           <View style={styles.dialog}>
             <Text style={styles.title}>{strings.addProfile || 'Add New Profile'}</Text>
-            
-            {/* Profile Name Input */}
+
             <Text style={styles.label}>{strings.profileNameLabel || 'Profile Name'}</Text>
             <TextInput
               style={styles.input}
@@ -126,7 +126,6 @@ const AddProfileModal = ({ visible, onClose, onCreate, initialLanguage = 'he' }:
               returnKeyType="done"
             />
 
-            {/* Language Selection */}
             <Text style={styles.label}>Language</Text>
             <View style={styles.languageContainer}>
               {LANGUAGES.map(lang => (
@@ -148,7 +147,6 @@ const AddProfileModal = ({ visible, onClose, onCreate, initialLanguage = 'he' }:
               ))}
             </View>
 
-            {/* Keyboard Selection (if language has multiple keyboards) */}
             {currentLangDef.keyboards.length > 1 && (
               <>
                 <Text style={styles.label}>Keyboard Layout</Text>
@@ -181,19 +179,19 @@ const AddProfileModal = ({ visible, onClose, onCreate, initialLanguage = 'he' }:
             )}
 
             <View style={styles.divider} />
-            
+
             <View style={styles.buttons}>
               <TouchableOpacity style={styles.button} onPress={handleClose}>
                 <Text style={styles.buttonText}>{strings.cancel}</Text>
               </TouchableOpacity>
               <View style={styles.buttonDivider} />
-              <TouchableOpacity 
-                style={[styles.button, isCreateDisabled && styles.buttonDisabled]} 
+              <TouchableOpacity
+                style={[styles.button, isCreateDisabled && styles.buttonDisabled]}
                 onPress={handleCreate}
                 disabled={isCreateDisabled}
               >
                 <Text style={[
-                  styles.buttonText, 
+                  styles.buttonText,
                   styles.createText,
                   isCreateDisabled && styles.buttonTextDisabled,
                 ]}>
@@ -206,6 +204,7 @@ const AddProfileModal = ({ visible, onClose, onCreate, initialLanguage = 'he' }:
       </KeyboardAvoidingView>
     </Modal>
   );
+  
 };
 
 export default AddProfileModal;

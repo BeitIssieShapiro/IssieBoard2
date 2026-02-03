@@ -16,3 +16,12 @@ suggestion:
 - not offer suggestion for certain input type? then ommit the header row?
 
 ---
+- microphone - in ipad
+- settings button - configureable
+V- show "active" in the list of profile, make newly created as current edited profile
+- visibility (all but selected)
+V- upside down - create rule 
+- font 
+- ready made groups 
+
+

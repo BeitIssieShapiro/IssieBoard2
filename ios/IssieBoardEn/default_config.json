@@ -145,6 +145,10 @@
         {
           "keys": [
             {
+              "type": "next-keyboard",
+              "width": 1
+            },
+            {
               "type": "keyset",
               "keysetValue": "123",
               "returnKeysetValue": "abc",
@@ -154,10 +158,6 @@
             },
             {
               "type": "settings"
-            },
-            {
-              "type": "next-keyboard",
-              "width": 1
             },
             {
               "caption": "SPACE",
@@ -284,6 +284,10 @@
         {
           "keys": [
             {
+              "type": "next-keyboard",
+              "width": 1
+            },
+            {
               "type": "keyset",
               "keysetValue": "abc",
               "returnKeysetValue": "123",
@@ -293,10 +297,6 @@
             },
             {
               "type": "settings"
-            },
-            {
-              "type": "next-keyboard",
-              "width": 1
             },
             {
               "caption": "SPACE",
@@ -423,6 +423,10 @@
         {
           "keys": [
             {
+              "type": "next-keyboard",
+              "width": 1
+            },
+            {
               "type": "keyset",
               "keysetValue": "abc",
               "returnKeysetValue": "#+=",
@@ -432,10 +436,6 @@
             },
             {
               "type": "settings"
-            },
-            {
-              "type": "next-keyboard",
-              "width": 1
             },
             {
               "caption": "SPACE",

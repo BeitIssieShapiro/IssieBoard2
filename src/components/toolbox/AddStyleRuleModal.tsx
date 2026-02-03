@@ -231,7 +231,8 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
     <Modal
       visible={visible}
       transparent
-      animationType="slide"
+      animationType="fade"
+      supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']}
       onRequestClose={handleCancel}
     >
       <View style={styles.modalOverlay}>
