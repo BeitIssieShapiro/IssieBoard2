@@ -20,6 +20,18 @@
               "hidden": true
             },
             {
+              "value": ",",
+              "showOn": [
+                "large-screen"
+              ]
+            },
+            {
+              "value": ".",
+              "showOn": [
+                "large-screen"
+              ]
+            },
+            {
               "value": "ק"
             },
             {
@@ -142,10 +154,17 @@
             {
               "caption": "רווח",
               "value": " ",
-              "width": 5
+              "width": 4,
+              "flex": true
             },
             {
               "type": "nikkud"
+            },
+            {
+              "type": "close",
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "type": "enter",
@@ -282,10 +301,17 @@
             {
               "caption": "רווח",
               "value": " ",
-              "width": 5
+              "width": 4,
+              "flex": true
             },
             {
               "type": "nikkud"
+            },
+            {
+              "type": "close",
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "type": "enter",
@@ -424,10 +450,17 @@
             {
               "caption": "רווח",
               "value": " ",
-              "width": 5
+              "width": 4,
+              "flex": true
             },
             {
               "type": "nikkud"
+            },
+            {
+              "type": "close",
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "type": "enter",
@@ -481,6 +514,14 @@
             {
               "value": "p",
               "sValue": "P"
+            },
+            {
+              "type": "backspace",
+              "width": 1.5,
+              "alwaysInclude": true,
+              "showOn": [
+                "large-screen"
+              ]
             }
           ]
         },
@@ -565,7 +606,22 @@
             {
               "type": "backspace",
               "width": 1.5,
-              "alwaysInclude": true
+              "alwaysInclude": true,
+              "showOn": [
+                "mobile"
+              ]
+            },
+            {
+              "value": ",",
+              "showOn": [
+                "large-screen"
+              ]
+            },
+            {
+              "value": ".",
+              "showOn": [
+                "large-screen"
+              ]
             }
           ]
         },
@@ -589,11 +645,21 @@
             {
               "caption": "SPACE",
               "value": " ",
-              "width": 4
+              "width": 4,
+              "flex": true
             },
             {
               "value": ".",
-              "sValue": ","
+              "sValue": ",",
+              "showOn": [
+                "mobile"
+              ]
+            },
+            {
+              "type": "close",
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "type": "enter"
@@ -704,7 +770,10 @@
             },
             {
               "type": "backspace",
-              "width": 1.5
+              "width": 1.5,
+              "showOn": [
+                "large-screen"
+              ]
             }
           ]
         },
@@ -728,11 +797,21 @@
             {
               "caption": "SPACE",
               "value": " ",
-              "width": 4
+              "width": 4,
+              "flex": true
             },
             {
               "value": ".",
-              "sValue": ","
+              "sValue": ",",
+              "showOn": [
+                "mobile"
+              ]
+            },
+            {
+              "type": "close",
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "type": "enter"
@@ -843,7 +922,10 @@
             },
             {
               "type": "backspace",
-              "width": 1.5
+              "width": 1.5,
+              "showOn": [
+                "large-screen"
+              ]
             }
           ]
         },
@@ -867,11 +949,21 @@
             {
               "caption": "SPACE",
               "value": " ",
-              "width": 4
+              "width": 4,
+              "flex": true
             },
             {
               "value": ".",
-              "sValue": ","
+              "sValue": ",",
+              "showOn": [
+                "mobile"
+              ]
+            },
+            {
+              "type": "close",
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "type": "enter"
@@ -988,8 +1080,7 @@
         {
           "keys": [
             {
-              "type": "next-keyboard",
-              "width": 0.5
+              "type": "next-keyboard"
             },
             {
               "type": "keyset",
@@ -998,6 +1089,9 @@
               "label": "123",
               "returnKeysetLabel": "أبج",
               "width": 1.5
+            },
+            {
+              "type": "settings"
             },
             {
               "caption": "مسافة",
@@ -1010,6 +1104,12 @@
             },
             {
               "type": "nikkud"
+            },
+            {
+              "type": "close",
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "type": "enter"
@@ -1129,8 +1229,7 @@
         {
           "keys": [
             {
-              "type": "next-keyboard",
-              "width": 0.5
+              "type": "next-keyboard"
             },
             {
               "type": "keyset",
@@ -1139,6 +1238,9 @@
               "label": "أبج",
               "returnKeysetLabel": "123",
               "width": 1.5
+            },
+            {
+              "type": "settings"
             },
             {
               "caption": "مسافة",
@@ -1151,6 +1253,12 @@
             },
             {
               "type": "nikkud"
+            },
+            {
+              "type": "close",
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "type": "enter"
@@ -1272,8 +1380,7 @@
         {
           "keys": [
             {
-              "type": "next-keyboard",
-              "width": 0.5
+              "type": "next-keyboard"
             },
             {
               "type": "keyset",
@@ -1282,6 +1389,9 @@
               "label": "أبج",
               "returnKeysetLabel": "123",
               "width": 1.5
+            },
+            {
+              "type": "settings"
             },
             {
               "caption": "مسافة",
@@ -1294,6 +1404,12 @@
             },
             {
               "type": "nikkud"
+            },
+            {
+              "type": "close",
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "type": "enter"

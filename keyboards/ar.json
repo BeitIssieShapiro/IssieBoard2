@@ -73,11 +73,13 @@
         {
           "alwaysInclude": true,
           "keys": [
-            { "type": "next-keyboard", "width": 0.5 },
+            { "type": "next-keyboard"},
             { "type": "keyset", "keysetValue": "123", "returnKeysetValue": "abc", "label": "123", "returnKeysetLabel": "أبج", "width": 1.5  },
+            { "type": "settings" },
             { "caption": "مسافة", "value": " ", "width": 4 },
             { "value": ".", "sValue": "،" },
             { "type": "nikkud" },
+            { "type": "close" , "showOn": [ "large-screen" ] },
             { "type": "enter" }
           ]
         }

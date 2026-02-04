@@ -14,6 +14,7 @@ import {
   FlatList,
   Animated,
   Keyboard,
+  Dimensions,
 } from 'react-native';
 import { EditorProvider, useEditor } from '../context/EditorContext';
 import { InteractiveCanvas } from '../components/canvas/InteractiveCanvas';
@@ -1510,6 +1511,17 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
   );
 };
 
+// Detect if device is iPad based on screen size
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const isTablet = Math.min(screenWidth, screenHeight) >= 600;
+
+// Responsive sizes for iPad
+const buttonHeight = isTablet ? 56 : 44;
+const buttonWidth = isTablet ? 140 : 100;
+const iconButtonSize = isTablet ? 56 : 44;
+const fontSize = isTablet ? 18 : 16;
+const smallFontSize = isTablet ? 16 : 14;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -1580,25 +1592,26 @@ const styles = StyleSheet.create({
   combinedHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 10,
+    paddingHorizontal: isTablet ? 16 : 8,
+    paddingVertical: isTablet ? 14 : 10,
     backgroundColor: '#FFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
-    minHeight: 56,
+    minHeight: isTablet ? 72 : 56,
   },
   headerSaveButton: {
-    width: 100,
-    height: 44,
-    borderRadius: 22,
+    minWidth: buttonWidth,
+    height: buttonHeight,
+    borderRadius: buttonHeight / 2,
     backgroundColor: '#4CAF50',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
     flexDirection: 'row',
+    paddingHorizontal: isTablet ? 20 : 12,
   },
   headerSaveButtonText: {
-    fontSize: 16,
+    fontSize: fontSize,
     fontWeight: '600',
     color: '#FFF',
   },
@@ -1616,16 +1629,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   headerResetButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: iconButtonSize,
+    height: iconButtonSize,
+    borderRadius: iconButtonSize / 2,
     backgroundColor: '#9E9E9E',
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 8,
   },
   headerResetButtonText: {
-    fontSize: 20,
+    fontSize: isTablet ? 24 : 20,
   },
   header: {
     flexDirection: 'row',
@@ -1774,13 +1787,13 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   profileActionButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: isTablet ? 48 : 36,
+    height: isTablet ? 48 : 36,
+    borderRadius: isTablet ? 24 : 18,
     backgroundColor: '#FF9800',
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 6,
+    marginLeft: isTablet ? 10 : 6,
   },
   profileDeleteButton: {
     backgroundColor: '#F44336',
@@ -1992,16 +2005,16 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   headerDiscardButton: {
-    height: 44,
-    borderRadius: 22,
+    height: buttonHeight,
+    borderRadius: buttonHeight / 2,
     backgroundColor: '#F44336',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: isTablet ? 20 : 12,
   },
   headerDiscardButtonText: {
-    fontSize: 14,
+    fontSize: smallFontSize,
     fontWeight: '600',
     color: '#FFF',
   },

@@ -676,7 +676,7 @@
 				6ACC1E962F2D007500F1FA30 /* BaseKeyboardViewController.swift in Sources */,
 				6ACC1E2A2F2B564800F1FA30 /* TrieEngine.swift in Sources */,
 				6A1E33772F22198A00035455 /* KeyboardModels.swift in Sources */,
-				6ACC1F9B2F30AF8900F1FA30 /* WordSuggestionController.swift in Sources */,
+						6ACC1F9B2F30AF8900F1FA30 /* WordSuggestionController.swift in Sources */,
 				6A1E33702F220FCA00035455 /* KeyboardPreferences.swift in Sources */,
 				6A1E33752F22170C00035455 /* KeyboardPreferencesModule.swift in Sources */,
 				6A73B6892F24E985003898A5 /* KeyboardRenderer.swift in Sources */,
@@ -699,7 +699,7 @@
 				6ACC20632F30C9B000F1FA30 /* BaseKeyboardViewController.swift in Sources */,
 				6ACC20642F30C9B000F1FA30 /* KeyboardPreferences.swift in Sources */,
 				6ACC20652F30C9B000F1FA30 /* NikkudPickerController.swift in Sources */,
-				6ACC20662F30C9B000F1FA30 /* SuggestionsBarView.swift in Sources */,
+						6ACC20662F30C9B000F1FA30 /* SuggestionsBarView.swift in Sources */,
 				6ACC20672F30C9B000F1FA30 /* BackspaceHandler.swift in Sources */,
 				6ACC20682F30C9B000F1FA30 /* KeyboardModels.swift in Sources */,
 				6ACC20692F30C9B000F1FA30 /* WordSuggestionController.swift in Sources */,
@@ -797,7 +797,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = IssieBoardNG/IssieBoardNG.entitlements;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				DEVELOPMENT_TEAM = SKNJT9TD9G;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = IssieBoardNG/Info.plist;
@@ -831,7 +831,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = IssieBoardNG/IssieBoardNG.entitlements;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				DEVELOPMENT_TEAM = SKNJT9TD9G;
 				INFOPLIST_FILE = IssieBoardNG/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;

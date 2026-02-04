@@ -42,6 +42,8 @@
         {
           "keys": [
             { "width": 0.5, "hidden": true},
+            { "value": ",", "showOn": ["large-screen"] },
+            { "value": ".", "showOn": ["large-screen"] },
             { "value": "ק" },
             { "value": "ר" },
             { "value": "א" },
@@ -88,8 +90,9 @@
             { "type": "next-keyboard" },
             { "type": "keyset", "keysetValue": "123", "returnKeysetValue": "abc", "label": "123", "returnKeysetLabel": "אבג", "width": 1.5 },
             { "type": "settings" },
-            { "caption": "רווח", "value": " ", "width": 5 },
+            { "caption": "רווח", "value": " ", "width": 4, "flex": true },
             { "type": "nikkud" },
+            { "type": "close" , "showOn": [ "large-screen" ] },
             { "type": "enter", "width": 1.5 }
           ]
         }

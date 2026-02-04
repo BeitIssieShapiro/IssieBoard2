@@ -160,6 +160,18 @@
               "hidden": true
             },
             {
+              "value": ",",
+              "showOn": [
+                "large-screen"
+              ]
+            },
+            {
+              "value": ".",
+              "showOn": [
+                "large-screen"
+              ]
+            },
+            {
               "value": "ק"
             },
             {
@@ -282,10 +294,17 @@
             {
               "caption": "רווח",
               "value": " ",
-              "width": 5
+              "width": 4,
+              "flex": true
             },
             {
               "type": "nikkud"
+            },
+            {
+              "type": "close",
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "type": "enter",
@@ -422,10 +441,17 @@
             {
               "caption": "רווח",
               "value": " ",
-              "width": 5
+              "width": 4,
+              "flex": true
             },
             {
               "type": "nikkud"
+            },
+            {
+              "type": "close",
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "type": "enter",
@@ -564,10 +590,17 @@
             {
               "caption": "רווח",
               "value": " ",
-              "width": 5
+              "width": 4,
+              "flex": true
             },
             {
               "type": "nikkud"
+            },
+            {
+              "type": "close",
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "type": "enter",

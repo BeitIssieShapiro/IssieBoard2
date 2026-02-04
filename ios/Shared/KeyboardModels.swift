@@ -58,6 +58,12 @@ struct KeyRow: Codable {
     let keys: [Key]
 }
 
+/// Screen size types for showOn property
+enum ScreenSizeType: String, Codable {
+    case mobile = "mobile"           // iPhone-size screens
+    case largeScreen = "large-screen" // iPad-size screens
+}
+
 struct Key: Codable {
     let value: String?
     let sValue: String?
@@ -74,6 +80,8 @@ struct Key: Codable {
     let returnKeysetValue: String?
     let returnKeysetLabel: String?
     let nikkud: [NikkudOption]?
+    let showOn: [ScreenSizeType]?  // Filter key visibility by screen size
+    let flex: Bool?  // If true, this key absorbs extra width from hidden keys in the same row
     
     enum CodingKeys: String, CodingKey {
         case value
@@ -91,6 +99,23 @@ struct Key: Codable {
         case returnKeysetValue
         case returnKeysetLabel
         case nikkud
+        case showOn
+        case flex
+    }
+    
+    /// Check if the key should be shown on the current screen size
+    /// - Parameter isLargeScreen: true for iPad, false for iPhone
+    /// - Returns: true if key should be shown
+    func shouldShow(isLargeScreen: Bool) -> Bool {
+        guard let showOn = showOn, !showOn.isEmpty else {
+            return true  // No filter = show everywhere
+        }
+        
+        if isLargeScreen {
+            return showOn.contains(.largeScreen)
+        } else {
+            return showOn.contains(.mobile)
+        }
     }
 }
 

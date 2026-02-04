@@ -257,8 +257,7 @@
         {
           "keys": [
             {
-              "type": "next-keyboard",
-              "width": 0.5
+              "type": "next-keyboard"
             },
             {
               "type": "keyset",
@@ -267,6 +266,9 @@
               "label": "123",
               "returnKeysetLabel": "أبج",
               "width": 1.5
+            },
+            {
+              "type": "settings"
             },
             {
               "caption": "مسافة",
@@ -279,6 +281,12 @@
             },
             {
               "type": "nikkud"
+            },
+            {
+              "type": "close",
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "type": "enter"
@@ -398,8 +406,7 @@
         {
           "keys": [
             {
-              "type": "next-keyboard",
-              "width": 0.5
+              "type": "next-keyboard"
             },
             {
               "type": "keyset",
@@ -408,6 +415,9 @@
               "label": "أبج",
               "returnKeysetLabel": "123",
               "width": 1.5
+            },
+            {
+              "type": "settings"
             },
             {
               "caption": "مسافة",
@@ -420,6 +430,12 @@
             },
             {
               "type": "nikkud"
+            },
+            {
+              "type": "close",
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "type": "enter"
@@ -541,8 +557,7 @@
         {
           "keys": [
             {
-              "type": "next-keyboard",
-              "width": 0.5
+              "type": "next-keyboard"
             },
             {
               "type": "keyset",
@@ -551,6 +566,9 @@
               "label": "أبج",
               "returnKeysetLabel": "123",
               "width": 1.5
+            },
+            {
+              "type": "settings"
             },
             {
               "caption": "مسافة",
@@ -563,6 +581,12 @@
             },
             {
               "type": "nikkud"
+            },
+            {
+              "type": "close",
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "type": "enter"

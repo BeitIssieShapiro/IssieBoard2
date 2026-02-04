@@ -17,7 +17,8 @@
             { "value": "u", "sValue": "U" },
             { "value": "i", "sValue": "I" },
             { "value": "o", "sValue": "O" },
-            { "value": "p", "sValue": "P" }
+            { "value": "p", "sValue": "P" },
+            { "type": "backspace", "width": 1.5, "alwaysInclude": true, "showOn": ["large-screen"] }
           ]
         },
         {
@@ -44,7 +45,10 @@
             { "value": "b", "sValue": "B" },
             { "value": "n", "sValue": "N" },
             { "value": "m", "sValue": "M" },
-            { "type": "backspace", "width": 1.5, "alwaysInclude": true }
+            { "type": "backspace", "width": 1.5, "alwaysInclude": true, "showOn": ["mobile"] },
+            { "value": ",", "showOn": ["large-screen"] },
+            { "value": ".", "showOn": ["large-screen"] }
+
           ]
         },
         {
@@ -53,8 +57,9 @@
             { "type": "next-keyboard", "width": 1 },
             { "type": "keyset", "keysetValue": "123", "returnKeysetValue": "abc", "label": "123", "returnKeysetLabel": "ABC", "width": 1.5  },
             { "type": "settings"},
-            { "caption": "SPACE", "value": " ", "width": 4 },
-            { "value": ".", "sValue": "," },
+            { "caption": "SPACE", "value": " ",  "width": 4, "flex": true },
+            { "value": ".", "sValue": ",", "showOn": [ "mobile" ] },
+            { "type": "close" , "showOn": [ "large-screen" ] },
             { "type": "enter" }
           ]
         }

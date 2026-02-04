@@ -78,6 +78,12 @@ class KeyboardRenderer {
     // Layout tracking to prevent infinite loops
     private var lastRenderedWidth: CGFloat = 0
     
+    // Screen size detection for showOn filtering
+    private var isLargeScreen: Bool {
+        // iPad or large screen detection
+        return UIDevice.current.userInterfaceIdiom == .pad
+    }
+    
     // UI Constants - same for preview and keyboard
     private let rowHeight: CGFloat = 54  // Increased from 44 for taller keys
     private let keySpacing: CGFloat = 0       // No spacing between key tap areas
@@ -155,7 +161,9 @@ class KeyboardRenderer {
                 keysetValue: nil,
                 returnKeysetValue: nil,
                 returnKeysetLabel: nil,
-                nikkud: nil
+                nikkud: nil,
+                showOn: nil,
+                flex: nil
             )
             let parsedKey = ParsedKey(from: backspaceKey, groups: [:], defaultTextColor: .black, defaultBgColor: .white)
             onKeyPress?(parsedKey)
@@ -429,6 +437,9 @@ class KeyboardRenderer {
         // Check if we have only one language (keyboard)
         let hasOnlyOneLanguage = (config?.keyboards?.count ?? 0) <= 1
         
+        // Check if nikkud is disabled for the current keyboard
+        let isNikkudDisabled = config?.diacriticsSettings?[currentKeyboardId ?? ""]?.isDisabled ?? false
+        
         for row in rows {
             var rowWidth: CGFloat = 0
             for key in row.keys {
@@ -436,28 +447,42 @@ class KeyboardRenderer {
                                          defaultTextColor: .black,
                                          defaultBgColor: .white)
                 
-                // Skip language/next-keyboard keys if only one language
                 let keyType = parsedKey.type.lowercased()
+                
+                // Skip language/next-keyboard keys if only one language
                 if hasOnlyOneLanguage && keyType == "language" || !showGlobeButton && keyType == "next-keyboard" {
                     continue
                 }
                 
-                // For baseline width calculation, we include ALL keys (including hidden ones)
+                // Skip nikkud key if disabled
+                if keyType == "nikkud" && isNikkudDisabled {
+                    continue
+                }
+                
+                // Skip keys hidden by showOn filter (screen size conditional keys)
+                // These keys should NOT be counted in baseline width calculation
+                if !key.shouldShow(isLargeScreen: isLargeScreen) {
+                    continue
+                }
+                
+                // For baseline width calculation, we include ALL visible keys (including those hidden by style rules)
                 // This ensures hidden keys still take up space and preserve the layout.
                 // The only exception is keys that are hidden at the base level (parsedKey.hidden),
                 // OR keys hidden via "hide" visibility mode (explicit hide, not showOnly).
                 // For "showOnly" mode, we want hidden keys to still take up space.
                 let keyValue = key.value ?? key.type ?? ""
                 
-                // Check if key is hidden via explicit "hide" mode (not showOnly)
-                let isExplicitlyHidden = parsedKey.hidden || {
+                // Check if key is hidden via group "hide" visibility mode
+                // Note: parsedKey.hidden keys (spacers) still take up space in layout,
+                // so they should be counted in baseline width calculation
+                let isHiddenByGroup = {
                     if let template = groups[keyValue] {
                         return template.effectiveVisibilityMode == .hide
                     }
                     return false
                 }()
                 
-                if !isExplicitlyHidden {
+                if !isHiddenByGroup {
                     rowWidth += CGFloat(parsedKey.width + parsedKey.offset)
                 }
             }
@@ -483,10 +508,32 @@ class KeyboardRenderer {
             return true
         }
         
+        // Check if the key's group has an explicit "hide" visibility mode
+        // This takes precedence - if explicitly marked to hide, hide it
+        if let template = groups[keyValue] {
+            let visMode = template.effectiveVisibilityMode
+            if visMode == .hide {
+                return true
+            }
+        }
+        
         // If there's a "showOnly" rule active, check if this key is in the whitelist
         if let showOnly = showOnlyKeys {
-            // Special keys (shift, backspace, etc.) should always be visible unless explicitly hidden
-            let specialTypes = ["shift", "backspace", "enter", "space", "keyset", "nikkud", "settings", "close", "next-keyboard", "language"]
+            // Essential keys that are NEVER hidden by showOnly rule (only by explicit hide)
+            // These keys are critical for typing and should always remain visible
+            // unless the user explicitly creates a hide rule for them
+            let essentialValues: Set<String> = [" ", ",", "."]  // space, comma, period
+            let essentialTypes: Set<String> = ["space", "backspace", "enter"]
+            
+            // Check if this is an essential key by value or type
+            if essentialValues.contains(keyValue) || essentialTypes.contains(parsedKey.type.lowercased()) {
+                // Essential keys are NOT hidden by showOnly rule
+                // They can only be hidden by explicit hide rule (checked above)
+                return false
+            }
+            
+            // Other special keys (shift, keyset, etc.) should check if they're in the whitelist
+            let specialTypes: Set<String> = ["shift", "keyset", "nikkud", "settings", "close", "next-keyboard", "language"]
             if specialTypes.contains(parsedKey.type.lowercased()) {
                 // Check if this special key is explicitly in the showOnly set
                 return !showOnly.contains(keyValue) && !showOnly.contains(parsedKey.type.lowercased())
@@ -494,14 +541,6 @@ class KeyboardRenderer {
             
             // For regular keys, hide if not in the showOnly set
             return !showOnly.contains(keyValue)
-        }
-        
-        // Check if the key's group has a hide visibility mode
-        if let template = groups[keyValue] {
-            let visMode = template.effectiveVisibilityMode
-            if visMode == .hide {
-                return true
-            }
         }
         
         return false
@@ -528,6 +567,44 @@ class KeyboardRenderer {
         // Check if nikkud is disabled for the current keyboard
         let isNikkudDisabled = config?.diacriticsSettings?[currentKeyboardId ?? ""]?.isDisabled ?? false
         
+        // FIRST PASS: Calculate hidden width due to showOn filter and count flex keys
+        var hiddenWidthFromShowOn: Double = 0
+        var flexKeyCount = 0
+        
+        for key in row.keys {
+            let parsedKey = ParsedKey(from: key, groups: groups,
+                                     defaultTextColor: .black,
+                                     defaultBgColor: .white)
+            
+            let keyType = parsedKey.type.lowercased()
+            
+            // Skip language/next-keyboard keys
+            if keyType == "language" && hasOnlyOneLanguage || keyType == "next-keyboard" && !showGlobeButton {
+                continue
+            }
+            
+            // Skip nikkud key if disabled
+            if keyType == "nikkud" && isNikkudDisabled {
+                continue
+            }
+            
+            // Check if key is hidden due to showOn filter
+            if !key.shouldShow(isLargeScreen: isLargeScreen) {
+                // Accumulate the width of hidden keys
+                hiddenWidthFromShowOn += parsedKey.width
+                continue
+            }
+            
+            // Count flex keys
+            if key.flex == true {
+                flexKeyCount += 1
+            }
+        }
+        
+        // Calculate extra width per flex key
+        let extraWidthPerFlexKey: Double = flexKeyCount > 0 ? hiddenWidthFromShowOn / Double(flexKeyCount) : 0
+        
+        // SECOND PASS: Render keys with redistributed width
         for key in row.keys {
             let parsedKey = ParsedKey(from: key, groups: groups,
                                      defaultTextColor: .black,
@@ -549,6 +626,12 @@ class KeyboardRenderer {
                 continue
             }
             
+            // Skip key if it doesn't match the current screen size (showOn filter)
+            if !key.shouldShow(isLargeScreen: isLargeScreen) {
+                keyIndex += 1
+                continue  // Don't add hidden width - it goes to flex keys instead
+            }
+            
             // Handle offset
             if parsedKey.offset > 0 {
                 let offsetWidth = (CGFloat(parsedKey.offset) / baselineWidth) * availableWidth
@@ -567,7 +650,13 @@ class KeyboardRenderer {
                 let hiddenWidth = (CGFloat(parsedKey.width) / baselineWidth) * availableWidth
                 currentX += hiddenWidth
             } else {
-                let keyWidth = (CGFloat(parsedKey.width) / baselineWidth) * availableWidth - keySpacing
+                // Calculate key width, adding extra width if this is a flex key
+                var effectiveWidth = parsedKey.width
+                if key.flex == true {
+                    effectiveWidth += extraWidthPerFlexKey
+                }
+                
+                let keyWidth = (CGFloat(effectiveWidth) / baselineWidth) * availableWidth - keySpacing
                 let button = createKeyButton(parsedKey, width: keyWidth, height: rowHeight, 
                                             editorContext: editorContext,
                                             isSelected: isSelected)
@@ -1084,7 +1173,9 @@ class KeyboardRenderer {
             keysetValue: keysetValue,
             returnKeysetValue: returnKeysetValue,
             returnKeysetLabel: returnKeysetLabel,
-            nikkud: nikkudOptions.isEmpty ? nil : nikkudOptions
+            nikkud: nikkudOptions.isEmpty ? nil : nikkudOptions,
+            showOn: nil,
+            flex: nil
         )
         
         return ParsedKey(from: key, groups: [:], defaultTextColor: .black, defaultBgColor: .white)
@@ -1138,7 +1229,9 @@ class KeyboardRenderer {
                 keysetValue: nil,
                 returnKeysetValue: nil,
                 returnKeysetLabel: nil,
-                nikkud: nikkudOptions
+                nikkud: nikkudOptions,
+                showOn: nil,
+                flex: nil
             )
             let parsedKey = ParsedKey(from: tempKey, groups: [:], defaultTextColor: .black, defaultBgColor: .white)
             

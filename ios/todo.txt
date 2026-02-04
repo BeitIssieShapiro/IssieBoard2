@@ -1,16 +1,4 @@
-Native:
-  android:
-   - double clikc on shift - not lock
-   - nikkud options not rtl
 
-  ios:
-
-
-Nikkud: 
- - select which options
- - font for the keys
-Predict words
-slide curson
 
 suggestion:
 - not offer suggestion for certain input type? then ommit the header row?
@@ -19,9 +7,16 @@ suggestion:
 - microphone - in ipad
 - settings button - configureable
 V- show "active" in the list of profile, make newly created as current edited profile
-- visibility (all but selected)
+V- visibility (all but selected)
+V  - some keys should stay
 V- upside down - create rule 
 - font 
 - ready made groups 
+- slide curson
+V- more keys in iPad mode
+
+
+
+
 
 

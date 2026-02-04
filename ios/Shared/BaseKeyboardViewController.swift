@@ -45,6 +45,13 @@ class BaseKeyboardViewController: UIInputViewController {
         
         debugLog("🚀 BaseKeyboardViewController viewDidLoad - Language: \(keyboardLanguage)")
         
+        // Enable system dictation key
+        // On iPad, this shows the microphone in the Shortcut Bar (grey bar above keyboard)
+        // On iPhone, this may show in the keyboard if space allows
+        // Note: We cannot programmatically trigger system dictation from our custom button
+        // but this enables users to access dictation through iOS's built-in mechanism
+        self.hasDictationKey = false
+        
         setupKeyboard()
         setupRenderer()
         setupSuggestionController()
@@ -54,6 +61,10 @@ class BaseKeyboardViewController: UIInputViewController {
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        let assistant = self.inputAssistantItem
+        assistant.leadingBarButtonGroups = [] 
+        assistant.trailingBarButtonGroups = []
+
         loadPreferences()
         suggestionController.detectCurrentWord(from: textDocumentProxy.documentContextBeforeInput)
     }
@@ -462,7 +473,7 @@ class BaseKeyboardViewController: UIInputViewController {
             lastNeedsInputModeSwitchKey = shouldShowGlobe
             renderer.setShowGlobeButton(shouldShowGlobe)
         }
-    }
+    }  
     
     // MARK: - Settings
     

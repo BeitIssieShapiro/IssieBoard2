@@ -54,6 +54,14 @@
             {
               "value": "p",
               "sValue": "P"
+            },
+            {
+              "type": "backspace",
+              "width": 1.5,
+              "alwaysInclude": true,
+              "showOn": [
+                "large-screen"
+              ]
             }
           ]
         },
@@ -138,7 +146,22 @@
             {
               "type": "backspace",
               "width": 1.5,
-              "alwaysInclude": true
+              "alwaysInclude": true,
+              "showOn": [
+                "mobile"
+              ]
+            },
+            {
+              "value": ",",
+              "showOn": [
+                "large-screen"
+              ]
+            },
+            {
+              "value": ".",
+              "showOn": [
+                "large-screen"
+              ]
             }
           ]
         },
@@ -162,11 +185,21 @@
             {
               "caption": "SPACE",
               "value": " ",
-              "width": 4
+              "width": 4,
+              "flex": true
             },
             {
               "value": ".",
-              "sValue": ","
+              "sValue": ",",
+              "showOn": [
+                "mobile"
+              ]
+            },
+            {
+              "type": "close",
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "type": "enter"
@@ -277,7 +310,10 @@
             },
             {
               "type": "backspace",
-              "width": 1.5
+              "width": 1.5,
+              "showOn": [
+                "large-screen"
+              ]
             }
           ]
         },
@@ -301,11 +337,21 @@
             {
               "caption": "SPACE",
               "value": " ",
-              "width": 4
+              "width": 4,
+              "flex": true
             },
             {
               "value": ".",
-              "sValue": ","
+              "sValue": ",",
+              "showOn": [
+                "mobile"
+              ]
+            },
+            {
+              "type": "close",
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "type": "enter"
@@ -416,7 +462,10 @@
             },
             {
               "type": "backspace",
-              "width": 1.5
+              "width": 1.5,
+              "showOn": [
+                "large-screen"
+              ]
             }
           ]
         },
@@ -440,11 +489,21 @@
             {
               "caption": "SPACE",
               "value": " ",
-              "width": 4
+              "width": 4,
+              "flex": true
             },
             {
               "value": ".",
-              "sValue": ","
+              "sValue": ",",
+              "showOn": [
+                "mobile"
+              ]
+            },
+            {
+              "type": "close",
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "type": "enter"
