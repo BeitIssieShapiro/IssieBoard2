@@ -25,6 +25,10 @@ class KeyboardRenderer {
     var onDismissKeyboard: (() -> Void)?
     var onOpenSettings: (() -> Void)?
     
+    // Callbacks for backspace touch state (to coordinate with controller)
+    var onBackspaceTouchBegan: (() -> Void)?
+    var onBackspaceTouchEnded: (() -> Void)?
+    
     // Callbacks for backspace long-press actions
     var onDeleteCharacter: (() -> Void)?     // Delete single character
     var onDeleteWord: (() -> Void)?          // Delete entire word
@@ -272,6 +276,8 @@ class KeyboardRenderer {
         let currentWidth = container.bounds.width
         print("📐 RENDER START =================")
         print("📐 RENDER: container.bounds.width = \(currentWidth), lastRenderedWidth = \(lastRenderedWidth)")
+        print("📐 RENDER CALL STACK:")
+        Thread.callStackSymbols.prefix(10).forEach { print("  \($0)") }
         
         // Update last rendered width
         lastRenderedWidth = currentWidth
@@ -385,6 +391,7 @@ class KeyboardRenderer {
         let availableWidth = container.bounds.width - 8
         print("📐 AVAILABLE WIDTH = \(availableWidth)")
         print("📐 RENDER END ===================")
+        print("🎯 END OF RENDER: shiftState = \(shiftState)")
         
         for (rowIndex, row) in keyset.rows.enumerated() {
             let rowView = createRow(row, groups: groupsMap, showOnlyKeys: showOnlyKeys,
@@ -685,12 +692,15 @@ class KeyboardRenderer {
         // Using a nearly invisible background to ensure it's tappable
         button.backgroundColor = UIColor(white: 1.0, alpha: 0.001)
         
-        // For backspace key, add long-press handling using touch events
+        // For backspace key, use gesture recognizer for reliable long-press detection
         if key.type.lowercased() == "backspace" {
-            button.addTarget(self, action: #selector(backspaceTouchDown(_:)), for: .touchDown)
-            button.addTarget(self, action: #selector(backspaceTouchUp(_:)), for: .touchUpInside)
-            button.addTarget(self, action: #selector(backspaceTouchUp(_:)), for: .touchUpOutside)
-            button.addTarget(self, action: #selector(backspaceTouchCancelled(_:)), for: .touchCancel)
+            // Tap for single delete
+            button.addTarget(self, action: #selector(keyTapped(_:)), for: .touchUpInside)
+            
+            // Gesture recognizer for long-press repeat
+            let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(backspaceLongPressed(_:)))
+            longPressGesture.minimumPressDuration = 0.5
+            button.addGestureRecognizer(longPressGesture)
         } else {
             button.addTarget(self, action: #selector(keyTapped(_:)), for: .touchUpInside)
             
@@ -892,6 +902,7 @@ class KeyboardRenderer {
     /// Called when backspace button is touched down
     @objc private func backspaceTouchDown(_ sender: UIButton) {
         debugLog("⌫ Backspace touch DOWN")
+        onBackspaceTouchBegan?()
         backspaceHandler.handleTouchDown()
     }
     
@@ -899,12 +910,14 @@ class KeyboardRenderer {
     @objc private func backspaceTouchUp(_ sender: UIButton) {
         debugLog("⌫ Backspace touch UP")
         backspaceHandler.handleTouchUp()
+        onBackspaceTouchEnded?()
     }
     
     /// Called when backspace button touch is cancelled
     @objc private func backspaceTouchCancelled(_ sender: UIButton) {
         debugLog("⌫ Backspace touch CANCELLED")
         backspaceHandler.handleTouchCancelled()
+        onBackspaceTouchEnded?()
     }
     
     private func getDefaultLabel(
@@ -956,6 +969,24 @@ class KeyboardRenderer {
         handleKeyClick(key, keyView: sender)
     }
     
+    /// Handle long-press on backspace key for continuous deletion
+    @objc private func backspaceLongPressed(_ gesture: UILongPressGestureRecognizer) {
+        switch gesture.state {
+        case .began:
+            debugLog("⌫ Backspace long-press BEGAN")
+            onBackspaceTouchBegan?()
+            backspaceHandler.handleTouchDown()
+            
+        case .ended, .cancelled, .failed:
+            debugLog("⌫ Backspace long-press ENDED/CANCELLED")
+            backspaceHandler.handleTouchUp()
+            onBackspaceTouchEnded?()
+            
+        default:
+            break
+        }
+    }
+    
     /// Handle long-press on keyset/nikkud keys for selection in edit mode
     @objc private func keyLongPressed(_ gesture: UILongPressGestureRecognizer) {
         // Only trigger on initial recognition, not continued updates
@@ -977,6 +1008,12 @@ class KeyboardRenderer {
         print("🔑 Key clicked: type='\(key.type)', value='\(key.value)'")
         
         switch key.type.lowercased() {
+        case "backspace":
+            // Backspace single tap - emit the key press but don't reset shift
+            print("   → Backspace tap")
+            onKeyPress?(key)
+            return
+        
         case "shift":
             // Handle shift with double-click for lock
             print("   → Handling SHIFT")
@@ -1039,6 +1076,10 @@ class KeyboardRenderer {
             // For regular keys, check if nikkud popup should be shown
             print("   → Handling DEFAULT key")
             
+            // Check if this is a space key (value == " ")
+            // Space keys should NOT reset shift here - they're handled by controller's handleSpaceKey
+            let isSpace = key.value == " "
+            
             // First, check if diacritics apply to this character
             let shouldShowDiacritics = shouldShowDiacriticsPopup(for: key)
             
@@ -1050,7 +1091,7 @@ class KeyboardRenderer {
                 } else {
                     // No options available, just output the key
                     onKeyPress?(key)
-                    if case .active = shiftState {
+                    if case .active = shiftState, !isSpace {
                         shiftState = .inactive
                         rerender()
                     }
@@ -1060,8 +1101,9 @@ class KeyboardRenderer {
                 onKeyPress?(key)
                 
                 // For shift-active (but not locked) regular keys, reset shift after key press
+                // BUT: Don't reset for space key - it's handled by controller's handleSpaceKey which calls autoShiftAfterPunctuation
                 // Locked shift stays active until explicitly toggled off
-                if case .active = shiftState {
+                if case .active = shiftState, !isSpace {
                     shiftState = .inactive
                     rerender()
                 }
@@ -1272,6 +1314,35 @@ class KeyboardRenderer {
         lastShiftClickTime = currentTime
         print("   → New shift state: \(shiftState)")
         rerender()
+    }
+    
+    /// Check if shift is currently active (either active or locked)
+    func isShiftActive() -> Bool {
+        return shiftState.isActive()
+    }
+    
+    /// Activate shift (set to active state, not locked)
+    /// This is called from the controller when auto-shift should activate
+    func activateShift() {
+        print("🎯 KeyboardRenderer.activateShift() called, current state: \(shiftState)")
+        if shiftState == .inactive {
+            shiftState = .active
+            print("🎯 Shift state set to .active")
+        } else {
+            print("🎯 Shift already active/locked, not changing")
+        }
+    }
+    
+    /// Deactivate shift (set to inactive state)
+    /// This is called from the controller when auto-shift should deactivate
+    func deactivateShift() {
+        print("🎯 KeyboardRenderer.deactivateShift() called, current state: \(shiftState)")
+        if shiftState == .active {
+            shiftState = .inactive
+            print("🎯 Shift state set to .inactive")
+        } else {
+            print("🎯 Shift not in active state (is \(shiftState)), not changing")
+        }
     }
     
     // MARK: - Suggestions Bar

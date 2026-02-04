@@ -53,10 +53,27 @@ class BackspaceHandler {
     
     init() {
         debugLog("⌫ BackspaceHandler initialized")
+        
+        // Listen for keyboard render notifications to force stop timer
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleKeyboardWillRender),
+            name: NSNotification.Name("KeyboardWillRender"),
+            object: nil
+        )
     }
     
     deinit {
+        NotificationCenter.default.removeObserver(self)
         stopTimer()
+    }
+    
+    /// Called when keyboard is about to render - force stop timer to prevent issues
+    @objc private func handleKeyboardWillRender() {
+        if backspaceTimer != nil {
+            debugLog("⌫ Keyboard will render - force stopping backspace timer")
+            stopTimer()
+        }
     }
     
     // MARK: - Public Touch Handlers
@@ -64,6 +81,9 @@ class BackspaceHandler {
     /// Called when backspace button is touched down
     func handleTouchDown() {
         debugLog("⌫ Backspace touch DOWN")
+        
+        // First, ensure any previous timer is stopped
+        stopTimer()
         
         // Record the start time
         let startTime = Date()
@@ -94,6 +114,12 @@ class BackspaceHandler {
     /// Called when backspace touch is cancelled
     func handleTouchCancelled() {
         debugLog("⌫ Backspace touch CANCELLED - stopping timer")
+        stopTimer()
+    }
+    
+    /// Force stop the timer (public method for external cleanup)
+    func forceStopTimer() {
+        debugLog("⌫ FORCE stopping timer")
         stopTimer()
     }
     

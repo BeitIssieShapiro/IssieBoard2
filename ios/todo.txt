@@ -4,16 +4,22 @@ suggestion:
 - not offer suggestion for certain input type? then ommit the header row?
 
 ---
-- microphone - in ipad
+X- microphone - in ipad
 - settings button - configureable
 V- show "active" in the list of profile, make newly created as current edited profile
 V- visibility (all but selected)
 V  - some keys should stay
 V- upside down - create rule 
+V- more keys in iPad mode
+
 - font 
 - ready made groups 
-- slide curson
-V- more keys in iPad mode
+- slide cursor
+- between rows
+
+
+V- auto shift, auto I, auto . after two spaces
+- verify, that after he.json change, and applying profile change, he.json takes into account
 
 
 
