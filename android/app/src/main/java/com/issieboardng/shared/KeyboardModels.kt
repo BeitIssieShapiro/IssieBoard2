@@ -63,8 +63,28 @@ data class Key(
     val keysetValue: String? = null,
     val returnKeysetValue: String? = null,
     val returnKeysetLabel: String? = null,
-    val nikkud: List<NikkudOption>? = null
-)
+    val nikkud: List<NikkudOption>? = null,
+    val showOn: List<String>? = null,  // Filter key visibility by screen size ("mobile" or "largeScreen")
+    val flex: Boolean? = null  // If true, this key absorbs extra width from hidden keys in the same row
+) {
+    /**
+     * Check if this key should be shown based on screen size
+     * @param isLargeScreen True if device has large screen (tablet)
+     * @return True if key should be visible on this screen size
+     */
+    fun shouldShow(isLargeScreen: Boolean): Boolean {
+        val filter = showOn
+        if (filter.isNullOrEmpty()) {
+            return true  // No filter = show everywhere
+        }
+        
+        return if (isLargeScreen) {
+            filter.contains("largeScreen")
+        } else {
+            filter.contains("mobile")
+        }
+    }
+}
 
 data class NikkudOption(
     val value: String,
@@ -169,6 +189,22 @@ data class GeneratedDiacriticOption(
     val name: String
 )
 
+// MARK: - Visibility Mode
+
+/** Tri-state visibility control for group templates */
+enum class VisibilityMode(val value: String) {
+    DEFAULT("default"),      // No effect on visibility
+    HIDE("hide"),           // Hide the selected keys
+    SHOW_ONLY("showOnly");  // Show only the selected keys (hide all others)
+    
+    companion object {
+        fun from(value: String?): VisibilityMode {
+            if (value == null) return DEFAULT
+            return values().find { it.value == value } ?: DEFAULT
+        }
+    }
+}
+
 data class Group(
     val items: List<String>,
     val template: GroupTemplate
@@ -177,10 +213,25 @@ data class Group(
 data class GroupTemplate(
     val width: Double? = null,
     val offset: Double? = null,
-    val hidden: Boolean? = null,
+    val hidden: Boolean? = null,  // Backward compatibility
+    val visibilityMode: String? = null,  // New tri-state visibility ("default", "hide", "showOnly")
     val color: String? = null,
     val bgColor: String? = null
-)
+) {
+    /** Get effective visibility mode (handles backward compatibility with hidden boolean) */
+    val effectiveVisibilityMode: VisibilityMode
+        get() {
+            // New visibilityMode takes precedence
+            if (visibilityMode != null) {
+                return VisibilityMode.from(visibilityMode)
+            }
+            // Fall back to hidden boolean (backward compatibility)
+            if (hidden == true) {
+                return VisibilityMode.HIDE
+            }
+            return VisibilityMode.DEFAULT
+        }
+}
 
 // MARK: - Shift State
 

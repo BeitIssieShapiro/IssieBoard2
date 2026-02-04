@@ -37,6 +37,9 @@ abstract class BaseKeyboardService : InputMethodService() {
     private var lastSpaceTime: Long = 0
     private val doubleSpaceThreshold: Long = 2000  // milliseconds
     
+    // Track if backspace is currently being pressed (to avoid re-render during touch)
+    private var isBackspaceActive: Boolean = false
+    
     /** Override this in subclasses to specify the keyboard language */
     abstract val keyboardLanguage: String
     
@@ -86,6 +89,9 @@ abstract class BaseKeyboardService : InputMethodService() {
         
         loadPreferences()
         suggestionController?.detectCurrentWord(currentInputConnection?.getTextBeforeCursor(100, 0)?.toString())
+        
+        // Apply auto-shift if at beginning of sentence
+        autoShiftAfterPunctuation()
         
         // Update editor context based on EditorInfo
         val editorContext = analyzeEditorContext(info)
@@ -157,6 +163,16 @@ abstract class BaseKeyboardService : InputMethodService() {
             
             onOpenSettings = {
                 openSettings()
+            }
+            
+            onBackspaceTouchBegan = {
+                isBackspaceActive = true
+            }
+            
+            onBackspaceTouchEnded = {
+                isBackspaceActive = false
+                // Render now if shift state needs updating
+                autoShiftAfterPunctuation()
             }
         }
     }
@@ -366,13 +382,21 @@ abstract class BaseKeyboardService : InputMethodService() {
             }
             
             else -> {
-                val value = key.value
-                if (value.isNotEmpty()) {
-                    if (value == " ") {
+                // Determine which value to use based on shift state
+                val valueToInsert: String = if (renderer?.isShiftActive() == true && key.sValue.isNotEmpty()) {
+                    // Use shift value (uppercase) when shift is active
+                    key.sValue
+                } else {
+                    // Use normal value (lowercase)
+                    key.value
+                }
+                
+                if (valueToInsert.isNotEmpty()) {
+                    if (valueToInsert == " ") {
                         handleSpaceKey()
                     } else {
-                        ic.commitText(value, 1)
-                        suggestionController?.handleCharacterTyped(value)
+                        ic.commitText(valueToInsert, 1)
+                        suggestionController?.handleCharacterTyped(valueToInsert)
                     }
                 }
             }
@@ -381,10 +405,23 @@ abstract class BaseKeyboardService : InputMethodService() {
     
     private fun handleBackspace() {
         val ic = currentInputConnection ?: return
+        
+        // Check if text is already empty before deleting
+        val beforeText = ic.getTextBeforeCursor(100, 0)?.toString() ?: ""
+        if (beforeText.isEmpty()) {
+            // Nothing to delete - this can happen if backspace timer keeps firing
+            // Just return without doing anything
+            return
+        }
+        
         ic.deleteSurroundingText(1, 0)
         if (suggestionController?.handleBackspace() != true) {
             suggestionController?.detectCurrentWord(ic.getTextBeforeCursor(100, 0)?.toString())
         }
+        
+        // Always call auto-shift after backspace to update shift state
+        // Don't call during long-press (isBackspaceActive will defer the render)
+        autoShiftAfterPunctuation()
     }
     
     private fun handleDeleteWord() {
@@ -435,6 +472,24 @@ abstract class BaseKeyboardService : InputMethodService() {
         val ic = currentInputConnection ?: return
         val now = System.currentTimeMillis()
         
+        // Check for auto-capitalize "i" to "I"
+        val beforeText = ic.getTextBeforeCursor(10, 0)?.toString()
+        if (beforeText?.endsWith("i") == true) {
+            // Check if "i" is standalone (preceded by space or nothing)
+            val textBeforeI = beforeText.dropLast(1)
+            if (textBeforeI.isEmpty() || textBeforeI.last().isWhitespace()) {
+                // Replace "i" with "I"
+                ic.deleteSurroundingText(1, 0)
+                ic.commitText("I ", 1)
+                lastSpaceTime = now
+                suggestionController?.handleSpace()
+                
+                // Auto-return from special chars
+                autoReturnFromSpecialChars()
+                return
+            }
+        }
+        
         // Get current word BEFORE calling handleSpace (which clears it)
         val wordBeforeSpace = suggestionController?.currentWord ?: ""
         
@@ -445,20 +500,27 @@ abstract class BaseKeyboardService : InputMethodService() {
             ic.deleteSurroundingText(wordBeforeSpace.length, 0)
             ic.commitText("$replacement ", 1)
             lastSpaceTime = now
+            
+            // Auto-return from special chars (behavior 2)
+            autoReturnFromSpecialChars()
             return
         }
         
         // Double-space shortcut for period
         if (now - lastSpaceTime < doubleSpaceThreshold) {
-            val beforeText = ic.getTextBeforeCursor(2, 0)?.toString()
-            if (beforeText?.endsWith(" ") == true) {
-                val textBeforeSpace = beforeText.dropLast(1)
+            val beforeText2 = ic.getTextBeforeCursor(2, 0)?.toString()
+            if (beforeText2?.endsWith(" ") == true) {
+                val textBeforeSpace = beforeText2.dropLast(1)
                 val charBeforeSpace = textBeforeSpace.lastOrNull()
                 
                 if (charBeforeSpace != null && charBeforeSpace != ' ' && charBeforeSpace != '.') {
                     ic.deleteSurroundingText(1, 0)
                     ic.commitText(". ", 1)
                     lastSpaceTime = 0
+                    suggestionController?.handleSpace()
+                    
+                    // Auto-shift after ". " (behavior 3)
+                    autoShiftAfterPunctuation()
                     return
                 }
             }
@@ -466,6 +528,109 @@ abstract class BaseKeyboardService : InputMethodService() {
         
         ic.commitText(" ", 1)
         lastSpaceTime = now
+        suggestionController?.handleSpace()
+        
+        // Auto-return from special chars
+        autoReturnFromSpecialChars()
+        
+        // Auto-shift after ". " or empty text
+        autoShiftAfterPunctuation()
+    }
+    
+    // MARK: - Auto Behaviors
+    
+    /**
+     * Auto-return from special characters keyboard (123/#+=) to main keyboard (abc) after space
+     * Behavior 2: If user is on 123 or #+= keyboard, return to abc after typing special char + space
+     */
+    private fun autoReturnFromSpecialChars() {
+        val currentKeyset = renderer?.currentKeysetId ?: return
+        
+        // Check if we're on a special characters keyset (123 or #+=)
+        if (currentKeyset == "123" || currentKeyset == "#+=") {
+            // Switch back to abc keyset
+            val config = parsedConfig ?: return
+            if (config.keysets.any { it.id == "abc" }) {
+                debugLog("🔄 Auto-returning from $currentKeyset to abc")
+                renderer?.currentKeysetId = "abc"
+                renderKeyboard(null)
+            }
+        }
+    }
+    
+    /**
+     * Auto-shift after punctuation or when text is empty
+     * Behavior 3: For English keyboard only, activate shift after ". " or when text is empty
+     */
+    private fun autoShiftAfterPunctuation() {
+        debugLog("🔍 autoShiftAfterPunctuation called")
+        
+        // Only apply to English keyboard
+        if (keyboardLanguage != "en") {
+            debugLog("  ❌ Not English keyboard ($keyboardLanguage), skipping")
+            return
+        }
+        debugLog("  ✅ English keyboard")
+        
+        val isShiftActive = renderer?.isShiftActive() ?: false
+        debugLog("  Shift active: $isShiftActive")
+        
+        val ic = currentInputConnection ?: return
+        val beforeText = ic.getTextBeforeCursor(100, 0)?.toString() ?: ""
+        debugLog("  Text before cursor: '${beforeText.takeLast(20)}'")
+        
+        // Check if text is empty
+        if (beforeText.isEmpty()) {
+            debugLog("  Should activate shift: true (empty text)")
+            debugLog("  ⇧ AUTO-ACTIVATING SHIFT!")
+            renderer?.activateShift()
+            renderKeyboard(null)
+            return
+        }
+        
+        // Check if ends with sentence-ending punctuation followed by space(s)
+        // Trim trailing whitespace to find the last non-space character
+        val trimmed = beforeText.trimEnd()
+        val endsWithSpace = beforeText.lastOrNull()?.isWhitespace() == true
+        val endsWithPunctuation = trimmed.lastOrNull() in listOf('.', '?', '!')
+        val endsWithNewline = beforeText.endsWith("\n")
+        
+        val shouldActivateShift = (endsWithPunctuation && endsWithSpace) || endsWithNewline
+        
+        debugLog("  Trimmed text ends with: '${trimmed.lastOrNull()}'")
+        debugLog("  Ends with space: $endsWithSpace")
+        debugLog("  Ends with punctuation: $endsWithPunctuation")
+        debugLog("  Should activate shift: $shouldActivateShift")
+        
+        if (shouldActivateShift && !isShiftActive) {
+            debugLog("  ⇧ AUTO-ACTIVATING SHIFT!")
+            debugLog("  🎯 BEFORE activateShift: isShiftActive = $isShiftActive")
+            val wasInactive = !isShiftActive
+            renderer?.activateShift()
+            val newIsShiftActive = renderer?.isShiftActive() ?: false
+            debugLog("  🎯 AFTER activateShift: isShiftActive = $newIsShiftActive")
+            // Only re-render if shift state actually changed from inactive to active
+            // AND backspace is not currently active (to avoid re-render during backspace touch)
+            if (wasInactive && newIsShiftActive) {
+                if (isBackspaceActive) {
+                    debugLog("  ⏸️ Backspace active, deferring render until touch ends")
+                } else {
+                    renderKeyboard(null)
+                    debugLog("  🎯 AFTER renderKeyboard")
+                }
+            } else {
+                debugLog("  🎯 Shift was already active, skipping render to avoid loop")
+            }
+        } else if (!shouldActivateShift && isShiftActive) {
+            // Deactivate shift if conditions don't require it
+            renderer?.deactivateShift()
+            if (!isBackspaceActive) {
+                renderKeyboard(null)
+            }
+            debugLog("  ⇧ Deactivating shift as should be inactive and is active")
+        } else {
+            debugLog("  ✅ Desired state and active state match - do nothing")
+        }
     }
     
     // MARK: - Input Method Switching

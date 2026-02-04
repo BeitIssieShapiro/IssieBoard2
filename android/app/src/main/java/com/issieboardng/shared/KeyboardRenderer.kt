@@ -45,6 +45,10 @@ class KeyboardRenderer(private val context: Context) {
     var onDismissKeyboard: (() -> Unit)? = null
     var onOpenSettings: (() -> Unit)? = null
     
+    // Callbacks for backspace touch state (to coordinate with controller)
+    var onBackspaceTouchBegan: (() -> Unit)? = null
+    var onBackspaceTouchEnded: (() -> Unit)? = null
+    
     // Callbacks for backspace long-press actions
     var onDeleteCharacter: (() -> Unit)? = null
     var onDeleteWord: (() -> Unit)? = null
@@ -99,6 +103,15 @@ class KeyboardRenderer(private val context: Context) {
     
     // Layout tracking to prevent infinite loops
     private var lastRenderedWidth: Int = 0
+    
+    // Screen size detection for showOn filtering
+    private val isLargeScreen: Boolean
+        get() {
+            val screenLayout = context.resources.configuration.screenLayout
+            val screenSize = screenLayout and android.content.res.Configuration.SCREENLAYOUT_SIZE_MASK
+            // SCREENLAYOUT_SIZE_LARGE or SCREENLAYOUT_SIZE_XLARGE = tablet
+            return screenSize >= android.content.res.Configuration.SCREENLAYOUT_SIZE_LARGE
+        }
     
     // UI Constants - same for preview and keyboard
     private val rowHeight: Int = dpToPx(54)
@@ -334,11 +347,11 @@ class KeyboardRenderer(private val context: Context) {
         }
         debugLog("✅ Found keyset: ${keyset.id} with ${keyset.rows.size} rows")
         
-        // Build groups map
-        val groups = buildGroupsMap(config.groups ?: emptyList())
+        // Build groups map - returns both the map and any "showOnly" keys
+        val (groupsMap, showOnlyKeys) = buildGroupsMap(config.groups ?: emptyList())
         
         // Calculate baseline width
-        val baselineWidth = calculateBaselineWidth(keyset.rows, groups)
+        val baselineWidth = calculateBaselineWidth(keyset.rows, groupsMap, showOnlyKeys)
         
         // Update word suggestions enabled state
         val override = wordSuggestionsOverrideEnabled
@@ -420,7 +433,8 @@ class KeyboardRenderer(private val context: Context) {
             debugLog("📐 Creating row $rowIndex with ${row.keys.size} keys")
             val rowView = createRow(
                 row = row,
-                groups = groups,
+                groups = groupsMap,
+                showOnlyKeys = showOnlyKeys,
                 baselineWidth = baselineWidth,
                 availableWidth = availableWidth,
                 editorContext = editorContext,
@@ -433,20 +447,96 @@ class KeyboardRenderer(private val context: Context) {
     
     // MARK: - Private Helpers
     
-    private fun buildGroupsMap(groups: List<Group>): Map<String, GroupTemplate> {
+    /**
+     * Build a map of key values to their group templates
+     * Also returns the set of keys that should be shown exclusively (if any "showOnly" group exists)
+     */
+    private fun buildGroupsMap(groups: List<Group>): Pair<Map<String, GroupTemplate>, Set<String>?> {
         val groupsMap = mutableMapOf<String, GroupTemplate>()
+        var showOnlyKeys: Set<String>? = null
+        
         for (group in groups) {
+            // Check if this group has "showOnly" visibility mode
+            val visMode = group.template.effectiveVisibilityMode
+            
+            if (visMode == VisibilityMode.SHOW_ONLY) {
+                // Collect keys that should be visible
+                if (showOnlyKeys == null) {
+                    showOnlyKeys = mutableSetOf()
+                }
+                for (item in group.items) {
+                    (showOnlyKeys as MutableSet).add(item)
+                }
+            }
+            
+            // Store template for all items (for colors, etc.)
             for (item in group.items) {
                 groupsMap[item] = group.template
             }
         }
-        return groupsMap
+        
+        return Pair(groupsMap, showOnlyKeys)
     }
     
-    private fun calculateBaselineWidth(rows: List<KeyRow>, groups: Map<String, GroupTemplate>): Double {
+    /**
+     * Determine if a key should be hidden based on visibility rules
+     * @param parsedKey The parsed key configuration
+     * @param keyValue The key's value (for special keys, use type)
+     * @param showOnlyKeys If set, only these keys should be visible
+     * @param groups The groups map for checking individual key visibility
+     * @return True if the key should be hidden
+     */
+    private fun isKeyHiddenByVisibility(
+        parsedKey: ParsedKey,
+        keyValue: String,
+        showOnlyKeys: Set<String>?,
+        groups: Map<String, GroupTemplate>
+    ): Boolean {
+        // First check the base hidden property
+        if (parsedKey.hidden) {
+            return true
+        }
+        
+        // Check if the key's group has an explicit "hide" visibility mode
+        val template = groups[keyValue]
+        if (template != null) {
+            val visMode = template.effectiveVisibilityMode
+            if (visMode == VisibilityMode.HIDE) {
+                return true
+            }
+        }
+        
+        // If there's a "showOnly" rule active, check if this key is in the whitelist
+        if (showOnlyKeys != null) {
+            // Essential keys that are NEVER hidden by showOnly rule (only by explicit hide)
+            val essentialValues = setOf(" ", ",", ".")  // space, comma, period
+            val essentialTypes = setOf("space", "backspace", "enter")
+            
+            // Check if this is an essential key by value or type
+            if (essentialValues.contains(keyValue) || essentialTypes.contains(parsedKey.type.lowercase())) {
+                // Essential keys are NOT hidden by showOnly rule
+                return false
+            }
+            
+            // Other special keys should check if they're in the whitelist
+            val specialTypes = setOf("shift", "keyset", "nikkud", "settings", "close", "next-keyboard", "language")
+            if (specialTypes.contains(parsedKey.type.lowercase())) {
+                // Check if this special key is explicitly in the showOnly set
+                return !showOnlyKeys.contains(keyValue) && !showOnlyKeys.contains(parsedKey.type.lowercase())
+            }
+            
+            // For regular keys, hide if not in the showOnly set
+            return !showOnlyKeys.contains(keyValue)
+        }
+        
+        return false
+    }
+    
+    private fun calculateBaselineWidth(rows: List<KeyRow>, groups: Map<String, GroupTemplate>, showOnlyKeys: Set<String>?): Double {
         var maxRowWidth = 0.0
         
         val hasOnlyOneLanguage = (config?.keyboards?.size ?: 0) <= 1
+        val isNikkudDisabled = config?.diacriticsSettings?.get(currentKeyboardId ?: "")?.isDisabled ?: false
         
         for (row in rows) {
             var rowWidth = 0.0
@@ -458,7 +548,22 @@ class KeyboardRenderer(private val context: Context) {
                     continue
                 }
                 
-                if (!parsedKey.hidden) {
+                // Skip nikkud key if disabled
+                if (keyType == "nikkud" && isNikkudDisabled) {
+                    continue
+                }
+                
+                // Skip keys hidden by showOn filter (screen size conditional keys)
+                if (!key.shouldShow(isLargeScreen)) {
+                    continue
+                }
+                
+                // Check if key is hidden via group "hide" visibility mode
+                // Note: parsedKey.hidden keys (spacers) still take up space in layout
+                val keyValue = key.value ?: key.type ?: ""
+                val isHiddenByGroup = groups[keyValue]?.effectiveVisibilityMode == VisibilityMode.HIDE
+                
+                if (!isHiddenByGroup && !parsedKey.hidden) {
                     rowWidth += parsedKey.width + parsedKey.offset
                 }
             }
@@ -474,6 +579,7 @@ class KeyboardRenderer(private val context: Context) {
     private fun createRow(
         row: KeyRow,
         groups: Map<String, GroupTemplate>,
+        showOnlyKeys: Set<String>?,
         baselineWidth: Double,
         availableWidth: Int,
         editorContext: EditorContext?,
@@ -490,22 +596,67 @@ class KeyboardRenderer(private val context: Context) {
             }
         }
         
-        var keyIndex = 0
         val hasOnlyOneLanguage = (config?.keyboards?.size ?: 0) <= 1
         val isNikkudDisabled = config?.diacriticsSettings?.get(currentKeyboardId ?: "")?.isDisabled ?: false
+        
+        // FIRST PASS: Calculate hidden width due to showOn filter and count flex keys
+        var hiddenWidthFromShowOn = 0.0
+        var flexKeyCount = 0
         
         for (key in row.keys) {
             val parsedKey = ParsedKey.from(key, groups, Color.BLACK, Color.WHITE)
             
             val keyType = parsedKey.type.lowercase()
+            
+            // Skip language/next-keyboard keys
+            if ((keyType == "language" && hasOnlyOneLanguage) || (keyType == "next-keyboard" && !showGlobeButton)) {
+                continue
+            }
+            
+            // Skip nikkud key if disabled
+            if (keyType == "nikkud" && isNikkudDisabled) {
+                continue
+            }
+            
+            // Check if key is hidden due to showOn filter
+            if (!key.shouldShow(isLargeScreen)) {
+                // Accumulate the width of hidden keys
+                hiddenWidthFromShowOn += parsedKey.width
+                continue
+            }
+            
+            // Count flex keys
+            if (key.flex == true) {
+                flexKeyCount++
+            }
+        }
+        
+        // Calculate extra width per flex key
+        val extraWidthPerFlexKey = if (flexKeyCount > 0) hiddenWidthFromShowOn / flexKeyCount else 0.0
+        
+        // SECOND PASS: Render keys with redistributed width
+        var keyIndex = 0
+        for (key in row.keys) {
+            val parsedKey = ParsedKey.from(key, groups, Color.BLACK, Color.WHITE)
+            
+            val keyType = parsedKey.type.lowercase()
+            
+            // Skip language/next-keyboard keys
             if ((keyType == "language" && hasOnlyOneLanguage) || (keyType == "next-keyboard" && !showGlobeButton)) {
                 keyIndex++
                 continue
             }
             
+            // Skip nikkud key if disabled
             if (keyType == "nikkud" && isNikkudDisabled) {
                 keyIndex++
                 continue
+            }
+            
+            // Skip key if it doesn't match the current screen size (showOn filter)
+            if (!key.shouldShow(isLargeScreen)) {
+                keyIndex++
+                continue  // Don't add hidden width - it goes to flex keys instead
             }
             
             // Handle offset
@@ -520,13 +671,29 @@ class KeyboardRenderer(private val context: Context) {
             val keyId = "$keysetId:$rowIndex:$keyIndex"
             val isSelected = selectedKeyIds.contains(keyId)
             
-            if (parsedKey.hidden) {
+            // Check if key is hidden based on visibility rules (hide/showOnly)
+            val keyValue = key.value ?: key.type ?: ""
+            val isKeyHidden = isKeyHiddenByVisibility(parsedKey, keyValue, showOnlyKeys, groups)
+            
+            if (isKeyHidden) {
+                // Hidden key - add spacer to preserve layout
+                val hiddenWidth = ((parsedKey.width / baselineWidth) * availableWidth).toInt()
+                val hiddenSpacer = View(context)
+                hiddenSpacer.layoutParams = LinearLayout.LayoutParams(hiddenWidth, rowHeight)
+                rowContainer.addView(hiddenSpacer)
+            } else if (parsedKey.hidden) {
                 val hiddenWidth = ((parsedKey.width / baselineWidth) * availableWidth).toInt()
                 val hiddenSpacer = View(context)
                 hiddenSpacer.layoutParams = LinearLayout.LayoutParams(hiddenWidth, rowHeight)
                 rowContainer.addView(hiddenSpacer)
             } else {
-                val keyWidth = ((parsedKey.width / baselineWidth) * availableWidth).toInt() - keySpacing
+                // Calculate key width, adding extra width if this is a flex key
+                var effectiveWidth = parsedKey.width
+                if (key.flex == true) {
+                    effectiveWidth += extraWidthPerFlexKey
+                }
+                
+                val keyWidth = ((effectiveWidth / baselineWidth) * availableWidth).toInt() - keySpacing
                 if (keyIndex == 0 && rowIndex == 0) {
                     debugLog("📐 First key: width=$keyWidth, height=$rowHeight, caption='${parsedKey.caption}', value='${parsedKey.value}'")
                 }
@@ -887,6 +1054,33 @@ class KeyboardRenderer(private val context: Context) {
         lastShiftClickTime = currentTime
         debugLog("   → New shift state: $shiftState")
         rerender()
+    }
+    
+    /** Check if shift is currently active (either active or locked) */
+    fun isShiftActive(): Boolean {
+        return shiftState.isActive()
+    }
+    
+    /** Activate shift (set to active state, not locked) */
+    fun activateShift() {
+        debugLog("🎯 KeyboardRenderer.activateShift() called, current state: $shiftState")
+        if (shiftState == ShiftState.INACTIVE) {
+            shiftState = ShiftState.ACTIVE
+            debugLog("🎯 Shift state set to ACTIVE")
+        } else {
+            debugLog("🎯 Shift already active/locked, not changing")
+        }
+    }
+    
+    /** Deactivate shift (set to inactive state) */
+    fun deactivateShift() {
+        debugLog("🎯 KeyboardRenderer.deactivateShift() called, current state: $shiftState")
+        if (shiftState == ShiftState.ACTIVE) {
+            shiftState = ShiftState.INACTIVE
+            debugLog("🎯 Shift state set to INACTIVE")
+        } else {
+            debugLog("🎯 Shift not in ACTIVE state (is $shiftState), not changing")
+        }
     }
     
     // MARK: - Suggestions Bar
