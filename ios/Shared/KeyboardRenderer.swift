@@ -82,6 +82,9 @@ class KeyboardRenderer {
     // Layout tracking to prevent infinite loops
     private var lastRenderedWidth: CGFloat = 0
     
+    // Preview mode flag - set by KeyboardPreviewView to disable key bubble
+    private var isPreviewMode: Bool = false
+    
     // Screen size detection for showOn filtering
     private var isLargeScreen: Bool {
         // iPad or large screen detection
@@ -253,6 +256,12 @@ class KeyboardRenderer {
             print("🌐 setShowGlobeButton: \(show)")
             rerender()
         }
+    }
+    
+    /// Set preview mode flag to disable key bubble in preview
+    /// Called by KeyboardPreviewView during initialization
+    func setPreviewMode(_ isPreview: Bool) {
+        isPreviewMode = isPreview
     }
     
     /// Set whether word suggestions are enabled (override config setting)
@@ -1129,6 +1138,11 @@ class KeyboardRenderer {
     
     /// Create and show a popup bubble above the key
     private func showKeyPopup(for key: ParsedKey, on button: UIButton) {
+        // Don't show bubble in preview mode or on large screens (iPad)
+        if isPreviewMode || isLargeScreen {
+            return
+        }
+        
         // Remove any existing popup
         button.viewWithTag(9999)?.removeFromSuperview()
         

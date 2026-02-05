@@ -48,6 +48,9 @@ class KeyboardPreviewView: UIView {
         // In preview mode, hide the globe (language) button - it's redundant
         renderer.setShowGlobeButton(false)
         
+        // Set preview mode to disable key bubble
+        renderer.setPreviewMode(true)
+        
         // Set up renderer callbacks - only for FINAL key output
         renderer.onKeyPress = { [weak self] key in
             self?.handleKeyPress(key)
