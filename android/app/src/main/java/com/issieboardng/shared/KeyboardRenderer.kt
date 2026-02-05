@@ -596,6 +596,10 @@ class KeyboardRenderer(private val context: Context) {
             }
         }
         
+        // Track first and last visible keys for tap area extension
+        var firstVisibleKey: QuadTuple<ParsedKey, View, Int, Int>? = null
+        var lastVisibleKey: QuadTuple<ParsedKey, View, Int, Int>? = null
+        
         val hasOnlyOneLanguage = (config?.keyboards?.size ?: 0) <= 1
         val isNikkudDisabled = config?.diacriticsSettings?.get(currentKeyboardId ?: "")?.isDisabled ?: false
         
@@ -634,7 +638,7 @@ class KeyboardRenderer(private val context: Context) {
         // Calculate extra width per flex key
         val extraWidthPerFlexKey = if (flexKeyCount > 0) hiddenWidthFromShowOn / flexKeyCount else 0.0
         
-        // SECOND PASS: Render keys with redistributed width
+        // SECOND PASS: Render keys with redistributed width and track edge keys
         var keyIndex = 0
         for (key in row.keys) {
             val parsedKey = ParsedKey.from(key, groups, Color.BLACK, Color.WHITE)
@@ -699,13 +703,142 @@ class KeyboardRenderer(private val context: Context) {
                 }
                 val button = createKeyButton(parsedKey, keyWidth, rowHeight, editorContext, isSelected)
                 rowContainer.addView(button)
+                
+                // Track first visible key
+                if (firstVisibleKey == null) {
+                    // Calculate x position from existing children
+                    var currentX = 0
+                    for (i in 0 until rowContainer.childCount - 1) {
+                        val child = rowContainer.getChildAt(i)
+                        currentX += child.layoutParams.width
+                    }
+                    firstVisibleKey = QuadTuple(parsedKey, button, currentX, keyWidth)
+                }
+                // Always update last visible key
+                var currentX = 0
+                for (i in 0 until rowContainer.childCount - 1) {
+                    val child = rowContainer.getChildAt(i)
+                    currentX += child.layoutParams.width
+                }
+                lastVisibleKey = QuadTuple(parsedKey, button, currentX, keyWidth)
             }
             
             keyIndex++
         }
         
+        // THIRD PASS: Add extended tap areas for first and last keys
+        firstVisibleKey?.let { first ->
+            addExtendedTapArea(
+                key = first.first,
+                button = first.second,
+                keyX = first.third,
+                keyWidth = first.fourth,
+                rowHeight = rowHeight,
+                availableWidth = availableWidth,
+                isLeftEdge = true,
+                container = rowContainer
+            )
+        }
+        
+        lastVisibleKey?.let { last ->
+            if (last.second !== firstVisibleKey?.second) {
+                addExtendedTapArea(
+                    key = last.first,
+                    button = last.second,
+                    keyX = last.third,
+                    keyWidth = last.fourth,
+                    rowHeight = rowHeight,
+                    availableWidth = availableWidth,
+                    isLeftEdge = false,
+                    container = rowContainer
+                )
+            }
+        }
+        
         return rowContainer
     }
+    
+    /**
+     * Add extended tap area for edge keys (left or right)
+     */
+    private fun addExtendedTapArea(
+        key: ParsedKey,
+        button: View,
+        keyX: Int,
+        keyWidth: Int,
+        rowHeight: Int,
+        availableWidth: Int,
+        isLeftEdge: Boolean,
+        container: LinearLayout
+    ) {
+        // Calculate extension: max half button width
+        val maxExtension = keyWidth / 2
+        
+        // Calculate actual extension based on available space and screen boundaries
+        val extensionWidth = if (isLeftEdge) {
+            // Left edge: extend to the left, but not beyond x=0
+            minOf(maxExtension, keyX)
+        } else {
+            // Right edge: extend to the right, but not beyond screen boundary
+            val rightEdge = keyX + keyWidth
+            val spaceToRight = availableWidth - rightEdge
+            minOf(maxExtension, spaceToRight)
+        }
+        
+        // Only add extension if there's actual space
+        if (extensionWidth <= 0) return
+        
+        // Create invisible view for the extended area
+        val extendedArea = FrameLayout(context).apply {
+            layoutParams = LinearLayout.LayoutParams(extensionWidth, rowHeight)
+            setBackgroundColor(android.graphics.Color.TRANSPARENT)
+        }
+        
+        // Set up touch handling to delegate to the main button
+        extendedArea.setOnClickListener {
+            handleKeyClick(key, button)
+        }
+        
+        // For backspace key, also handle long press
+        if (key.type.lowercase() == "backspace") {
+            extendedArea.setOnTouchListener { _, event ->
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        debugLog("⌫ Backspace extensionWidth touch DOWN")
+                        backspaceHandler.handleTouchDown()
+                        true
+                    }
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                        debugLog("⌫ Backspace extensionWidth touch UP")
+                        backspaceHandler.handleTouchUp()
+                        true
+                    }
+                    else -> false
+                }
+            }
+        }
+        
+        // Store key info in tag for later retrieval
+        extendedArea.tag = encodeKeyInfo(key)
+        
+        // Add extensionWidth to container at appropriate position
+        if (isLeftEdge) {
+            // Insert before the first visible key
+            val buttonIndex = container.indexOfChild(button)
+            container.addView(extendedArea, buttonIndex)
+        } else {
+            // Add after the last visible key
+            container.addView(extendedArea)
+        }
+    }
+    
+    // Helper data class for tracking visible keys (since Kotlin doesn't have tuples)
+    private data class QuadTuple<A, B, C, D>(
+        val first: A,
+        val second: B,
+        val third: C,
+        val fourth: D
+    )
     
     @SuppressLint("ClickableViewAccessibility")
     private fun createKeyButton(

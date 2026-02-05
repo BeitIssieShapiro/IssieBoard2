@@ -93,6 +93,7 @@ class KeyboardRenderer {
     private let keySpacing: CGFloat = 0       // No spacing between key tap areas
     private let keyInternalPadding: CGFloat = 3  // Visual gap between keys (internal margin)
     private let rowSpacing: CGFloat = 0       // No spacing between row tap areas (visual gap from keyInternalPadding)
+    private let keyVerticalPadding: CGFloat = 5  // Vertical padding for visual gap between rows (2px more than horizontal)
     private let keyCornerRadius: CGFloat = 5
     private let fontSize: CGFloat = 24
     private let largeFontSize: CGFloat = 28
@@ -563,10 +564,14 @@ class KeyboardRenderer {
         keysetId: String,
         rowIndex: Int
     ) -> UIView {
-        // Simple row container - buttons handle their own touches
+        // Row container with extended tap areas for edge keys
         let rowContainer = UIView()
         var currentX: CGFloat = 0
         var keyIndex = 0
+        
+        // Track first and last visible keys for tap area extension
+        var firstVisibleKey: (key: ParsedKey, button: UIView, x: CGFloat, width: CGFloat)? = nil
+        var lastVisibleKey: (key: ParsedKey, button: UIView, x: CGFloat, width: CGFloat)? = nil
         
         // Check if we have only one language (keyboard)
         let hasOnlyOneLanguage = (config?.keyboards?.count ?? 0) <= 1
@@ -611,7 +616,7 @@ class KeyboardRenderer {
         // Calculate extra width per flex key
         let extraWidthPerFlexKey: Double = flexKeyCount > 0 ? hiddenWidthFromShowOn / Double(flexKeyCount) : 0
         
-        // SECOND PASS: Render keys with redistributed width
+        // SECOND PASS: Render keys with redistributed width and track edge keys
         for key in row.keys {
             let parsedKey = ParsedKey(from: key, groups: groups,
                                      defaultTextColor: .black,
@@ -670,13 +675,104 @@ class KeyboardRenderer {
                 rowContainer.addSubview(button)
                 
                 button.frame = CGRect(x: currentX, y: 0, width: keyWidth, height: rowHeight)
+                
+                // Track first visible key
+                if firstVisibleKey == nil {
+                    firstVisibleKey = (parsedKey, button, currentX, keyWidth)
+                }
+                // Always update last visible key
+                lastVisibleKey = (parsedKey, button, currentX, keyWidth)
+                
                 currentX += keyWidth + keySpacing
             }
             
             keyIndex += 1
         }
         
+        // THIRD PASS: Add extended tap areas for first and last keys
+        if let first = firstVisibleKey {
+            addExtendedTapArea(
+                for: first.key,
+                button: first.button,
+                keyX: first.x,
+                keyWidth: first.width,
+                rowHeight: rowHeight,
+                availableWidth: availableWidth,
+                isLeftEdge: true,
+                container: rowContainer
+            )
+        }
+        
+        if let last = lastVisibleKey, last.button !== firstVisibleKey?.button {
+            addExtendedTapArea(
+                for: last.key,
+                button: last.button,
+                keyX: last.x,
+                keyWidth: last.width,
+                rowHeight: rowHeight,
+                availableWidth: availableWidth,
+                isLeftEdge: false,
+                container: rowContainer
+            )
+        }
+        
         return rowContainer
+    }
+    
+    /// Add extended tap area for edge keys (left or right)
+    private func addExtendedTapArea(
+        for key: ParsedKey,
+        button: UIView,
+        keyX: CGFloat,
+        keyWidth: CGFloat,
+        rowHeight: CGFloat,
+        availableWidth: CGFloat,
+        isLeftEdge: Bool,
+        container: UIView
+    ) {
+        // Calculate extension: max half button width
+        let maxExtension = keyWidth / 2
+        
+        // Calculate actual extension based on available space and screen boundaries
+        let extensionWidth: CGFloat
+        if isLeftEdge {
+            // Left edge: extend to the left, but not beyond x=0
+            extensionWidth = min(maxExtension, keyX)
+        } else {
+            // Right edge: extend to the right, but not beyond screen boundary
+            let rightEdge = keyX + keyWidth
+            let spaceToRight = availableWidth - rightEdge
+            extensionWidth = min(maxExtension, spaceToRight)
+        }
+        
+        // Only add extension if there's actual space
+        guard extensionWidth > 0 else { return }
+        
+        // Create invisible button for the extended area
+        let extendedButton = UIButton(type: .system)
+        extendedButton.backgroundColor = UIColor(white: 1.0, alpha: 0.001)
+        
+        // Copy touch handlers from the main button
+        extendedButton.addTarget(self, action: #selector(keyTouchDown(_:)), for: .touchDown)
+        extendedButton.addTarget(self, action: #selector(keyTouchUp(_:)), for: [.touchUpInside, .touchUpOutside])
+        extendedButton.addTarget(self, action: #selector(keyTouchCancelled(_:)), for: .touchCancel)
+        extendedButton.addTarget(self, action: #selector(keyTapped(_:)), for: .touchUpInside)
+        
+        // Use the same key info as the main button
+        extendedButton.accessibilityIdentifier = button.accessibilityIdentifier
+        
+        // Position the extended button
+        let extendedFrame: CGRect
+        if isLeftEdge {
+            // Left extension: place to the left of the key
+            extendedFrame = CGRect(x: keyX - extensionWidth, y: 0, width: extensionWidth, height: rowHeight)
+        } else {
+            // Right extension: place to the right of the key
+            extendedFrame = CGRect(x: keyX + keyWidth, y: 0, width: extensionWidth, height: rowHeight)
+        }
+        
+        container.addSubview(extendedButton)
+        extendedButton.frame = extendedFrame
     }
     
     private func createKeyButton(
@@ -691,6 +787,11 @@ class KeyboardRenderer {
         // UIButton needs some visible content to have a hit area
         // Using a nearly invisible background to ensure it's tappable
         button.backgroundColor = UIColor(white: 1.0, alpha: 0.001)
+        
+        // Add touch handlers for popup bubble
+        button.addTarget(self, action: #selector(keyTouchDown(_:)), for: .touchDown)
+        button.addTarget(self, action: #selector(keyTouchUp(_:)), for: [.touchUpInside, .touchUpOutside])
+        button.addTarget(self, action: #selector(keyTouchCancelled(_:)), for: .touchCancel)
         
         // For backspace key, use gesture recognizer for reliable long-press detection
         if key.type.lowercased() == "backspace" {
@@ -888,10 +989,10 @@ class KeyboardRenderer {
         button.addSubview(visualKeyView)
         visualKeyView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            visualKeyView.topAnchor.constraint(equalTo: button.topAnchor, constant: keyInternalPadding),
+            visualKeyView.topAnchor.constraint(equalTo: button.topAnchor, constant: keyVerticalPadding),
             visualKeyView.leadingAnchor.constraint(equalTo: button.leadingAnchor, constant: keyInternalPadding),
             visualKeyView.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -keyInternalPadding),
-            visualKeyView.bottomAnchor.constraint(equalTo: button.bottomAnchor, constant: -keyInternalPadding)
+            visualKeyView.bottomAnchor.constraint(equalTo: button.bottomAnchor, constant: -keyVerticalPadding)
         ])
         
         return button
@@ -1002,6 +1103,224 @@ class KeyboardRenderer {
         
         // Emit the long-press selection event
         onKeyLongPress?(key)
+    }
+    
+    // MARK: - Key Press Popup Bubble
+    
+    /// Show popup bubble above the key when touched down
+    @objc private func keyTouchDown(_ sender: UIButton) {
+        guard let keyInfo = decodeKeyInfo(sender.accessibilityIdentifier),
+              let key = parseKeyFromInfo(keyInfo) else {
+            return
+        }
+        
+        showKeyPopup(for: key, on: sender)
+    }
+    
+    /// Hide popup bubble when touch ends
+    @objc private func keyTouchUp(_ sender: UIButton) {
+        hideKeyPopup(on: sender)
+    }
+    
+    /// Hide popup bubble when touch is cancelled
+    @objc private func keyTouchCancelled(_ sender: UIButton) {
+        hideKeyPopup(on: sender)
+    }
+    
+    /// Create and show a popup bubble above the key
+    private func showKeyPopup(for key: ParsedKey, on button: UIButton) {
+        // Remove any existing popup
+        button.viewWithTag(9999)?.removeFromSuperview()
+        
+        // Don't show popup for special key types
+        let skipTypes = ["shift", "backspace", "keyset", "next-keyboard", "settings", "close", "space", "enter", "action", "nikkud", "language"]
+        if skipTypes.contains(key.type.lowercased()) {
+            return
+        }
+        
+        // Get the display text (same logic as the main key label)
+        let displayText = shiftState.isActive() ? key.sCaption : key.caption
+        var finalText: String
+        if !key.label.isEmpty {
+            finalText = key.label
+        } else if !displayText.isEmpty {
+            finalText = displayText
+        } else if !key.value.isEmpty {
+            finalText = key.value
+        } else {
+            return // Skip popup for keys without text
+        }
+        
+        // Determine background and text colors based on button state
+        var bgColor = key.backgroundColor
+        if key.type.lowercased() == "shift" && shiftState.isActive() {
+            bgColor = .systemGreen
+        } else if key.type.lowercased() == "nikkud" && nikkudActive {
+            bgColor = .systemYellow
+        } else if bgColor == .white {
+            // Use adaptive color for dark mode
+            bgColor = UIColor { traitCollection in
+                if traitCollection.userInterfaceStyle == .dark {
+                    return UIColor(red: 0.35, green: 0.35, blue: 0.38, alpha: 1.0)
+                } else {
+                    return UIColor.white
+                }
+            }
+        }
+        
+        // Adaptive text color
+        let textColor: UIColor
+        if key.textColor == .black {
+            textColor = UIColor { traitCollection in
+                if traitCollection.userInterfaceStyle == .dark {
+                    return UIColor.white
+                } else {
+                    return UIColor.black
+                }
+            }
+        } else {
+            textColor = key.textColor
+        }
+        
+        // Create popup bubble container (1.3x size instead of 2x)
+        let popupSize = CGSize(width: button.bounds.width * 1.3, height: button.bounds.height * 1.3)
+        let popup = UIView(frame: CGRect(x: 0, y: -popupSize.height, width: popupSize.width, height: popupSize.height))
+        popup.tag = 9999
+        popup.isUserInteractionEnabled = false
+        popup.clipsToBounds = false  // Allow bubble to extend beyond bounds
+        
+        // Create the bubble shape using a custom path
+        let bubblePath = createBubblePath(size: popupSize, keyWidth: button.bounds.width)
+        let bubbleLayer = CAShapeLayer()
+        bubbleLayer.path = bubblePath.cgPath
+        bubbleLayer.fillColor = bgColor.cgColor
+        bubbleLayer.shadowColor = UIColor.black.cgColor
+        bubbleLayer.shadowOffset = CGSize(width: 0, height: 2)
+        bubbleLayer.shadowOpacity = 0.3
+        bubbleLayer.shadowRadius = 4
+        popup.layer.addSublayer(bubbleLayer)
+        
+        // Add text label
+        let label = UILabel()
+        label.text = finalText
+        label.font = UIFont.systemFont(ofSize: 36, weight: .regular)
+        label.textAlignment = .center
+        label.textColor = textColor
+        label.isUserInteractionEnabled = false
+        popup.addSubview(label)
+        
+        // Position label in the top half of the bubble
+        label.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            label.centerXAnchor.constraint(equalTo: popup.centerXAnchor),
+            label.centerYAnchor.constraint(equalTo: popup.topAnchor, constant: popupSize.height * 0.35),
+            label.widthAnchor.constraint(equalToConstant: popupSize.width * 0.8)
+        ])
+        
+        // Add popup to the keyboard container with high z-index to appear above everything
+        if let container = self.container {
+            container.addSubview(popup)
+            
+            // Bring popup to front so it appears above all keys and suggestions bar
+            container.bringSubviewToFront(popup)
+            
+            // Position popup so the diagonal connections align with the VISUAL top of the button
+            // Account for keyVerticalPadding (5px) + 1px extra
+            let visualMarginOffset = keyVerticalPadding + 1
+            
+            // Convert button's frame to container's coordinate system
+            if let buttonSuperview = button.superview {
+                let buttonFrameInContainer = buttonSuperview.convert(button.frame, to: container)
+                
+                // For top row keys, position the bubble lower to stay within bounds
+                // Check if the bubble would go above the container
+                let idealY = buttonFrameInContainer.minY + visualMarginOffset - popupSize.height
+                let finalY: CGFloat
+                if idealY < 0 {
+                    // Top row - position bubble to just fit within bounds
+                    finalY = 0
+                } else {
+                    finalY = idealY
+                }
+                
+                popup.frame = CGRect(
+                    x: buttonFrameInContainer.midX - (popupSize.width / 2),
+                    y: finalY,
+                    width: popupSize.width,
+                    height: popupSize.height
+                )
+                
+                // Ensure popup doesn't go off screen horizontally
+                if popup.frame.minX < 0 {
+                    popup.frame.origin.x = 0
+                }
+                if popup.frame.maxX > container.bounds.maxX {
+                    popup.frame.origin.x = container.bounds.maxX - popup.frame.width
+                }
+            }
+        }
+    }
+    
+    /// Hide the popup bubble
+    private func hideKeyPopup(on button: UIButton) {
+        // Remove popup from the container where we added it
+        container?.viewWithTag(9999)?.removeFromSuperview()
+    }
+    
+    /// Create a bubble path that connects to the button below
+    private func createBubblePath(size: CGSize, keyWidth: CGFloat) -> UIBezierPath {
+        let path = UIBezierPath()
+        let cornerRadius: CGFloat = 8
+        
+        // Top portion of bubble (rectangle with rounded top)
+        let bubbleHeight = size.height * 0.65
+        let bubbleWidth = size.width
+        
+        // Calculate connection points - where the bubble connects to the key
+        let connectionWidth = keyWidth * 0.9
+        let keyLeftX = (size.width - connectionWidth) / 2
+        let keyRightX = keyLeftX + connectionWidth
+        
+        // Start from bottom-left corner of bubble (where diagonal starts)
+        path.move(to: CGPoint(x: 0, y: bubbleHeight))
+        
+        // Left diagonal: from bubble bottom-left (0, bubbleHeight) to key top-left (keyLeftX, size.height)
+        // This creates a "\" shape
+        path.addLine(to: CGPoint(x: keyLeftX, y: size.height))
+        
+        // Bottom edge (along the top of the key)
+        path.addLine(to: CGPoint(x: keyRightX, y: size.height))
+        
+        // Right diagonal: from key top-right (keyRightX, size.height) to bubble bottom-right (bubbleWidth, bubbleHeight)
+        // This creates a "/" shape
+        path.addLine(to: CGPoint(x: bubbleWidth, y: bubbleHeight))
+        
+        // Right edge going up
+        path.addLine(to: CGPoint(x: bubbleWidth, y: cornerRadius))
+        
+        // Top-right corner
+        path.addArc(withCenter: CGPoint(x: bubbleWidth - cornerRadius, y: cornerRadius),
+                    radius: cornerRadius,
+                    startAngle: 0,
+                    endAngle: -.pi / 2,
+                    clockwise: false)
+        
+        // Top edge
+        path.addLine(to: CGPoint(x: cornerRadius, y: 0))
+        
+        // Top-left corner
+        path.addArc(withCenter: CGPoint(x: cornerRadius, y: cornerRadius),
+                    radius: cornerRadius,
+                    startAngle: -.pi / 2,
+                    endAngle: .pi,
+                    clockwise: false)
+        
+        // Left edge going down
+        path.addLine(to: CGPoint(x: 0, y: bubbleHeight))
+        
+        path.close()
+        
+        return path
     }
     
     private func handleKeyClick(_ key: ParsedKey, keyView: UIButton) {
