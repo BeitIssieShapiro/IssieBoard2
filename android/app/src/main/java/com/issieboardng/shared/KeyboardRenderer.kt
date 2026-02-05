@@ -912,7 +912,33 @@ class KeyboardRenderer(private val context: Context) {
             // Text color
             setTextColor(if (key.textColor == Color.BLACK) Color.BLACK else key.textColor)
             
-            setTypeface(typeface, Typeface.NORMAL)
+            // Apply custom font if configured
+            // Font applies to character keys in "abc" keysets (not special keys)
+            val isCharacterKey = key.type.lowercase() !in listOf(
+                "shift", "backspace", "enter", "keyset", "space", 
+                "settings", "close", "next-keyboard", "language", "nikkud"
+            )
+            
+            // Check if we're in an "abc" keyset (not "123" or "#+=" keysets)
+            val isAbcKeyset = currentKeysetId.endsWith("_abc") || currentKeysetId == "abc"
+            
+            val shouldUseCustomFont = isCharacterKey && isAbcKeyset && config?.fontName != null
+            
+            if (shouldUseCustomFont) {
+                try {
+                    val fontName = config?.fontName
+                    if (fontName != null) {
+                        // Load font from assets/fonts/
+                        val typeface = Typeface.createFromAsset(context.assets, "fonts/$fontName")
+                        setTypeface(typeface, Typeface.NORMAL)
+                    }
+                } catch (e: Exception) {
+                    debugLog("⚠️ Failed to load custom font: ${e.message}")
+                    setTypeface(typeface, Typeface.NORMAL)
+                }
+            } else {
+                setTypeface(typeface, Typeface.NORMAL)
+            }
         }
         
         visualKeyView.addView(label, FrameLayout.LayoutParams(

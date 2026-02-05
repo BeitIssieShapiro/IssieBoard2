@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 70;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -18,6 +18,8 @@
 		6A73B68E2F24E9B1003898A5 /* KeyboardPreviewViewManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A73B68D2F24E9B1003898A5 /* KeyboardPreviewViewManager.swift */; };
 		6A73B68F2F24E9B1003898A5 /* KeyboardPreviewViewManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 6A73B68C2F24E9B1003898A5 /* KeyboardPreviewViewManager.m */; };
 		6A73B6902F24E9B1003898A5 /* KeyboardPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A73B68B2F24E9B1003898A5 /* KeyboardPreviewView.swift */; };
+		6A877C1E2F34DAB900888533 /* DanaYadAlefAlefAlef-Normal.otf in Resources */ = {isa = PBXBuildFile; fileRef = 6A877C1D2F34DAB900888533 /* DanaYadAlefAlefAlef-Normal.otf */; };
+		6A877C1F2F34DAB900888533 /* DanaYadAlefAlefAlef-Normal.otf in Resources */ = {isa = PBXBuildFile; fileRef = 6A877C1D2F34DAB900888533 /* DanaYadAlefAlefAlef-Normal.otf */; };
 		6ACC1E292F2B564800F1FA30 /* TrieEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ACC1E282F2B564800F1FA30 /* TrieEngine.swift */; };
 		6ACC1E2A2F2B564800F1FA30 /* TrieEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ACC1E282F2B564800F1FA30 /* TrieEngine.swift */; };
 		6ACC1E5D2F2CDE8300F1FA30 /* IssieBoardEn.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6ACC1E562F2CDE8300F1FA30 /* IssieBoardEn.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -154,6 +156,7 @@
 		6A73B68B2F24E9B1003898A5 /* KeyboardPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KeyboardPreviewView.swift; path = IssieBoardNG/KeyboardPreviewView.swift; sourceTree = "<group>"; };
 		6A73B68C2F24E9B1003898A5 /* KeyboardPreviewViewManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = KeyboardPreviewViewManager.m; path = IssieBoardNG/KeyboardPreviewViewManager.m; sourceTree = "<group>"; };
 		6A73B68D2F24E9B1003898A5 /* KeyboardPreviewViewManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KeyboardPreviewViewManager.swift; path = IssieBoardNG/KeyboardPreviewViewManager.swift; sourceTree = "<group>"; };
+		6A877C1D2F34DAB900888533 /* DanaYadAlefAlefAlef-Normal.otf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "DanaYadAlefAlefAlef-Normal.otf"; path = "../assets/fonts/DanaYadAlefAlefAlef-Normal.otf"; sourceTree = SOURCE_ROOT; };
 		6ACC1DF72F2AB0A800F1FA30 /* IssieBoardNGTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = IssieBoardNGTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6ACC1E282F2B564800F1FA30 /* TrieEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrieEngine.swift; sourceTree = "<group>"; };
 		6ACC1E562F2CDE8300F1FA30 /* IssieBoardEn.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = IssieBoardEn.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -177,21 +180,21 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		6ACC1E5E2F2CDE8300F1FA30 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		6ACC1E5E2F2CDE8300F1FA30 /* Exceptions for "IssieBoardEn" folder in "IssieBoardEn" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
 			target = 6ACC1E552F2CDE8300F1FA30 /* IssieBoardEn */;
 		};
-		6ACC1E732F2CDEA800F1FA30 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		6ACC1E732F2CDEA800F1FA30 /* Exceptions for "IssieBoardHe" folder in "IssieBoardHe" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
 			target = 6ACC1E6A2F2CDEA800F1FA30 /* IssieBoardHe */;
 		};
-		6ACC1E882F2CDEBE00F1FA30 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		6ACC1E882F2CDEBE00F1FA30 /* Exceptions for "IssieBoardAr" folder in "IssieBoardAr" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -201,10 +204,35 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		6ACC1DF82F2AB0A900F1FA30 /* IssieBoardNGTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = IssieBoardNGTests; sourceTree = "<group>"; };
-		6ACC1E572F2CDE8300F1FA30 /* IssieBoardEn */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (6ACC1E5E2F2CDE8300F1FA30 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = IssieBoardEn; sourceTree = "<group>"; };
-		6ACC1E6C2F2CDEA800F1FA30 /* IssieBoardHe */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (6ACC1E732F2CDEA800F1FA30 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = IssieBoardHe; sourceTree = "<group>"; };
-		6ACC1E812F2CDEBE00F1FA30 /* IssieBoardAr */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (6ACC1E882F2CDEBE00F1FA30 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = IssieBoardAr; sourceTree = "<group>"; };
+		6ACC1DF82F2AB0A900F1FA30 /* IssieBoardNGTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = IssieBoardNGTests;
+			sourceTree = "<group>";
+		};
+		6ACC1E572F2CDE8300F1FA30 /* IssieBoardEn */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				6ACC1E5E2F2CDE8300F1FA30 /* Exceptions for "IssieBoardEn" folder in "IssieBoardEn" target */,
+			);
+			path = IssieBoardEn;
+			sourceTree = "<group>";
+		};
+		6ACC1E6C2F2CDEA800F1FA30 /* IssieBoardHe */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				6ACC1E732F2CDEA800F1FA30 /* Exceptions for "IssieBoardHe" folder in "IssieBoardHe" target */,
+			);
+			path = IssieBoardHe;
+			sourceTree = "<group>";
+		};
+		6ACC1E812F2CDEBE00F1FA30 /* IssieBoardAr */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				6ACC1E882F2CDEBE00F1FA30 /* Exceptions for "IssieBoardAr" folder in "IssieBoardAr" target */,
+			);
+			path = IssieBoardAr;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -298,6 +326,14 @@
 			path = Shared;
 			sourceTree = "<group>";
 		};
+		6A877C1C2F34DA3F00888533 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				6A877C1D2F34DAB900888533 /* DanaYadAlefAlefAlef-Normal.otf */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
 			isa = PBXGroup;
 			children = (
@@ -308,6 +344,7 @@
 		83CBB9F61A601CBA00E9B192 = {
 			isa = PBXGroup;
 			children = (
+				6A877C1C2F34DA3F00888533 /* Resources */,
 				13B07FAE1A68108700A75B9A /* IssieBoardNG */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				6A1E336E2F220FCA00035455 /* Shared */,
@@ -391,8 +428,6 @@
 				6ACC1DF82F2AB0A900F1FA30 /* IssieBoardNGTests */,
 			);
 			name = IssieBoardNGTests;
-			packageProductDependencies = (
-			);
 			productName = IssieBoardNGTests;
 			productReference = 6ACC1DF72F2AB0A800F1FA30 /* IssieBoardNGTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -413,8 +448,6 @@
 				6ACC1E572F2CDE8300F1FA30 /* IssieBoardEn */,
 			);
 			name = IssieBoardEn;
-			packageProductDependencies = (
-			);
 			productName = IssieBoardEn;
 			productReference = 6ACC1E562F2CDE8300F1FA30 /* IssieBoardEn.appex */;
 			productType = "com.apple.product-type.app-extension";
@@ -435,8 +468,6 @@
 				6ACC1E6C2F2CDEA800F1FA30 /* IssieBoardHe */,
 			);
 			name = IssieBoardHe;
-			packageProductDependencies = (
-			);
 			productName = IssieBoardHe;
 			productReference = 6ACC1E6B2F2CDEA800F1FA30 /* IssieBoardHe.appex */;
 			productType = "com.apple.product-type.app-extension";
@@ -457,8 +488,6 @@
 				6ACC1E812F2CDEBE00F1FA30 /* IssieBoardAr */,
 			);
 			name = IssieBoardAr;
-			packageProductDependencies = (
-			);
 			productName = IssieBoardAr;
 			productReference = 6ACC1E802F2CDEBE00F1FA30 /* IssieBoardAr.appex */;
 			productType = "com.apple.product-type.app-extension";
@@ -491,7 +520,6 @@
 				};
 			};
 			buildConfigurationList = 83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "IssieBoardNG" */;
-			compatibilityVersion = "Xcode 12.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -499,6 +527,7 @@
 				Base,
 			);
 			mainGroup = 83CBB9F61A601CBA00E9B192;
+			preferredProjectObjectVersion = 77;
 			productRefGroup = 83CBBA001A601CBA00E9B192 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -522,6 +551,7 @@
 				6ACC1F4B2F2F991C00F1FA30 /* en_50k.bin in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				6ASHARED0005000000035455 /* SharedAssets.xcassets in Resources */,
+				6A877C1E2F34DAB900888533 /* DanaYadAlefAlefAlef-Normal.otf in Resources */,
 				5326AF4A4DECB80A70586DB4 /* PrivacyInfo.xcprivacy in Resources */,
 				6ACC1F492F2F983A00F1FA30 /* ar_50k.bin in Resources */,
 			);
@@ -546,6 +576,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6A877C1F2F34DAB900888533 /* DanaYadAlefAlefAlef-Normal.otf in Resources */,
 				6ASHARED0003000000035455 /* SharedAssets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -676,7 +707,7 @@
 				6ACC1E962F2D007500F1FA30 /* BaseKeyboardViewController.swift in Sources */,
 				6ACC1E2A2F2B564800F1FA30 /* TrieEngine.swift in Sources */,
 				6A1E33772F22198A00035455 /* KeyboardModels.swift in Sources */,
-						6ACC1F9B2F30AF8900F1FA30 /* WordSuggestionController.swift in Sources */,
+				6ACC1F9B2F30AF8900F1FA30 /* WordSuggestionController.swift in Sources */,
 				6A1E33702F220FCA00035455 /* KeyboardPreferences.swift in Sources */,
 				6A1E33752F22170C00035455 /* KeyboardPreferencesModule.swift in Sources */,
 				6A73B6892F24E985003898A5 /* KeyboardRenderer.swift in Sources */,
@@ -699,7 +730,7 @@
 				6ACC20632F30C9B000F1FA30 /* BaseKeyboardViewController.swift in Sources */,
 				6ACC20642F30C9B000F1FA30 /* KeyboardPreferences.swift in Sources */,
 				6ACC20652F30C9B000F1FA30 /* NikkudPickerController.swift in Sources */,
-						6ACC20662F30C9B000F1FA30 /* SuggestionsBarView.swift in Sources */,
+				6ACC20662F30C9B000F1FA30 /* SuggestionsBarView.swift in Sources */,
 				6ACC20672F30C9B000F1FA30 /* BackspaceHandler.swift in Sources */,
 				6ACC20682F30C9B000F1FA30 /* KeyboardModels.swift in Sources */,
 				6ACC20692F30C9B000F1FA30 /* WordSuggestionController.swift in Sources */,
@@ -797,7 +828,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = IssieBoardNG/IssieBoardNG.entitlements;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 9;
 				DEVELOPMENT_TEAM = SKNJT9TD9G;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = IssieBoardNG/Info.plist;
@@ -831,7 +862,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = IssieBoardNG/IssieBoardNG.entitlements;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 9;
 				DEVELOPMENT_TEAM = SKNJT9TD9G;
 				INFOPLIST_FILE = IssieBoardNG/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;

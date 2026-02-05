@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CFBundleDisplayName</key>
+	<string>IssieBoard Arabic</string>
+	<key>KeyboardLanguage</key>
+	<string>ar</string>
 	<key>NSExtension</key>
 	<dict>
 		<key>NSExtensionAttributes</key>
@@ -20,9 +24,7 @@
 		<key>NSExtensionPrincipalClass</key>
 		<string>$(PRODUCT_MODULE_NAME).KeyboardViewController</string>
 	</dict>
-	<key>CFBundleDisplayName</key>
-	<string>IssieBoard Arabic</string>
-	<key>KeyboardLanguage</key>
-	<string>ar</string>
+	<key>RCTNewArchEnabled</key>
+	<true/>
 </dict>
 </plist>

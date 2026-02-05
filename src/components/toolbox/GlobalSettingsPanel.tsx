@@ -41,6 +41,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
     updateBackgroundColor,
     updateWordSuggestions,
     updateAutoCorrect,
+    updateFontName,
   } = useEditor();
 
   // Get current word suggestions setting (default to ON)
@@ -48,6 +49,18 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
   
   // Get current auto-correct setting (default to OFF)
   const autoCorrectEnabled = state.config.autoCorrectEnabled === true;
+  
+  // Get current font name
+  const currentFontName = state.config.fontName;
+  
+  // Check if current keyboard is Hebrew
+  const isHebrewKeyboard = currentKeyboardId === 'he';
+  
+  // Font options for Hebrew keyboard
+  const hebrewFontOptions = [
+    { id: 'system', label: 'אבג', fontFamily: undefined },
+    { id: 'yad', label: 'אבג', fontFamily: 'DanaYadAlefAlefAlef-Normal' },
+  ];
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -88,6 +101,33 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
           systemDefaultLabel="Default"
         />
       </View>
+
+      {/* Hebrew Font (only show for Hebrew keyboard) */}
+      {isHebrewKeyboard && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Font</Text>
+          <View style={styles.fontSelector}>
+            {hebrewFontOptions.map(option => (
+              <TouchableOpacity
+                key={option.id}
+                style={[
+                  styles.fontButton,
+                  (option.fontFamily === currentFontName || (!option.fontFamily && !currentFontName)) && styles.fontButtonActive,
+                ]}
+                onPress={() => updateFontName(option.fontFamily)}
+              >
+                <Text style={[
+                  styles.fontButtonText,
+                  option.fontFamily && { fontFamily: option.fontFamily },
+                  (option.fontFamily === currentFontName || (!option.fontFamily && !currentFontName)) && styles.fontButtonTextActive,
+                ]}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
 
       {/* Features */}
       <View style={styles.section}>
@@ -154,6 +194,33 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   variantButtonTextActive: {
+    color: '#FFF',
+    fontWeight: '600',
+  },
+  fontSelector: {
+    flexDirection: 'row',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    padding: 4,
+  },
+  fontButton: {
+    flex: 1,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  fontButtonActive: {
+    backgroundColor: '#2196F3',
+  },
+  fontButtonText: {
+    fontSize: 28,
+    color: '#666',
+  },
+  fontButtonYad: {
+    fontFamily: 'DanaYadAlefAlefAlef-Normal',
+  },
+  fontButtonTextActive: {
     color: '#FFF',
     fontWeight: '600',
   },

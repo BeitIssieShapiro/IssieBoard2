@@ -961,7 +961,31 @@ class KeyboardRenderer {
         }
         
         let fontWeight: UIFont.Weight = .regular
-        label.font = UIFont.systemFont(ofSize: finalFontSize, weight: fontWeight)
+        
+        // Apply custom font if configured
+        // Font applies to character keys in "abc" keysets (not special keys like shift, backspace, etc.)
+        let isCharacterKey = !isNikkudKey &&
+                            key.type.lowercased() != "shift" &&
+                            key.type.lowercased() != "backspace" &&
+                            key.type.lowercased() != "enter" &&
+                            key.type.lowercased() != "keyset" &&
+                            key.type.lowercased() != "space" &&
+                            key.type.lowercased() != "settings" &&
+                            key.type.lowercased() != "close" &&
+                            key.type.lowercased() != "next-keyboard" &&
+                            key.type.lowercased() != "language"
+        
+        // Check if we're in an "abc" keyset (not "123" or "#+=" keysets)
+        let isAbcKeyset = currentKeysetId.hasSuffix("_abc") || currentKeysetId == "abc"
+        
+        let shouldUseCustomFont = isCharacterKey && isAbcKeyset && config?.fontName != nil
+        
+        if shouldUseCustomFont, let fontName = config?.fontName, let customFont = UIFont(name: fontName, size: finalFontSize) {
+            label.font = customFont
+        } else {
+            label.font = UIFont.systemFont(ofSize: finalFontSize, weight: fontWeight)
+        }
+        
         label.adjustsFontSizeToFitWidth = isNikkudKey ? false : true
         label.minimumScaleFactor = 0.3
         label.numberOfLines = 1

@@ -20,7 +20,8 @@ data class KeyboardConfig(
     val allDiacritics: Map<String, DiacriticsDefinition>? = null,  // Per-keyboard diacritics definitions
     val diacriticsSettings: Map<String, DiacriticsSettings>? = null,  // Per-keyboard settings from profile
     val wordSuggestionsEnabled: Boolean? = null,  // Enable/disable word suggestions (default: true)
-    val autoCorrectEnabled: Boolean? = null  // Enable/disable auto-correct on space (default: false)
+    val autoCorrectEnabled: Boolean? = null,  // Enable/disable auto-correct on space (default: false)
+    val fontName: String? = null  // Custom font name to use for character keys (e.g., 'DanaYadAlefAlefAlef-Normal.otf')
 ) {
     /** Check if word suggestions are enabled (defaults to true if not specified) */
     val isWordSuggestionsEnabled: Boolean
