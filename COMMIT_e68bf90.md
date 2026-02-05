@@ -29,7 +29,7 @@ Port iOS keyboard auto-behaviors to Android to achieve feature parity between pl
 3. **KeyboardRenderer.kt** (216 lines added)
    - Added backspace touch state callbacks to coordinate with controller
    - Enhanced shift state management for auto-behaviors
-   - Added support for tracking backspace active state to avoid re-renders during touch
+   - Added support to avoid re-renders during backspace touch
    - Implemented callbacks for backspace touch began/ended events
 
 ## Technical Implementation:
@@ -55,8 +55,12 @@ Port iOS keyboard auto-behaviors to Android to achieve feature parity between pl
 - Prevents re-rendering during long-press backspace to avoid visual issues
 - Defers shift state updates until touch ends
 
+## Note on Key Press Visual Feedback
+The key press popup bubble feature (showing enlarged key above finger when pressed) was **NOT** part of this commit. That feature was added later in commit 47ecb59 for iOS only and has not yet been ported to Android.
+
 ## Leftovers/TODO:
-- None - All iOS auto-behaviors successfully ported to Android
+- None - All iOS auto-behaviors from commit c04f7fa successfully ported to Android
+- Key press popup bubble (if desired) would need to be ported separately in future
 
 ## Files Modified:
 - android/app/src/main/java/com/issieboardng/shared/BaseKeyboardService.kt
@@ -65,3 +69,4 @@ Port iOS keyboard auto-behaviors to Android to achieve feature parity between pl
 
 ## Related Commits:
 - c04f7fa: Original iOS implementation of these auto-behaviors
+- 47ecb59: Added key press popup bubble feature (iOS only, not ported to Android yet)
