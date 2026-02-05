@@ -20,6 +20,8 @@ Leftovers/TODO:
 - Any incomplete work or future improvements needed
 ```
 
+Note: The resulted text should be part of the commit message and not as a seperate md file.
+
 ## Categories
 - `[Feature]` - New feature implementation
 - `[Fix]` - Bug fix
