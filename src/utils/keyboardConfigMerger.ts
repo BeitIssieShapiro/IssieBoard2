@@ -120,6 +120,38 @@ export function filterKeysByLanguage(keys: KeyboardKey[], language: string): Key
 }
 
 /**
+ * Filter out settings button if disabled
+ * When disabled, the settings button's width is added to the space key
+ */
+export function filterSettingsButton(keys: KeyboardKey[], settingsButtonEnabled: boolean = true): KeyboardKey[] {
+  if (settingsButtonEnabled) {
+    return keys;
+  }
+  
+  // Find the settings button and space key
+  const settingsKey = keys.find(key => key.type === 'settings');
+  const settingsWidth = settingsKey?.width || 1;
+  
+  // Filter out settings button and adjust space width
+  return keys.map(key => {
+    // Remove settings button
+    if (key.type === 'settings') {
+      return null;
+    }
+    
+    // Add settings button width to space key
+    if (key.value === ' ' || key.caption === 'space' || key.caption === 'רווח' || key.caption === 'مسافة') {
+      return {
+        ...key,
+        width: (key.width || 1) + settingsWidth,
+      };
+    }
+    
+    return key;
+  }).filter((key): key is KeyboardKey => key !== null);
+}
+
+/**
  * Filter rows by language (filter keys within each row)
  */
 export function filterRowsByLanguage(rows: KeyboardRow[], language: string): KeyboardRow[] {

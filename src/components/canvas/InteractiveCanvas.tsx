@@ -38,6 +38,7 @@ const getNextKeysetId = (
   return sameTypeKeysets[nextIndex];
 };
 import { KeyboardConfig } from '../../../types';
+import { filterSettingsButton } from '../../utils/keyboardConfigMerger';
 
 interface InteractiveCanvasProps {
   onTestInput?: (text: string) => void;
@@ -119,9 +120,22 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
         },
       }));
 
-    // Return the base config with the current groups
+    // Get settingsButtonEnabled setting (default to true)
+    const settingsButtonEnabled = state.config.settingsButtonEnabled !== false;
+
+    // Filter out settings button if disabled
+    const filteredKeysets = state.config.keysets.map(keyset => ({
+      ...keyset,
+      rows: keyset.rows.map(row => ({
+        ...row,
+        keys: filterSettingsButton(row.keys, settingsButtonEnabled),
+      })),
+    }));
+
+    // Return the base config with the current groups and filtered keysets
     return {
       ...state.config,
+      keysets: filteredKeysets,
       groups: groupConfigs,
     };
   }, [state.config, state.styleGroups]);

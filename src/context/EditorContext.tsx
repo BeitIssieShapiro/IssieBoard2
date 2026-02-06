@@ -83,6 +83,7 @@ type EditorAction =
   | { type: 'UPDATE_WORD_SUGGESTIONS'; payload: boolean }
   | { type: 'UPDATE_AUTO_CORRECT'; payload: boolean }
   | { type: 'UPDATE_FONT_NAME'; payload: string | undefined }
+  | { type: 'UPDATE_SETTINGS_BUTTON'; payload: boolean }
   | { type: 'MARK_SAVED' }
   | { type: 'MARK_DIRTY' };
 
@@ -427,6 +428,14 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       };
     }
 
+    case 'UPDATE_SETTINGS_BUTTON': {
+      return {
+        ...state,
+        config: { ...state.config, settingsButtonEnabled: action.payload },
+        isDirty: true,
+      };
+    }
+
     case 'MARK_SAVED':
       return {
         ...state,
@@ -522,6 +531,7 @@ interface EditorContextValue {
   updateWordSuggestions: (enabled: boolean) => void;
   updateAutoCorrect: (enabled: boolean) => void;
   updateFontName: (fontName: string | undefined) => void;
+  updateSettingsButton: (enabled: boolean) => void;
   markDirty: () => void;
 }
 
@@ -640,6 +650,10 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
     dispatch({ type: 'UPDATE_FONT_NAME', payload: fontName });
   }, []);
 
+  const updateSettingsButton = useCallback((enabled: boolean) => {
+    dispatch({ type: 'UPDATE_SETTINGS_BUTTON', payload: enabled });
+  }, []);
+
   const markDirty = useCallback(() => {
     dispatch({ type: 'MARK_DIRTY' });
   }, []);
@@ -670,6 +684,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
     updateWordSuggestions,
     updateAutoCorrect,
     updateFontName,
+    updateSettingsButton,
     markDirty,
   };
 

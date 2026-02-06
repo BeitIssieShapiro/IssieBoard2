@@ -180,6 +180,7 @@ export interface KeyboardConfig {
     wordSuggestionsEnabled?: boolean;  // Whether word suggestions bar is shown (default: true)
     autoCorrectEnabled?: boolean;  // Whether auto-correct replaces typed word with suggestion on space (default: true)
     fontName?: string;  // Custom font name to use for character keys (e.g., 'DanaYadAlefAlefAlef-Normal'). If not set, system font is used.
+    settingsButtonEnabled?: boolean;  // Whether settings button is shown on keyboard (default: true)
 }
 
 // Config from storage - could be a built KeyboardConfig or ProfileDefinition that needs building

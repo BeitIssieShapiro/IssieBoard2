@@ -42,6 +42,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
     updateWordSuggestions,
     updateAutoCorrect,
     updateFontName,
+    updateSettingsButton,
   } = useEditor();
 
   // Get current word suggestions setting (default to ON)
@@ -52,6 +53,9 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
   
   // Get current font name
   const currentFontName = state.config.fontName;
+  
+  // Get current settings button setting (default to ON)
+  const settingsButtonEnabled = state.config.settingsButtonEnabled !== false;
   
   // Check if current keyboard is Hebrew
   const isHebrewKeyboard = currentKeyboardId === 'he';
@@ -159,6 +163,20 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
             trackColor={{ false: '#9E9E9E', true: '#81C784' }}
             thumbColor={autoCorrectEnabled ? '#4CAF50' : '#FFFFFF'}
             disabled={!wordSuggestionsEnabled}
+          />
+        </View>
+        <View style={styles.featureRow}>
+          <View style={styles.featureInfo}>
+            <Text style={styles.featureLabel}>Settings Button</Text>
+            <Text style={styles.featureDescription}>
+              Show settings button on keyboard
+            </Text>
+          </View>
+          <Switch
+            value={settingsButtonEnabled}
+            onValueChange={updateSettingsButton}
+            trackColor={{ false: '#9E9E9E', true: '#81C784' }}
+            thumbColor={settingsButtonEnabled ? '#4CAF50' : '#FFFFFF'}
           />
         </View>
       </View>
