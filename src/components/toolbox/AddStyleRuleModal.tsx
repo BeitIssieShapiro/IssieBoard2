@@ -8,11 +8,13 @@ import {
   TextInput,
   ScrollView,
   Switch,
+  FlatList,
 } from 'react-native';
 import { useEditor, getKeyValueFromPositionId } from '../../context/EditorContext';
-import { StyleGroup, KeyStyleOverride, KeyboardConfig, VisibilityMode } from '../../../types';
+import { StyleGroup, KeyStyleOverride, KeyboardConfig, VisibilityMode, PredefinedStyleRule } from '../../../types';
 import { ColorPicker } from '../shared/ColorPicker';
 import { KeyboardPreview, KeyPressEvent } from '../KeyboardPreview';
+import { getPredefinedRules, getAvailableLanguages } from '../../utils/predefinedRules';
 
 interface AddStyleRuleModalProps {
   visible: boolean;
@@ -41,6 +43,29 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
   const [visibilityMode, setVisibilityMode] = useState<VisibilityMode>('default');
   const [isActive, setIsActive] = useState(true);
 
+  // Predefined rules browsing state
+  const [showPredefinedRules, setShowPredefinedRules] = useState(false);
+
+  // Get current keyboard language
+  const currentLanguage = useMemo(() => {
+    return state.config.defaultKeyboard || state.config.keyboards[0] || 'en';
+  }, [state.config]);
+
+  // Get current language's predefined rules
+  const currentPredefinedRules = useMemo(() => {
+    return getPredefinedRules(currentLanguage);
+  }, [currentLanguage]);
+
+  // Handle applying a predefined rule
+  const handleApplyPredefinedRule = useCallback((rule: PredefinedStyleRule) => {
+    setRuleName(rule.name);
+    setSelectedKeyValues([...rule.members]);
+    setBgColor(rule.style.bgColor || '');
+    setTextColor(rule.style.color || '');
+    setVisibilityMode(rule.style.visibilityMode || 'default');
+    setShowPredefinedRules(false);
+  }, []);
+
   // Generate a unique name for new rules
   const generateRuleName = useCallback((): string => {
     let counter = 1;
@@ -51,7 +76,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
     return `rule-${counter}`;
   }, [state.styleGroups]);
 
-  // Initialize state when modal opens
+  // Initialize state when modal opens and reset when it closes
   useEffect(() => {
     if (visible) {
       if (editingGroup) {
@@ -78,8 +103,13 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
         setVisibilityMode('default');
         setIsActive(true);
       }
+      // Reset predefined rules browser state when opening
+      setShowPredefinedRules(false);
+    } else {
+      // Reset predefined rules browser state when closing
+      setShowPredefinedRules(false);
     }
-  }, [visible, editingGroup, generateRuleName]);
+  }, [visible, editingGroup, generateRuleName, initialSelectedKeys]);
 
   // Handle key tap - toggle selection
   const handleKeyPress = useCallback((event: KeyPressEvent) => {
@@ -304,6 +334,66 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
           </View>
 
           <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+            {/* Browse Predefined Rules */}
+            {!editingGroup && (
+              <View style={styles.section}>
+                <TouchableOpacity
+                  style={styles.browsePredefinedButton}
+                  onPress={() => setShowPredefinedRules(!showPredefinedRules)}
+                >
+                  <Text style={styles.browsePredefinedButtonText}>
+                    📚 {showPredefinedRules ? 'Hide' : 'Browse'} Predefined Rules
+                  </Text>
+                </TouchableOpacity>
+
+                {showPredefinedRules && (
+                  <View style={styles.predefinedRulesContainer}>
+                    {/* Predefined Rules List */}
+                    {currentPredefinedRules && (
+                      <View style={styles.rulesList}>
+                        {currentPredefinedRules.rules.map((rule) => (
+                          <TouchableOpacity
+                            key={rule.id}
+                            style={styles.ruleItem}
+                            onPress={() => handleApplyPredefinedRule(rule)}
+                          >
+                            <View style={styles.ruleItemHeader}>
+                              <Text style={styles.ruleItemName}>{rule.name}</Text>
+                              <View style={styles.ruleItemColors}>
+                                {rule.style.bgColor && (
+                                  <View
+                                    style={[
+                                      styles.colorPreview,
+                                      { backgroundColor: rule.style.bgColor },
+                                    ]}
+                                  />
+                                )}
+                                {rule.style.color && (
+                                  <View
+                                    style={[
+                                      styles.colorPreview,
+                                      { backgroundColor: rule.style.color },
+                                    ]}
+                                  />
+                                )}
+                              </View>
+                            </View>
+                            <Text style={styles.ruleItemDescription} numberOfLines={1}>
+                              {rule.description}
+                            </Text>
+                            <Text style={styles.ruleItemKeys} numberOfLines={1}>
+                              {rule.members.slice(0, 15).join(' ')}
+                              {rule.members.length > 15 ? '...' : ''}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                )}
+              </View>
+            )}
+
             {/* Rule Name */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Rule Name</Text>
@@ -651,6 +741,105 @@ const styles = StyleSheet.create({
     color: '#FF9800',
     marginTop: 8,
     fontStyle: 'italic',
+  },
+  // Predefined rules styles
+  browsePredefinedButton: {
+    backgroundColor: '#E8F5E9',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#81C784',
+  },
+  browsePredefinedButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#388E3C',
+  },
+  predefinedRulesContainer: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: '#F9F9F9',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  languageSelectorContainer: {
+    marginBottom: 12,
+  },
+  languageSelectorLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#555',
+    marginBottom: 6,
+  },
+  languageButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  languageButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: '#FFF',
+    borderWidth: 1,
+    borderColor: '#DDD',
+  },
+  languageButtonSelected: {
+    backgroundColor: '#2196F3',
+    borderColor: '#2196F3',
+  },
+  languageButtonText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#666',
+  },
+  languageButtonTextSelected: {
+    color: '#FFF',
+    fontWeight: '600',
+  },
+  rulesList: {
+    gap: 8,
+  },
+  ruleItem: {
+    backgroundColor: '#FFF',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  ruleItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  ruleItemName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    flex: 1,
+  },
+  ruleItemColors: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  colorPreview: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#DDD',
+  },
+  ruleItemDescription: {
+    fontSize: 11,
+    color: '#666',
+    marginBottom: 4,
+  },
+  ruleItemKeys: {
+    fontSize: 11,
+    color: '#999',
+    fontFamily: 'monospace',
   },
 });
 

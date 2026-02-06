@@ -1,0 +1,96 @@
+{
+  "language": "en",
+  "languageName": "English",
+  "rules": [
+    {
+      "id": "top-row",
+      "name": "Top Row",
+      "description": "First row of letter keys",
+      "members": ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
+      "style": {
+        "bgColor": "#E3F2FD",
+        "color": "#1976D2"
+      }
+    },
+    {
+      "id": "mid-row",
+      "name": "Middle Row",
+      "description": "Second row of letter keys (home row)",
+      "members": ["a", "s", "d", "f", "g", "h", "j", "k", "l", "A", "S", "D", "F", "G", "H", "J", "K", "L"],
+      "style": {
+        "bgColor": "#E8F5E9",
+        "color": "#388E3C"
+      }
+    },
+    {
+      "id": "bottom-row",
+      "name": "Bottom Row",
+      "description": "Third row of letter keys",
+      "members": ["z", "x", "c", "v", "b", "n", "m", "Z", "X", "C", "V", "B", "N", "M"],
+      "style": {
+        "bgColor": "#FFF3E0",
+        "color": "#F57C00"
+      }
+    },
+    {
+      "id": "left-half",
+      "name": "Left Half",
+      "description": "Left side keys",
+      "members": ["q", "w", "e", "r", "t", "a", "s", "d", "f", "z", "x", "c", "v", "Q", "W", "E", "R", "T", "A", "S", "D", "F", "Z", "X", "C", "V"],
+      "style": {
+        "bgColor": "#FCE4EC",
+        "color": "#C2185B"
+      }
+    },
+    {
+      "id": "right-half",
+      "name": "Right Half",
+      "description": "Right side keys",
+      "members": ["y", "u", "i", "o", "p", "h", "j", "k", "l", "b", "n", "m", "Y", "U", "I", "O", "P", "H", "J", "K", "L", "B", "N", "M"],
+      "style": {
+        "bgColor": "#F3E5F5",
+        "color": "#7B1FA2"
+      }
+    },
+    {
+      "id": "left-third",
+      "name": "Left Third",
+      "description": "Left third of keys",
+      "members": ["q", "w", "e", "a", "s", "z", "x", "Q", "W", "E", "A", "S", "Z", "X"],
+      "style": {
+        "bgColor": "#E0F2F1",
+        "color": "#00695C"
+      }
+    },
+    {
+      "id": "mid-third",
+      "name": "Middle Third",
+      "description": "Middle third of keys",
+      "members": ["r", "t", "y", "d", "f", "g", "h", "c", "v", "b", "R", "T", "Y", "D", "F", "G", "H", "C", "V", "B"],
+      "style": {
+        "bgColor": "#FFF9C4",
+        "color": "#F57F17"
+      }
+    },
+    {
+      "id": "right-third",
+      "name": "Right Third",
+      "description": "Right third of keys",
+      "members": ["u", "i", "o", "p", "j", "k", "l", "n", "m", "U", "I", "O", "P", "J", "K", "L", "N", "M"],
+      "style": {
+        "bgColor": "#FFEBEE",
+        "color": "#C62828"
+      }
+    },
+    {
+      "id": "vowels",
+      "name": "Vowels",
+      "description": "All vowel keys",
+      "members": ["a", "e", "i", "o", "u", "y", "A", "E", "I", "O", "U", "Y"],
+      "style": {
+        "bgColor": "#E1BEE7",
+        "color": "#6A1B9A"
+      }
+    }
+  ]
+}

@@ -1,0 +1,96 @@
+{
+  "language": "he",
+  "languageName": "Hebrew",
+  "rules": [
+    {
+      "id": "top-row",
+      "name": "שורה עליונה",
+      "description": "שורה ראשונה של אותיות",
+      "members": ["ק", "ר", "א", "ט", "ו", "ן", "ם", "פ"],
+      "style": {
+        "bgColor": "#E3F2FD",
+        "color": "#1976D2"
+      }
+    },
+    {
+      "id": "mid-row",
+      "name": "שורה אמצעית",
+      "description": "שורה שנייה של אותיות",
+      "members": ["ש", "ד", "ג", "כ", "ע", "י", "ח", "ל", "ך", "ף"],
+      "style": {
+        "bgColor": "#E8F5E9",
+        "color": "#388E3C"
+      }
+    },
+    {
+      "id": "bottom-row",
+      "name": "שורה תחתונה",
+      "description": "שורה שלישית של אותיות",
+      "members": ["ז", "ס", "ב", "ה", "נ", "מ", "צ", "ת", "ץ"],
+      "style": {
+        "bgColor": "#FFF3E0",
+        "color": "#F57C00"
+      }
+    },
+    {
+      "id": "left-half",
+      "name": "חצי שמאל",
+      "description": "מקשים בצד שמאל",
+      "members": ["ם", "פ", "ך", "ף", "ץ"],
+      "style": {
+        "bgColor": "#FCE4EC",
+        "color": "#C2185B"
+      }
+    },
+    {
+      "id": "right-half",
+      "name": "חצי ימין",
+      "description": "מקשים בצד ימין",
+      "members": ["ק", "ר", "א", "ט", "ו", "ן", "ש", "ד", "ג", "כ", "ע", "י", "ח", "ל", "ז", "ס", "ב", "ה", "נ", "מ", "צ", "ת"],
+      "style": {
+        "bgColor": "#F3E5F5",
+        "color": "#7B1FA2"
+      }
+    },
+    {
+      "id": "left-third",
+      "name": "שליש שמאל",
+      "description": "שליש שמאלי של המקשים",
+      "members": ["ן", "ם", "פ", "ך", "ף", "ץ"],
+      "style": {
+        "bgColor": "#E0F2F1",
+        "color": "#00695C"
+      }
+    },
+    {
+      "id": "mid-third",
+      "name": "שליש אמצעי",
+      "description": "שליש אמצעי של המקשים",
+      "members": ["א", "ט", "ו", "כ", "ע", "י", "ח", "ל", "ה", "נ", "מ", "צ", "ת"],
+      "style": {
+        "bgColor": "#FFF9C4",
+        "color": "#F57F17"
+      }
+    },
+    {
+      "id": "right-third",
+      "name": "שליש ימין",
+      "description": "שליש ימני של המקשים",
+      "members": ["ק", "ר", "ש", "ד", "ג", "ז", "ס", "ב"],
+      "style": {
+        "bgColor": "#FFEBEE",
+        "color": "#C62828"
+      }
+    },
+    {
+      "id": "vowels",
+      "name": "תנועות (אהוי)",
+      "description": "אותיות התנועות העיקריות",
+      "members": ["א", "ה", "ו", "י"],
+      "style": {
+        "bgColor": "#E1BEE7",
+        "color": "#6A1B9A"
+      }
+    }
+  ]
+}

@@ -28,6 +28,22 @@ export interface StyleGroup {
     active?: boolean;                // If false, group is saved but not applied to preview (defaults to true)
 }
 
+// Predefined Style Rule (from JSON files)
+export interface PredefinedStyleRule {
+    id: string;                      // Unique ID: "top-row", "vowels"
+    name: string;                    // Display name in the language
+    description: string;             // Description in the language
+    members: string[];               // Key values for this rule
+    style: KeyStyleOverride;         // Pre-configured style
+}
+
+// Predefined Rules Collection (JSON file structure)
+export interface PredefinedRulesCollection {
+    language: string;                // Language code: "en", "he", "ar"
+    languageName: string;            // Display name: "English", "Hebrew", "Arabic"
+    rules: PredefinedStyleRule[];    // Array of predefined rules
+}
+
 // Key configuration for individual keyboard keys
 export interface KeyConfig {
     value?: string;
