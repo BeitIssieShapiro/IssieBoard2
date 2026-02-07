@@ -12,13 +12,11 @@ V  - some keys should stay
 V- upside down - create rule 
 V- more keys in iPad mode
 V- auto shift, auto I, auto . after two spaces
-
-- font 
-- ready made groups 
-- slide cursor
-- settings button - configureable
-- verify, that after he.json change, and applying profile change, he.json takes into account
-
+V- font 
+V- ready made groups 
+V- settings button - configureable
+V- verify, that after he.json change, and applying profile change, he.json takes into account
+V- slide cursor
 
 
 

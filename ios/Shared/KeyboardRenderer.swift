@@ -36,6 +36,12 @@ class KeyboardRenderer {
     // Callback for long-press selection (for nikkud/keyset keys in edit mode)
     var onKeyLongPress: ((ParsedKey) -> Void)?
     
+    // Callback for cursor movement requests
+    var onCursorMove: ((Int) -> Void)?
+    
+    // Callback to get text direction at cursor (returns true if RTL, false if LTR)
+    var onGetTextDirection: (() -> Bool)?
+    
     // Word suggestions to display
     private var currentSuggestions: [String] = []
     
@@ -51,9 +57,16 @@ class KeyboardRenderer {
     // Internal state - managed entirely by renderer
     private var shiftState: ShiftState = .inactive
     private var nikkudActive: Bool = false
+    private var cursorMoveMode: Bool = false
     private var config: KeyboardConfig?
     var currentKeysetId: String = "abc"  // Public so container can read it (but shouldn't write)
     private var editorContext: (enterVisible: Bool, enterLabel: String, enterAction: Int)?
+    
+    // Cursor movement tracking
+    private var cursorMoveStartPoint: CGPoint = .zero
+    private var cursorMoveAccumulatedDistance: CGFloat = 0
+    private let cursorMoveSensitivity: CGFloat = 30.0  // 30px = 1 character movement
+    private var cursorMoveDirectionIsRTL: Bool = false  // Direction locked at start of session
     
     // Keyset button return state tracking
     // When a keyset button is pressed, it enters "return mode" where pressing again returns to the original keyset
@@ -262,6 +275,11 @@ class KeyboardRenderer {
     /// Called by KeyboardPreviewView during initialization
     func setPreviewMode(_ isPreview: Bool) {
         isPreviewMode = isPreview
+    }
+    
+    /// Check if currently in cursor movement mode
+    func isInCursorMoveMode() -> Bool {
+        return cursorMoveMode
     }
     
     /// Set whether word suggestions are enabled (override config setting)
@@ -814,9 +832,16 @@ class KeyboardRenderer {
         } else {
             button.addTarget(self, action: #selector(keyTapped(_:)), for: .touchUpInside)
             
-            // Add long-press gesture for keyset and nikkud keys (for selection in edit mode)
             let keyType = key.type.lowercased()
-            if keyType == "keyset" || keyType == "nikkud" {
+            
+            // Add long-press gesture for space key (for cursor movement mode)
+            if keyType == "space" || key.value == " " {
+                let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(spaceLongPressed(_:)))
+                longPressGesture.minimumPressDuration = 0.5
+                button.addGestureRecognizer(longPressGesture)
+            }
+            // Add long-press gesture for keyset and nikkud keys (for selection in edit mode)
+            else if keyType == "keyset" || keyType == "nikkud" {
                 let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(keyLongPressed(_:)))
                 longPressGesture.minimumPressDuration = 0.5
                 button.addGestureRecognizer(longPressGesture)
@@ -1064,7 +1089,8 @@ class KeyboardRenderer {
         case "enter", "action":
             return editorContext?.enterLabel ?? "↵"
         case "shift":
-            return "⇧"
+            // Show different icon for locked vs normal shift
+            return shiftState == .locked ? "⇪" : "⇧"
         case "settings":
             return "⚙"
         case "close":
@@ -1121,7 +1147,9 @@ class KeyboardRenderer {
         }
     }
     
-    /// Handle long-press on keyset/nikkud keys for selection in edit mode
+    /// Handle long-press on keyset/nikkud keys
+    /// For nikkud: activates nikkud mode after 0.5 sec (when inactive)
+    /// For keyset: emits selection event for edit mode
     @objc private func keyLongPressed(_ gesture: UILongPressGestureRecognizer) {
         // Only trigger on initial recognition, not continued updates
         guard gesture.state == .began else { return }
@@ -1132,10 +1160,118 @@ class KeyboardRenderer {
             return
         }
         
-        print("🔑 Key long-pressed for selection: type='\(key.type)', value='\(key.value)'")
+        print("🔑 Key long-pressed: type='\(key.type)', value='\(key.value)'")
         
-        // Emit the long-press selection event
-        onKeyLongPress?(key)
+        // Handle nikkud key - only activate if currently inactive
+        if key.type.lowercased() == "nikkud" {
+            if !nikkudActive {
+                print("   → Activating NIKKUD mode after 0.5 sec press")
+                nikkudActive = true
+                rerender()
+            } else {
+                print("   → NIKKUD already active, ignoring long-press")
+            }
+        } else {
+            // For other keys (keyset), emit the long-press selection event for edit mode
+            print("   → Emitting long-press selection event")
+            onKeyLongPress?(key)
+        }
+    }
+    
+    /// Handle long-press on space key for cursor movement mode
+    @objc private func spaceLongPressed(_ gesture: UILongPressGestureRecognizer) {
+        switch gesture.state {
+        case .began:
+            print("🔄 Space long-press BEGAN - entering cursor move mode")
+            cursorMoveMode = true
+            cursorMoveStartPoint = gesture.location(in: gesture.view)
+            cursorMoveAccumulatedDistance = 0
+            
+            // Lock text direction at the start of the session based on first non-whitespace character
+            cursorMoveDirectionIsRTL = onGetTextDirection?() ?? isCurrentKeyboardRTL()
+            print("🔄 Direction locked: isRTL=\(cursorMoveDirectionIsRTL)")
+            
+            // Clear suggestions while in cursor mode
+            clearSuggestions()
+            
+            // Dim all keys to indicate cursor mode
+            dimKeysForCursorMode(true)
+            
+        case .changed:
+            guard cursorMoveMode else { return }
+            
+            let currentPoint = gesture.location(in: gesture.view)
+            let deltaX = currentPoint.x - cursorMoveStartPoint.x
+            
+            // Add to accumulated distance
+            cursorMoveAccumulatedDistance += deltaX
+            
+            // Check if we've moved enough to trigger a cursor movement (20px = 1 character)
+            let charactersToMove = Int(cursorMoveAccumulatedDistance / cursorMoveSensitivity)
+            
+            if charactersToMove != 0 {
+                // Use the locked direction from session start (not re-evaluated during movement)
+                var offset = charactersToMove
+                
+                // Reverse direction for RTL text
+                if cursorMoveDirectionIsRTL {
+                    offset = -offset
+                }
+                
+                print("🔄 Cursor move: deltaX=\(deltaX), accumulated=\(cursorMoveAccumulatedDistance), isRTL=\(cursorMoveDirectionIsRTL), moving \(offset) characters")
+                
+                // Move cursor via callback
+                onCursorMove?(offset)
+                
+                // Reset accumulated distance by the amount we just moved
+                cursorMoveAccumulatedDistance -= CGFloat(charactersToMove) * cursorMoveSensitivity
+                
+                // Update start point for next delta calculation
+                cursorMoveStartPoint = currentPoint
+            }
+            
+        case .ended, .cancelled, .failed:
+            print("🔄 Space long-press ENDED - exiting cursor move mode")
+            cursorMoveMode = false
+            cursorMoveStartPoint = .zero
+            cursorMoveAccumulatedDistance = 0
+            
+            // Restore normal key appearance
+            dimKeysForCursorMode(false)
+            
+        default:
+            break
+        }
+    }
+    
+    /// Dim or restore keys for cursor movement mode
+    private func dimKeysForCursorMode(_ shouldDim: Bool) {
+        guard let container = container else { return }
+        
+        let alpha: CGFloat = shouldDim ? 0.3 : 1.0
+        
+        // Find all key labels and image views and adjust their alpha
+        container.subviews.forEach { subview in
+            // Skip suggestions bar and nikkud picker
+            if subview.tag == 999 || subview === suggestionsBar {
+                return
+            }
+            
+            // Recursively find labels and image views
+            dimSubviews(of: subview, alpha: alpha)
+        }
+    }
+    
+    /// Recursively dim all labels and image views
+    private func dimSubviews(of view: UIView, alpha: CGFloat) {
+        for subview in view.subviews {
+            if subview is UILabel || subview is UIImageView {
+                UIView.animate(withDuration: 0.2) {
+                    subview.alpha = alpha
+                }
+            }
+            dimSubviews(of: subview, alpha: alpha)
+        }
     }
     
     // MARK: - Key Press Popup Bubble
@@ -1173,6 +1309,11 @@ class KeyboardRenderer {
         // Don't show popup for special key types
         let skipTypes = ["shift", "backspace", "keyset", "next-keyboard", "settings", "close", "space", "enter", "action", "nikkud", "language"]
         if skipTypes.contains(key.type.lowercased()) {
+            return
+        }
+        
+        // Also skip if the key value is a space (in case it's not typed as "space")
+        if key.value == " " {
             return
         }
         
@@ -1377,10 +1518,17 @@ class KeyboardRenderer {
             handleShiftTap()
             
         case "nikkud":
-            // Toggle nikkud and re-render internally
-            print("   → Handling NIKKUD")
-            nikkudActive = !nikkudActive
-            rerender()
+            // Nikkud toggle behavior:
+            // - When inactive: requires 0.5 sec long-press to activate (prevent accidental activation)
+            // - When active: normal tap to deactivate
+            if nikkudActive {
+                print("   → Handling NIKKUD tap (deactivating)")
+                nikkudActive = false
+                rerender()
+            } else {
+                print("   → Ignoring quick tap on NIKKUD (requires 0.5 sec press to activate)")
+                return
+            }
             
         case "keyset":
             // Switch keyset and re-render internally
@@ -1708,6 +1856,15 @@ class KeyboardRenderer {
     private func isCurrentKeyboardRTL() -> Bool {
         guard let keyboardId = currentKeyboardId else { return false }
         return keyboardId == "he" || keyboardId == "ar"
+    }
+    
+    /// Detect the actual text direction at the cursor position
+    /// Returns true if RTL (Hebrew/Arabic), false if LTR (English/numbers)
+    /// This is smarter than just checking keyboard language - it analyzes the actual text
+    private func getTextDirectionAtCursor() -> Bool {
+        // This will be called from BaseKeyboardViewController, so we need a callback
+        // For now, return keyboard language as fallback
+        return isCurrentKeyboardRTL()
     }
     
     /// Update the suggestions bar with current suggestions (delegates to SuggestionsBarView)

@@ -94,7 +94,11 @@ class BaseKeyboardViewController: UIInputViewController {
     
     override func textDidChange(_ textInput: UITextInput?) {
         super.textDidChange(textInput)
-        suggestionController.detectCurrentWord(from: textDocumentProxy.documentContextBeforeInput)
+        
+        // Skip suggestion detection if in cursor movement mode
+        if !renderer.isInCursorMoveMode() {
+            suggestionController.detectCurrentWord(from: textDocumentProxy.documentContextBeforeInput)
+        }
         
         // Check if we should auto-shift after text change (e.g., after paste, autocorrect, backspace)
         // But skip if text is empty and shift is already active (avoid loops)
@@ -196,6 +200,52 @@ class BaseKeyboardViewController: UIInputViewController {
             // Render now if shift state needs updating
             self?.autoShiftAfterPunctuation()
         }
+        
+        renderer.onCursorMove = { [weak self] offset in
+            self?.handleCursorMove(offset)
+        }
+        
+        renderer.onGetTextDirection = { [weak self] in
+            return self?.getTextDirectionAtCursor() ?? false
+        }
+    }
+    
+    private func handleCursorMove(_ offset: Int) {
+        textDocumentProxy.adjustTextPosition(byCharacterOffset: offset)
+        debugLog("🔄 Cursor moved by \(offset) characters")
+        
+        // Don't trigger suggestions while moving cursor
+        // The cursor position change would normally trigger textDidChange,
+        // but we want to suppress suggestion generation during cursor movement
+    }
+    
+    /// Detect the actual text direction at the cursor position
+    /// Returns true if RTL (Hebrew/Arabic), false if LTR (English/numbers)
+    /// This analyzes the actual text rather than just keyboard language
+    private func getTextDirectionAtCursor() -> Bool {
+        // Get text before cursor
+        guard let beforeText = textDocumentProxy.documentContextBeforeInput,
+              !beforeText.isEmpty else {
+            // No text - fall back to keyboard language
+            return keyboardLanguage == "he" || keyboardLanguage == "ar"
+        }
+        
+        // Check the last character before cursor
+        if let lastChar = beforeText.last {
+            // Hebrew Unicode range: U+0590 to U+05FF
+            // Arabic Unicode range: U+0600 to U+06FF
+            let unicodeValue = lastChar.unicodeScalars.first?.value ?? 0
+            
+            if (unicodeValue >= 0x0590 && unicodeValue <= 0x05FF) || // Hebrew
+               (unicodeValue >= 0x0600 && unicodeValue <= 0x06FF) {  // Arabic
+                return true  // RTL
+            } else if lastChar.isLetter || lastChar.isNumber {
+                return false // LTR
+            }
+        }
+        
+        // Fall back to keyboard language
+        return keyboardLanguage == "he" || keyboardLanguage == "ar"
     }
     
     private func setupSuggestionController() {
@@ -568,6 +618,12 @@ class BaseKeyboardViewController: UIInputViewController {
     /// Behavior 3: For English keyboard only, activate shift after ". " or when text is empty
     private func autoShiftAfterPunctuation() {
         debugLog("🔍 autoShiftAfterPunctuation called")
+        
+        // Skip if in cursor movement mode - don't interfere with cursor mode
+        if renderer.isInCursorMoveMode() {
+            debugLog("  ❌ In cursor move mode, skipping auto-shift")
+            return
+        }
         
         // Only apply to English keyboard
         guard keyboardLanguage == "en" else {

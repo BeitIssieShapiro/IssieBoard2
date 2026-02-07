@@ -289,6 +289,13 @@
               "width": 1.5
             },
             {
+              "hidden": true,
+              "width": 0.5,
+              "showOn": [
+                "large-screen"
+              ]
+            },
+            {
               "type": "settings"
             },
             {
@@ -434,6 +441,13 @@
               "label": "אבג",
               "returnKeysetLabel": "123",
               "width": 1.5
+            },
+            {
+              "hidden": true,
+              "width": 0.5,
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "type": "settings"
@@ -583,6 +597,13 @@
               "label": "אבג",
               "returnKeysetLabel": "123",
               "width": 1.5
+            },
+            {
+              "hidden": true,
+              "width": 0.5,
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "type": "settings"
