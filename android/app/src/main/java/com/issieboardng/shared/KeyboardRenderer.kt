@@ -66,9 +66,16 @@ class KeyboardRenderer(private val context: Context) {
     // Internal state - managed entirely by renderer
     private var shiftState: ShiftState = ShiftState.INACTIVE
     private var nikkudActive: Boolean = false
+    private var cursorMoveMode: Boolean = false
     private var config: KeyboardConfig? = null
     var currentKeysetId: String = "abc"  // Public so container can read it
     private var editorContext: EditorContext? = null
+    
+    // Cursor movement tracking
+    private var cursorMoveStartPoint: android.graphics.PointF = android.graphics.PointF(0f, 0f)
+    private var cursorMoveAccumulatedDistance: Float = 0f
+    private val cursorMoveSensitivity: Float = 30f  // 30px = 1 character movement
+    private var cursorMoveDirectionIsRTL: Boolean = false  // Direction locked at start of session
     
     // Keyset button return state tracking
     private var keysetButtonReturnState: MutableMap<String, Pair<String, String>> = mutableMapOf()
@@ -100,6 +107,12 @@ class KeyboardRenderer(private val context: Context) {
     
     // Callback for long-press selection (for nikkud/keyset keys in edit mode)
     var onKeyLongPress: ((ParsedKey) -> Unit)? = null
+    
+    // Callback for cursor movement requests
+    var onCursorMove: ((Int) -> Unit)? = null
+    
+    // Callback to get text direction at cursor (returns true if RTL, false if LTR)
+    var onGetTextDirection: (() -> Boolean)? = null
     
     // Layout tracking to prevent infinite loops
     private var lastRenderedWidth: Int = 0
@@ -976,9 +989,89 @@ class KeyboardRenderer(private val context: Context) {
                 handleKeyClick(key, it)
             }
             
-            // Add long-press listener for keyset and nikkud keys (for selection in edit mode)
+            // Add long-press listener for space (cursor movement), nikkud (activate), and keyset (edit mode selection)
             val keyType = key.type.lowercase()
-            if (keyType == "keyset" || keyType == "nikkud") {
+            if (keyType == "space" || key.value == " ") {
+                // Space key: long-press for cursor movement
+                var longPressHandler: android.os.Handler? = null
+                var longPressRunnable: Runnable? = null
+                
+                buttonContainer.setOnTouchListener { _, event ->
+                    when (event.action) {
+                        MotionEvent.ACTION_DOWN -> {
+                            // Start long-press timer for cursor mode
+                            longPressHandler = android.os.Handler(android.os.Looper.getMainLooper())
+                            longPressRunnable = Runnable {
+                                spaceLongPressAction(event, buttonContainer)
+                            }
+                            longPressHandler?.postDelayed(longPressRunnable!!, 500)
+                            false
+                        }
+                        MotionEvent.ACTION_MOVE -> {
+                            if (cursorMoveMode) {
+                                spaceLongPressAction(event, buttonContainer)
+                                true
+                            } else {
+                                false
+                            }
+                        }
+                        MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                            longPressHandler?.removeCallbacks(longPressRunnable!!)
+                            if (cursorMoveMode) {
+                                // End cursor mode
+                                spaceLongPressEnd()
+                                true
+                            } else {
+                                // Normal tap - let click listener handle it
+                                false
+                            }
+                        }
+                        else -> false
+                    }
+                }
+            } else if (keyType == "nikkud") {
+                // Nikkud key: requires 0.5 sec long-press to activate (when inactive), normal tap to deactivate (when active)
+                var longPressHandler: android.os.Handler? = null
+                var longPressRunnable: Runnable? = null
+                
+                buttonContainer.setOnTouchListener { _, event ->
+                    when (event.action) {
+                        MotionEvent.ACTION_DOWN -> {
+                            if (!nikkudActive) {
+                                // Inactive: start long-press timer
+                                longPressHandler = android.os.Handler(android.os.Looper.getMainLooper())
+                                longPressRunnable = Runnable {
+                                    debugLog("🔑 Nikkud long-pressed - activating")
+                                    nikkudActive = true
+                                    rerender()
+                                }
+                                longPressHandler?.postDelayed(longPressRunnable!!, 500)
+                            }
+                            false
+                        }
+                        MotionEvent.ACTION_UP -> {
+                            longPressHandler?.removeCallbacks(longPressRunnable!!)
+                            if (nikkudActive) {
+                                // Active: normal tap deactivates
+                                debugLog("🔑 Nikkud tapped - deactivating")
+                                nikkudActive = false
+                                updateNikkudKeyVisual(buttonContainer)
+                                true
+                            } else {
+                                // Inactive and released before 0.5 sec: ignore
+                                debugLog("🔑 Nikkud tapped too quickly - requires 0.5 sec press")
+                                false
+                            }
+                        }
+                        MotionEvent.ACTION_CANCEL -> {
+                            longPressHandler?.removeCallbacks(longPressRunnable!!)
+                            false
+                        }
+                        else -> false
+                    }
+                }
+            } else if (keyType == "keyset") {
+                // Keyset: long-press for edit mode selection
                 buttonContainer.setOnLongClickListener {
                     debugLog("🔑 Key long-pressed for selection: type='${key.type}'")
                     onKeyLongPress?.invoke(key)
@@ -997,7 +1090,7 @@ class KeyboardRenderer(private val context: Context) {
         return when (type.lowercase()) {
             "backspace" -> "⌫"
             "enter", "action" -> editorContext?.enterLabel ?: "↵"
-            "shift" -> "⇧"
+            "shift" -> if (shiftState == ShiftState.LOCKED) "⇪" else "⇧"
             "settings" -> "⚙"
             "close" -> "⬇"
             "language" -> "<->"
@@ -1346,6 +1439,108 @@ class KeyboardRenderer(private val context: Context) {
             visualKeyView.invalidate()
             debugLog("🎨 Updated nikkud key background to: ${if (nikkudActive) "yellow" else "white"}")
         }
+    }
+    
+    // MARK: - Cursor Movement
+    
+    /** Handle space long-press action (begin or move) */
+    private fun spaceLongPressAction(event: MotionEvent, view: View) {
+        if (!cursorMoveMode) {
+            // Begin cursor mode
+            debugLog("🔄 Space long-press BEGAN - entering cursor move mode")
+            cursorMoveMode = true
+            cursorMoveStartPoint = android.graphics.PointF(event.rawX, event.rawY)
+            cursorMoveAccumulatedDistance = 0f
+            
+            // Lock text direction at the start of the session
+            cursorMoveDirectionIsRTL = onGetTextDirection?.invoke() ?: isCurrentKeyboardRTL()
+            debugLog("🔄 Direction locked: isRTL=$cursorMoveDirectionIsRTL")
+            
+            // Clear suggestions while in cursor mode
+            clearSuggestions()
+            
+            // Dim all keys to indicate cursor mode
+            dimKeysForCursorMode(true)
+        } else {
+            // Continue cursor movement
+            val currentPoint = android.graphics.PointF(event.rawX, event.rawY)
+            val deltaX = currentPoint.x - cursorMoveStartPoint.x
+            
+            // Add to accumulated distance
+            cursorMoveAccumulatedDistance += deltaX
+            
+            // Check if we've moved enough to trigger a cursor movement
+            val charactersToMove = (cursorMoveAccumulatedDistance / cursorMoveSensitivity).toInt()
+            
+            if (charactersToMove != 0) {
+                // Use the locked direction from session start
+                var offset = charactersToMove
+                
+                // Reverse direction for RTL text
+                if (cursorMoveDirectionIsRTL) {
+                    offset = -offset
+                }
+                
+                debugLog("🔄 Cursor move: deltaX=$deltaX, accumulated=$cursorMoveAccumulatedDistance, isRTL=$cursorMoveDirectionIsRTL, moving $offset characters")
+                
+                // Move cursor via callback
+                onCursorMove?.invoke(offset)
+                
+                // Reset accumulated distance by the amount we just moved
+                cursorMoveAccumulatedDistance -= charactersToMove * cursorMoveSensitivity
+                
+                // Update start point for next delta calculation
+                cursorMoveStartPoint = currentPoint
+            }
+        }
+    }
+    
+    /** End space long-press (exit cursor mode) */
+    private fun spaceLongPressEnd() {
+        debugLog("🔄 Space long-press ENDED - exiting cursor move mode")
+        cursorMoveMode = false
+        cursorMoveStartPoint = android.graphics.PointF(0f, 0f)
+        cursorMoveAccumulatedDistance = 0f
+        
+        // Restore normal key appearance
+        dimKeysForCursorMode(false)
+    }
+    
+    /** Dim or restore keys for cursor movement mode */
+    private fun dimKeysForCursorMode(shouldDim: Boolean) {
+        val container = container ?: return
+        
+        val alpha = if (shouldDim) 0.3f else 1.0f
+        
+        // Find all key labels and dim/restore them
+        dimViewsRecursively(container, alpha)
+    }
+    
+    /** Recursively dim all TextViews (key labels) */
+    private fun dimViewsRecursively(view: View, alpha: Float) {
+        if (view is TextView) {
+            view.animate().alpha(alpha).setDuration(200).start()
+        } else if (view is ViewGroup) {
+            // Skip suggestions bar and nikkud picker
+            if (view.tag == 999 || view == suggestionsBar) {
+                return
+            }
+            
+            for (i in 0 until view.childCount) {
+                dimViewsRecursively(view.getChildAt(i), alpha)
+            }
+        }
+    }
+    
+    /** Check if the current keyboard is RTL (Hebrew or Arabic) */
+    private fun isCurrentKeyboardRTL(): Boolean {
+        val keyboardId = currentKeyboardId ?: return false
+        return keyboardId == "he" || keyboardId == "ar"
+    }
+    
+    /** Check if currently in cursor movement mode */
+    fun isInCursorMoveMode(): Boolean {
+        return cursorMoveMode
     }
     
     // MARK: - Utility

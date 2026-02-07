@@ -174,6 +174,14 @@ abstract class BaseKeyboardService : InputMethodService() {
                 // Render now if shift state needs updating
                 autoShiftAfterPunctuation()
             }
+            
+            onCursorMove = { offset ->
+                handleCursorMove(offset)
+            }
+            
+            onGetTextDirection = {
+                getTextDirectionAtCursor()
+            }
         }
     }
     
@@ -691,6 +699,46 @@ abstract class BaseKeyboardService : InputMethodService() {
             } catch (e2: Exception) {
                 errorLog("Failed to show input method picker: ${e2.message}")
             }
+        }
+    }
+    
+    // MARK: - Cursor Movement
+    
+    private fun handleCursorMove(offset: Int) {
+        currentInputConnection?.setSelection(
+            currentInputConnection?.getTextBeforeCursor(1000, 0)?.length?.plus(offset) ?: offset,
+            currentInputConnection?.getTextBeforeCursor(1000, 0)?.length?.plus(offset) ?: offset
+        )
+        debugLog("🔄 Cursor moved by $offset characters")
+    }
+    
+    /**
+     * Detect the actual text direction at the cursor position
+     * Returns true if RTL (Hebrew/Arabic), false if LTR (English/numbers)
+     * This analyzes the actual text rather than just keyboard language
+     */
+    private fun getTextDirectionAtCursor(): Boolean {
+        // Get text before cursor
+        val ic = currentInputConnection ?: return keyboardLanguage == "he" || keyboardLanguage == "ar"
+        val beforeText = ic.getTextBeforeCursor(100, 0)?.toString()
+        
+        if (beforeText.isNullOrEmpty()) {
+            // No text - fall back to keyboard language
+            return keyboardLanguage == "he" || keyboardLanguage == "ar"
+        }
+        
+        // Check the last character before cursor
+        val lastChar = beforeText.lastOrNull() ?: return keyboardLanguage == "he" || keyboardLanguage == "ar"
+        
+        // Hebrew Unicode range: U+0590 to U+05FF
+        // Arabic Unicode range: U+0600 to U+06FF
+        val unicodeValue = lastChar.code
+        
+        return when {
+            unicodeValue in 0x0590..0x05FF -> true  // Hebrew
+            unicodeValue in 0x0600..0x06FF -> true  // Arabic
+            lastChar.isLetter() || lastChar.isDigit() -> false  // LTR
+            else -> keyboardLanguage == "he" || keyboardLanguage == "ar"  // Fall back to keyboard language
         }
     }
     
