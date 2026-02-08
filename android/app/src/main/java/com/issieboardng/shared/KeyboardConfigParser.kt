@@ -90,7 +90,10 @@ object KeyboardConfigParser {
             keysetValue = json.optString("keysetValue", null),
             returnKeysetValue = json.optString("returnKeysetValue", null),
             returnKeysetLabel = json.optString("returnKeysetLabel", null),
-            nikkud = parseNikkudOptions(json.optJSONArray("nikkud"))
+            nikkud = parseNikkudOptions(json.optJSONArray("nikkud")),
+            showOn = parseStringList(json.optJSONArray("showOn")),
+            flex = if (json.has("flex")) json.optBoolean("flex") else null,
+            showForField = parseStringList(json.optJSONArray("showForField"))
         )
     }
     
@@ -135,6 +138,7 @@ object KeyboardConfigParser {
             width = if (json.has("width")) json.optDouble("width") else null,
             offset = if (json.has("offset")) json.optDouble("offset") else null,
             hidden = if (json.has("hidden")) json.optBoolean("hidden") else null,
+            visibilityMode = json.optString("visibilityMode", null),
             color = json.optString("color", null),
             bgColor = json.optString("bgColor", null)
         )

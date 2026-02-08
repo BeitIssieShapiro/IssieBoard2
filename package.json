@@ -13,7 +13,8 @@
     "build:dictionaries": "node scripts/build_dictionaries.js",
     "build:keyboards": "node scripts/build_keyboard_configs.js",
     "build:keyboard-neighbors": "node scripts/build_keyboard_neighbors.js",
-    "build:all": "npm run build:dictionaries && npm run build:keyboards && npm run build:keyboard-neighbors"
+    "build:all": "npm run build:dictionaries && npm run build:keyboards && npm run build:keyboard-neighbors",
+    "open:android-sim": "~/Library/Android/sdk/emulator/emulator -avd Pixel_3a &"
   },
   "dependencies": {
     "@react-native/new-app-screen": "0.83.1",

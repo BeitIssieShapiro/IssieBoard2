@@ -81,7 +81,7 @@ data class Key(
         }
         
         return if (isLargeScreen) {
-            filter.contains("largeScreen")
+            filter.contains("large-screen")  // Use kebab-case to match JSON
         } else {
             filter.contains("mobile")
         }

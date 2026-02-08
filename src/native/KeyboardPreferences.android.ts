@@ -23,59 +23,85 @@ class KeyboardPreferences {
   
   async setCurrentProfile(profile: string): Promise<SetResult> {
     try {
-      await DefaultPreference.setName('keyboard_data');
-      await DefaultPreference.set('selected_profile', profile);
+      await DefaultPreference.setName('issieboard_keyboard_prefs');
+      await DefaultPreference.set('currentProfile', profile);
+      await DefaultPreference.set('lastUpdateTime', Date.now().toString());
+      console.log('✅ Android: Set current profile:', profile);
       return { success: true, profile };
     } catch (error) {
-      console.error('Android: Failed to set current profile', error);
+      console.error('❌ Android: Failed to set current profile', error);
       return { success: false, error };
     }
   }
 
   async getCurrentProfile(): Promise<string | null> {
     try {
-      await DefaultPreference.setName('keyboard_data');
-      const value = await DefaultPreference.get('selected_profile');
+      await DefaultPreference.setName('issieboard_keyboard_prefs');
+      const value = await DefaultPreference.get('currentProfile');
+      console.log('📖 Android: Get current profile:', value || 'null');
       return value || null;
     } catch (error) {
-      console.error('Android: Failed to get current profile', error);
+      console.error('❌ Android: Failed to get current profile', error);
       return null;
     }
   }
 
   async setSelectedLanguage(language: string): Promise<SetResult> {
     try {
-      await DefaultPreference.setName('keyboard_data');
-      await DefaultPreference.set('selected_language', language);
+      await DefaultPreference.setName('issieboard_keyboard_prefs');
+      await DefaultPreference.set('selectedLanguage', language);
+      await DefaultPreference.set('lastUpdateTime', Date.now().toString());
+      console.log('✅ Android: Set selected language:', language);
       return { success: true, language };
     } catch (error) {
-      console.error('Android: Failed to set language', error);
+      console.error('❌ Android: Failed to set language', error);
       return { success: false, error };
     }
   }
 
   async getSelectedLanguage(): Promise<string | null> {
     try {
-      await DefaultPreference.setName('keyboard_data');
-      const value = await DefaultPreference.get('selected_language');
+      await DefaultPreference.setName('issieboard_keyboard_prefs');
+      const value = await DefaultPreference.get('selectedLanguage');
+      console.log('📖 Android: Get selected language:', value || 'null');
       return value || null;
     } catch (error) {
-      console.error('Android: Failed to get language', error);
+      console.error('❌ Android: Failed to get language', error);
       return null;
     }
   }
 
   async setKeyboardConfig(configJSON: string): Promise<SetResult> {
     try {
-      await DefaultPreference.setName('keyboard_data');
-      await DefaultPreference.set('config_json', configJSON);
+      await DefaultPreference.setName('issieboard_keyboard_prefs');
+      await DefaultPreference.set('keyboardConfig', configJSON);
+      await DefaultPreference.set('lastUpdateTime', Date.now().toString());
+      console.log('✅ Android: Set keyboard config, length:', configJSON.length);
       return { 
         success: true,
         timestamp: Date.now(),
         length: configJSON.length
       };
     } catch (error) {
-      console.error('Android: Failed to set keyboard config', error);
+      console.error('❌ Android: Failed to set keyboard config', error);
+      return { success: false, error };
+    }
+  }
+
+  async setKeyboardConfigForLanguage(configJSON: string, keyboardId: string): Promise<SetResult> {
+    try {
+      await DefaultPreference.setName('issieboard_keyboard_prefs');
+      await DefaultPreference.set(`keyboardConfig_${keyboardId}`, configJSON);
+      await DefaultPreference.set('lastUpdateTime', Date.now().toString());
+      console.log('✅ Android: Set keyboard config for language:', keyboardId, 'length:', configJSON.length);
+      return { 
+        success: true,
+        timestamp: Date.now(),
+        length: configJSON.length,
+        keyboardId
+      };
+    } catch (error) {
+      console.error('❌ Android: Failed to set keyboard config for language', error);
       return { success: false, error };
     }
   }
@@ -85,13 +111,19 @@ class KeyboardPreferences {
     return this.setKeyboardConfig(configJSON);
   }
 
+  async setKeyboardConfigObjectForLanguage(config: any, keyboardId: string): Promise<SetResult> {
+    const configJSON = JSON.stringify(config);
+    return this.setKeyboardConfigForLanguage(configJSON, keyboardId);
+  }
+
   async getKeyboardConfig(): Promise<string | null> {
     try {
-      await DefaultPreference.setName('keyboard_data');
-      const value = await DefaultPreference.get('config_json');
+      await DefaultPreference.setName('issieboard_keyboard_prefs');
+      const value = await DefaultPreference.get('keyboardConfig');
+      console.log('📖 Android: Get keyboard config:', value ? `${value.length} chars` : 'null');
       return value || null;
     } catch (error) {
-      console.error('Android: Failed to get keyboard config', error);
+      console.error('❌ Android: Failed to get keyboard config', error);
       return null;
     }
   }
@@ -111,11 +143,12 @@ class KeyboardPreferences {
 
   async setProfile(profileJSON: string, key: string): Promise<SetResult> {
     try {
-      await DefaultPreference.setName('keyboard_data');
+      await DefaultPreference.setName('issieboard_keyboard_prefs');
       await DefaultPreference.set(`profile_${key}`, profileJSON);
+      console.log('✅ Android: Set profile:', key, 'length:', profileJSON.length);
       return { success: true, key };
     } catch (error) {
-      console.error('Android: Failed to set profile', error);
+      console.error('❌ Android: Failed to set profile', error);
       return { success: false, error };
     }
   }
@@ -127,11 +160,12 @@ class KeyboardPreferences {
 
   async getProfile(key: string): Promise<string | null> {
     try {
-      await DefaultPreference.setName('keyboard_data');
+      await DefaultPreference.setName('issieboard_keyboard_prefs');
       const value = await DefaultPreference.get(`profile_${key}`);
+      console.log('📖 Android: Get profile:', key, value ? `${value.length} chars` : 'null');
       return value || null;
     } catch (error) {
-      console.error('Android: Failed to get profile', error);
+      console.error('❌ Android: Failed to get profile', error);
       return null;
     }
   }
@@ -155,7 +189,7 @@ class KeyboardPreferences {
     const hasConfig = !!(await this.getKeyboardConfig());
     
     const info: PreferenceInfo = {
-      appGroup: 'SharedPreferences (keyboard_data)',
+      appGroup: 'SharedPreferences (issieboard_keyboard_prefs)',
       currentProfile: profile,
       selectedLanguage: language,
       lastUpdateTime: Date.now() / 1000,
@@ -163,7 +197,7 @@ class KeyboardPreferences {
     };
     
     console.log('📱 Android Keyboard Preferences:');
-    console.log('  Storage: SharedPreferences');
+    console.log('  Storage: SharedPreferences (issieboard_keyboard_prefs)');
     console.log('  Current Profile:', profile || 'none');
     console.log('  Selected Language:', language || 'none');
     console.log('  Has Config:', hasConfig);
@@ -173,11 +207,12 @@ class KeyboardPreferences {
 
   async clearAll(): Promise<SetResult> {
     try {
-      await DefaultPreference.setName('keyboard_data');
+      await DefaultPreference.setName('issieboard_keyboard_prefs');
       await DefaultPreference.clearAll();
+      console.log('🗑️ Android: Cleared all preferences');
       return { success: true };
     } catch (error) {
-      console.error('Android: Failed to clear preferences', error);
+      console.error('❌ Android: Failed to clear preferences', error);
       return { success: false, error };
     }
   }
@@ -188,17 +223,18 @@ class KeyboardPreferences {
    */
   async clearKeyboardConfig(): Promise<SetResult> {
     try {
-      await DefaultPreference.setName('keyboard_data');
-      await DefaultPreference.clear('config_json');
+      await DefaultPreference.setName('issieboard_keyboard_prefs');
+      await DefaultPreference.clear('keyboardConfig');
+      console.log('🗑️ Android: Cleared keyboard config');
       return { success: true };
     } catch (error) {
-      console.error('Android: Failed to clear keyboard config', error);
+      console.error('❌ Android: Failed to clear keyboard config', error);
       return { success: false, error };
     }
   }
 
   async getAppGroupIdentifier(): Promise<string> {
-    return 'SharedPreferences (keyboard_data)';
+    return 'SharedPreferences (issieboard_keyboard_prefs)';
   }
 }
 

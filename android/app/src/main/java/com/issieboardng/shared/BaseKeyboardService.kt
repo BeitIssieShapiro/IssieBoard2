@@ -254,6 +254,8 @@ abstract class BaseKeyboardService : InputMethodService() {
     // MARK: - Rendering
     
     private fun renderKeyboard(editorContext: EditorContext?) {
+        debugLog("📐 renderKeyboard called from: ${Thread.currentThread().stackTrace[3].methodName}")
+        
         val config = parsedConfig ?: run {
             renderFallbackKeyboard()
             return
@@ -298,9 +300,8 @@ abstract class BaseKeyboardService : InputMethodService() {
             suggestionController?.showDefaults()
         }
         
-        // Force a layout pass after rendering
-        container.requestLayout()
-        container.invalidate()
+        // Don't call requestLayout/invalidate - they cause double-render!
+        // The keyboard renderer handles its own layout
     }
     
     private fun renderFallbackKeyboard() {
@@ -466,6 +467,8 @@ abstract class BaseKeyboardService : InputMethodService() {
         if (suggestionController?.handleBackspace() != true) {
             suggestionController?.detectCurrentWord(ic.getTextBeforeCursor(100, 0)?.toString())
         }
+        
+        debugLog("⌫ After backspace, text is: '${ic.getTextBeforeCursor(20, 0)}'")
         
         // Always call auto-shift after backspace to update shift state
         // Don't call during long-press (isBackspaceActive will defer the render)
@@ -637,45 +640,48 @@ abstract class BaseKeyboardService : InputMethodService() {
         }
         
         // Check if ends with sentence-ending punctuation followed by space(s)
-        // Trim trailing whitespace to find the last non-space character
+        // Also activate for newlines
         val trimmed = beforeText.trimEnd()
-        val endsWithSpace = beforeText.lastOrNull()?.isWhitespace() == true
         val endsWithPunctuation = trimmed.lastOrNull() in listOf('.', '?', '!')
+        val hasSpaceAfterPunctuation = beforeText.length > trimmed.length  // Has trailing whitespace
         val endsWithNewline = beforeText.endsWith("\n")
         
-        val shouldActivateShift = (endsWithPunctuation && endsWithSpace) || endsWithNewline
+        // Activate shift if: (ends with punctuation AND has space after) OR ends with newline
+        val shouldActivateShift = (endsWithPunctuation && hasSpaceAfterPunctuation) || endsWithNewline
         
         debugLog("  Trimmed text ends with: '${trimmed.lastOrNull()}'")
-        debugLog("  Ends with space: $endsWithSpace")
         debugLog("  Ends with punctuation: $endsWithPunctuation")
+        debugLog("  Ends with newline: $endsWithNewline")
         debugLog("  Should activate shift: $shouldActivateShift")
         
         if (shouldActivateShift && !isShiftActive) {
             debugLog("  ⇧ AUTO-ACTIVATING SHIFT!")
             debugLog("  🎯 BEFORE activateShift: isShiftActive = $isShiftActive")
-            val wasInactive = !isShiftActive
             renderer?.activateShift()
             val newIsShiftActive = renderer?.isShiftActive() ?: false
             debugLog("  🎯 AFTER activateShift: isShiftActive = $newIsShiftActive")
-            // Only re-render if shift state actually changed from inactive to active
-            // AND backspace is not currently active (to avoid re-render during backspace touch)
-            if (wasInactive && newIsShiftActive) {
-                if (isBackspaceActive) {
-                    debugLog("  ⏸️ Backspace active, deferring render until touch ends")
-                } else {
-                    renderKeyboard(null)
-                    debugLog("  🎯 AFTER renderKeyboard")
-                }
+            
+            // Always re-render to show the shift state change
+            if (!isBackspaceActive) {
+                debugLog("  🎯 Rendering keyboard with shift ACTIVE")
+                renderKeyboard(null)
+                debugLog("  🎯 AFTER renderKeyboard")
             } else {
-                debugLog("  🎯 Shift was already active, skipping render to avoid loop")
+                debugLog("  ⏸️ Backspace active, deferring render until touch ends")
             }
         } else if (!shouldActivateShift && isShiftActive) {
-            // Deactivate shift if conditions don't require it
+            // Auto-deactivate shift if it was auto-activated (ACTIVE state, not LOCKED)
+            // Check if shift is in ACTIVE state (not LOCKED by user double-tap)
+            debugLog("  ⇩ Shift should be OFF - checking if auto-deactivate needed")
             renderer?.deactivateShift()
+            
+            // Re-render to show the deactivated state
             if (!isBackspaceActive) {
+                debugLog("  🎯 Rendering keyboard with shift INACTIVE")
                 renderKeyboard(null)
+            } else {
+                debugLog("  ⏸️ Backspace active, deferring render until touch ends")
             }
-            debugLog("  ⇧ Deactivating shift as should be inactive and is active")
         } else {
             debugLog("  ✅ Desired state and active state match - do nothing")
         }

@@ -569,7 +569,7 @@ class KeyboardRenderer {
             // These keys are critical for typing and should always remain visible
             // unless the user explicitly creates a hide rule for them
             let essentialValues: Set<String> = [" ", ",", "."]  // space, comma, period
-            let essentialTypes: Set<String> = ["space", "backspace", "enter"]
+            let essentialTypes: Set<String> = ["space", "backspace", "enter", "next-keyboard", "settings"]
             
             // Check if this is an essential key by value or type
             if essentialValues.contains(keyValue) || essentialTypes.contains(parsedKey.type.lowercased()) {

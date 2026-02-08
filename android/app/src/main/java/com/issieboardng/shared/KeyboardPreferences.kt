@@ -57,7 +57,21 @@ class KeyboardPreferences(context: Context) {
     // MARK: - Last Update Time
     
     val lastUpdateTime: Long
-        get() = sharedPrefs.getLong(Keys.LAST_UPDATE_TIME, 0)
+        get() {
+            // Handle both String and Long formats (JS saves as String, native saves as Long)
+            return try {
+                sharedPrefs.getLong(Keys.LAST_UPDATE_TIME, 0)
+            } catch (e: ClassCastException) {
+                // If it's stored as String (from JS), parse it
+                try {
+                    sharedPrefs.getString(Keys.LAST_UPDATE_TIME, "0")?.toLongOrNull() ?: 0
+                } catch (e2: Exception) {
+                    0
+                }
+            } catch (e: Exception) {
+                0
+            }
+        }
     
     // MARK: - JSON Configuration Storage
     

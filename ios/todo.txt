@@ -22,5 +22,5 @@ V- slide cursor
 
 
 
-
-
+Android:
+- x is invisible in Nikkud

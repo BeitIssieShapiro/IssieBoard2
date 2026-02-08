@@ -134,6 +134,7 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
         if (json != null && configJson != null && json == configJson) {
             debugLog("🔧 Config unchanged, skipping render")
             return
+            
         }
         
         // Also skip if both are null or empty
@@ -242,7 +243,8 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
             editorContext = EditorContext(
                 enterVisible = true,
                 enterLabel = "↵",
-                enterAction = 0
+                enterAction = 0,
+                fieldType = "default"
             ),
             overlayContainer = this  // Pass this (FrameLayout) as overlay container for nikkud picker
         )

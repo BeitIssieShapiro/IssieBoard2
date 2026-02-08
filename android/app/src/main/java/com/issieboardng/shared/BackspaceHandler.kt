@@ -68,24 +68,29 @@ class BackspaceHandler {
     fun handleTouchDown() {
         debugLog("⌫ Backspace touch DOWN")
         
-        // Record the start time
-        val startTime = System.currentTimeMillis()
-        
-        // Reset counters
-        backspaceDeleteCount = 0
-        currentDeleteInterval = initialDeleteInterval
-        lastBackspaceDeleteTime = null
-        backspaceStartedContinuousDelete = false
-        
-        // Perform initial delete immediately
-        performCharacterDelete()
-        
-        // Set the start time AFTER initial delete
-        backspacePressStartTime = startTime
-        debugLog("⌫ Start time set to: $startTime")
-        
-        // Start the timer for long-press detection
-        startTimer()
+        // Only reset if not already running
+        if (backspacePressStartTime == null) {
+            // Record the start time
+            val startTime = System.currentTimeMillis()
+            
+            // Reset counters
+            backspaceDeleteCount = 0
+            currentDeleteInterval = initialDeleteInterval
+            lastBackspaceDeleteTime = null
+            backspaceStartedContinuousDelete = false
+            
+            // Perform initial delete immediately
+            performCharacterDelete()
+            
+            // Set the start time AFTER initial delete
+            backspacePressStartTime = startTime
+            debugLog("⌫ Start time set to: $startTime")
+            
+            // Start the timer for long-press detection
+            startTimer()
+        } else {
+            debugLog("⌫ Backspace touch DOWN - already running, ignoring")
+        }
     }
     
     /** Called when backspace button is released */
@@ -104,12 +109,19 @@ class BackspaceHandler {
     
     /** Start the backspace long-press timer */
     private fun startTimer() {
-        // Cancel any existing timer
-        stopTimer()
+        // Only stop if there's already a timer running
+        if (timerRunnable != null) {
+            debugLog("⌫ Stopping existing timer before starting new one")
+            handler.removeCallbacks(timerRunnable!!)
+            timerRunnable = null
+        }
+        
+        debugLog("⌫ Starting timer...")
         
         // Create timer runnable that fires every 50ms
         timerRunnable = object : Runnable {
             override fun run() {
+                debugLog("⌫ Timer TICK")
                 handleTimerTick()
                 // Schedule next tick
                 timerRunnable?.let { handler.postDelayed(it, 50L) }
@@ -119,7 +131,7 @@ class BackspaceHandler {
         // Start the timer
         timerRunnable?.let { handler.postDelayed(it, 50L) }
         
-        debugLog("⌫ Timer started")
+        debugLog("⌫ Timer started and scheduled")
     }
     
     /** Stop the backspace timer and clear all state */
