@@ -78,7 +78,8 @@
       {
         "id": "tanwinFath",
         "mark": "ً",
-        "name": "تنوين فتح"
+        "name": "تنوين فتح",
+        "isAdvanced": true
       },
       {
         "id": "tanwinKasr",
@@ -87,7 +88,8 @@
         "excludeFor": [
           "ة",
           "ى"
-        ]
+        ],
+        "isAdvanced": true
       },
       {
         "id": "tanwinDamm",
@@ -96,7 +98,8 @@
         "excludeFor": [
           "ة",
           "ى"
-        ]
+        ],
+        "isAdvanced": true
       },
       {
         "id": "hamzaAbove",
@@ -146,6 +149,11 @@
         "ة",
         "ى"
       ]
+    }
+  },
+  "diacriticsSettings": {
+    "ar": {
+      "simpleMode": true
     }
   },
   "keysets": [

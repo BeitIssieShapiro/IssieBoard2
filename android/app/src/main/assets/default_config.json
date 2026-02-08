@@ -1564,6 +1564,24 @@
           "name": "שְׁוָא"
         },
         {
+          "id": "chatafPatach",
+          "mark": "ֲ",
+          "name": "חֲטַף פַּתַח",
+          "isAdvanced": true
+        },
+        {
+          "id": "chatafSegol",
+          "mark": "ֱ",
+          "name": "חֲטַף סֶגוֹל",
+          "isAdvanced": true
+        },
+        {
+          "id": "chatafKamatz",
+          "mark": "ֳ",
+          "name": "חֲטַף קָמָץ",
+          "isAdvanced": true
+        },
+        {
           "id": "cholamVav",
           "mark": "וֹ",
           "name": "חוֹלָם מָלֵא",
@@ -1696,7 +1714,8 @@
         {
           "id": "tanwinFath",
           "mark": "ً",
-          "name": "تنوين فتح"
+          "name": "تنوين فتح",
+          "isAdvanced": true
         },
         {
           "id": "tanwinKasr",
@@ -1705,7 +1724,8 @@
           "excludeFor": [
             "ة",
             "ى"
-          ]
+          ],
+          "isAdvanced": true
         },
         {
           "id": "tanwinDamm",
@@ -1714,7 +1734,8 @@
           "excludeFor": [
             "ة",
             "ى"
-          ]
+          ],
+          "isAdvanced": true
         },
         {
           "id": "hamzaAbove",
@@ -1765,6 +1786,14 @@
           "ى"
         ]
       }
+    }
+  },
+  "diacriticsSettings": {
+    "he": {
+      "simpleMode": true
+    },
+    "ar": {
+      "simpleMode": true
     }
   }
 }

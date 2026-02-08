@@ -86,6 +86,24 @@
         "name": "שְׁוָא"
       },
       {
+        "id": "chatafPatach",
+        "mark": "ֲ",
+        "name": "חֲטַף פַּתַח",
+        "isAdvanced": true
+      },
+      {
+        "id": "chatafSegol",
+        "mark": "ֱ",
+        "name": "חֲטַף סֶגוֹל",
+        "isAdvanced": true
+      },
+      {
+        "id": "chatafKamatz",
+        "mark": "ֳ",
+        "name": "חֲטַף קָמָץ",
+        "isAdvanced": true
+      },
+      {
         "id": "cholamVav",
         "mark": "וֹ",
         "name": "חוֹלָם מָלֵא",
@@ -148,6 +166,11 @@
         ]
       }
     ]
+  },
+  "diacriticsSettings": {
+    "he": {
+      "simpleMode": true
+    }
   },
   "keysets": [
     {

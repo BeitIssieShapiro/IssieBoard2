@@ -280,6 +280,13 @@ function buildKeyboardConfig(sourceKeyboard, config, commonKeysets) {
   
   if (sourceKeyboard.diacritics) {
     outputConfig.diacritics = sourceKeyboard.diacritics;
+    
+    // Set default diacriticsSettings with simpleMode: true
+    outputConfig.diacriticsSettings = {
+      [config.language]: {
+        simpleMode: true
+      }
+    };
   }
   
   let allKeysets = [];
@@ -412,7 +419,8 @@ function createCombinedAndroidConfig(commonKeysets) {
     defaultKeyboard: 'he',
     keysets: [],
     groups: [],
-    allDiacritics: {}
+    allDiacritics: {},
+    diacriticsSettings: {}
   };
   
   for (const config of KEYBOARD_CONFIGS) {
@@ -451,6 +459,11 @@ function createCombinedAndroidConfig(commonKeysets) {
       // Add diacritics if present
       if (sourceKeyboard.diacritics) {
         combinedConfig.allDiacritics[config.language] = sourceKeyboard.diacritics;
+        
+        // Set default diacriticsSettings with simpleMode: true for keyboards with diacritics
+        combinedConfig.diacriticsSettings[config.language] = {
+          simpleMode: true
+        };
       }
       
     } catch (error) {

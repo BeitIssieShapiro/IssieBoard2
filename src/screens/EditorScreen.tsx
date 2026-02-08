@@ -138,6 +138,24 @@ const buildConfiguration = (profile: SavedProfileDefinition): KeyboardConfig => 
   // Use the shared config builder to merge common keysets
   const baseConfig = buildKeyboardConfig(keyboard as SourceKeyboard, profile.language);
 
+  // Apply default simpleMode: true for all keyboards with diacritics
+  const diacriticsSettings: Record<string, any> = {};
+  if (profile.diacritics) {
+    // Use existing settings from profile
+    for (const [keyboardId, settings] of Object.entries(profile.diacritics)) {
+      diacriticsSettings[keyboardId] = {
+        ...settings,
+        simpleMode: settings.simpleMode ?? true, // Default to simple mode
+      };
+    }
+  }
+  // If no settings exist yet but keyboard has diacritics, create default with simpleMode: true
+  if ((keyboard as any).diacritics && !diacriticsSettings[profile.keyboardId]) {
+    diacriticsSettings[profile.keyboardId] = {
+      simpleMode: true,
+    };
+  }
+
   const config: KeyboardConfig = {
     ...baseConfig,
     backgroundColor: bgColor || 'default',
@@ -145,7 +163,7 @@ const buildConfiguration = (profile: SavedProfileDefinition): KeyboardConfig => 
     keyboards: [profile.keyboardId],
     defaultKeyboard: profile.keyboardId,
     allDiacritics: {},
-    diacriticsSettings: profile.diacritics || {},
+    diacriticsSettings,
     wordSuggestionsEnabled: profile.wordSuggestionsEnabled,
   };
 

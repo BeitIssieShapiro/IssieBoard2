@@ -14,6 +14,9 @@
       { "id": "cholam", "mark": "\u05B9", "name": "חוֹלָם" },
       { "id": "kubutz", "mark": "\u05BB", "name": "קֻבּוּץ" },
       { "id": "shva", "mark": "\u05B0", "name": "שְׁוָא" },
+      { "id": "chatafPatach", "mark": "\u05B2", "name": "חֲטַף פַּתַח", "isAdvanced": true },
+      { "id": "chatafSegol", "mark": "\u05B1", "name": "חֲטַף סֶגוֹל", "isAdvanced": true },
+      { "id": "chatafKamatz", "mark": "\u05B3", "name": "חֲטַף קָמָץ", "isAdvanced": true },
       { "id": "cholamVav", "mark": "וֹ", "name": "חוֹלָם מָלֵא", "onlyFor": ["ו"], "isReplacement": true },
       { "id": "shuruk", "mark": "וּ", "name": "שׁוּרוּק", "onlyFor": ["ו"], "isReplacement": true }
     ],

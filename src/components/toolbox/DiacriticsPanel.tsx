@@ -122,6 +122,23 @@ export const DiacriticsPanel: React.FC = () => {
   const hiddenItems = settings.hidden || [];
   const disabledModifiers = settings.disabledModifiers || [];
   const isNikkudDisabled = settings.disabled || false;
+  const isSimpleMode = settings.simpleMode ?? true; // Default to simple mode
+  
+  // Get list of advanced item IDs
+  const advancedItemIds = useMemo(() => {
+    if (!diacritics) return [];
+    return diacritics.items
+      .filter(item => item.isAdvanced)
+      .map(item => item.id);
+  }, [diacritics]);
+  
+  // Compute effective hidden items: manual hidden + (advanced if simple mode)
+  const effectiveHiddenItems = useMemo(() => {
+    if (isSimpleMode) {
+      return [...hiddenItems, ...advancedItemIds];
+    }
+    return hiddenItems;
+  }, [hiddenItems, advancedItemIds, isSimpleMode]);
   
   // Sample letter for preview based on keyboard language
   const sampleLetter = useMemo(() => {
@@ -142,6 +159,16 @@ export const DiacriticsPanel: React.FC = () => {
         return 'X';  // Generic fallback
     }
   }, [currentKeyboardId, diacritics]);
+  
+  const handleToggleSimpleMode = () => {
+    dispatch({
+      type: 'UPDATE_DIACRITICS_SETTINGS',
+      payload: {
+        keyboardId: currentKeyboardId,
+        settings: { ...settings, simpleMode: !isSimpleMode },
+      },
+    });
+  };
   
   const handleToggleItem = (itemId: string) => {
     const newHidden = hiddenItems.includes(itemId)
@@ -193,30 +220,81 @@ export const DiacriticsPanel: React.FC = () => {
   const modifiers: DiacriticModifier[] = diacritics.modifiers || 
     (diacritics.modifier ? [diacritics.modifier] : []);
   
+  // Separate items into basic and advanced
+  const basicItems = diacritics.items.filter(item => item.id !== 'plain' && !item.isAdvanced);
+  const advancedItems = diacritics.items.filter(item => item.isAdvanced);
+  
   return (
     <ScrollView style={styles.container}>
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Diacritics (Nikkud/Tashkil)</Text>
+        <Text style={styles.sectionTitle}>Basic Diacritics</Text>
         <Text style={styles.sectionSubtitle}>
-          Toggle which diacritics appear in the picker
+          Common vowel marks for everyday typing
         </Text>
         
-        {diacritics.items.map(item => {
-          // Skip "plain" item - it should always be available as the "no diacritic" option
-          if (item.id === 'plain') {
-            return null;
-          }
+        {basicItems.map(item => {
+          const isItemHidden = effectiveHiddenItems.includes(item.id);
+          
           return (
             <DiacriticItemRow
               key={item.id}
               item={item}
-              isHidden={hiddenItems.includes(item.id)}
+              isHidden={isItemHidden}
               onToggle={handleToggleItem}
               sampleLetter={sampleLetter}
             />
           );
         })}
       </View>
+      
+      {advancedItems.length > 0 && (
+        <>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Advanced Diacritics</Text>
+            <Text style={styles.sectionSubtitle}>
+              Additional marks like חֲטַף (Hebrew) and تنوين (Arabic)
+            </Text>
+            
+            <View style={styles.advancedToggleRow}>
+              <View style={styles.advancedToggleInfo}>
+                <Text style={styles.advancedToggleLabel}>Enable Advanced</Text>
+                <Text style={styles.advancedToggleDescription}>
+                  Show advanced diacritics in the picker
+                </Text>
+              </View>
+              <Switch
+                value={!isSimpleMode}
+                onValueChange={handleToggleSimpleMode}
+                trackColor={{ false: '#ccc', true: '#FF9800' }}
+                thumbColor={!isSimpleMode ? '#F57C00' : '#f4f3f4'}
+              />
+            </View>
+          </View>
+          
+          {!isSimpleMode && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Advanced Options</Text>
+              <Text style={styles.sectionSubtitle}>
+                Toggle individual advanced diacritics
+              </Text>
+              
+              {advancedItems.map(item => {
+                const isItemHidden = effectiveHiddenItems.includes(item.id);
+                
+                return (
+                  <DiacriticItemRow
+                    key={item.id}
+                    item={item}
+                    isHidden={isItemHidden}
+                    onToggle={handleToggleItem}
+                    sampleLetter={sampleLetter}
+                  />
+                );
+              })}
+            </View>
+          )}
+        </>
+      )}
       
       {modifiers.length > 0 && (
         <View style={styles.section}>
@@ -369,6 +447,30 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   disableDescription: {
+    fontSize: 12,
+    color: '#666',
+  },
+  advancedToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    backgroundColor: '#FFF3E0',
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  advancedToggleInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  advancedToggleLabel: {
+    fontSize: 14,
+    color: '#E65100',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  advancedToggleDescription: {
     fontSize: 12,
     color: '#666',
   },

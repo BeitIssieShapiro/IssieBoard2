@@ -80,6 +80,22 @@ const PROFILES: Record<string, ProfileDefinition> = {
  * Merge profile with keyboards to create the final configuration
  */
 const buildConfiguration = (profile: ProfileDefinition): KeyboardConfig => {
+  // Apply default simpleMode: true for all keyboards with diacritics
+  const profileDiacritics = (profile as any).diacritics || {};
+  const diacriticsSettings: Record<string, any> = {};
+  
+  // Process existing settings and apply defaults
+  for (const keyboardId of profile.keyboards || []) {
+    const keyboard = KEYBOARDS[keyboardId];
+    if (keyboard && (keyboard as any).diacritics) {
+      const existingSettings = profileDiacritics[keyboardId] || {};
+      diacriticsSettings[keyboardId] = {
+        ...existingSettings,
+        simpleMode: existingSettings.simpleMode ?? true, // Default to simple mode
+      };
+    }
+  }
+
   const config: KeyboardConfig = {
     backgroundColor: profile.backgroundColor || '#E0E0E0',
     defaultKeyset: profile.defaultKeyset || 'abc',
@@ -89,7 +105,7 @@ const buildConfiguration = (profile: ProfileDefinition): KeyboardConfig => {
     defaultKeyboard: profile.defaultKeyboard || (profile.keyboards && profile.keyboards[0]) || 'en',
     // Diacritics - will be set from first keyboard that has them
     diacritics: undefined,
-    diacriticsSettings: (profile as any).diacritics || {},
+    diacriticsSettings,
   };
 
   // Load all keyboards specified in the profile

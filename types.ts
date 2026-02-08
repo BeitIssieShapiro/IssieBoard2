@@ -77,6 +77,7 @@ export interface DiacriticItem {
     onlyFor?: string[];      // If present, only show for these letters
     excludeFor?: string[];   // If present, don't show for these letters
     isReplacement?: boolean; // If true, replaces the letter entirely
+    isAdvanced?: boolean;    // If true, this is an advanced diacritic (hidden in simple mode)
 }
 
 // Option for a multi-option modifier (like shin/sin)
@@ -110,6 +111,7 @@ export interface DiacriticsSettings {
     disabledModifiers?: string[]; // Array of modifier IDs to disable (default: all enabled)
     modifierEnabled?: boolean;    // Backward compatibility: global toggle for all modifiers
     disabled?: boolean;           // If true, completely disable nikkud for this keyboard (hide nikkud key)
+    simpleMode?: boolean;         // If true, hide advanced diacritics (default: true for out-of-box experience)
 }
 
 // Row containing keys
