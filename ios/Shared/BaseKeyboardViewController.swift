@@ -146,7 +146,12 @@ class BaseKeyboardViewController: UIInputViewController {
     
     private func updateKeyboardHeight() {
         guard let config = parsedConfig else { return }
-        let requiredHeight = renderer.calculateKeyboardHeight(for: config, keysetId: renderer.currentKeysetId)
+        
+        // Determine if suggestions should be shown based on config and input type
+        let shouldDisable = shouldDisableSuggestionsForKeyboardType()
+        let suggestionsEnabled = config.isWordSuggestionsEnabled && !shouldDisable
+        
+        let requiredHeight = renderer.calculateKeyboardHeight(for: config, keysetId: renderer.currentKeysetId, suggestionsEnabled: suggestionsEnabled)
         keyboardHeightConstraint?.constant = requiredHeight
         view.setNeedsLayout()
     }
@@ -357,11 +362,10 @@ class BaseKeyboardViewController: UIInputViewController {
         
         updateKeyboardHeight()
         
-        // Don't call showDefaults here - it can trigger another render
-        // The suggestions are already shown during renderKeyboard
-        // if suggestionsEnabled && suggestionController.currentWord.isEmpty {
-        //     suggestionController.showDefaults()
-        // }
+        // Show default suggestions only if enabled for this field type
+        if suggestionsEnabled && suggestionController.currentWord.isEmpty {
+            suggestionController.showDefaults()
+        }
     }
     
     private func renderFallbackKeyboard() {
@@ -407,12 +411,36 @@ class BaseKeyboardViewController: UIInputViewController {
     
     private func shouldDisableSuggestionsForKeyboardType() -> Bool {
         let keyboardType = textDocumentProxy.keyboardType ?? .default
+        let returnKeyType = textDocumentProxy.returnKeyType ?? .default
+        
+        debugLog("🔍 Keyboard type detected: \(keyboardType.rawValue)")
+        debugLog("🔍 Return key type detected: \(returnKeyType.rawValue)")
+        
+        // Check textContentType for more reliable detection
+        if #available(iOS 10.0, *) {
+            let contentType = textDocumentProxy.textContentType?.rawValue ?? "none"
+            debugLog("🔍 Text content type: \(contentType)")
+            
+            // Disable for URL-related content types
+            if contentType == "URL" || contentType == "username" || contentType == "emailAddress" {
+                debugLog("🔍 Should disable suggestions: true (content type)")
+                return true
+            }
+        }
+        
+        // Check return key type - search fields typically use .search or .google
+        if returnKeyType == .search || returnKeyType == .google {
+            debugLog("🔍 Should disable suggestions: true (search field)")
+            return true
+        }
         
         switch keyboardType {
-        case .URL, .emailAddress, .numberPad, .phonePad, .decimalPad, 
+        case .URL, .emailAddress, .webSearch, .numberPad, .phonePad, .decimalPad, 
              .numbersAndPunctuation, .asciiCapableNumberPad:
+            debugLog("🔍 Should disable suggestions: true (keyboard type)")
             return true
         default:
+            debugLog("🔍 Should disable suggestions: false")
             return false
         }
     }

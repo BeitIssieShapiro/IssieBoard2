@@ -293,6 +293,7 @@ abstract class BaseKeyboardService : InputMethodService() {
             editorContext = editorContext
         )
         
+        // Show default suggestions only if enabled for this field type
         if (suggestionsEnabled && suggestionController?.currentWord?.isEmpty() == true) {
             suggestionController?.showDefaults()
         }
@@ -334,22 +335,37 @@ abstract class BaseKeyboardService : InputMethodService() {
         val editorInfo = currentInputEditorInfo ?: return false
         val inputType = editorInfo.inputType
         
+        debugLog("🔍 Input type detected: $inputType (class: ${inputType and android.text.InputType.TYPE_MASK_CLASS})")
+        
         return when (inputType and android.text.InputType.TYPE_MASK_CLASS) {
             android.text.InputType.TYPE_CLASS_NUMBER,
-            android.text.InputType.TYPE_CLASS_PHONE -> true
+            android.text.InputType.TYPE_CLASS_PHONE -> {
+                debugLog("🔍 Should disable suggestions: true (number/phone)")
+                true
+            }
             android.text.InputType.TYPE_CLASS_TEXT -> {
                 val variation = inputType and android.text.InputType.TYPE_MASK_VARIATION
+                debugLog("🔍 Text variation: $variation")
                 when (variation) {
                     android.text.InputType.TYPE_TEXT_VARIATION_URI,
                     android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS,
                     android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD,
                     android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD,
                     android.text.InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS,
-                    android.text.InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD -> true
-                    else -> false
+                    android.text.InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD -> {
+                        debugLog("🔍 Should disable suggestions: true (URL/email/password)")
+                        true
+                    }
+                    else -> {
+                        debugLog("🔍 Should disable suggestions: false")
+                        false
+                    }
                 }
             }
-            else -> false
+            else -> {
+                debugLog("🔍 Should disable suggestions: false (other class)")
+                false
+            }
         }
     }
     

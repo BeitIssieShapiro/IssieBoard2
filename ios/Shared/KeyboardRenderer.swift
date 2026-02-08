@@ -207,8 +207,9 @@ class KeyboardRenderer {
     /// - Parameters:
     ///   - config: The keyboard configuration
     ///   - keysetId: The keyset ID to calculate height for
+    ///   - suggestionsEnabled: Whether suggestions are currently enabled (accounts for input type restrictions)
     /// - Returns: The required height in points
-    func calculateKeyboardHeight(for config: KeyboardConfig, keysetId: String) -> CGFloat {
+    func calculateKeyboardHeight(for config: KeyboardConfig, keysetId: String, suggestionsEnabled: Bool) -> CGFloat {
         // Find the keyset
         guard let keyset = config.keysets.first(where: { $0.id == keysetId }) else {
             return 216  // Default iOS keyboard height
@@ -217,7 +218,8 @@ class KeyboardRenderer {
         let numberOfRows = keyset.rows.count
         let rowsHeight = CGFloat(numberOfRows) * rowHeight
         let spacingHeight = CGFloat(max(0, numberOfRows - 1)) * rowSpacing
-        let suggestionsHeight = config.isWordSuggestionsEnabled ? suggestionsBarHeight + 4 : 0
+        // Only include suggestions height if suggestions are actually enabled for this field
+        let suggestionsHeight = suggestionsEnabled ? suggestionsBarHeight + 4 : 0
         let topPadding: CGFloat = 4
         let bottomPadding: CGFloat = 4
         

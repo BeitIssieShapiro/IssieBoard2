@@ -223,13 +223,14 @@ class KeyboardRenderer(private val context: Context) {
     // MARK: - Public Methods
     
     /** Calculate the required keyboard height based on the current config */
-    fun calculateKeyboardHeight(config: KeyboardConfig, keysetId: String): Int {
+    fun calculateKeyboardHeight(config: KeyboardConfig, keysetId: String, suggestionsEnabled: Boolean): Int {
         val keyset = config.keysets.find { it.id == keysetId } ?: return dpToPx(216)
         
         val numberOfRows = keyset.rows.size
         val rowsHeight = numberOfRows * rowHeight
         val spacingHeight = max(0, numberOfRows - 1) * rowSpacing
-        val suggestionsHeight = if (config.isWordSuggestionsEnabled) suggestionsBarHeight + dpToPx(4) else 0
+        // Only include suggestions height if suggestions are actually enabled for this field
+        val suggestionsHeight = if (suggestionsEnabled) suggestionsBarHeight + dpToPx(4) else 0
         val topPadding = dpToPx(4)
         val bottomPadding = dpToPx(4)
         

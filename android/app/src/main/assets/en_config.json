@@ -196,6 +196,14 @@
               "flex": true
             },
             {
+              "caption": "@",
+              "value": "@",
+              "width": 1,
+              "showForField": [
+                "email"
+              ]
+            },
+            {
               "value": ".",
               "sValue": ",",
               "showOn": [
@@ -355,6 +363,14 @@
               "flex": true
             },
             {
+              "caption": "@",
+              "value": "@",
+              "width": 1,
+              "showForField": [
+                "email"
+              ]
+            },
+            {
               "value": ".",
               "sValue": ",",
               "showOn": [
@@ -512,6 +528,14 @@
               "value": " ",
               "width": 4,
               "flex": true
+            },
+            {
+              "caption": "@",
+              "value": "@",
+              "width": 1,
+              "showForField": [
+                "email"
+              ]
             },
             {
               "value": ".",

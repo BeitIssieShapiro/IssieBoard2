@@ -59,6 +59,7 @@
             { "hidden":true, "width": 0.5, "showOn": [ "large-screen" ] },
             { "type": "settings"},
             { "caption": "SPACE", "value": " ",  "width": 4, "flex": true },
+            { "caption": "@", "value": "@",  "width": 1, "showForField":["email"] },
             { "value": ".", "sValue": ",", "showOn": [ "mobile" ] },
             { "type": "close" , "showOn": [ "large-screen" ] },
             { "type": "enter" }
