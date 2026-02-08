@@ -84,6 +84,7 @@ struct Key: Codable {
     let nikkud: [NikkudOption]?
     let showOn: [ScreenSizeType]?  // Filter key visibility by screen size
     let flex: Bool?  // If true, this key absorbs extra width from hidden keys in the same row
+    let showForField: [String]?  // Filter key visibility by input field type (e.g., "email", "url")
     
     enum CodingKeys: String, CodingKey {
         case value
@@ -103,6 +104,7 @@ struct Key: Codable {
         case nikkud
         case showOn
         case flex
+        case showForField
     }
     
     /// Check if the key should be shown on the current screen size
@@ -118,6 +120,21 @@ struct Key: Codable {
         } else {
             return showOn.contains(.mobile)
         }
+    }
+    
+    /// Check if the key should be shown for the current field type
+    /// - Parameter fieldType: The input field type (e.g., "email", "url", "default")
+    /// - Returns: true if key should be shown
+    func shouldShow(forFieldType fieldType: String?) -> Bool {
+        guard let showForField = showForField, !showForField.isEmpty else {
+            return true  // No filter = show for all field types
+        }
+        
+        guard let fieldType = fieldType else {
+            return false  // Has filter but no field type = don't show
+        }
+        
+        return showForField.contains(fieldType)
     }
 }
 

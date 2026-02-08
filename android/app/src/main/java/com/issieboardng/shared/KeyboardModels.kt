@@ -66,7 +66,8 @@ data class Key(
     val returnKeysetLabel: String? = null,
     val nikkud: List<NikkudOption>? = null,
     val showOn: List<String>? = null,  // Filter key visibility by screen size ("mobile" or "largeScreen")
-    val flex: Boolean? = null  // If true, this key absorbs extra width from hidden keys in the same row
+    val flex: Boolean? = null,  // If true, this key absorbs extra width from hidden keys in the same row
+    val showForField: List<String>? = null  // Filter key visibility by input field type (e.g., "email", "url")
 ) {
     /**
      * Check if this key should be shown based on screen size
@@ -84,6 +85,24 @@ data class Key(
         } else {
             filter.contains("mobile")
         }
+    }
+    
+    /**
+     * Check if this key should be shown for the current field type
+     * @param fieldType The input field type (e.g., "email", "url", "default")
+     * @return True if key should be visible for this field type
+     */
+    fun shouldShow(fieldType: String?): Boolean {
+        val filter = showForField
+        if (filter.isNullOrEmpty()) {
+            return true  // No filter = show for all field types
+        }
+        
+        if (fieldType == null) {
+            return false  // Has filter but no field type = don't show
+        }
+        
+        return filter.contains(fieldType)
     }
 }
 

@@ -58,7 +58,7 @@
             { "type": "keyset", "keysetValue": "123", "returnKeysetValue": "abc", "label": "123", "returnKeysetLabel": "ABC", "width": 1.5  },
             { "hidden":true, "width": 0.5, "showOn": [ "large-screen" ] },
             { "type": "settings"},
-            { "caption": "SPACE", "value": " ",  "width": 4, "flex": true },
+            { "caption": "SPACE", "value": " ",  "width": 3, "flex": true },
             { "caption": "@", "value": "@",  "width": 1, "showForField":["email"] },
             { "value": ".", "sValue": ",", "showOn": [ "mobile" ] },
             { "type": "close" , "showOn": [ "large-screen" ] },

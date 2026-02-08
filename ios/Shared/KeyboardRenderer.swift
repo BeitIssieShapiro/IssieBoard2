@@ -60,7 +60,7 @@ class KeyboardRenderer {
     private var cursorMoveMode: Bool = false
     private var config: KeyboardConfig?
     var currentKeysetId: String = "abc"  // Public so container can read it (but shouldn't write)
-    private var editorContext: (enterVisible: Bool, enterLabel: String, enterAction: Int)?
+    private var editorContext: (enterVisible: Bool, enterLabel: String, enterAction: Int, fieldType: String)?
     
     // Cursor movement tracking
     private var cursorMoveStartPoint: CGPoint = .zero
@@ -184,7 +184,8 @@ class KeyboardRenderer {
                 returnKeysetLabel: nil,
                 nikkud: nil,
                 showOn: nil,
-                flex: nil
+                flex: nil,
+                showForField: nil
             )
             let parsedKey = ParsedKey(from: backspaceKey, groups: [:], defaultTextColor: .black, defaultBgColor: .white)
             onKeyPress?(parsedKey)
@@ -301,7 +302,7 @@ class KeyboardRenderer {
         in container: UIView,
         config: KeyboardConfig,
         currentKeysetId: String,
-        editorContext: (enterVisible: Bool, enterLabel: String, enterAction: Int)?
+        editorContext: (enterVisible: Bool, enterLabel: String, enterAction: Int, fieldType: String)?
     ) {
         let currentWidth = container.bounds.width
         print("📐 RENDER START =================")
@@ -477,6 +478,9 @@ class KeyboardRenderer {
         // Check if nikkud is disabled for the current keyboard
         let isNikkudDisabled = config?.diacriticsSettings?[currentKeyboardId ?? ""]?.isDisabled ?? false
         
+        // Get current field type for showForField filtering
+        let fieldType = editorContext?.fieldType
+        
         for row in rows {
             var rowWidth: CGFloat = 0
             for key in row.keys {
@@ -499,6 +503,11 @@ class KeyboardRenderer {
                 // Skip keys hidden by showOn filter (screen size conditional keys)
                 // These keys should NOT be counted in baseline width calculation
                 if !key.shouldShow(isLargeScreen: isLargeScreen) {
+                    continue
+                }
+                
+                // Skip keys hidden by showForField filter (field type conditional keys)
+                if !key.shouldShow(forFieldType: fieldType) {
                     continue
                 }
                 
@@ -589,7 +598,7 @@ class KeyboardRenderer {
         showOnlyKeys: Set<String>?,
         baselineWidth: CGFloat,
         availableWidth: CGFloat,
-        editorContext: (enterVisible: Bool, enterLabel: String, enterAction: Int)?,
+        editorContext: (enterVisible: Bool, enterLabel: String, enterAction: Int, fieldType: String)?,
         keysetId: String,
         rowIndex: Int
     ) -> UIView {
@@ -608,7 +617,10 @@ class KeyboardRenderer {
         // Check if nikkud is disabled for the current keyboard
         let isNikkudDisabled = config?.diacriticsSettings?[currentKeyboardId ?? ""]?.isDisabled ?? false
         
-        // FIRST PASS: Calculate hidden width due to showOn filter and count flex keys
+        // Get current field type for showForField filtering
+        let fieldType = editorContext?.fieldType
+        
+        // FIRST PASS: Calculate hidden width due to showOn/showForField filters and count flex keys
         var hiddenWidthFromShowOn: Double = 0
         var flexKeyCount = 0
         
@@ -629,8 +641,15 @@ class KeyboardRenderer {
                 continue
             }
             
-            // Check if key is hidden due to showOn filter
+            // Check if key is hidden due to showOn filter (screen size)
             if !key.shouldShow(isLargeScreen: isLargeScreen) {
+                // Accumulate the width of hidden keys
+                hiddenWidthFromShowOn += parsedKey.width
+                continue
+            }
+            
+            // Check if key is hidden due to showForField filter (field type)
+            if !key.shouldShow(forFieldType: fieldType) {
                 // Accumulate the width of hidden keys
                 hiddenWidthFromShowOn += parsedKey.width
                 continue
@@ -669,6 +688,12 @@ class KeyboardRenderer {
             
             // Skip key if it doesn't match the current screen size (showOn filter)
             if !key.shouldShow(isLargeScreen: isLargeScreen) {
+                keyIndex += 1
+                continue  // Don't add hidden width - it goes to flex keys instead
+            }
+            
+            // Skip key if it doesn't match the current field type (showForField filter)
+            if !key.shouldShow(forFieldType: fieldType) {
                 keyIndex += 1
                 continue  // Don't add hidden width - it goes to flex keys instead
             }
@@ -808,7 +833,7 @@ class KeyboardRenderer {
         _ key: ParsedKey,
         width: CGFloat,
         height: CGFloat,
-        editorContext: (enterVisible: Bool, enterLabel: String, enterAction: Int)?,
+        editorContext: (enterVisible: Bool, enterLabel: String, enterAction: Int, fieldType: String)?,
         isSelected: Bool = false
     ) -> UIView {
         // Create the main button that fills the ENTIRE tap area (no gaps)
@@ -1083,7 +1108,7 @@ class KeyboardRenderer {
     
     private func getDefaultLabel(
         for type: String,
-        editorContext: (enterVisible: Bool, enterLabel: String, enterAction: Int)?
+        editorContext: (enterVisible: Bool, enterLabel: String, enterAction: Int, fieldType: String)?
     ) -> String {
         switch type.lowercased() {
         case "backspace":
@@ -1724,7 +1749,8 @@ class KeyboardRenderer {
             returnKeysetLabel: returnKeysetLabel,
             nikkud: nikkudOptions.isEmpty ? nil : nikkudOptions,
             showOn: nil,
-            flex: nil
+            flex: nil,
+            showForField: nil
         )
         
         return ParsedKey(from: key, groups: [:], defaultTextColor: .black, defaultBgColor: .white)
@@ -1780,7 +1806,8 @@ class KeyboardRenderer {
                 returnKeysetLabel: nil,
                 nikkud: nikkudOptions,
                 showOn: nil,
-                flex: nil
+                flex: nil,
+                showForField: nil
             )
             let parsedKey = ParsedKey(from: tempKey, groups: [:], defaultTextColor: .black, defaultBgColor: .white)
             

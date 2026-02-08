@@ -552,6 +552,9 @@ class KeyboardRenderer(private val context: Context) {
         val hasOnlyOneLanguage = (config?.keyboards?.size ?: 0) <= 1
         val isNikkudDisabled = config?.diacriticsSettings?.get(currentKeyboardId ?: "")?.isDisabled ?: false
         
+        // Get current field type for showForField filtering
+        val fieldType = editorContext?.fieldType
+        
         for (row in rows) {
             var rowWidth = 0.0
             for (key in row.keys) {
@@ -569,6 +572,11 @@ class KeyboardRenderer(private val context: Context) {
                 
                 // Skip keys hidden by showOn filter (screen size conditional keys)
                 if (!key.shouldShow(isLargeScreen)) {
+                    continue
+                }
+                
+                // Skip keys hidden by showForField filter (field type conditional keys)
+                if (!key.shouldShow(fieldType)) {
                     continue
                 }
                 
@@ -617,7 +625,10 @@ class KeyboardRenderer(private val context: Context) {
         val hasOnlyOneLanguage = (config?.keyboards?.size ?: 0) <= 1
         val isNikkudDisabled = config?.diacriticsSettings?.get(currentKeyboardId ?: "")?.isDisabled ?: false
         
-        // FIRST PASS: Calculate hidden width due to showOn filter and count flex keys
+        // Get current field type for showForField filtering
+        val fieldType = editorContext?.fieldType
+        
+        // FIRST PASS: Calculate hidden width due to showOn/showForField filters and count flex keys
         var hiddenWidthFromShowOn = 0.0
         var flexKeyCount = 0
         
@@ -636,8 +647,15 @@ class KeyboardRenderer(private val context: Context) {
                 continue
             }
             
-            // Check if key is hidden due to showOn filter
+            // Check if key is hidden due to showOn filter (screen size)
             if (!key.shouldShow(isLargeScreen)) {
+                // Accumulate the width of hidden keys
+                hiddenWidthFromShowOn += parsedKey.width
+                continue
+            }
+            
+            // Check if key is hidden due to showForField filter (field type)
+            if (!key.shouldShow(fieldType)) {
                 // Accumulate the width of hidden keys
                 hiddenWidthFromShowOn += parsedKey.width
                 continue
@@ -673,6 +691,12 @@ class KeyboardRenderer(private val context: Context) {
             
             // Skip key if it doesn't match the current screen size (showOn filter)
             if (!key.shouldShow(isLargeScreen)) {
+                keyIndex++
+                continue  // Don't add hidden width - it goes to flex keys instead
+            }
+            
+            // Skip key if it doesn't match the current field type (showForField filter)
+            if (!key.shouldShow(fieldType)) {
                 keyIndex++
                 continue  // Don't add hidden width - it goes to flex keys instead
             }

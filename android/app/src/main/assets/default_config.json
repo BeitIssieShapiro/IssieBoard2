@@ -673,7 +673,7 @@
             {
               "caption": "SPACE",
               "value": " ",
-              "width": 4,
+              "width": 3,
               "flex": true
             },
             {
@@ -840,7 +840,7 @@
             {
               "caption": "SPACE",
               "value": " ",
-              "width": 4,
+              "width": 3,
               "flex": true
             },
             {
@@ -1007,7 +1007,7 @@
             {
               "caption": "SPACE",
               "value": " ",
-              "width": 4,
+              "width": 3,
               "flex": true
             },
             {

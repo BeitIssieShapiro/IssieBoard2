@@ -387,8 +387,9 @@ class BaseKeyboardViewController: UIInputViewController {
     
     // MARK: - Editor Context
     
-    private func analyzeEditorContext() -> (enterVisible: Bool, enterLabel: String, enterAction: Int) {
+    private func analyzeEditorContext() -> (enterVisible: Bool, enterLabel: String, enterAction: Int, fieldType: String) {
         let returnKeyType = textDocumentProxy.returnKeyType ?? .default
+        let keyboardType = textDocumentProxy.keyboardType ?? .default
         
         let enterLabel: String
         switch returnKeyType {
@@ -406,7 +407,45 @@ class BaseKeyboardViewController: UIInputViewController {
         default: enterLabel = "↵"
         }
         
-        return (true, enterLabel, returnKeyType.rawValue)
+        // Determine field type for key filtering
+        let fieldType: String
+        if #available(iOS 10.0, *) {
+            if let contentType = textDocumentProxy.textContentType?.rawValue {
+                switch contentType {
+                case "emailAddress":
+                    fieldType = "email"
+                case "URL":
+                    fieldType = "url"
+                case "username":
+                    fieldType = "username"
+                default:
+                    fieldType = getFieldTypeFromKeyboardType(keyboardType)
+                }
+            } else {
+                fieldType = getFieldTypeFromKeyboardType(keyboardType)
+            }
+        } else {
+            fieldType = getFieldTypeFromKeyboardType(keyboardType)
+        }
+        
+        return (true, enterLabel, returnKeyType.rawValue, fieldType)
+    }
+    
+    private func getFieldTypeFromKeyboardType(_ keyboardType: UIKeyboardType) -> String {
+        switch keyboardType {
+        case .emailAddress:
+            return "email"
+        case .URL:
+            return "url"
+        case .phonePad:
+            return "phone"
+        case .numberPad, .decimalPad, .numbersAndPunctuation:
+            return "number"
+        case .webSearch:
+            return "search"
+        default:
+            return "default"
+        }
     }
     
     private func shouldDisableSuggestionsForKeyboardType() -> Bool {

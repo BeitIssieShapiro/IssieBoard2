@@ -324,11 +324,35 @@ abstract class BaseKeyboardService : InputMethodService() {
             else -> "↵"
         }
         
+        // Determine field type for key filtering
+        val fieldType = getFieldTypeFromInputType(info?.inputType ?: 0)
+        
         return EditorContext(
             enterVisible = true,
             enterLabel = enterLabel,
-            enterAction = actionId
+            enterAction = actionId,
+            fieldType = fieldType
         )
+    }
+    
+    private fun getFieldTypeFromInputType(inputType: Int): String {
+        return when (inputType and android.text.InputType.TYPE_MASK_CLASS) {
+            android.text.InputType.TYPE_CLASS_PHONE -> "phone"
+            android.text.InputType.TYPE_CLASS_NUMBER -> "number"
+            android.text.InputType.TYPE_CLASS_TEXT -> {
+                val variation = inputType and android.text.InputType.TYPE_MASK_VARIATION
+                when (variation) {
+                    android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS,
+                    android.text.InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS -> "email"
+                    android.text.InputType.TYPE_TEXT_VARIATION_URI -> "url"
+                    android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD,
+                    android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD,
+                    android.text.InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD -> "password"
+                    else -> "default"
+                }
+            }
+            else -> "default"
+        }
     }
     
     private fun shouldDisableSuggestionsForInputType(): Boolean {
@@ -788,7 +812,8 @@ abstract class BaseKeyboardService : InputMethodService() {
 data class EditorContext(
     val enterVisible: Boolean,
     val enterLabel: String,
-    val enterAction: Int
+    val enterAction: Int,
+    val fieldType: String
 )
 
 /**
