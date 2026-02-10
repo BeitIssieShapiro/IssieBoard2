@@ -18,8 +18,8 @@
 		6A73B68E2F24E9B1003898A5 /* KeyboardPreviewViewManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A73B68D2F24E9B1003898A5 /* KeyboardPreviewViewManager.swift */; };
 		6A73B68F2F24E9B1003898A5 /* KeyboardPreviewViewManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 6A73B68C2F24E9B1003898A5 /* KeyboardPreviewViewManager.m */; };
 		6A73B6902F24E9B1003898A5 /* KeyboardPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A73B68B2F24E9B1003898A5 /* KeyboardPreviewView.swift */; };
-		6A877C1E2F34DAB900888533 /* DanaYadAlefAlefAlef-Normal.otf in Resources */ = {isa = PBXBuildFile; fileRef = 6A877C1D2F34DAB900888533 /* DanaYadAlefAlefAlef-Normal.otf */; };
-		6A877C1F2F34DAB900888533 /* DanaYadAlefAlefAlef-Normal.otf in Resources */ = {isa = PBXBuildFile; fileRef = 6A877C1D2F34DAB900888533 /* DanaYadAlefAlefAlef-Normal.otf */; };
+		6A877C1E2F34DAB900888533 /* Gveret Levin AlefAlefAlef-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 6A877C1D2F34DAB900888533 /* Gveret Levin AlefAlefAlef-Regular.ttf */; };
+		6A877C1F2F34DAB900888533 /* Gveret Levin AlefAlefAlef-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 6A877C1D2F34DAB900888533 /* Gveret Levin AlefAlefAlef-Regular.ttf */; };
 		6ACC1E292F2B564800F1FA30 /* TrieEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ACC1E282F2B564800F1FA30 /* TrieEngine.swift */; };
 		6ACC1E2A2F2B564800F1FA30 /* TrieEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ACC1E282F2B564800F1FA30 /* TrieEngine.swift */; };
 		6ACC1E5D2F2CDE8300F1FA30 /* IssieBoardEn.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6ACC1E562F2CDE8300F1FA30 /* IssieBoardEn.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -156,7 +156,7 @@
 		6A73B68B2F24E9B1003898A5 /* KeyboardPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KeyboardPreviewView.swift; path = IssieBoardNG/KeyboardPreviewView.swift; sourceTree = "<group>"; };
 		6A73B68C2F24E9B1003898A5 /* KeyboardPreviewViewManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = KeyboardPreviewViewManager.m; path = IssieBoardNG/KeyboardPreviewViewManager.m; sourceTree = "<group>"; };
 		6A73B68D2F24E9B1003898A5 /* KeyboardPreviewViewManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KeyboardPreviewViewManager.swift; path = IssieBoardNG/KeyboardPreviewViewManager.swift; sourceTree = "<group>"; };
-		6A877C1D2F34DAB900888533 /* DanaYadAlefAlefAlef-Normal.otf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "DanaYadAlefAlefAlef-Normal.otf"; path = "../assets/fonts/DanaYadAlefAlefAlef-Normal.otf"; sourceTree = SOURCE_ROOT; };
+		6A877C1D2F34DAB900888533 /* Gveret Levin AlefAlefAlef-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Gveret Levin AlefAlefAlef-Regular.ttf"; path = "../assets/fonts/Gveret Levin AlefAlefAlef-Regular.ttf"; sourceTree = SOURCE_ROOT; };
 		6ACC1DF72F2AB0A800F1FA30 /* IssieBoardNGTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = IssieBoardNGTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6ACC1E282F2B564800F1FA30 /* TrieEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrieEngine.swift; sourceTree = "<group>"; };
 		6ACC1E562F2CDE8300F1FA30 /* IssieBoardEn.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = IssieBoardEn.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -329,7 +329,7 @@
 		6A877C1C2F34DA3F00888533 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				6A877C1D2F34DAB900888533 /* DanaYadAlefAlefAlef-Normal.otf */,
+				6A877C1D2F34DAB900888533 /* Gveret Levin AlefAlefAlef-Regular.ttf */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -551,7 +551,7 @@
 				6ACC1F4B2F2F991C00F1FA30 /* en_50k.bin in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				6ASHARED0005000000035455 /* SharedAssets.xcassets in Resources */,
-				6A877C1E2F34DAB900888533 /* DanaYadAlefAlefAlef-Normal.otf in Resources */,
+				6A877C1E2F34DAB900888533 /* Gveret Levin AlefAlefAlef-Regular.ttf in Resources */,
 				5326AF4A4DECB80A70586DB4 /* PrivacyInfo.xcprivacy in Resources */,
 				6ACC1F492F2F983A00F1FA30 /* ar_50k.bin in Resources */,
 			);
@@ -576,7 +576,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				6A877C1F2F34DAB900888533 /* DanaYadAlefAlefAlef-Normal.otf in Resources */,
+				6A877C1F2F34DAB900888533 /* Gveret Levin AlefAlefAlef-Regular.ttf in Resources */,
 				6ASHARED0003000000035455 /* SharedAssets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

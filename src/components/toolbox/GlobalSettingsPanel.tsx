@@ -66,7 +66,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
   // Font options for Hebrew keyboard
   const hebrewFontOptions = [
     { id: 'system', label: 'אבג', fontFamily: undefined },
-    { id: 'yad', label: 'אבג', fontFamily: 'DanaYadAlefAlefAlef-Normal' },
+    { id: 'yad', label: 'אבג', fontFamily: 'GveretLevinAlefAlefAlef-Regular' },
   ];
 
   const updateTextColor = (color: string) => {
