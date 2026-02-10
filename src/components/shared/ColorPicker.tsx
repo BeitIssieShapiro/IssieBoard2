@@ -198,6 +198,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
   },
   colorCircle: {
     width: 36,

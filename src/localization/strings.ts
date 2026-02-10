@@ -134,7 +134,7 @@ const en: Strings = {
   success: 'Success',
   error: 'Error',
   syntaxError: 'Syntax Error',
-  deleteProfile: 'Delete Profile',
+  deleteProfile: 'Delete an IssieBoard',
   profileChangedTo: 'Profile changed to',
   closeAndReopenKeyboard: 'Close and reopen the keyboard to see changes.',
   failedToSwitchProfile: 'Failed to switch profile',

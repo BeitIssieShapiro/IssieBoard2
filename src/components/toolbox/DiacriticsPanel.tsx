@@ -1,98 +1,66 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
+  TouchableOpacity,
   Switch,
 } from 'react-native';
 import { useEditor } from '../../context/EditorContext';
-import { DiacriticItem, DiacriticModifier, DiacriticsDefinition } from '../../../types';
+import { DiacriticItem, DiacriticModifier } from '../../../types';
+import { ButtonGroupRow } from '../shared/ButtonGroupRow';
 
-interface DiacriticItemRowProps {
-  item: DiacriticItem;
-  isHidden: boolean;
-  onToggle: (id: string) => void;
+type NikkudMode = 'basic' | 'full' | 'custom' | 'none';
+
+interface NikkudKeyProps {
+  item: DiacriticItem | DiacriticModifier;
   sampleLetter: string;
+  isSelected: boolean;
+  onToggle: () => void;
+  isModifier?: boolean;
 }
 
-const DiacriticItemRow: React.FC<DiacriticItemRowProps> = ({
+const NikkudKey: React.FC<NikkudKeyProps> = ({
   item,
-  isHidden,
-  onToggle,
   sampleLetter,
-}) => {
-  // Show a sample of the diacritic with a letter
-  const sample = item.isReplacement ? item.mark : (sampleLetter + item.mark);
-  
-  return (
-    <View style={styles.itemRow}>
-      <View style={styles.itemInfo}>
-        <Text style={styles.itemSample}>{sample}</Text>
-        <Text style={styles.itemName}>{item.name}</Text>
-        <Text style={styles.itemId}>({item.id})</Text>
-      </View>
-      <Switch
-        value={!isHidden}
-        onValueChange={() => onToggle(item.id)}
-        trackColor={{ false: '#ccc', true: '#81C784' }}
-        thumbColor={!isHidden ? '#4CAF50' : '#f4f3f4'}
-      />
-    </View>
-  );
-};
-
-interface ModifierRowProps {
-  modifier: DiacriticModifier;
-  isEnabled: boolean;
-  onToggle: (id: string) => void;
-  sampleLetter: string;
-}
-
-const ModifierRow: React.FC<ModifierRowProps> = ({
-  modifier,
-  isEnabled,
+  isSelected,
   onToggle,
-  sampleLetter,
+  isModifier,
 }) => {
-  // Show sample - for multi-option show first option, for simple show mark
+  // Build the sample display
   let sample = sampleLetter;
-  if (modifier.options && modifier.options.length > 0) {
-    sample = sampleLetter + modifier.options[0].mark;
-  } else if (modifier.mark) {
-    sample = sampleLetter + modifier.mark;
+  if ('isReplacement' in item && item.isReplacement) {
+    sample = item.mark;
+  } else if ('options' in item && item.options && item.options.length > 0) {
+    // Modifier with options - show first option
+    sample = sampleLetter + item.options[0].mark;
+  } else {
+    sample = sampleLetter + item.mark;
   }
-  
+
   return (
-    <View style={[styles.itemRow, styles.modifierRow]}>
-      <View style={styles.itemInfo}>
-        <Text style={styles.itemSample}>{sample}</Text>
-        <Text style={styles.itemName}>{modifier.name}</Text>
-        <Text style={styles.itemId}>({modifier.id})</Text>
-        {modifier.options && (
-          <Text style={styles.multiOptionLabel}>
-            ({modifier.options.length} options)
-          </Text>
-        )}
-      </View>
-      <Switch
-        value={isEnabled}
-        onValueChange={() => onToggle(modifier.id)}
-        trackColor={{ false: '#ccc', true: '#81C784' }}
-        thumbColor={isEnabled ? '#4CAF50' : '#f4f3f4'}
-      />
-    </View>
+    <TouchableOpacity
+      style={[
+        styles.nikkudKey,
+        isSelected && styles.nikkudKeySelected,
+        isModifier && styles.nikkudKeyModifier,
+      ]}
+      onPress={onToggle}
+      activeOpacity={0.7}
+    >
+      <Text style={styles.nikkudKeySample}>{sample}</Text>
+      <Text style={styles.nikkudKeyName}>{item.name}</Text>
+    </TouchableOpacity>
   );
 };
 
 export const DiacriticsPanel: React.FC = () => {
   const { state, dispatch } = useEditor();
   
-  // Determine which keyboard is currently shown based on the active keyset
+  // Determine which keyboard is currently shown
   const keyboards = state.config.keyboards || [];
   const currentKeysetId = state.activeKeyset || state.config.defaultKeyset || '';
   
-  // Derive keyboard ID from keyset ID (e.g., "he_abc" -> "he", "abc" -> first keyboard)
   let currentKeyboardId = '';
   for (const kb of keyboards) {
     if (currentKeysetId.startsWith(kb + '_')) {
@@ -100,84 +68,102 @@ export const DiacriticsPanel: React.FC = () => {
       break;
     }
   }
-  // If keyset doesn't have a prefix (like "abc"), it's the first keyboard
   if (!currentKeyboardId && !currentKeysetId.includes('_') && keyboards.length > 0) {
     currentKeyboardId = keyboards[0];
   }
   
-  // Get diacritics for the current keyboard from allDiacritics ONLY
-  // Don't fall back to legacy diacritics - that would show Hebrew diacritics for English
+  // Get diacritics for current keyboard
   const allDiacritics = state.config.allDiacritics || {};
   const diacritics = allDiacritics[currentKeyboardId];
-  
-  // Get keyboard display name
-  const keyboardDisplayName = currentKeyboardId === 'he' ? 'Hebrew' :
-    currentKeyboardId === 'ar' ? 'Arabic' :
-    currentKeyboardId === 'en' ? 'English' :
-    currentKeyboardId || 'Unknown';
-  
-  console.log(`[DiacriticsPanel] Current keyboard: ${currentKeyboardId}, has diacritics: ${!!diacritics}, allDiacritics keys: ${Object.keys(allDiacritics).join(', ')}`);
   
   const settings = state.config.diacriticsSettings?.[currentKeyboardId] || {};
   const hiddenItems = settings.hidden || [];
   const disabledModifiers = settings.disabledModifiers || [];
   const isNikkudDisabled = settings.disabled || false;
-  const isSimpleMode = settings.simpleMode ?? true; // Default to simple mode
+  const isSimpleMode = settings.simpleMode ?? true;
   
-  // Get list of advanced item IDs
-  const advancedItemIds = useMemo(() => {
-    if (!diacritics) return [];
-    return diacritics.items
-      .filter(item => item.isAdvanced)
-      .map(item => item.id);
-  }, [diacritics]);
-  
-  // Compute effective hidden items: manual hidden + (advanced if simple mode)
-  const effectiveHiddenItems = useMemo(() => {
-    if (isSimpleMode) {
-      return [...hiddenItems, ...advancedItemIds];
-    }
-    return hiddenItems;
-  }, [hiddenItems, advancedItemIds, isSimpleMode]);
-  
-  // Sample letter for preview based on keyboard language
+  // Determine current mode based on settings
+  const getCurrentMode = (): NikkudMode => {
+    if (isNikkudDisabled) return 'none';
+    if (isSimpleMode && hiddenItems.length === 0 && disabledModifiers.length === 0) return 'basic';
+    if (!isSimpleMode && hiddenItems.length === 0 && disabledModifiers.length === 0) return 'full';
+    return 'custom';
+  };
+
+  const [currentMode, setCurrentMode] = useState<NikkudMode>(getCurrentMode());
+
+  // Sample letter
   const sampleLetter = useMemo(() => {
-    // Use keyboard-specific sample letters
     switch (currentKeyboardId) {
       case 'he':
-        return 'ב';  // Hebrew bet
+        return 'ב';
       case 'ar':
-        return 'ب';  // Arabic ba
+        return 'ب';
       default:
-        // Try to find from diacritics onlyFor
-        if (diacritics) {
-          const firstOnlyFor = diacritics.items.find(i => i.onlyFor)?.onlyFor;
-          if (firstOnlyFor && firstOnlyFor.length > 0) {
-            return firstOnlyFor[0];
-          }
-        }
-        return 'X';  // Generic fallback
+        return 'X';
     }
-  }, [currentKeyboardId, diacritics]);
-  
-  const handleToggleSimpleMode = () => {
-    dispatch({
-      type: 'UPDATE_DIACRITICS_SETTINGS',
-      payload: {
-        keyboardId: currentKeyboardId,
-        settings: { ...settings, simpleMode: !isSimpleMode },
-      },
-    });
+  }, [currentKeyboardId]);
+
+  const handleModeChange = (mode: NikkudMode) => {
+    setCurrentMode(mode);
+    
+    switch (mode) {
+      case 'none':
+        // Disable nikkud completely
+        dispatch({
+          type: 'UPDATE_DIACRITICS_SETTINGS',
+          payload: {
+            keyboardId: currentKeyboardId,
+            settings: { ...settings, disabled: true },
+          },
+        });
+        break;
+      
+      case 'basic':
+        // Simple mode, no hidden items or disabled modifiers
+        dispatch({
+          type: 'UPDATE_DIACRITICS_SETTINGS',
+          payload: {
+            keyboardId: currentKeyboardId,
+            settings: { disabled: false, simpleMode: true, hidden: [], disabledModifiers: [] },
+          },
+        });
+        break;
+      
+      case 'full':
+        // Full mode (not simple), no hidden items or disabled modifiers
+        dispatch({
+          type: 'UPDATE_DIACRITICS_SETTINGS',
+          payload: {
+            keyboardId: currentKeyboardId,
+            settings: { disabled: false, simpleMode: false, hidden: [], disabledModifiers: [] },
+          },
+        });
+        break;
+      
+      case 'custom':
+        // Enable custom mode - add a non-existent item to hidden to force custom mode
+        // This ensures getCurrentMode() returns 'custom'
+        dispatch({
+          type: 'UPDATE_DIACRITICS_SETTINGS',
+          payload: {
+            keyboardId: currentKeyboardId,
+            settings: { 
+              disabled: false, 
+              simpleMode: true,
+              hidden: hiddenItems.length > 0 ? hiddenItems : ['__custom_mode_marker__'],
+              disabledModifiers: disabledModifiers.length > 0 ? disabledModifiers : [],
+            },
+          },
+        });
+        break;
+    }
   };
-  
+
   const handleToggleItem = (itemId: string) => {
     const newHidden = hiddenItems.includes(itemId)
       ? hiddenItems.filter(id => id !== itemId)
       : [...hiddenItems, itemId];
-    
-    console.log('[DiacriticsPanel] Toggling item:', itemId);
-    console.log('[DiacriticsPanel] New hidden:', newHidden);
-    console.log('[DiacriticsPanel] Keyboard ID:', currentKeyboardId);
     
     dispatch({
       type: 'UPDATE_DIACRITICS_SETTINGS',
@@ -187,9 +173,8 @@ export const DiacriticsPanel: React.FC = () => {
       },
     });
   };
-  
+
   const handleToggleModifier = (modifierId: string) => {
-    // Toggle individual modifier
     const newDisabledModifiers = disabledModifiers.includes(modifierId)
       ? disabledModifiers.filter(id => id !== modifierId)
       : [...disabledModifiers, modifierId];
@@ -209,269 +194,158 @@ export const DiacriticsPanel: React.FC = () => {
         <Text style={styles.emptyText}>
           No diacritics available for this keyboard.
         </Text>
-        <Text style={styles.emptySubtext}>
-          Diacritics settings are available for keyboards with Hebrew, Arabic, or other diacritical marks.
-        </Text>
       </View>
     );
   }
   
-  // Get modifiers (from new modifiers array or fallback to single modifier)
   const modifiers: DiacriticModifier[] = diacritics.modifiers || 
     (diacritics.modifier ? [diacritics.modifier] : []);
   
-  // Separate items into basic and advanced
   const basicItems = diacritics.items.filter(item => item.id !== 'plain' && !item.isAdvanced);
   const advancedItems = diacritics.items.filter(item => item.isAdvanced);
+  const allItems = [...basicItems, ...advancedItems];
   
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Basic Diacritics</Text>
-        <Text style={styles.sectionSubtitle}>
-          Common vowel marks for everyday typing
-        </Text>
-        
-        {basicItems.map(item => {
-          const isItemHidden = effectiveHiddenItems.includes(item.id);
-          
-          return (
-            <DiacriticItemRow
-              key={item.id}
-              item={item}
-              isHidden={isItemHidden}
-              onToggle={handleToggleItem}
-              sampleLetter={sampleLetter}
-            />
-          );
-        })}
-      </View>
-      
-      {advancedItems.length > 0 && (
-        <>
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Advanced Diacritics</Text>
-            <Text style={styles.sectionSubtitle}>
-              Additional marks like חֲטַף (Hebrew) and تنوين (Arabic)
-            </Text>
-            
-            <View style={styles.advancedToggleRow}>
-              <View style={styles.advancedToggleInfo}>
-                <Text style={styles.advancedToggleLabel}>Enable Advanced</Text>
-                <Text style={styles.advancedToggleDescription}>
-                  Show advanced diacritics in the picker
-                </Text>
+    <View style={styles.container}>
+      {/* Mode Selector */}
+      <ButtonGroupRow
+        title="Enable Nikkud (Diacritics)"
+        options={[
+          { id: 'basic', label: 'Basic' },
+          { id: 'full', label: 'Full' },
+          { id: 'custom', label: 'Custom' },
+          { id: 'none', label: 'None' },
+        ]}
+        selectedId={currentMode}
+        onSelect={(id) => handleModeChange(id as NikkudMode)}
+      />
+
+      {/* Custom Mode - Show all nikkud options as toggleable keys */}
+      {currentMode === 'custom' && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Diacritics</Text>
+          <View style={styles.nikkudGrid}>
+            {allItems.map(item => (
+              <NikkudKey
+                key={item.id}
+                item={item}
+                sampleLetter={sampleLetter}
+                isSelected={!hiddenItems.includes(item.id)}
+                onToggle={() => handleToggleItem(item.id)}
+              />
+            ))}
+          </View>
+        </View>
+      )}
+
+      {/* Modifiers - Show for all modes except None */}
+      {currentMode !== 'none' && modifiers.length > 0 && (
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, currentMode === 'custom' && { marginTop: 16 }]}>
+            Modifiers
+          </Text>
+          {modifiers.map((modifier) => (
+            <View key={modifier.id} style={styles.modifierRow}>
+              <View style={styles.modifierInfo}>
+                <Text style={styles.modifierName}>{modifier.name}</Text>
+                {modifier.options && modifier.options.length > 0 && (
+                  <Text style={styles.modifierOptions}>
+                    {modifier.options.map(opt => opt.name).join(', ')}
+                  </Text>
+                )}
               </View>
               <Switch
-                value={!isSimpleMode}
-                onValueChange={handleToggleSimpleMode}
-                trackColor={{ false: '#ccc', true: '#FF9800' }}
-                thumbColor={!isSimpleMode ? '#F57C00' : '#f4f3f4'}
+                value={!disabledModifiers.includes(modifier.id)}
+                onValueChange={() => handleToggleModifier(modifier.id)}
+                trackColor={{ false: '#ccc', true: '#81C784' }}
+                thumbColor={!disabledModifiers.includes(modifier.id) ? '#4CAF50' : '#f4f3f4'}
               />
             </View>
-          </View>
-          
-          {!isSimpleMode && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Advanced Options</Text>
-              <Text style={styles.sectionSubtitle}>
-                Toggle individual advanced diacritics
-              </Text>
-              
-              {advancedItems.map(item => {
-                const isItemHidden = effectiveHiddenItems.includes(item.id);
-                
-                return (
-                  <DiacriticItemRow
-                    key={item.id}
-                    item={item}
-                    isHidden={isItemHidden}
-                    onToggle={handleToggleItem}
-                    sampleLetter={sampleLetter}
-                  />
-                );
-              })}
-            </View>
-          )}
-        </>
-      )}
-      
-      {modifiers.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Modifiers</Text>
-          <Text style={styles.sectionSubtitle}>
-            Toggle modifier options (dagesh, shin/sin dots, etc.)
-          </Text>
-          
-          {modifiers.map(modifier => (
-            <ModifierRow
-              key={modifier.id}
-              modifier={modifier}
-              isEnabled={!disabledModifiers.includes(modifier.id)}
-              onToggle={handleToggleModifier}
-              sampleLetter={sampleLetter}
-            />
           ))}
         </View>
       )}
-      
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Disable Nikkud</Text>
-        <Text style={styles.sectionSubtitle}>
-          Completely disable nikkud for this keyboard (hides the nikkud key)
-        </Text>
-        
-        <View style={styles.disableRow}>
-          <View style={styles.disableInfo}>
-            <Text style={styles.disableLabel}>Disable Nikkud</Text>
-            <Text style={styles.disableDescription}>
-              When disabled, the nikkud key will be hidden from the keyboard
-            </Text>
-          </View>
-          <Switch
-            value={isNikkudDisabled}
-            onValueChange={(value) => {
-              dispatch({
-                type: 'UPDATE_DIACRITICS_SETTINGS',
-                payload: {
-                  keyboardId: currentKeyboardId,
-                  settings: { ...settings, disabled: value },
-                },
-              });
-            }}
-            trackColor={{ false: '#ccc', true: '#EF5350' }}
-            thumbColor={isNikkudDisabled ? '#D32F2F' : '#f4f3f4'}
-          />
-        </View>
-      </View>
-    </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: '#FFF',
+    backgroundColor: 'transparent',
   },
   emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
+    padding: 12,
   },
   emptyText: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  emptySubtext: {
     fontSize: 14,
-    color: '#999',
+    color: '#666',
     textAlign: 'center',
   },
   section: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    marginTop: 8,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 12,
+  },
+  nikkudGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  nikkudKey: {
+    width: 80,
+    height: 70,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 8,
+  },
+  nikkudKeySelected: {
+    backgroundColor: '#E3F2FD',
+    borderColor: '#2196F3',
+  },
+  nikkudKeyModifier: {
+    backgroundColor: '#FFF8E1',
+    borderColor: '#FFB74D',
+  },
+  nikkudKeySample: {
+    fontSize: 24,
     color: '#333',
     marginBottom: 4,
-  },
-  sectionSubtitle: {
-    fontSize: 13,
-    color: '#666',
-    marginBottom: 16,
-  },
-  itemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    backgroundColor: '#FAFAFA',
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  modifierRow: {
-    backgroundColor: '#FFF8E1',
-  },
-  itemInfo: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  itemSample: {
-    fontSize: 24,
-    width: 40,
     textAlign: 'center',
-    marginRight: 12,
   },
-  itemName: {
-    fontSize: 14,
-    color: '#333',
+  nikkudKeyName: {
+    fontSize: 11,
+    color: '#666',
+    textAlign: 'center',
     fontWeight: '500',
   },
-  itemId: {
-    fontSize: 12,
-    color: '#999',
-    marginLeft: 8,
+  modifierRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F5F5F5',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
   },
-  multiOptionLabel: {
+  modifierInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  modifierName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 2,
+  },
+  modifierOptions: {
     fontSize: 11,
-    color: '#FF9800',
-    marginLeft: 6,
-    fontStyle: 'italic',
-  },
-  disableRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    backgroundColor: '#FFEBEE',
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  disableInfo: {
-    flex: 1,
-    marginRight: 12,
-  },
-  disableLabel: {
-    fontSize: 14,
-    color: '#C62828',
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  disableDescription: {
-    fontSize: 12,
-    color: '#666',
-  },
-  advancedToggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    backgroundColor: '#FFF3E0',
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  advancedToggleInfo: {
-    flex: 1,
-    marginRight: 12,
-  },
-  advancedToggleLabel: {
-    fontSize: 14,
-    color: '#E65100',
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  advancedToggleDescription: {
-    fontSize: 12,
     color: '#666',
   },
 });

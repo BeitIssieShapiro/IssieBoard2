@@ -3,18 +3,18 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   Modal,
   TextInput,
   ScrollView,
   Switch,
-  FlatList,
 } from 'react-native';
 import { useEditor, getKeyValueFromPositionId } from '../../context/EditorContext';
 import { StyleGroup, KeyStyleOverride, KeyboardConfig, VisibilityMode, PredefinedStyleRule } from '../../../types';
-import { ColorPicker } from '../shared/ColorPicker';
+import { ColorPickerRow } from '../shared/ColorPickerRow';
+import { ButtonGroupRow } from '../shared/ButtonGroupRow';
 import { KeyboardPreview, KeyPressEvent } from '../KeyboardPreview';
 import { getPredefinedRules, getAvailableLanguages } from '../../utils/predefinedRules';
+import { ActionButton } from '../shared/ActionButton';
 
 interface AddStyleRuleModalProps {
   visible: boolean;
@@ -76,7 +76,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
     return `rule-${counter}`;
   }, [state.styleGroups]);
 
-  // Initialize state when modal opens and reset when it closes
+  // Initialize state when modal opens (only on initial open, not on every editingGroup change)
   useEffect(() => {
     if (visible) {
       if (editingGroup) {
@@ -109,7 +109,9 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
       // Reset predefined rules browser state when closing
       setShowPredefinedRules(false);
     }
-  }, [visible, editingGroup, generateRuleName, initialSelectedKeys]);
+    // Only run when modal visibility changes, not when editingGroup changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
 
   // Handle key tap - toggle selection
   const handleKeyPress = useCallback((event: KeyPressEvent) => {
@@ -195,32 +197,18 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
   };
 
   // Build config with:
-  // 1. All existing style groups (except the one being edited)
-  // 2. Current rule's style applied to selected keys
+  // ONLY the current rule being edited/created
+  // DO NOT include other style groups - only show general settings + current group
   // IMPORTANT: In the modal preview, we DON'T apply visibility modes (hide/showOnly)
   // because we need all keys visible for selection/deselection.
-  // Visibility only applies in the main editor preview.
+  // Also respect the local isActive state (not applied to main editor until save)
   const previewConfig = useMemo((): KeyboardConfig => {
-    // Start with existing groups, excluding the one being edited
-    // DON'T apply visibility modes from other groups in modal preview
-    const otherGroups = state.styleGroups
-      .filter(g => !editingGroup || g.id !== editingGroup.id)
-      .map(group => ({
-        name: group.name,
-        items: group.members,
-        template: {
-          color: group.style.color || '',
-          bgColor: group.style.bgColor || '',
-          // Don't hide keys in the modal preview - we need them visible for selection
-          hidden: false,
-          visibilityMode: 'default' as VisibilityMode,
-        },
-      }));
+    const groups: any[] = [];
 
-    // Add current rule's style for selected keys
-    // Only apply colors (not visibility) in the modal preview
-    if (selectedKeyValues.length > 0) {
-      otherGroups.push({
+    // Only add current rule's style for selected keys if isActive is true
+    // This shows the preview effect of toggling active without affecting the main editor
+    if (selectedKeyValues.length > 0 && isActive) {
+      groups.push({
         name: '_current_rule_',
         items: selectedKeyValues,
         template: {
@@ -236,11 +224,26 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
 
     return {
       ...state.config,
-      groups: otherGroups,
+      groups, // Only the current group being edited, not other groups
+      wordSuggestionsEnabled: false, // Disable word suggestions in modal preview
     };
-  }, [state.config, state.styleGroups, editingGroup, selectedKeyValues, bgColor, textColor, visibilityMode]);
+  }, [state.config, selectedKeyValues, bgColor, textColor, visibilityMode, isActive]);
 
   const previewConfigJson = useMemo(() => JSON.stringify(previewConfig), [previewConfig]);
+
+  // Calculate dynamic height for modal preview based on number of rows
+  const modalPreviewHeight = useMemo(() => {
+    const activeKeyset = state.config.keysets.find(ks => ks.id === state.activeKeyset);
+    const numRows = activeKeyset?.rows?.length || 4;
+
+    // Height calculation (no suggestions bar in preview):
+    // - Each row: ~50px
+    // - Row spacing: ~10px between rows
+    const rowHeight = 50;
+    const rowSpacing = 10;
+
+    return (numRows * rowHeight) + ((numRows - 1) * rowSpacing);
+  }, [state.config.keysets, state.activeKeyset]);
 
   // Build selected keys JSON for highlighting in the preview
   const selectedKeysJson = useMemo(() => {
@@ -295,241 +298,126 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
-          {/* Header with action buttons */}
+          {/* Header with title and action buttons */}
           <View style={styles.header}>
-            <TouchableOpacity onPress={handleCancel} style={styles.cancelHeaderButton}>
-              <Text style={styles.cancelHeaderText}>Cancel</Text>
-            </TouchableOpacity>
             <Text style={styles.headerTitle}>
-              {editingGroup ? 'Edit Rule' : 'New Rule'}
+              {editingGroup ? 'Edit Keys Group' : 'New Keys Group'}
             </Text>
-            <TouchableOpacity 
-              style={[
-                styles.saveHeaderButton,
-                selectedKeyValues.length === 0 && styles.saveHeaderButtonDisabled
-              ]} 
-              onPress={handleOk}
-              disabled={selectedKeyValues.length === 0}
-            >
-              <Text style={[
-                styles.saveHeaderText,
-                selectedKeyValues.length === 0 && styles.saveHeaderTextDisabled
-              ]}>
-                {editingGroup ? 'Save' : 'Create'}
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.headerActions}>
+              <ActionButton
+                label="Cancel"
+                color="gray"
+                onPress={handleCancel}
+              />
+              <ActionButton
+                label={editingGroup ? 'Save' : 'Create'}
+                color="green"
+                onPress={handleOk}
+                disabled={selectedKeyValues.length === 0}
+              />
+            </View>
           </View>
 
-          {/* Embedded Keyboard Preview */}
-          <View style={styles.previewSection}>
-            <Text style={styles.previewLabel}>
-              Tap keys to select ({selectedKeyValues.length} selected)
-            </Text>
-            <KeyboardPreview
-              style={styles.keyboardPreview}
-              configJson={previewConfigJson}
-              selectedKeys={selectedKeysJson}
-              onKeyPress={handleKeyPress}
+          {/* Name input row */}
+          <View style={styles.nameRow}>
+            <Text style={styles.nameLabel}>Name:</Text>
+            <TextInput
+              style={styles.nameInput}
+              value={ruleName}
+              onChangeText={setRuleName}
+              placeholder="Enter group name..."
             />
           </View>
 
           <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-            {/* Browse Predefined Rules */}
-            {!editingGroup && (
-              <View style={styles.section}>
-                <TouchableOpacity
-                  style={styles.browsePredefinedButton}
-                  onPress={() => setShowPredefinedRules(!showPredefinedRules)}
-                >
-                  <Text style={styles.browsePredefinedButtonText}>
-                    📚 {showPredefinedRules ? 'Hide' : 'Browse'} Predefined Rules
-                  </Text>
-                </TouchableOpacity>
-
-                {showPredefinedRules && (
-                  <View style={styles.predefinedRulesContainer}>
-                    {/* Predefined Rules List */}
-                    {currentPredefinedRules && (
-                      <View style={styles.rulesList}>
-                        {currentPredefinedRules.rules.map((rule) => (
-                          <TouchableOpacity
-                            key={rule.id}
-                            style={styles.ruleItem}
-                            onPress={() => handleApplyPredefinedRule(rule)}
-                          >
-                            <View style={styles.ruleItemHeader}>
-                              <Text style={styles.ruleItemName}>{rule.name}</Text>
-                              <View style={styles.ruleItemColors}>
-                                {rule.style.bgColor && (
-                                  <View
-                                    style={[
-                                      styles.colorPreview,
-                                      { backgroundColor: rule.style.bgColor },
-                                    ]}
-                                  />
-                                )}
-                                {rule.style.color && (
-                                  <View
-                                    style={[
-                                      styles.colorPreview,
-                                      { backgroundColor: rule.style.color },
-                                    ]}
-                                  />
-                                )}
-                              </View>
-                            </View>
-                            <Text style={styles.ruleItemDescription} numberOfLines={1}>
-                              {rule.description}
-                            </Text>
-                            <Text style={styles.ruleItemKeys} numberOfLines={1}>
-                              {rule.members.slice(0, 15).join(' ')}
-                              {rule.members.length > 15 ? '...' : ''}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    )}
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Rule Name */}
+            {/* Keys with inline badges and Preview */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Rule Name</Text>
-              <TextInput
-                style={styles.nameInput}
-                value={ruleName}
-                onChangeText={setRuleName}
-                placeholder="Enter rule name..."
-              />
-            </View>
-
-            {/* Selected Keys Display */}
-            {selectedKeyValues.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Selected Keys</Text>
-                <View style={styles.selectedKeysList}>
-                  {selectedKeyValues.slice(0, 20).map((keyValue, index) => (
+              <View style={styles.keysRow}>
+                <Text style={styles.sectionTitle}>Keys:</Text>
+                <View style={styles.inlineKeysList}>
+                  {selectedKeyValues.slice(0, 7).map((keyValue, index) => (
                     <View key={index} style={styles.keyBadge}>
                       <Text style={styles.keyBadgeText}>{getKeyDisplay(keyValue)}</Text>
                     </View>
                   ))}
-                  {selectedKeyValues.length > 20 && (
-                    <Text style={styles.moreKeysText}>+{selectedKeyValues.length - 20} more</Text>
+                  {selectedKeyValues.length > 7 && (
+                    <Text style={styles.ellipsisText}>...</Text>
                   )}
                 </View>
               </View>
-            )}
-
-            {/* Style Options */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Style Options</Text>
-              
-              {/* Visibility Mode Segmented Control */}
-              <View style={styles.visibilitySection}>
-                <Text style={styles.visibilityLabel}>Visibility</Text>
-                <View style={styles.segmentedControl}>
-                  <TouchableOpacity
-                    style={[
-                      styles.segment,
-                      styles.segmentFirst,
-                      visibilityMode === 'default' && styles.segmentSelected,
-                    ]}
-                    onPress={() => setVisibilityMode('default')}
-                  >
-                    <Text style={[
-                      styles.segmentText,
-                      visibilityMode === 'default' && styles.segmentTextSelected,
-                    ]}>
-                      Default
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      styles.segment,
-                      visibilityMode === 'hide' && styles.segmentSelected,
-                    ]}
-                    onPress={() => setVisibilityMode('hide')}
-                  >
-                    <Text style={[
-                      styles.segmentText,
-                      visibilityMode === 'hide' && styles.segmentTextSelected,
-                    ]}>
-                      Hide Selected
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      styles.segment,
-                      styles.segmentLast,
-                      visibilityMode === 'showOnly' && styles.segmentSelected,
-                    ]}
-                    onPress={() => setVisibilityMode('showOnly')}
-                  >
-                    <Text style={[
-                      styles.segmentText,
-                      visibilityMode === 'showOnly' && styles.segmentTextSelected,
-                    ]}>
-                      Show Only
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-                {visibilityMode === 'showOnly' && (
-                  <Text style={styles.visibilityHint}>
-                    ⓘ All keys except these will be hidden
-                  </Text>
-                )}
-                {visibilityMode === 'hide' && (
-                  <Text style={styles.visibilityHint}>
-                    ⓘ Colors are not applicable for hidden keys
-                  </Text>
-                )}
-              </View>
-
-              {/* Background Color - only show if not in "hide" mode */}
-              {visibilityMode !== 'hide' && (
-                <View style={styles.colorSection}>
-                  <Text style={styles.colorLabel}>Background Color</Text>
-                  <ColorPicker
-                    value={bgColor}
-                    onChange={setBgColor}
-                    showSystemDefault
-                    systemDefaultLabel="Default"
-                  />
-                </View>
-              )}
-
-              {/* Text Color - only show if not in "hide" mode */}
-              {visibilityMode !== 'hide' && (
-                <View style={styles.colorSection}>
-                  <Text style={styles.colorLabel}>Text Color</Text>
-                  <ColorPicker
-                    value={textColor}
-                    onChange={setTextColor}
-                    presets={[
-                      '#000000', '#FFFFFF', '#F44336', '#2196F3', 
-                      '#4CAF50', '#FF9800', '#9C27B0', '#607D8B',
-                    ]}
-                    showSystemDefault
-                    systemDefaultLabel="Default"
-                  />
-                </View>
-              )}
-
-              {/* Active Toggle - at the end */}
-              <View style={styles.optionRow}>
-                <View style={styles.optionInfo}>
-                  <Text style={styles.optionLabel}>Active</Text>
-                  <Text style={styles.optionDescription}>Apply this rule to the keyboard</Text>
-                </View>
-                <Switch
-                  value={isActive}
-                  onValueChange={setIsActive}
-                  trackColor={{ false: '#ccc', true: '#81C784' }}
-                  thumbColor={isActive ? '#4CAF50' : '#f4f3f4'}
+              {/* Keyboard Preview */}
+              <View style={styles.previewContainer}>
+                <KeyboardPreview
+                  style={[styles.keyboardPreview, { height: modalPreviewHeight }]}
+                  configJson={previewConfigJson}
+                  selectedKeys={selectedKeysJson}
+                  onKeyPress={handleKeyPress}
                 />
               </View>
+            </View>
+
+            {/* Visibility Mode */}
+            <View>
+              <ButtonGroupRow
+                title="Visibility"
+                options={[
+                  { id: 'default', label: 'Default' },
+                  { id: 'hide', label: 'Hide' },
+                  { id: 'showOnly', label: 'Show Only' },
+                ]}
+                selectedId={visibilityMode}
+                onSelect={(id) => setVisibilityMode(id as VisibilityMode)}
+              />
+              {visibilityMode === 'showOnly' && (
+                <Text style={styles.visibilityHint}>
+                  ⓘ All keys except these will be hidden
+                </Text>
+              )}
+              {visibilityMode === 'hide' && (
+                <Text style={styles.visibilityHint}>
+                  ⓘ Colors are not applicable for hidden keys
+                </Text>
+              )}
+            </View>
+
+            {/* Background Color - only show if not in "hide" mode */}
+            {visibilityMode !== 'hide' && (
+              <ColorPickerRow
+                title="Background Color"
+                value={bgColor}
+                onChange={setBgColor}
+                showSystemDefault
+                systemDefaultLabel="Default"
+              />
+            )}
+
+            {/* Text Color - only show if not in "hide" mode */}
+            {visibilityMode !== 'hide' && (
+              <ColorPickerRow
+                title="Text Color"
+                value={textColor}
+                onChange={setTextColor}
+                presets={[
+                  '#000000', '#FFFFFF', '#F44336', '#2196F3', 
+                  '#4CAF50', '#FF9800', '#9C27B0', '#607D8B',
+                ]}
+                showSystemDefault
+                systemDefaultLabel="Default"
+              />
+            )}
+
+            {/* Active Toggle - at the end */}
+            <View style={styles.optionRow}>
+              <View style={styles.optionInfo}>
+                <Text style={styles.optionLabel}>Active</Text>
+                <Text style={styles.optionDescription}>Apply this rule to the keyboard</Text>
+              </View>
+              <Switch
+                value={isActive}
+                onValueChange={setIsActive}
+                trackColor={{ false: '#ccc', true: '#81C784' }}
+                thumbColor={isActive ? '#4CAF50' : '#f4f3f4'}
+              />
             </View>
           </ScrollView>
         </View>
@@ -541,19 +429,22 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
   modalContainer: {
     backgroundColor: '#FFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderRadius: 20,
+    width: '100%',
+    maxWidth: 700,
     height: '85%',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 15,
   },
   header: {
     flexDirection: 'row',
@@ -567,6 +458,24 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 17,
     fontWeight: 'bold',
+    color: '#333',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+    gap: 12,
+  },
+  nameLabel: {
+    fontSize: 15,
+    fontWeight: '600',
     color: '#333',
   },
   cancelHeaderButton: {
@@ -606,7 +515,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   keyboardPreview: {
-    height: 260,  // Increased to accommodate keyboard with suggestions bar
+    // Height set dynamically via inline style
   },
   content: {
     flex: 1,
@@ -624,16 +533,49 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   nameInput: {
+    flex: 1,
     borderWidth: 1,
     borderColor: '#DDD',
     borderRadius: 8,
     padding: 10,
     fontSize: 15,
   },
+  selectedKeysHeader: {
+    marginBottom: 12,
+  },
+  keysRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 12,
+  },
+  inlineKeysList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    flex: 1,
+  },
+  ellipsisText: {
+    fontSize: 13,
+    color: '#666',
+    fontWeight: '600',
+  },
+  previewContainer: {
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    padding: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
   selectedKeysList: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
+    marginTop: 8,
   },
   keyBadge: {
     backgroundColor: '#E3F2FD',
@@ -676,70 +618,12 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 2,
   },
-  colorSection: {
-    marginBottom: 12,
-  },
-  colorLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#555',
-    marginBottom: 6,
-  },
-  // Visibility segmented control styles
-  visibilitySection: {
-    marginBottom: 16,
-  },
-  visibilityLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#555',
-    marginBottom: 8,
-  },
-  segmentedControl: {
-    flexDirection: 'row',
-    backgroundColor: '#E0E0E0',
-    borderRadius: 8,
-    padding: 2,
-  },
-  segment: {
-    flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
-  },
-  segmentFirst: {
-    borderTopLeftRadius: 6,
-    borderBottomLeftRadius: 6,
-  },
-  segmentLast: {
-    borderTopRightRadius: 6,
-    borderBottomRightRadius: 6,
-  },
-  segmentSelected: {
-    backgroundColor: '#FFF',
-    borderRadius: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  segmentText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#666',
-    textAlign: 'center',
-  },
-  segmentTextSelected: {
-    color: '#333',
-    fontWeight: '600',
-  },
   visibilityHint: {
     fontSize: 11,
     color: '#FF9800',
-    marginTop: 8,
+    marginTop: -12,
+    marginBottom: 20,
+    marginLeft: 0,
     fontStyle: 'italic',
   },
   // Predefined rules styles

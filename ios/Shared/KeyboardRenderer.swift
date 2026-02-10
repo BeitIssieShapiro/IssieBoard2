@@ -201,6 +201,30 @@ class KeyboardRenderer {
         }
     }
     
+    // MARK: - Helper Methods for Default Colors
+    
+    /// Get default text color from config, fallback to black
+    private func getDefaultTextColor() -> UIColor {
+        guard let config = config,
+              let textColorString = config.textColor,
+              !textColorString.isEmpty,
+              textColorString.lowercased() != "default" else {
+            return .black
+        }
+        return UIColor(hexString: textColorString) ?? .black
+    }
+    
+    /// Get default key background color from config, fallback to white
+    private func getDefaultKeyBgColor() -> UIColor {
+        guard let config = config,
+              let bgColorString = config.keysBgColor,
+              !bgColorString.isEmpty,
+              bgColorString.lowercased() != "default" else {
+            return .white
+        }
+        return UIColor(hexString: bgColorString) ?? .white
+    }
+    
     // MARK: - Public Methods
     
     /// Calculate the required keyboard height based on the current config
@@ -485,8 +509,8 @@ class KeyboardRenderer {
             var rowWidth: CGFloat = 0
             for key in row.keys {
                 let parsedKey = ParsedKey(from: key, groups: groups,
-                                         defaultTextColor: .black,
-                                         defaultBgColor: .white)
+                                         defaultTextColor: getDefaultTextColor(),
+                                         defaultBgColor: getDefaultKeyBgColor())
                 
                 let keyType = parsedKey.type.lowercased()
                 
@@ -626,8 +650,8 @@ class KeyboardRenderer {
         
         for key in row.keys {
             let parsedKey = ParsedKey(from: key, groups: groups,
-                                     defaultTextColor: .black,
-                                     defaultBgColor: .white)
+                                     defaultTextColor: getDefaultTextColor(),
+                                     defaultBgColor: getDefaultKeyBgColor())
             
             let keyType = parsedKey.type.lowercased()
             
@@ -667,8 +691,8 @@ class KeyboardRenderer {
         // SECOND PASS: Render keys with redistributed width and track edge keys
         for key in row.keys {
             let parsedKey = ParsedKey(from: key, groups: groups,
-                                     defaultTextColor: .black,
-                                     defaultBgColor: .white)
+                                     defaultTextColor: getDefaultTextColor(),
+                                     defaultBgColor: getDefaultKeyBgColor())
             
             // Skip language/next-keyboard keys based on:
             // 1. Only one language configured, OR
@@ -944,12 +968,26 @@ class KeyboardRenderer {
         
         let isNikkudKey = key.type.lowercased() == "nikkud"
 
+        // Text color - adaptive for dark/light mode
+        let textColor: UIColor
+        if key.textColor == .black {
+            textColor = UIColor { traitCollection in
+                if traitCollection.userInterfaceStyle == .dark {
+                    return UIColor.white
+                } else {
+                    return UIColor.black
+                }
+            }
+        } else {
+            textColor = key.textColor
+        }
+        
         // For settings key, use SF Symbol image
         if key.type.lowercased() == "settings" {
             if let gearImage = UIImage(systemName: "gearshape.fill") {
                 let imageView = UIImageView(image: gearImage)
                 imageView.contentMode = .scaleAspectFit
-                imageView.tintColor = .label
+                imageView.tintColor = textColor  // Use key's text color
                 imageView.isUserInteractionEnabled = false
                 visualKeyView.addSubview(imageView)
                 imageView.translatesAutoresizingMaskIntoConstraints = false
@@ -983,7 +1021,7 @@ class KeyboardRenderer {
             if let nikkudImage = UIImage(named: imageName)?.withRenderingMode(.alwaysTemplate) {
                 let imageView = UIImageView(image: nikkudImage)
                 imageView.contentMode = .scaleAspectFit
-                imageView.tintColor = .label
+                imageView.tintColor = textColor  // Use key's text color
                 imageView.isUserInteractionEnabled = false
                 visualKeyView.addSubview(imageView)
                 imageView.translatesAutoresizingMaskIntoConstraints = false
@@ -1042,20 +1080,6 @@ class KeyboardRenderer {
         label.minimumScaleFactor = 0.3
         label.numberOfLines = 1
         label.textAlignment = .center
-        
-        // Text color - adaptive for dark/light mode
-        let textColor: UIColor
-        if key.textColor == .black {
-            textColor = UIColor { traitCollection in
-                if traitCollection.userInterfaceStyle == .dark {
-                    return UIColor.white
-                } else {
-                    return UIColor.black
-                }
-            }
-        } else {
-            textColor = key.textColor
-        }
         label.textColor = textColor
         
         // Add label to visual key view (centered)

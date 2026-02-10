@@ -11,6 +11,8 @@ import android.graphics.Color
 
 data class KeyboardConfig(
     val backgroundColor: String? = null,
+    val keysBgColor: String? = null,  // Default background color for keys
+    val textColor: String? = null,    // Default text color for keys
     val defaultKeyset: String? = null,
     val keysets: List<Keyset> = emptyList(),
     val groups: List<Group>? = null,

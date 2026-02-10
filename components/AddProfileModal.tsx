@@ -1,100 +1,61 @@
 import { useState, useEffect } from "react";
-import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
+import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, Platform } from "react-native";
 import { useLocalization } from "../src/localization";
 
 type LanguageId = 'he' | 'en' | 'ar';
 
-interface LanguageDefinition {
-  id: LanguageId;
-  name: string;
-  nativeName: string;
-  keyboards: { id: string; name: string }[];
-}
-
-const LANGUAGES: LanguageDefinition[] = [
-  {
-    id: 'he',
-    name: 'Hebrew',
-    nativeName: 'עברית',
-    keyboards: [
-      { id: 'he', name: 'Standard' },
-      { id: 'he_ordered', name: 'Ordered (א-ב)' },
-    ],
-  },
-  {
-    id: 'en',
-    name: 'English',
-    nativeName: 'English',
-    keyboards: [
-      { id: 'en', name: 'QWERTY' },
-    ],
-  },
-  {
-    id: 'ar',
-    name: 'Arabic',
-    nativeName: 'العربية',
-    keyboards: [
-      { id: 'ar', name: 'Standard' },
-    ],
-  },
-];
-
 interface AddProfileModalProps {
   visible: boolean;
   onClose: () => void;
-  onCreate: (name: string, language: string, keyboardId: string) => void;
+  onCreate: (name: string, language: string, keyboardId: string) => Promise<boolean>;
   initialLanguage?: LanguageId;
+  initialKeyboardId?: string;
+  existingNames: string[];
 }
 
-const AddProfileModal = ({ visible, onClose, onCreate, initialLanguage = 'he' }: AddProfileModalProps) => {
+const AddProfileModal = ({ visible, onClose, onCreate, initialLanguage = 'he', initialKeyboardId = 'he', existingNames }: AddProfileModalProps) => {
   const { strings } = useLocalization();
   const [profileName, setProfileName] = useState('');
-  const [selectedLanguage, setSelectedLanguage] = useState<LanguageId>(initialLanguage);
-  const [selectedKeyboard, setSelectedKeyboard] = useState<string>('');
+  const [error, setError] = useState('');
 
-  // Get current language definition
-  const currentLangDef = LANGUAGES.find(l => l.id === selectedLanguage) || LANGUAGES[0];
-
-  // Update keyboard when language changes
+  // Reset state when modal closes
   useEffect(() => {
-    const langDef = LANGUAGES.find(l => l.id === selectedLanguage);
-    if (langDef && langDef.keyboards.length > 0) {
-      setSelectedKeyboard(langDef.keyboards[0].id);
+    if (!visible) {
+      setProfileName('');
+      setError('');
     }
-  }, [selectedLanguage]);
+  }, [visible]);
 
-  // Reset state when modal opens with initial language
-  useEffect(() => {
-    if (visible) {
-      setSelectedLanguage(initialLanguage);
-      const langDef = LANGUAGES.find(l => l.id === initialLanguage);
-      if (langDef && langDef.keyboards.length > 0) {
-        setSelectedKeyboard(langDef.keyboards[0].id);
-      }
-    }
-  }, [visible, initialLanguage]);
-
-  const handleCreate = () => {
-    if (!profileName.trim()) {
+  const handleCreate = async () => {
+    const trimmedName = profileName.trim();
+    
+    if (!trimmedName) {
+      setError('Please enter a name');
       return;
     }
-    if (!selectedKeyboard) {
+    
+    // Check for duplicate names (case-insensitive)
+    if (existingNames.some(name => name.toLowerCase() === trimmedName.toLowerCase())) {
+      setError('This name is already in use');
       return;
     }
-    onCreate(profileName.trim(), selectedLanguage, selectedKeyboard);
-    // Reset state
-    setProfileName('');
+    
+    // Use the current language and keyboard from settings
+    const success = await onCreate(trimmedName, initialLanguage, initialKeyboardId);
+    if (success) {
+      setProfileName('');
+      setError('');
+    }
   };
 
   const handleClose = () => {
-    // Reset state
     setProfileName('');
     onClose();
   };
 
   if (!visible) return null;
 
-  const isCreateDisabled = !profileName.trim() || !selectedKeyboard;
+  const isCreateDisabled = !profileName.trim();
 
   return (
     <Modal
@@ -108,75 +69,24 @@ const AddProfileModal = ({ visible, onClose, onCreate, initialLanguage = 'he' }:
         style={styles.overlay}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          bounces={false}
-        >
+        <View style={styles.centeredView}>
           <View style={styles.dialog}>
-            <Text style={styles.title}>{strings.addProfile || 'Add New Profile'}</Text>
+            <Text style={styles.title}>Add New IssieBoard</Text>
 
-            <Text style={styles.label}>{strings.profileNameLabel || 'Profile Name'}</Text>
+            <Text style={styles.label}>IssieBoard Name</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, error ? styles.inputError : null]}
               value={profileName}
-              onChangeText={setProfileName}
-              placeholder={strings.profileNamePlaceholder || 'My Custom Keyboard'}
+              onChangeText={(text) => {
+                setProfileName(text);
+                setError(''); // Clear error when typing
+              }}
+              placeholder="My Custom Keyboard"
               autoFocus
               returnKeyType="done"
+              onSubmitEditing={handleCreate}
             />
-
-            <Text style={styles.label}>Language</Text>
-            <View style={styles.languageContainer}>
-              {LANGUAGES.map(lang => (
-                <TouchableOpacity
-                  key={lang.id}
-                  style={[
-                    styles.languageOption,
-                    selectedLanguage === lang.id && styles.languageOptionSelected,
-                  ]}
-                  onPress={() => setSelectedLanguage(lang.id)}
-                >
-                  <Text style={[
-                    styles.languageOptionText,
-                    selectedLanguage === lang.id && styles.languageOptionTextSelected,
-                  ]}>
-                    {lang.nativeName}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {currentLangDef.keyboards.length > 1 && (
-              <>
-                <Text style={styles.label}>Keyboard Layout</Text>
-                <View style={styles.keyboardContainer}>
-                  {currentLangDef.keyboards.map(kb => (
-                    <TouchableOpacity
-                      key={kb.id}
-                      style={[
-                        styles.keyboardOption,
-                        selectedKeyboard === kb.id && styles.keyboardOptionSelected,
-                      ]}
-                      onPress={() => setSelectedKeyboard(kb.id)}
-                    >
-                      <View style={[
-                        styles.radioCircle,
-                        selectedKeyboard === kb.id && styles.radioCircleSelected,
-                      ]}>
-                        {selectedKeyboard === kb.id && <View style={styles.radioInner} />}
-                      </View>
-                      <Text style={[
-                        styles.keyboardOptionText,
-                        selectedKeyboard === kb.id && styles.keyboardOptionTextSelected,
-                      ]}>
-                        {kb.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </>
-            )}
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
             <View style={styles.divider} />
 
@@ -200,7 +110,7 @@ const AddProfileModal = ({ visible, onClose, onCreate, initialLanguage = 'he' }:
               </TouchableOpacity>
             </View>
           </View>
-        </ScrollView>
+        </View>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -214,11 +124,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.4)',
   },
-  scrollContent: {
-    flexGrow: 1,
+  centeredView: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 20,
   },
   dialog: {
     backgroundColor: 'white',
@@ -244,7 +153,7 @@ const styles = StyleSheet.create({
   },
   input: {
     marginHorizontal: 16,
-    marginBottom: 8,
+    marginBottom: 4,
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderWidth: 1,
@@ -252,82 +161,18 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     fontSize: 15,
   },
-  languageContainer: {
-    flexDirection: 'row',
-    marginHorizontal: 16,
-    marginBottom: 8,
+  inputError: {
+    borderColor: '#F44336',
   },
-  languageOption: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    backgroundColor: '#f9f9f9',
-    alignItems: 'center',
-  },
-  languageOptionSelected: {
-    borderColor: '#2196F3',
-    backgroundColor: '#E3F2FD',
-  },
-  languageOptionText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  languageOptionTextSelected: {
-    color: '#2196F3',
-    fontWeight: '600',
-  },
-  keyboardContainer: {
+  errorText: {
+    color: '#F44336',
+    fontSize: 12,
     marginHorizontal: 16,
     marginBottom: 12,
-  },
-  keyboardOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    marginBottom: 8,
-    backgroundColor: '#f9f9f9',
-  },
-  keyboardOptionSelected: {
-    borderColor: '#2196F3',
-    backgroundColor: '#E3F2FD',
-  },
-  radioCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#ccc',
-    marginRight: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  radioCircleSelected: {
-    borderColor: '#2196F3',
-  },
-  radioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#2196F3',
-  },
-  keyboardOptionText: {
-    fontSize: 15,
-    color: '#333',
-  },
-  keyboardOptionTextSelected: {
-    color: '#2196F3',
-    fontWeight: '500',
   },
   divider: {
     height: 1,
     backgroundColor: '#ccc',
-    marginTop: 8,
   },
   buttons: {
     flexDirection: 'row',

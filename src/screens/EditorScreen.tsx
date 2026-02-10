@@ -22,6 +22,7 @@ import { Toolbox } from '../components/toolbox/Toolbox';
 import KeyboardPreferences from '../native/KeyboardPreferences';
 import { KeyboardConfig, ProfileDefinition, KeyboardDefinition, VisibilityMode } from '../../types';
 import AddProfileModal from '../../components/AddProfileModal';
+import { ActionButton } from '../components/shared/ActionButton';
 
 // Import keyboard files
 import enKeyboard from '../../keyboards/en.json';
@@ -94,9 +95,14 @@ interface SavedProfileDefinition {
   language: LanguageId;  // Single language (he/en/ar)
   keyboardId: string;    // Single keyboard ID (he, he_ordered, en, ar)
   backgroundColor?: string;
+  keysBgColor?: string;  // Default background color for keys
+  textColor?: string;    // Default text color for keys
   groups?: any[];
   diacritics?: Record<string, any>;
   wordSuggestionsEnabled?: boolean;
+  autoCorrectEnabled?: boolean;
+  fontName?: string;
+  settingsButtonEnabled?: boolean;
 }
 
 /**
@@ -116,9 +122,14 @@ const extractProfileDefinition = (
     language,
     keyboardId,
     backgroundColor: config.backgroundColor,
+    keysBgColor: (config as any).keysBgColor,
+    textColor: (config as any).textColor,
     groups: config.groups,
     diacritics: config.diacriticsSettings,
     wordSuggestionsEnabled: config.wordSuggestionsEnabled,
+    autoCorrectEnabled: config.autoCorrectEnabled,
+    fontName: config.fontName,
+    settingsButtonEnabled: config.settingsButtonEnabled,
   };
 };
 
@@ -165,7 +176,18 @@ const buildConfiguration = (profile: SavedProfileDefinition): KeyboardConfig => 
     allDiacritics: {},
     diacriticsSettings,
     wordSuggestionsEnabled: profile.wordSuggestionsEnabled,
-  };
+    autoCorrectEnabled: profile.autoCorrectEnabled,
+    fontName: profile.fontName,
+    settingsButtonEnabled: profile.settingsButtonEnabled,
+  } as KeyboardConfig;
+
+  // Apply keysBgColor and textColor if they exist in the profile
+  if (profile.keysBgColor !== undefined) {
+    (config as any).keysBgColor = profile.keysBgColor;
+  }
+  if (profile.textColor !== undefined) {
+    (config as any).textColor = profile.textColor;
+  }
 
   // Load diacritics from keyboard
   if ((keyboard as any).diacritics) {
@@ -324,12 +346,12 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
 
   const showToast = useCallback((message: string, duration: number = 3000) => {
     setToastMessage(message);
-    toastOpacity.setValue(0);
-
+    
+    // Animate from bottom
     Animated.sequence([
       Animated.timing(toastOpacity, {
         toValue: 1,
-        duration: 200,
+        duration: 300,
         useNativeDriver: true,
       }),
       Animated.delay(duration),
@@ -680,7 +702,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     }
 
     Alert.alert(
-      'Delete Profile',
+      'Delete an IssieBoard',
       `Are you sure you want to delete "${profileToDelete.name}"?`,
       [
         { text: 'Cancel', style: 'cancel' },
@@ -737,7 +759,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     }
   }, [duplicateName, onDuplicate, showToast, loadProfilesList, setConfig, onProfileChange, currentLanguage, currentKeyboardId]);
 
-  const handleCreateNewProfile = useCallback(async (name: string, lang: LanguageId, kbId: string) => {
+  const handleCreateNewProfile = useCallback(async (name: string, lang: LanguageId, kbId: string): Promise<boolean> => {
     setShowAddProfileModal(false);
     setShowProfilePicker(false);
 
@@ -750,8 +772,10 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       setCurrentKeyboardId(kbId);
       showToast(`✓ Created "${name}"`);
       await loadProfilesList();
+      return true;
     } catch (error) {
       showToast('✗ Failed to create profile');
+      return false;
     }
   }, [onCreateNew, showToast, loadProfilesList]);
 
@@ -761,6 +785,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       showToast(`✓ "${profile.name}" is now active`);
       await loadProfilesList();
     } catch (error) {
+      console.error('Failed to set active profile:', error);
       showToast('✗ Failed to set active');
     }
   }, [onSetActiveForProfile, showToast, loadProfilesList]);
@@ -794,6 +819,8 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         onClose={() => setShowAddProfileModal(false)}
         onCreate={(name, lang, kbId) => handleCreateNewProfile(name, lang as LanguageId, kbId)}
         initialLanguage={currentLanguage}
+        initialKeyboardId={currentKeyboardId}
+        existingNames={profiles.map(p => p.name)}
       />
 
       {/* Duplicate Profile Modal */}
@@ -858,19 +885,18 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
           <View style={styles.profilePickerContainer}>
             <View style={styles.profilePickerHeader}>
               <Text style={styles.profilePickerTitle}>
-                Profiles for {currentLanguageDef.nativeName}
+                My {currentLanguageDef.name} IssieBoards
               </Text>
               <View style={styles.profilePickerHeaderActions}>
-                {/* Add New Profile Button - compact next to title */}
-                <TouchableOpacity
-                  style={styles.addNewProfileButton}
+                {/* Add New Profile Button */}
+                <ActionButton
+                  label="+ New"
+                  color="green"
                   onPress={() => {
                     setShowProfilePicker(false);
                     setShowAddProfileModal(true);
                   }}
-                >
-                  <Text style={styles.addNewProfileButtonText}>+ New</Text>
-                </TouchableOpacity>
+                />
                 {/* Close button */}
                 <TouchableOpacity
                   style={styles.profilePickerCloseButton}
@@ -897,67 +923,39 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
                       item.id === currentProfileId && styles.profileOptionActive,
                     ]}
                   >
-                    <TouchableOpacity
-                      style={styles.profileOptionMain}
-                      onPress={() => handleLoadProfile(item)}
-                    >
-                      <View style={styles.profileOptionInfo}>
-                        <Text style={styles.profileOptionText}>
-                          {item.name}
-                        </Text>
-                        {/* Indication badges */}
-                        <View style={styles.profileBadges}>
-                          {item.isSystemActive && (
-                            <View style={styles.systemActiveBadge}>
-                              <Text style={styles.systemActiveBadgeText}>⚡ Active</Text>
-                            </View>
-                          )}
-                          {item.id === currentProfileId && (
-                            <View style={styles.editingBadge}>
-                              <Text style={styles.editingBadgeText}>✏️ Editing</Text>
-                            </View>
-                          )}
+                    <View style={styles.profileOptionInfo}>
+                      <Text style={styles.profileOptionText}>
+                        {item.name}
+                      </Text>
+                      {/* Active badge only */}
+                      {item.isSystemActive && (
+                        <View style={styles.systemActiveBadge}>
+                          <Text style={styles.systemActiveBadgeText}>⚡ Active</Text>
                         </View>
-                      </View>
-                    </TouchableOpacity>
-                    {/* Action buttons */}
+                      )}
+                    </View>
+                    
+                    {/* Action buttons: Delete (if not default) then Select */}
                     <View style={styles.profileOptionActions}>
-                      {/* Make Active button - show if not already active */}
-                      {!item.isSystemActive && (
-                        <TouchableOpacity
-                          style={[styles.profileActionButton, styles.activateButton]}
-                          onPress={() => handleSetActiveForProfile(item)}
-                        >
-                          <Text style={styles.profileActionButtonText}>⚡</Text>
-                        </TouchableOpacity>
-                      )}
-                      {/* Duplicate button - always show (using copy/document icon for duplicate) */}
-                      <TouchableOpacity
-                        style={[styles.profileActionButton, styles.duplicateActionButton]}
-                        onPress={() => {
-                          setShowProfilePicker(false);
-                          setDuplicateName(`${item.name} Copy`);
-                          // Load this profile first if it's not current
-                          if (item.id !== currentProfileId) {
-                            handleLoadProfile(item).then(() => {
-                              setShowDuplicateModal(true);
-                            });
-                          } else {
-                            setShowDuplicateModal(true);
-                          }
-                        }}
-                      >
-                        <Text style={styles.duplicateIconText}>❐</Text>
-                      </TouchableOpacity>
-                      {/* Delete button - only for non-built-in, non-active profiles */}
+                      {/* Delete button - only for non-default profiles */}
                       {!item.isBuiltIn && (
-                        <TouchableOpacity
-                          style={[styles.profileActionButton, styles.profileDeleteButton]}
+                        <ActionButton
+                          label="Delete"
+                          color="red"
                           onPress={() => handleDeleteProfile(item)}
-                        >
-                          <Text style={styles.profileActionButtonText}>🗑️</Text>
-                        </TouchableOpacity>
+                        />
                       )}
+                      {/* Select button - always show, makes it active and loads for editing */}
+                      <ActionButton
+                        label="Select"
+                        color="blue"
+                        onPress={() => {
+                          // First make it active
+                          handleSetActiveForProfile(item);
+                          // Then load for editing
+                          handleLoadProfile(item);
+                        }}
+                      />
                     </View>
                   </View>
                 )}
@@ -967,77 +965,80 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         </TouchableOpacity>
       </Modal>
 
-      {/* Language Selector */}
+      {/* Language Selector - Matching mockup design */}
       <View style={styles.languageBar}>
-        {LANGUAGES.map(lang => (
-          <TouchableOpacity
-            key={lang.id}
-            style={[
-              styles.languageTab,
-              currentLanguage === lang.id && styles.languageTabActive,
-            ]}
-            onPress={() => handleLanguageChange(lang.id)}
-          >
-            <Text style={[
-              styles.languageTabText,
-              currentLanguage === lang.id && styles.languageTabTextActive,
-            ]}>
-              {lang.nativeName}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        <View style={styles.languageBarTitle}>
+          <Text style={styles.languageBarIcon}>⌨️</Text>
+          <Text style={styles.languageBarTitleText}>IssieBoard Settings</Text>
+        </View>
+        <View style={styles.languageTabs}>
+          {LANGUAGES.map(lang => (
+            <TouchableOpacity
+              key={lang.id}
+              style={[
+                styles.languageTab,
+                currentLanguage === lang.id && styles.languageTabActive,
+              ]}
+              onPress={() => handleLanguageChange(lang.id)}
+            >
+              <Text style={[
+                styles.languageTabText,
+                currentLanguage === lang.id && styles.languageTabTextActive,
+              ]}>
+                {lang.nativeName}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
-      {/* Combined Header Row: Save + Discard + Profile Picker + Reset */}
-      <View style={styles.combinedHeader}>
-        {/* Save Button */}
-        <Animated.View style={{ opacity: state.isDirty ? saveButtonOpacity : 0.5 }}>
-          <TouchableOpacity
-            style={[styles.headerSaveButton, !state.isDirty && styles.headerButtonDisabled]}
-            onPress={handleSave}
-            disabled={saving || !state.isDirty}
-          >
-            {saving ? (
-              <ActivityIndicator color="#FFF" size="small" />
-            ) : (
-              <Text style={styles.headerSaveButtonText}>💾 Save</Text>
-            )}
-          </TouchableOpacity>
-        </Animated.View>
-
-        {/* Discard Button - only shown when dirty */}
-        {state.isDirty && (
-          <TouchableOpacity
-            style={styles.headerDiscardButton}
-            onPress={handleDiscard}
-          >
-            <Text style={styles.headerDiscardButtonText}>↩ Discard</Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Profile Picker (60%) */}
-        <TouchableOpacity
-          style={styles.headerProfilePicker}
-          onPress={() => setShowProfilePicker(true)}
-        >
-          <Text style={styles.profileName} numberOfLines={1}>
-            {currentProfileName}
-          </Text>
-          <Text style={styles.profileDropdownIcon}>▼</Text>
-          {isActiveProfile && (
-            <View style={styles.activeBadge}>
-              <Text style={styles.activeBadgeText}>Active</Text>
+      {/* Profile Selection Row */}
+      <View style={styles.profileRow}>
+        <View style={styles.profileContainer}>
+          {/* Icon and Label */}
+          <View style={styles.profileIconSection}>
+            <Text style={styles.profileIcon}>⌨️</Text>
+            <View style={{flexDirection:"row"}}>
+              <Text style={styles.profileSectionLabel}>Active IssieBoard:</Text>
+              <Text style={styles.profileName}>{currentProfileName}</Text>
             </View>
-          )}
-        </TouchableOpacity>
+          </View>
 
-        {/* Reset Button */}
-        <TouchableOpacity
-          style={styles.headerResetButton}
-          onPress={handleClearConfig}
-        >
-          <Text style={styles.headerResetButtonText}>🔄</Text>
-        </TouchableOpacity>
+          {/* Explore Button */}
+          <TouchableOpacity
+            style={styles.exploreButton}
+            onPress={() => setShowProfilePicker(true)}
+          >
+            <Text style={styles.exploreButtonIcon}>📋</Text>
+            <Text style={styles.exploreButtonText}>My IssieBoards</Text>
+          </TouchableOpacity>
+
+          {/* Save Button */}
+          <Animated.View style={{ opacity: state.isDirty ? saveButtonOpacity : 0.5 }}>
+            <TouchableOpacity
+              style={[styles.profileSaveButton, !state.isDirty && styles.headerButtonDisabled]}
+              onPress={handleSave}
+              disabled={saving || !state.isDirty}
+            >
+              {saving ? (
+                <ActivityIndicator color="#FFF" size="small" />
+              ) : (
+                <>
+                  <Text style={styles.profileSaveButtonIcon}>💾</Text>
+                  <Text style={styles.profileSaveButtonText}>Save</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </Animated.View>
+
+          {/* Reset Button - Hidden but not deleted */}
+          <TouchableOpacity
+            style={[styles.headerResetButton, { display: 'none' }]}
+            onPress={handleClearConfig}
+          >
+            <Text style={styles.headerResetButtonText}>🔄</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Main Content */}
@@ -1045,17 +1046,6 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         style={styles.content}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* Simple test input - one-liner */}
-        <View style={styles.testArea}>
-          <TextInput
-            style={styles.testInput}
-            value={testText}
-            onChangeText={setTestText}
-            placeholder="Tap keys to test..."
-            editable={false}
-          />
-        </View>
-
         <View style={styles.canvasContainer}>
           <InteractiveCanvas onTestInput={handleTestInput} />
         </View>
@@ -1157,7 +1147,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
           // Create the profile definition (won't save until user saves)
           const profileDef: SavedProfileDefinition = {
             id: defaultProfileId,
-            name: defaultProfileId,
+            name: 'Default',
             version: '1.0.0',
             language: savedLanguage,
             keyboardId: defaultKeyboardId,
@@ -1169,7 +1159,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
           setInitialConfig(config);
           setInitialStyleGroups([]);
           setCurrentProfileId(defaultProfileId);
-          setProfileName(defaultProfileId);
+          setProfileName('Default');
           setCurrentKeyboardId(defaultKeyboardId);
         }
 
@@ -1419,12 +1409,35 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
 
     // Load the profile
     const loaded = await loadProfileById(profileIdToActivate);
+    
+    let config: KeyboardConfig;
+    
     if (!loaded) {
-      console.error(`❌ Cannot set active: profile ${profileIdToActivate} not found`);
-      return;
+      // Check if this is a default profile that hasn't been saved yet
+      const defaultProfileId = getDefaultProfileId(currentLanguage);
+      if (profileIdToActivate === defaultProfileId) {
+        console.log(`📱 Default profile not saved yet, creating factory defaults for ${profileIdToActivate}`);
+        // Get the first keyboard for this language
+        const langDef = LANGUAGES.find(l => l.id === currentLanguage);
+        const firstKeyboardId = langDef?.keyboards[0]?.id || currentLanguage;
+        
+        const profileDef: SavedProfileDefinition = {
+          id: defaultProfileId,
+          name: 'Default',
+          version: '1.0.0',
+          language: currentLanguage,
+          keyboardId: firstKeyboardId,
+          backgroundColor: 'default',
+          groups: [],
+        };
+        config = buildConfiguration(profileDef);
+      } else {
+        console.error(`❌ Cannot set active: profile ${profileIdToActivate} not found`);
+        throw new Error(`Profile ${profileIdToActivate} not found`);
+      }
+    } else {
+      config = buildConfiguration(loaded.profileDef);
     }
-
-    const config = buildConfiguration(loaded.profileDef);
 
     // Save to language-specific key (keyboardConfig_he, keyboardConfig_en, keyboardConfig_ar)
     await KeyboardPreferences.setKeyboardConfigObjectForLanguage(config, currentLanguage);
@@ -1466,12 +1479,18 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
 
     const config = buildConfiguration(profileDef);
 
+    // Set as active profile for this language
+    await KeyboardPreferences.setKeyboardConfigObjectForLanguage(config, language);
+    await KeyboardPreferences.setProfile(newProfileId, `active_profile_${language}`);
+    console.log(`✅ Set ${newProfileId} as active profile for ${language}`);
+
     setCurrentProfileId(newProfileId);
     setProfileName(name);
     setCurrentLanguage(language);
     setCurrentKeyboardId(keyboardId);
     setInitialConfig(config);
     setInitialStyleGroups([]);
+    setActiveKeyboardProfileId(newProfileId);
   }, []);
 
   if (loading || !initialConfig) {
@@ -1533,29 +1552,54 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
   },
-  // Language bar
+  // Language bar - new design matching mockup
   languageBar: {
     flexDirection: 'row',
-    backgroundColor: '#2196F3',
-    borderBottomWidth: 2,
-    borderBottomColor: '#1565C0',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  languageBarTitle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  languageBarIcon: {
+    fontSize: 20,
+  },
+  languageBarTitleText: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  languageTabs: {
+    flexDirection: 'row',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 10,
+    padding: 4,
+    gap: 4,
   },
   languageTab: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderRightWidth: 1,
-    borderRightColor: 'rgba(255,255,255,0.3)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
   },
   languageTabActive: {
-    backgroundColor: '#1976D2',
-    borderBottomWidth: 3,
-    borderBottomColor: '#FFF',
+    backgroundColor: '#3B82F6',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   languageTabText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: 'rgba(255,255,255,0.7)',
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
   },
   languageTabTextActive: {
     color: '#FFF',
@@ -1651,11 +1695,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  profileName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
   modeToggle: {
     flexDirection: 'row',
     backgroundColor: '#F5F5F5',
@@ -1683,22 +1722,33 @@ const styles = StyleSheet.create({
   },
   testArea: {
     backgroundColor: '#FFF',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
   },
   testInput: {
-    height: 36,
+    height: 40,
     borderWidth: 1,
-    borderColor: '#DDD',
+    borderColor: '#E0E0E0',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
     fontSize: 16,
     backgroundColor: '#FAFAFA',
   },
-  canvasContainer: {},
+  canvasContainer: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
   toolboxContainer: {
     flex: 1,
     minHeight: 200,
@@ -1782,19 +1832,28 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   profileActionButton: {
-    width: isTablet ? 48 : 36,
-    height: isTablet ? 48 : 36,
-    borderRadius: isTablet ? 24 : 18,
-    backgroundColor: '#FF9800',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: isTablet ? 10 : 6,
+    marginLeft: 8,
   },
   profileDeleteButton: {
     backgroundColor: '#F44336',
   },
+  selectButton: {
+    backgroundColor: '#3B82F6',
+  },
   profileActionButtonText: {
-    fontSize: 14,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFF',
+  },
+  selectButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFF',
   },
   duplicateIconText: {
     fontSize: 20,
@@ -1836,24 +1895,24 @@ const styles = StyleSheet.create({
   },
   toast: {
     position: 'absolute',
-    top: 100,
+    bottom: '10%',
     left: 20,
     right: 20,
-    backgroundColor: '#323232',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+    backgroundColor: '#4CAF50',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
     zIndex: 1000,
     elevation: 6,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
   },
   toastText: {
     color: '#FFF',
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 15,
+    fontWeight: '600',
     textAlign: 'center',
   },
   actionBar: {
@@ -1865,23 +1924,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FAFAFA',
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
-  },
-  actionButton: {
-    flex: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 8,
-    marginHorizontal: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFF',
-  },
-  actionButtonDisabled: {
-    opacity: 0.5,
   },
   saveButton: {
     backgroundColor: '#4CAF50',
@@ -2012,6 +2054,109 @@ const styles = StyleSheet.create({
     fontSize: smallFontSize,
     fontWeight: '600',
     color: '#FFF',
+  },
+  // New Profile Row Styles
+  profileRow: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#F5F5F5',
+  },
+  profileContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  profileIconSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  profileIcon: {
+    fontSize: 28,
+  },
+  profileSectionLabel: {
+    fontSize: 18,
+    color: '#6B7280',
+    fontWeight: 'bold',
+    marginBottom: 2,
+  },
+  profileName: {
+    marginHorizontal:10,
+    fontSize: 18,
+    color: '#333',
+  },
+  exploreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginLeft: 12,
+    gap: 6,
+  },
+  exploreButtonIcon: {
+    fontSize: 16,
+  },
+  exploreButtonText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  profileSaveButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginLeft: 12,
+    minWidth: 80,
+    gap: 6,
+  },
+  profileSaveButtonIcon: {
+    fontSize: 16,
+  },
+  profileSaveButtonText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  // Reusable Action Button Styles
+  actionButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    margin: 5,
+    minWidth: 80,
+  },
+  actionButtonGreen: {
+    backgroundColor: '#4CAF50',
+  },
+  actionButtonBlue: {
+    backgroundColor: '#3B82F6',
+  },
+  actionButtonRed: {
+    backgroundColor: '#F44336',
+  },
+  actionButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFF',
+  },
+  actionButtonDisabled: {
+    opacity: 0.5,
   },
 });
 

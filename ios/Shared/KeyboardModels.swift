@@ -5,6 +5,8 @@ import UIKit
 
 struct KeyboardConfig: Codable {
     let backgroundColor: String?
+    let keysBgColor: String?  // Default background color for keys
+    let textColor: String?    // Default text color for keys
     let defaultKeyset: String?
     let keysets: [Keyset]
     let groups: [Group]?
@@ -19,6 +21,8 @@ struct KeyboardConfig: Codable {
     
     enum CodingKeys: String, CodingKey {
         case backgroundColor
+        case keysBgColor
+        case textColor
         case defaultKeyset
         case keysets
         case groups

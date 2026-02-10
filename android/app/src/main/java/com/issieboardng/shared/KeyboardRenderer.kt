@@ -152,6 +152,28 @@ class KeyboardRenderer(private val context: Context) {
     /** Manages the nikkud picker popup */
     private val nikkudPickerController = NikkudPickerController(context)
     
+    // MARK: - Helper Methods for Default Colors
+    
+    /** Get default text color from config, fallback to black */
+    private fun getDefaultTextColor(): Int {
+        val config = config ?: return Color.BLACK
+        val textColorString = config.textColor
+        if (textColorString.isNullOrEmpty() || textColorString.lowercase() == "default") {
+            return Color.BLACK
+        }
+        return parseColor(textColorString) ?: Color.BLACK
+    }
+    
+    /** Get default key background color from config, fallback to white */
+    private fun getDefaultKeyBgColor(): Int {
+        val config = config ?: return Color.WHITE
+        val bgColorString = config.keysBgColor
+        if (bgColorString.isNullOrEmpty() || bgColorString.lowercase() == "default") {
+            return Color.WHITE
+        }
+        return parseColor(bgColorString) ?: Color.WHITE
+    }
+    
     // MARK: - Initialization
     
     init {
@@ -207,7 +229,7 @@ class KeyboardRenderer(private val context: Context) {
                 returnKeysetLabel = null,
                 nikkud = null
             )
-            val parsedKey = ParsedKey.from(backspaceKey, emptyMap(), Color.BLACK, Color.WHITE)
+            val parsedKey = ParsedKey.from(backspaceKey, emptyMap(), getDefaultTextColor(), getDefaultKeyBgColor())
             onKeyPress?.invoke(parsedKey)
         }
     }
@@ -573,7 +595,7 @@ class KeyboardRenderer(private val context: Context) {
         for ((rowIndex, row) in rows.withIndex()) {
             var rowWidth = 0.0
             for (key in row.keys) {
-                val parsedKey = ParsedKey.from(key, groups, Color.BLACK, Color.WHITE)
+                val parsedKey = ParsedKey.from(key, groups, getDefaultTextColor(), getDefaultKeyBgColor())
                 
                 val keyType = parsedKey.type.lowercase()
                 if (hasOnlyOneLanguage && keyType == "language" || !showGlobeButton && keyType == "next-keyboard") {
@@ -660,7 +682,7 @@ class KeyboardRenderer(private val context: Context) {
         var flexKeyCount = 0
         
         for (key in row.keys) {
-            val parsedKey = ParsedKey.from(key, groups, Color.BLACK, Color.WHITE)
+            val parsedKey = ParsedKey.from(key, groups, getDefaultTextColor(), getDefaultKeyBgColor())
             
             val keyType = parsedKey.type.lowercase()
             
@@ -711,7 +733,7 @@ class KeyboardRenderer(private val context: Context) {
         var keyIndex = 0
         var currentX = 0  // Track intended X position including hidden spacers
         for (key in row.keys) {
-            val parsedKey = ParsedKey.from(key, groups, Color.BLACK, Color.WHITE)
+            val parsedKey = ParsedKey.from(key, groups, getDefaultTextColor(), getDefaultKeyBgColor())
             
             val keyType = parsedKey.type.lowercase()
             
@@ -1504,7 +1526,7 @@ class KeyboardRenderer(private val context: Context) {
             returnKeysetLabel = null,
             nikkud = nikkudOptions
         )
-        val parsedKey = ParsedKey.from(tempKey, emptyMap(), Color.BLACK, Color.WHITE)
+        val parsedKey = ParsedKey.from(tempKey, emptyMap(), getDefaultTextColor(), getDefaultKeyBgColor())
         
         // Use overlayContainer for nikkud picker (must be FrameLayout for overlay to work)
         nikkudPickerController.configure(config, currentKeyboardId, overlayContainer)

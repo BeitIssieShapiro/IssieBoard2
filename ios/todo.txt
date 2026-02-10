@@ -27,10 +27,11 @@ Android:
 
 feedback:
 - kb for iPad: higher buttons
-- word suggestions
 - word prediction
 - פונט כתב יד - דק מידי וחתוך
 - default text color
 - profile -> My IssieBoards
 - הגדרות מקשים
 - קבוצות
+- nikkud and settings button (svg) should take color from key color
+
