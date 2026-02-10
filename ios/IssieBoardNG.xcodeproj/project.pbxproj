@@ -385,9 +385,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		13B07F861A680F5B00A75B9A /* IssieBoardNG */ = {
+		13B07F861A680F5B00A75B9A /* IssieBoard */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "IssieBoardNG" */;
+			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "IssieBoard" */;
 			buildPhases = (
 				C38B50BA6285516D6DCD4F65 /* [CP] Check Pods Manifest.lock */,
 				6ACC1E512F2CDD8700F1FA30 /* Run Script - generate default keyboards */,
@@ -406,7 +406,7 @@
 				6ACC1E712F2CDEA800F1FA30 /* PBXTargetDependency */,
 				6ACC1E862F2CDEBE00F1FA30 /* PBXTargetDependency */,
 			);
-			name = IssieBoardNG;
+			name = IssieBoard;
 			productName = IssieBoardNG;
 			productReference = 13B07F961A680F5B00A75B9A /* IssieBoardNG.app */;
 			productType = "com.apple.product-type.application";
@@ -532,7 +532,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				13B07F861A680F5B00A75B9A /* IssieBoardNG */,
+				13B07F861A680F5B00A75B9A /* IssieBoard */,
 				6ACC1DF62F2AB0A800F1FA30 /* IssieBoardNGTests */,
 				6ACC1E552F2CDE8300F1FA30 /* IssieBoardEn */,
 				6ACC1E6A2F2CDEA800F1FA30 /* IssieBoardHe */,
@@ -800,7 +800,7 @@
 /* Begin PBXTargetDependency section */
 		6ACC1DFC2F2AB0A900F1FA30 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 13B07F861A680F5B00A75B9A /* IssieBoardNG */;
+			target = 13B07F861A680F5B00A75B9A /* IssieBoard */;
 			targetProxy = 6ACC1DFB2F2AB0A900F1FA30 /* PBXContainerItemProxy */;
 		};
 		6ACC1E5C2F2CDE8300F1FA30 /* PBXTargetDependency */ = {
@@ -828,22 +828,24 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = IssieBoardNG/IssieBoardNG.entitlements;
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = SKNJT9TD9G;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = IssieBoardNG/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = IssieBoard;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1;
+				MARKETING_VERSION = 2.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = org.issieshapiro.test.Playground;
+				PRODUCT_BUNDLE_IDENTIFIER = com.issieshapiro.Issieboard;
 				PRODUCT_NAME = IssieBoardNG;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -862,21 +864,23 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = IssieBoardNG/IssieBoardNG.entitlements;
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = SKNJT9TD9G;
 				INFOPLIST_FILE = IssieBoardNG/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = IssieBoard;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1;
+				MARKETING_VERSION = 2.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = org.issieshapiro.test.Playground;
+				PRODUCT_BUNDLE_IDENTIFIER = com.issieshapiro.Issieboard;
 				PRODUCT_NAME = IssieBoardNG;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -991,7 +995,7 @@
 				MARKETING_VERSION = 1.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = org.issieshapiro.test.Playground.IssieBoardEn;
+				PRODUCT_BUNDLE_IDENTIFIER = com.issieshapiro.Issieboard.IssieBoardEn;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -1036,7 +1040,7 @@
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MARKETING_VERSION = 1.0;
 				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = org.issieshapiro.test.Playground.IssieBoardEn;
+				PRODUCT_BUNDLE_IDENTIFIER = com.issieshapiro.Issieboard.IssieBoardEn;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -1080,7 +1084,7 @@
 				MARKETING_VERSION = 1.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = org.issieshapiro.test.Playground.IssieBoardHe;
+				PRODUCT_BUNDLE_IDENTIFIER = com.issieshapiro.Issieboard.IssieBoardHe;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -1125,7 +1129,7 @@
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MARKETING_VERSION = 1.0;
 				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = org.issieshapiro.test.Playground.IssieBoardHe;
+				PRODUCT_BUNDLE_IDENTIFIER = com.issieshapiro.Issieboard.IssieBoardHe;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -1169,7 +1173,7 @@
 				MARKETING_VERSION = 1.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = org.issieshapiro.test.Playground.IssieBoardAr;
+				PRODUCT_BUNDLE_IDENTIFIER = com.issieshapiro.Issieboard.IssieBoardAr;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -1214,7 +1218,7 @@
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MARKETING_VERSION = 1.0;
 				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = org.issieshapiro.test.Playground.IssieBoardAr;
+				PRODUCT_BUNDLE_IDENTIFIER = com.issieshapiro.Issieboard.IssieBoardAr;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -1376,7 +1380,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "IssieBoardNG" */ = {
+		13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "IssieBoard" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				13B07F941A680F5B00A75B9A /* Debug */,

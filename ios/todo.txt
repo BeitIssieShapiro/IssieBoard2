@@ -19,8 +19,18 @@ V- verify, that after he.json change, and applying profile change, he.json takes
 V- slide cursor
 
 
-
+- URL/email no auto-shift
 
 
 Android:
 - x is invisible in Nikkud
+
+feedback:
+- kb for iPad: higher buttons
+- word suggestions
+- word prediction
+- פונט כתב יד - דק מידי וחתוך
+- default text color
+- profile -> My IssieBoards
+- הגדרות מקשים
+- קבוצות

@@ -16,7 +16,7 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
                BuildableName = "IssieBoardNG.app"
-               BlueprintName = "IssieBoardNG"
+               BlueprintName = "IssieBoard"
                ReferencedContainer = "container:IssieBoardNG.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -32,7 +32,7 @@
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "00E356ED1AD99517003FC87E"
+               BlueprintIdentifier = "6ACC1DF62F2AB0A800F1FA30"
                BuildableName = "IssieBoardNGTests.xctest"
                BlueprintName = "IssieBoardNGTests"
                ReferencedContainer = "container:IssieBoardNG.xcodeproj">
@@ -56,7 +56,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
             BuildableName = "IssieBoardNG.app"
-            BlueprintName = "IssieBoardNG"
+            BlueprintName = "IssieBoard"
             ReferencedContainer = "container:IssieBoardNG.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -73,7 +73,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
             BuildableName = "IssieBoardNG.app"
-            BlueprintName = "IssieBoardNG"
+            BlueprintName = "IssieBoard"
             ReferencedContainer = "container:IssieBoardNG.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

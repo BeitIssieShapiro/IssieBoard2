@@ -110,9 +110,9 @@ For each new target:
 2. Go to **Build Settings**
 3. Set these values:
    - **Product Bundle Identifier**: 
-     - `org.issieshapiro.test.Playground.IssieBoardHe`
-     - `org.issieshapiro.test.Playground.IssieBoardEn`
-     - `org.issieshapiro.test.Playground.IssieBoardAr`
+     - `com.issieshapiro.Issieboard.IssieBoardHe`
+     - `com.issieshapiro.Issieboard.IssieBoardEn`
+     - `com.issieshapiro.Issieboard.IssieBoardAr`
    - **Development Team**: `SKNJT9TD9G`
    - **Code Signing Entitlements**: Point to the respective `.entitlements` file
    - **Info.plist File**: Point to the respective `Info.plist`
