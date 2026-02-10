@@ -15,6 +15,7 @@ import {
   Animated,
   Keyboard,
   Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import { EditorProvider, useEditor } from '../context/EditorContext';
 import { InteractiveCanvas } from '../components/canvas/InteractiveCanvas';
@@ -293,6 +294,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   onCreateNew,
 }) => {
   const { state, setMode, setConfig, markDirty, dispatch } = useEditor();
+  const { width: windowWidth } = useWindowDimensions();
   const [testText, setTestText] = useState('');
   const [saving, setSaving] = useState(false);
   const [settingActive, setSettingActive] = useState(false);
@@ -809,7 +811,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       {/* Toast Notification */}
       {toastMessage && (
         <Animated.View style={[styles.toast, { opacity: toastOpacity }]}>
-          <Text style={styles.toastText}>{toastMessage}</Text>
+          <Text allowFontScaling={false} style={styles.toastText}>{toastMessage}</Text>
         </Animated.View>
       )}
 
@@ -836,8 +838,8 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <View style={styles.duplicateModalContainer}>
-            <Text style={styles.duplicateModalTitle}>Duplicate Profile</Text>
-            <Text style={styles.duplicateModalSubtitle}>
+            <Text allowFontScaling={false} style={styles.duplicateModalTitle}>Duplicate Profile</Text>
+            <Text allowFontScaling={false} style={styles.duplicateModalSubtitle}>
               Create a copy of "{currentProfileName}"
             </Text>
             <TextInput
@@ -855,13 +857,13 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
                   setDuplicateName('');
                 }}
               >
-                <Text style={styles.duplicateCancelText}>Cancel</Text>
+                <Text allowFontScaling={false} style={styles.duplicateCancelText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.duplicateConfirmButton}
                 onPress={handleDuplicate}
               >
-                <Text style={styles.duplicateConfirmText}>Create</Text>
+                <Text allowFontScaling={false} style={styles.duplicateConfirmText}>Create</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -884,7 +886,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         >
           <View style={styles.profilePickerContainer}>
             <View style={styles.profilePickerHeader}>
-              <Text style={styles.profilePickerTitle}>
+              <Text allowFontScaling={false} style={styles.profilePickerTitle}>
                 My {currentLanguageDef.name} IssieBoards
               </Text>
               <View style={styles.profilePickerHeaderActions}>
@@ -902,13 +904,13 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
                   style={styles.profilePickerCloseButton}
                   onPress={() => setShowProfilePicker(false)}
                 >
-                  <Text style={styles.profilePickerCloseText}>✕</Text>
+                  <Text allowFontScaling={false} style={styles.profilePickerCloseText}>✕</Text>
                 </TouchableOpacity>
               </View>
             </View>
 
             {profiles.length === 0 ? (
-              <Text style={styles.noProfilesText}>
+              <Text allowFontScaling={false} style={styles.noProfilesText}>
                 No saved profiles for {currentLanguageDef.name}.
                 {'\n'}Create one to customize your keyboard.
               </Text>
@@ -924,13 +926,13 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
                     ]}
                   >
                     <View style={styles.profileOptionInfo}>
-                      <Text style={styles.profileOptionText}>
+                      <Text allowFontScaling={false} style={styles.profileOptionText}>
                         {item.name}
                       </Text>
                       {/* Active badge only */}
                       {item.isSystemActive && (
                         <View style={styles.systemActiveBadge}>
-                          <Text style={styles.systemActiveBadgeText}>⚡ Active</Text>
+                          <Text allowFontScaling={false} style={styles.systemActiveBadgeText}>⚡ Active</Text>
                         </View>
                       )}
                     </View>
@@ -969,7 +971,9 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       <View style={styles.languageBar}>
         <View style={styles.languageBarTitle}>
           <Text style={styles.languageBarIcon}>⌨️</Text>
-          <Text style={styles.languageBarTitleText}>IssieBoard Settings</Text>
+          <Text allowFontScaling={false} style={styles.languageBarTitleText}>
+            {windowWidth < 700 ? 'Settings' : 'IssieBoard Settings'}
+          </Text>
         </View>
         <View style={styles.languageTabs}>
           {LANGUAGES.map(lang => (
@@ -981,7 +985,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
               ]}
               onPress={() => handleLanguageChange(lang.id)}
             >
-              <Text style={[
+              <Text allowFontScaling={false} style={[
                 styles.languageTabText,
                 currentLanguage === lang.id && styles.languageTabTextActive,
               ]}>
@@ -994,49 +998,55 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
 
       {/* Profile Selection Row */}
       <View style={styles.profileRow}>
-        <View style={styles.profileContainer}>
-          {/* Icon and Label */}
+        <View style={[
+          styles.profileContainer,
+          windowWidth < 700 && styles.profileContainerSmall
+        ]}>
+          {/* Icon and Label - always on its own row */}
           <View style={styles.profileIconSection}>
-            <Text style={styles.profileIcon}>⌨️</Text>
+            <Text allowFontScaling={false} style={styles.profileIcon}>⌨️</Text>
             <View style={{flexDirection:"row"}}>
-              <Text style={styles.profileSectionLabel}>Active IssieBoard:</Text>
-              <Text style={styles.profileName}>{currentProfileName}</Text>
+              <Text allowFontScaling={false} style={styles.profileSectionLabel}>Active IssieBoard:</Text>
+              <Text allowFontScaling={false} style={styles.profileName}>{currentProfileName}</Text>
             </View>
           </View>
 
-          {/* Explore Button */}
-          <TouchableOpacity
-            style={styles.exploreButton}
-            onPress={() => setShowProfilePicker(true)}
-          >
-            <Text style={styles.exploreButtonIcon}>📋</Text>
-            <Text style={styles.exploreButtonText}>My IssieBoards</Text>
-          </TouchableOpacity>
-
-          {/* Save Button */}
-          <Animated.View style={{ opacity: state.isDirty ? saveButtonOpacity : 0.5 }}>
+          {/* Buttons row - wraps to new line on small screens */}
+          <View style={styles.profileButtonsContainer}>
+            {/* Explore Button */}
             <TouchableOpacity
-              style={[styles.profileSaveButton, !state.isDirty && styles.headerButtonDisabled]}
-              onPress={handleSave}
-              disabled={saving || !state.isDirty}
+              style={styles.exploreButton}
+              onPress={() => setShowProfilePicker(true)}
             >
-              {saving ? (
-                <ActivityIndicator color="#FFF" size="small" />
-              ) : (
-                <>
-                  <Text style={styles.profileSaveButtonIcon}>💾</Text>
-                  <Text style={styles.profileSaveButtonText}>Save</Text>
-                </>
-              )}
+              <Text allowFontScaling={false} style={styles.exploreButtonIcon}>📋</Text>
+              <Text allowFontScaling={false} style={styles.exploreButtonText}>My IssieBoards</Text>
             </TouchableOpacity>
-          </Animated.View>
+
+            {/* Save Button */}
+            <Animated.View style={{ opacity: state.isDirty ? saveButtonOpacity : 0.5 }}>
+              <TouchableOpacity
+                style={[styles.profileSaveButton, !state.isDirty && styles.headerButtonDisabled]}
+                onPress={handleSave}
+                disabled={saving || !state.isDirty}
+              >
+                {saving ? (
+                  <ActivityIndicator color="#FFF" size="small" />
+                ) : (
+                  <>
+                    <Text allowFontScaling={false} style={styles.profileSaveButtonIcon}>💾</Text>
+                    <Text allowFontScaling={false} style={styles.profileSaveButtonText}>Save</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </Animated.View>
+          </View>
 
           {/* Reset Button - Hidden but not deleted */}
           <TouchableOpacity
             style={[styles.headerResetButton, { display: 'none' }]}
             onPress={handleClearConfig}
           >
-            <Text style={styles.headerResetButtonText}>🔄</Text>
+            <Text allowFontScaling={false} style={styles.headerResetButtonText}>🔄</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -1497,7 +1507,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#2196F3" />
-        <Text style={styles.loadingText}>Loading...</Text>
+        <Text allowFontScaling={false} style={styles.loadingText}>Loading...</Text>
       </View>
     );
   }
@@ -2074,11 +2084,20 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  profileContainerSmall: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    gap: 12,
+  },
   profileIconSection: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    flex: 1,
+  },
+  profileButtonsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 0,
   },
   profileIcon: {
     fontSize: 28,

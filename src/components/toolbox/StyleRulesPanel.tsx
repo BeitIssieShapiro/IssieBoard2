@@ -77,13 +77,13 @@ export const StyleRulesPanel: React.FC<StyleRulesPanelProps> = ({
     if (visMode === 'hide') {
       indicators.push(
         <View key="hidden" style={[styles.indicator, styles.indicatorHidden]}>
-          <Text style={styles.indicatorTextHidden}>Hidden</Text>
+          <Text allowFontScaling={false} style={styles.indicatorTextHidden}>Hidden</Text>
         </View>
       );
     } else if (visMode === 'showOnly') {
       indicators.push(
         <View key="showOnly" style={[styles.indicator, styles.indicatorShowOnly]}>
-          <Text style={styles.indicatorTextShowOnly}>Show Only</Text>
+          <Text allowFontScaling={false} style={styles.indicatorTextShowOnly}>Show Only</Text>
         </View>
       );
     }
@@ -92,7 +92,7 @@ export const StyleRulesPanel: React.FC<StyleRulesPanelProps> = ({
     if (group.style.bgColor) {
       indicators.push(
         <View key="bg" style={styles.colorSwatchContainer}>
-          <Text style={styles.colorLabel}>BG:</Text>
+          <Text allowFontScaling={false} style={styles.colorLabel}>BG:</Text>
           <View 
             style={[styles.colorSwatch, { backgroundColor: group.style.bgColor }]} 
           />
@@ -104,7 +104,7 @@ export const StyleRulesPanel: React.FC<StyleRulesPanelProps> = ({
     if (group.style.color) {
       indicators.push(
         <View key="color" style={styles.colorSwatchContainer}>
-          <Text style={styles.colorLabel}>Text:</Text>
+          <Text allowFontScaling={false} style={styles.colorLabel}>Text:</Text>
           <View 
             style={[styles.colorSwatch, { backgroundColor: group.style.color }]} 
           />
@@ -125,7 +125,7 @@ export const StyleRulesPanel: React.FC<StyleRulesPanelProps> = ({
     <View style={styles.container}>
       {state.styleGroups.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>
+          <Text allowFontScaling={false} style={styles.emptyText}>
             No keys groups yet. Tap "New" to create one.
           </Text>
         </View>
@@ -148,17 +148,17 @@ export const StyleRulesPanel: React.FC<StyleRulesPanelProps> = ({
                     styles.checkbox,
                     isGroupActive && styles.checkboxChecked,
                   ]}>
-                    {isGroupActive && <Text style={styles.checkboxCheckmark}>✓</Text>}
+                    {isGroupActive && <Text allowFontScaling={false} style={styles.checkboxCheckmark}>✓</Text>}
                   </View>
                 </TouchableOpacity>
                 
                 {/* Group Name */}
-                <Text style={[styles.groupName, !isGroupActive && styles.groupNameInactive]} numberOfLines={1}>
+                <Text allowFontScaling={false} style={[styles.groupName, !isGroupActive && styles.groupNameInactive]} numberOfLines={1}>
                   {group.name}
                 </Text>
                 
                 {/* Member Count */}
-                <Text style={styles.memberCount}>({group.members.length})</Text>
+                <Text allowFontScaling={false} style={styles.memberCount}>({group.members.length})</Text>
                 
                 {/* Style Indicators - inline */}
                 <View style={styles.inlineStyleIndicators}>

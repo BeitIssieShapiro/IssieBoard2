@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
 
 export interface ButtonOption {
   id: string;
@@ -17,6 +17,7 @@ interface ButtonGroupRowProps {
 /**
  * Single-line row with title on left and button group on right
  * Button group has fixed ~200px width, aligned to right
+ * On small screens (< 700px), stacks vertically
  */
 export const ButtonGroupRow: React.FC<ButtonGroupRowProps> = ({
   title,
@@ -24,9 +25,12 @@ export const ButtonGroupRow: React.FC<ButtonGroupRowProps> = ({
   selectedId,
   onSelect,
 }) => {
+  const { width } = useWindowDimensions();
+  const isSmallScreen = width < 700;
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
+    <View style={[styles.container, isSmallScreen && styles.containerSmall]}>
+      <Text allowFontScaling={false} style={styles.title}>{title}</Text>
       <View style={styles.buttonGroup}>
         {options.map(option => (
           <TouchableOpacity
@@ -38,6 +42,7 @@ export const ButtonGroupRow: React.FC<ButtonGroupRowProps> = ({
             onPress={() => onSelect(option.id)}
           >
             <Text
+              allowFontScaling={false}
               style={[
                 styles.buttonText,
                 option.customStyle,
@@ -59,6 +64,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 20,
+  },
+  containerSmall: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 8,
   },
   title: {
     fontSize: 14,

@@ -186,7 +186,7 @@ export const KeyEditorPanel: React.FC = () => {
       {/* Header - Group Title when editing a group */}
       {isEditingGroup ? (
         <View style={styles.groupHeader}>
-          <Text style={styles.groupHeaderLabel}>Group Name:</Text>
+          <Text allowFontScaling={false} style={styles.groupHeaderLabel}>Group Name:</Text>
           <TextInput
             style={styles.groupNameInput}
             value={displayGroupName}
@@ -201,23 +201,23 @@ export const KeyEditorPanel: React.FC = () => {
             onPress={clearSelection}
             accessibilityLabel="Done editing"
           >
-            <Text style={styles.closeButtonText}>✕</Text>
+            <Text allowFontScaling={false} style={styles.closeButtonText}>✕</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Text style={styles.selectionLabel}>
+            <Text allowFontScaling={false} style={styles.selectionLabel}>
               {selectionCount} key{selectionCount > 1 ? 's' : ''}:
             </Text>
             <View style={styles.selectedChars}>
               {selectedKeyLabels.slice(0, 12).map((label, i) => (
                 <View key={i} style={styles.charBadge}>
-                  <Text style={styles.charBadgeText}>{label}</Text>
+                  <Text allowFontScaling={false} style={styles.charBadgeText}>{label}</Text>
                 </View>
               ))}
               {selectedKeyLabels.length > 12 && (
-                <Text style={styles.moreText}>+{selectedKeyLabels.length - 12}</Text>
+                <Text allowFontScaling={false} style={styles.moreText}>+{selectedKeyLabels.length - 12}</Text>
               )}
             </View>
           </View>
@@ -226,7 +226,7 @@ export const KeyEditorPanel: React.FC = () => {
             onPress={clearSelection}
             accessibilityLabel="Deselect all"
           >
-            <Text style={styles.closeButtonText}>✕</Text>
+            <Text allowFontScaling={false} style={styles.closeButtonText}>✕</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -234,17 +234,17 @@ export const KeyEditorPanel: React.FC = () => {
       {/* Selected Keys Summary (only when editing group) */}
       {isEditingGroup && (
         <View style={styles.keysSummary}>
-          <Text style={styles.keysSummaryLabel}>
+          <Text allowFontScaling={false} style={styles.keysSummaryLabel}>
             {selectionCount} key{selectionCount > 1 ? 's' : ''}:
           </Text>
           <View style={styles.selectedChars}>
             {selectedKeyLabels.slice(0, 12).map((label, i) => (
               <View key={i} style={styles.charBadge}>
-                <Text style={styles.charBadgeText}>{label}</Text>
+                <Text allowFontScaling={false} style={styles.charBadgeText}>{label}</Text>
               </View>
             ))}
             {selectedKeyLabels.length > 12 && (
-              <Text style={styles.moreText}>+{selectedKeyLabels.length - 12}</Text>
+              <Text allowFontScaling={false} style={styles.moreText}>+{selectedKeyLabels.length - 12}</Text>
             )}
           </View>
         </View>
@@ -253,7 +253,7 @@ export const KeyEditorPanel: React.FC = () => {
       {/* Active Group Indicator - only show when NOT editing a group */}
       {!isEditingGroup && keyGroups.length > 0 && (
         <View style={styles.groupsIndicator}>
-          <Text style={styles.groupsLabel}>In Groups:</Text>
+          <Text allowFontScaling={false} style={styles.groupsLabel}>In Groups:</Text>
           <View style={styles.groupTags}>
             {keyGroups.map(group => (
               <View 
@@ -263,12 +263,12 @@ export const KeyEditorPanel: React.FC = () => {
                   state.activeGroupId === group.id && styles.groupTagActive
                 ]}
               >
-                <Text style={styles.groupTagText}>{group.name}</Text>
+                <Text allowFontScaling={false} style={styles.groupTagText}>{group.name}</Text>
                 <TouchableOpacity
                   style={styles.groupTagDelete}
                   onPress={() => deleteGroup(group.id)}
                 >
-                  <Text style={styles.groupTagDeleteText}>×</Text>
+                  <Text allowFontScaling={false} style={styles.groupTagDeleteText}>×</Text>
                 </TouchableOpacity>
               </View>
             ))}
@@ -278,13 +278,13 @@ export const KeyEditorPanel: React.FC = () => {
 
       {/* Visibility Section */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Visibility</Text>
+        <Text allowFontScaling={false} style={styles.sectionTitle}>Visibility</Text>
         <VisibilityToggle
           visible={isVisible}
           onChange={handleVisibilityChange}
         />
         {!isVisible && (
-          <Text style={styles.hint}>
+          <Text allowFontScaling={false} style={styles.hint}>
             Hidden keys appear ghosted in Edit mode but are invisible to users.
             {keyGroups.length > 0 && ' Delete the group to restore visibility.'}
           </Text>
@@ -293,7 +293,7 @@ export const KeyEditorPanel: React.FC = () => {
 
       {/* Background Color Section */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Key Background Color</Text>
+        <Text allowFontScaling={false} style={styles.sectionTitle}>Key Background Color</Text>
         <ColorPicker
           value={computedStyle.bgColor || ''}
           onChange={handleColorChange}
@@ -304,7 +304,7 @@ export const KeyEditorPanel: React.FC = () => {
 
       {/* Text Color Section */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Text Color</Text>
+        <Text allowFontScaling={false} style={styles.sectionTitle}>Text Color</Text>
         <ColorPicker
           value={computedStyle.color || ''}
           onChange={handleTextColorChange}
@@ -320,8 +320,8 @@ export const KeyEditorPanel: React.FC = () => {
       {/* Custom Label Section (only for single key selection, non-special keys, not when editing group) */}
       {!isEditingGroup && !isSpecialKey && selectionCount === 1 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Custom Label</Text>
-          <Text style={styles.hint}>
+          <Text allowFontScaling={false} style={styles.sectionTitle}>Custom Label</Text>
+          <Text allowFontScaling={false} style={styles.hint}>
             Override the display text (original: {baseKey.value || 'N/A'})
           </Text>
           <TextInput
@@ -337,35 +337,35 @@ export const KeyEditorPanel: React.FC = () => {
       {/* Key Info - only show when not editing a group (activeGroupId is null) */}
       {!isEditingGroup && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Key Info</Text>
+          <Text allowFontScaling={false} style={styles.sectionTitle}>Key Info</Text>
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Position:</Text>
-            <Text style={styles.infoValue}>
+            <Text allowFontScaling={false} style={styles.infoLabel}>Position:</Text>
+            <Text allowFontScaling={false} style={styles.infoValue}>
               Row {selectedKeyId.rowIndex + 1}, Key {selectedKeyId.keyIndex + 1}
             </Text>
           </View>
           {baseKey.value && (
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Output:</Text>
-              <Text style={styles.infoValue}>"{baseKey.value}"</Text>
+              <Text allowFontScaling={false} style={styles.infoLabel}>Output:</Text>
+              <Text allowFontScaling={false} style={styles.infoValue}>"{baseKey.value}"</Text>
             </View>
           )}
           {baseKey.sValue && (
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Shift Output:</Text>
-              <Text style={styles.infoValue}>"{baseKey.sValue}"</Text>
+              <Text allowFontScaling={false} style={styles.infoLabel}>Shift Output:</Text>
+              <Text allowFontScaling={false} style={styles.infoValue}>"{baseKey.sValue}"</Text>
             </View>
           )}
           {baseKey.type && (
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Type:</Text>
-              <Text style={styles.infoValue}>{baseKey.type}</Text>
+              <Text allowFontScaling={false} style={styles.infoLabel}>Type:</Text>
+              <Text allowFontScaling={false} style={styles.infoValue}>{baseKey.type}</Text>
             </View>
           )}
           {baseKey.width && baseKey.width !== 1 && (
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Width:</Text>
-              <Text style={styles.infoValue}>{baseKey.width}x</Text>
+              <Text allowFontScaling={false} style={styles.infoLabel}>Width:</Text>
+              <Text allowFontScaling={false} style={styles.infoValue}>{baseKey.width}x</Text>
             </View>
           )}
         </View>

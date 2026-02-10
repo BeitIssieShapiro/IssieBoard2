@@ -62,6 +62,7 @@ data class Key(
     val hidden: Boolean? = null,
     val color: String? = null,
     val bgColor: String? = null,
+    val fontSize: Double? = null,  // Custom font size for this key (overrides default)
     val label: String? = null,
     val keysetValue: String? = null,
     val returnKeysetValue: String? = null,
@@ -292,6 +293,7 @@ data class ParsedKey(
     val hidden: Boolean,
     val textColor: Int,
     val backgroundColor: Int,
+    val fontSize: Double?,  // Custom font size (null = use default)
     val label: String,
     val keysetValue: String,
     val returnKeysetValue: String,
@@ -354,6 +356,7 @@ data class ParsedKey(
                 hidden = hidden,
                 textColor = textColor,
                 backgroundColor = backgroundColor,
+                fontSize = key.fontSize,  // Pass through custom font size
                 label = label,
                 keysetValue = keysetValue,
                 returnKeysetValue = returnKeysetValue,

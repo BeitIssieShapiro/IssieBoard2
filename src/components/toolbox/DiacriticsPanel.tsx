@@ -48,8 +48,8 @@ const NikkudKey: React.FC<NikkudKeyProps> = ({
       onPress={onToggle}
       activeOpacity={0.7}
     >
-      <Text style={styles.nikkudKeySample}>{sample}</Text>
-      <Text style={styles.nikkudKeyName}>{item.name}</Text>
+      <Text allowFontScaling={false} style={styles.nikkudKeySample}>{sample}</Text>
+      <Text allowFontScaling={false} style={styles.nikkudKeyName}>{item.name}</Text>
     </TouchableOpacity>
   );
 };
@@ -191,7 +191,7 @@ export const DiacriticsPanel: React.FC = () => {
   if (!diacritics) {
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>
+        <Text allowFontScaling={false} style={styles.emptyText}>
           No diacritics available for this keyboard.
         </Text>
       </View>
@@ -223,7 +223,7 @@ export const DiacriticsPanel: React.FC = () => {
       {/* Custom Mode - Show all nikkud options as toggleable keys */}
       {currentMode === 'custom' && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Diacritics</Text>
+          <Text allowFontScaling={false} style={styles.sectionTitle}>Diacritics</Text>
           <View style={styles.nikkudGrid}>
             {allItems.map(item => (
               <NikkudKey
@@ -241,15 +241,15 @@ export const DiacriticsPanel: React.FC = () => {
       {/* Modifiers - Show for all modes except None */}
       {currentMode !== 'none' && modifiers.length > 0 && (
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, currentMode === 'custom' && { marginTop: 16 }]}>
+          <Text allowFontScaling={false} style={[styles.sectionTitle, currentMode === 'custom' && { marginTop: 16 }]}>
             Modifiers
           </Text>
           {modifiers.map((modifier) => (
             <View key={modifier.id} style={styles.modifierRow}>
               <View style={styles.modifierInfo}>
-                <Text style={styles.modifierName}>{modifier.name}</Text>
+                <Text allowFontScaling={false} style={styles.modifierName}>{modifier.name}</Text>
                 {modifier.options && modifier.options.length > 0 && (
-                  <Text style={styles.modifierOptions}>
+                  <Text allowFontScaling={false} style={styles.modifierOptions}>
                     {modifier.options.map(opt => opt.name).join(', ')}
                   </Text>
                 )}

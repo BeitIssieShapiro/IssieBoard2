@@ -148,11 +148,11 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
 
       {/* 6. Features */}
       <View style={styles.section}>
-        <Text style={styles.settingTitle}>Features</Text>
+        <Text allowFontScaling={false} style={styles.settingTitle}>Features</Text>
         <View style={styles.featureRow}>
           <View style={styles.featureInfo}>
-            <Text style={styles.featureLabel}>Word Suggestions</Text>
-            <Text style={styles.featureDescription}>
+            <Text allowFontScaling={false} style={styles.featureLabel}>Word Suggestions</Text>
+            <Text allowFontScaling={false} style={styles.featureDescription}>
               Show word completion suggestions above keyboard
             </Text>
           </View>
@@ -165,8 +165,8 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
         </View>
         <View style={styles.featureRow}>
           <View style={styles.featureInfo}>
-            <Text style={styles.featureLabel}>Auto-Correct</Text>
-            <Text style={styles.featureDescription}>
+            <Text allowFontScaling={false} style={styles.featureLabel}>Auto-Correct</Text>
+            <Text allowFontScaling={false} style={styles.featureDescription}>
               Replace typed word with suggestion when pressing space
             </Text>
           </View>
@@ -180,8 +180,8 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
         </View>
         <View style={styles.featureRow}>
           <View style={styles.featureInfo}>
-            <Text style={styles.featureLabel}>Settings Button</Text>
-            <Text style={styles.featureDescription}>
+            <Text allowFontScaling={false} style={styles.featureLabel}>Settings Button</Text>
+            <Text allowFontScaling={false} style={styles.featureDescription}>
               Show settings button on keyboard
             </Text>
           </View>

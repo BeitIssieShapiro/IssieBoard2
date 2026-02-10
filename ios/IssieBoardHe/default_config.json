@@ -180,7 +180,10 @@
           "keys": [
             {
               "width": 0.5,
-              "hidden": true
+              "hidden": true,
+              "showOn": [
+                "mobile"
+              ]
             },
             {
               "value": ",",
@@ -232,6 +235,13 @@
         {
           "keys": [
             {
+              "width": 0.5,
+              "hidden": true,
+              "showOn": [
+                "large-screen"
+              ]
+            },
+            {
               "value": "ש"
             },
             {
@@ -267,7 +277,17 @@
           "keys": [
             {
               "width": 0.5,
-              "hidden": true
+              "hidden": true,
+              "showOn": [
+                "mobile"
+              ]
+            },
+            {
+              "width": 1,
+              "hidden": true,
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "value": "ז"
@@ -295,6 +315,13 @@
             },
             {
               "value": "ץ"
+            },
+            {
+              "type": "enter",
+              "width": 1.5,
+              "showOn": [
+                "large-screen"
+              ]
             }
           ]
         },
@@ -332,13 +359,18 @@
             },
             {
               "type": "close",
+              "label": "⌨️⏷",
+              "fontSize": 29,
               "showOn": [
                 "large-screen"
               ]
             },
             {
               "type": "enter",
-              "width": 1.5
+              "width": 1.5,
+              "showOn": [
+                "mobile"
+              ]
             }
           ]
         }
@@ -486,13 +518,18 @@
             },
             {
               "type": "close",
+              "label": "⌨️⏷",
+              "fontSize": 29,
               "showOn": [
                 "large-screen"
               ]
             },
             {
               "type": "enter",
-              "width": 1.5
+              "width": 1.5,
+              "showOn": [
+                "mobile"
+              ]
             }
           ]
         }
@@ -642,13 +679,18 @@
             },
             {
               "type": "close",
+              "label": "⌨️⏷",
+              "fontSize": 29,
               "showOn": [
                 "large-screen"
               ]
             },
             {
               "type": "enter",
-              "width": 1.5
+              "width": 1.5,
+              "showOn": [
+                "mobile"
+              ]
             }
           ]
         }

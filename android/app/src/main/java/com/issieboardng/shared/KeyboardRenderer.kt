@@ -1025,11 +1025,18 @@ class KeyboardRenderer(private val context: Context) {
             if (!isNikkudKey) {
                 text = finalText
                 
-                // Font size
-                val isLargeKey = listOf("shift", "backspace", "enter").contains(key.type.lowercase())
-                val isMultiChar = finalText.length > 1
+            // Font size - check for custom fontSize first, then use defaults
+            val isLargeKey = listOf("shift", "backspace", "enter").contains(key.type.lowercase())
+            val isMultiChar = finalText.length > 1
+            
+            textSize = if (key.fontSize != null) {
+                // Use custom font size if specified
+                key.fontSize.toFloat()
+            } else {
+                // Use default sizing logic
                 val baseFontSize = if (isLargeKey) largeFontSize else fontSize
-                textSize = if (isMultiChar) minOf(baseFontSize * 0.7f, 14f) else baseFontSize
+                if (isMultiChar) minOf(baseFontSize * 0.7f, 14f) else baseFontSize
+            }
                 
                 // Text color
                 setTextColor(if (key.textColor == Color.BLACK) Color.BLACK else key.textColor)
@@ -1054,6 +1061,10 @@ class KeyboardRenderer(private val context: Context) {
                         // Load font from assets/fonts/
                         val typeface = Typeface.createFromAsset(context.assets, "fonts/$fontName")
                         setTypeface(typeface, Typeface.NORMAL)
+                        // Add spacing for single character labels when using custom font to prevent glyph cutoff
+                        if (finalText.length == 1) {
+                            text = " $finalText "
+                        }
                     }
                 } catch (e: Exception) {
                     debugLog("⚠️ Failed to load custom font: ${e.message}")

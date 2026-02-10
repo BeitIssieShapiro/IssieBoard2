@@ -74,7 +74,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
 
   return (
     <View style={styles.container}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && <Text allowFontScaling={false} style={styles.label}>{label}</Text>}
       
       <View style={styles.presetsRow}>
         {/* System Default Button */}
@@ -88,7 +88,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
             accessibilityLabel={`Select ${systemDefaultLabel}`}
             accessibilityRole="button"
           >
-            <Text style={[
+            <Text allowFontScaling={false} style={[
               styles.systemDefaultText,
               isSystemDefaultSelected && styles.systemDefaultTextSelected,
             ]}>
@@ -129,7 +129,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
             accessibilityLabel="Select custom color"
             accessibilityRole="button"
           >
-            <Text style={styles.customButtonText}>...</Text>
+            <Text allowFontScaling={false} style={styles.customButtonText}>...</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -146,7 +146,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
           onPress={() => setShowCustomModal(false)}
         >
           <Pressable style={styles.modalContent} onPress={e => e.stopPropagation()}>
-            <Text style={styles.modalTitle}>Custom Color</Text>
+            <Text allowFontScaling={false} style={styles.modalTitle}>Custom Color</Text>
             
             <View style={styles.customInputRow}>
               <TextInput
@@ -161,20 +161,20 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
               <View style={[styles.previewSwatch, { backgroundColor: customColor }]} />
             </View>
             
-            <Text style={styles.hint}>Enter a hex color code (e.g., #FF5733)</Text>
+            <Text allowFontScaling={false} style={styles.hint}>Enter a hex color code (e.g., #FF5733)</Text>
             
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={[styles.modalButton, styles.cancelButton]}
                 onPress={() => setShowCustomModal(false)}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text allowFontScaling={false} style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalButton, styles.applyButton]}
                 onPress={handleCustomSubmit}
               >
-                <Text style={styles.applyButtonText}>Apply</Text>
+                <Text allowFontScaling={false} style={styles.applyButtonText}>Apply</Text>
               </TouchableOpacity>
             </View>
           </Pressable>

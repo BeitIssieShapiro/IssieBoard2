@@ -44,7 +44,7 @@
       "rows": [
         {
           "keys": [
-            { "width": 0.5, "hidden": true},
+            { "width": 0.5, "hidden": true, "showOn": ["mobile"]},
             { "value": ",", "showOn": ["large-screen"] },
             { "value": ".", "showOn": ["large-screen"] },
             { "value": "ק" },
@@ -61,6 +61,7 @@
         },
         {
           "keys": [
+            { "width": 0.5, "hidden": true, "showOn": ["large-screen"]},
             { "value": "ש" },
             { "value": "ד" },
             { "value": "ג" },
@@ -75,7 +76,8 @@
         },
         {
           "keys": [
-            { "width": 0.5, "hidden": true},
+            { "width": 0.5, "hidden": true, "showOn": ["mobile"]},
+            { "width": 1, "hidden": true, "showOn": ["large-screen"]},
             { "value": "ז" },
             { "value": "ס" },
             { "value": "ב" },
@@ -84,7 +86,8 @@
             { "value": "מ" },
             { "value": "צ" },
             { "value": "ת" },
-            { "value": "ץ" }
+            { "value": "ץ" },
+            { "type": "enter", "width": 1.5, "showOn": [ "large-screen" ] }
           ]
         },
         {
@@ -96,8 +99,8 @@
             { "type": "settings" },
             { "caption": "רווח", "value": " ", "width": 4, "flex": true },
             { "type": "nikkud" },
-            { "type": "close" , "showOn": [ "large-screen" ] },
-            { "type": "enter", "width": 1.5 }
+            { "type": "close" , "label": "⌨️⏷", "fontSize": 29, "showOn": [ "large-screen" ] },
+            { "type": "enter", "width": 1.5, "showOn": [ "mobile" ] }
           ]
         }
       ]

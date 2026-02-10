@@ -36,7 +36,7 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text style={[
+      <Text allowFontScaling={false} style={[
         styles.label,
         styles.labelOff,
         !value && styles.activeLabel,
@@ -76,7 +76,7 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
         </View>
       </TouchableOpacity>
       
-      <Text style={[
+      <Text allowFontScaling={false} style={[
         styles.label,
         styles.labelOn,
         value && styles.activeLabel,
@@ -115,8 +115,8 @@ export const VisibilityToggle: React.FC<VisibilityToggleProps> = ({
       accessibilityLabel={visible ? 'Key is visible, tap to hide' : 'Key is hidden, tap to show'}
     >
       <View style={styles.visibilityContent}>
-        <Text style={styles.visibilityIcon}>{visible ? '👁️' : '👁️‍🗨️'}</Text>
-        <Text style={[
+        <Text allowFontScaling={false} style={styles.visibilityIcon}>{visible ? '👁️' : '👁️‍🗨️'}</Text>
+        <Text allowFontScaling={false} style={[
           styles.visibilityText,
           visible ? styles.visibilityTextVisible : styles.visibilityTextHidden,
         ]}>

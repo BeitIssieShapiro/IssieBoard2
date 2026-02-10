@@ -105,7 +105,14 @@ class KeyboardRenderer {
     }
     
     // UI Constants - same for preview and keyboard
-    private let rowHeight: CGFloat = 54  // Increased from 44 for taller keys
+    // Dynamic row height: 54px base, +20px on iPad when NOT in preview mode
+    private var rowHeight: CGFloat {
+        let baseHeight: CGFloat = 54
+        if isLargeScreen && !isPreviewMode {
+            return baseHeight + 20  // 74px on iPad actual keyboard
+        }
+        return baseHeight  // 54px otherwise
+    }
     private let keySpacing: CGFloat = 0       // No spacing between key tap areas
     private let keyInternalPadding: CGFloat = 3  // Visual gap between keys (internal margin)
     private let rowSpacing: CGFloat = 0       // No spacing between row tap areas (visual gap from keyInternalPadding)
@@ -178,6 +185,7 @@ class KeyboardRenderer {
                 hidden: nil,
                 color: nil,
                 bgColor: nil,
+                fontSize: nil,
                 label: nil,
                 keysetValue: nil,
                 returnKeysetValue: nil,
@@ -644,8 +652,13 @@ class KeyboardRenderer {
         // Get current field type for showForField filtering
         let fieldType = editorContext?.fieldType
         
-        // FIRST PASS: Calculate hidden width due to showOn/showForField filters and count flex keys
-        var hiddenWidthFromShowOn: Double = 0
+        // FIRST PASS: Calculate hidden width to redistribute and count flex keys
+        // We redistribute width from:
+        // 1. Keys hidden by showForField (these ARE in baseline)
+        // 2. next-keyboard when showGlobeButton is false (this IS in baseline)
+        // 3. language when hasOnlyOneLanguage is true (this IS in baseline)
+        // We do NOT redistribute from showOn-hidden keys (these are NOT in baseline)
+        var hiddenWidthToRedistribute: Double = 0
         var flexKeyCount = 0
         
         for key in row.keys {
@@ -655,38 +668,42 @@ class KeyboardRenderer {
             
             let keyType = parsedKey.type.lowercased()
             
-            // Skip language/next-keyboard keys
-            if keyType == "language" && hasOnlyOneLanguage || keyType == "next-keyboard" && !showGlobeButton {
+            // Check for hidden language/next-keyboard keys - these ARE in baseline, so redistribute
+            if keyType == "language" && hasOnlyOneLanguage {
+                hiddenWidthToRedistribute += parsedKey.width
+                continue
+            }
+            if keyType == "next-keyboard" && !showGlobeButton {
+                hiddenWidthToRedistribute += parsedKey.width
                 continue
             }
             
-            // Skip nikkud key if disabled
+            // Check for hidden nikkud key - this IS in baseline, so redistribute
             if keyType == "nikkud" && isNikkudDisabled {
+                hiddenWidthToRedistribute += parsedKey.width
                 continue
             }
             
-            // Check if key is hidden due to showOn filter (screen size)
+            // Skip keys hidden by showOn filter - these are NOT in baseline, so don't count them
             if !key.shouldShow(isLargeScreen: isLargeScreen) {
-                // Accumulate the width of hidden keys
-                hiddenWidthFromShowOn += parsedKey.width
                 continue
             }
             
             // Check if key is hidden due to showForField filter (field type)
+            // These keys ARE in baseline, so we need to redistribute their width
             if !key.shouldShow(forFieldType: fieldType) {
-                // Accumulate the width of hidden keys
-                hiddenWidthFromShowOn += parsedKey.width
+                hiddenWidthToRedistribute += parsedKey.width
                 continue
             }
             
-            // Count flex keys
+            // Count flex keys (only visible flex keys)
             if key.flex == true {
                 flexKeyCount += 1
             }
         }
         
         // Calculate extra width per flex key
-        let extraWidthPerFlexKey: Double = flexKeyCount > 0 ? hiddenWidthFromShowOn / Double(flexKeyCount) : 0
+        let extraWidthPerFlexKey: Double = flexKeyCount > 0 ? hiddenWidthToRedistribute / Double(flexKeyCount) : 0
         
         // SECOND PASS: Render keys with redistributed width and track edge keys
         for key in row.keys {
@@ -746,7 +763,8 @@ class KeyboardRenderer {
                     effectiveWidth += extraWidthPerFlexKey
                 }
                 
-                let keyWidth = (CGFloat(effectiveWidth) / baselineWidth) * availableWidth - keySpacing
+                // Calculate pixel width - the keySpacing of 0 means we don't need to subtract anything
+                let keyWidth = (CGFloat(effectiveWidth) / baselineWidth) * availableWidth
                 let button = createKeyButton(parsedKey, width: keyWidth, height: rowHeight, 
                                             editorContext: editorContext,
                                             isSelected: isSelected)
@@ -1039,15 +1057,23 @@ class KeyboardRenderer {
             label.text = finalText
         }
         
-        // Font size - special handling for nikkud key when showing just the diacritic mark
+        // Font size - check for custom fontSize first, then use defaults
         let isLargeKey = ["shift", "backspace", "enter"].contains(key.type.lowercased())
         let isMultiChar = finalText.count > 1
-        let baseFontSize: CGFloat = isLargeKey ? largeFontSize : fontSize
-        var finalFontSize = isMultiChar ? min(baseFontSize * 0.7, 14) : baseFontSize
         
-        // Make nikkud diacritic mark larger and use bold weight for visibility
-        if isNikkudKey {
-            finalFontSize = 36  // Extra large for the diacritic mark to be readable
+        var finalFontSize: CGFloat
+        if let customFontSize = key.fontSize {
+            // Use custom font size if specified
+            finalFontSize = CGFloat(customFontSize)
+        } else {
+            // Use default sizing logic
+            let baseFontSize: CGFloat = isLargeKey ? largeFontSize : fontSize
+            finalFontSize = isMultiChar ? min(baseFontSize * 0.7, 14) : baseFontSize
+            
+            // Make nikkud diacritic mark larger for visibility
+            if isNikkudKey {
+                finalFontSize = 36
+            }
         }
         
         let fontWeight: UIFont.Weight = .regular
@@ -1070,8 +1096,12 @@ class KeyboardRenderer {
         
         let shouldUseCustomFont = isCharacterKey && isAbcKeyset && config?.fontName != nil
         
-        if shouldUseCustomFont, let fontName = config?.fontName, let customFont = UIFont(name: fontName, size: finalFontSize) {
+        if shouldUseCustomFont, let fontName = config?.fontName, let customFont = UIFont(name: fontName, size: finalFontSize + 2) {
             label.font = customFont
+            // Add spacing for single character labels when using custom font to prevent glyph cutoff
+            if finalText.count == 1 {
+                label.text = " \(finalText) "
+            }
         } else {
             label.font = UIFont.systemFont(ofSize: finalFontSize, weight: fontWeight)
         }
@@ -1767,6 +1797,7 @@ class KeyboardRenderer {
             hidden: false,
             color: nil,
             bgColor: nil,
+            fontSize: nil,
             label: label,
             keysetValue: keysetValue,
             returnKeysetValue: returnKeysetValue,
@@ -1824,6 +1855,7 @@ class KeyboardRenderer {
                 hidden: nil,
                 color: nil,
                 bgColor: nil,
+                fontSize: nil,
                 label: nil,
                 keysetValue: nil,
                 returnKeysetValue: nil,

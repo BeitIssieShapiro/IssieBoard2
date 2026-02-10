@@ -17,7 +17,10 @@
           "keys": [
             {
               "width": 0.5,
-              "hidden": true
+              "hidden": true,
+              "showOn": [
+                "mobile"
+              ]
             },
             {
               "value": ",",
@@ -69,6 +72,13 @@
         {
           "keys": [
             {
+              "width": 0.5,
+              "hidden": true,
+              "showOn": [
+                "large-screen"
+              ]
+            },
+            {
               "value": "ש"
             },
             {
@@ -104,7 +114,17 @@
           "keys": [
             {
               "width": 0.5,
-              "hidden": true
+              "hidden": true,
+              "showOn": [
+                "mobile"
+              ]
+            },
+            {
+              "width": 1,
+              "hidden": true,
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "value": "ז"
@@ -132,6 +152,13 @@
             },
             {
               "value": "ץ"
+            },
+            {
+              "type": "enter",
+              "width": 1.5,
+              "showOn": [
+                "large-screen"
+              ]
             }
           ]
         },
@@ -169,13 +196,18 @@
             },
             {
               "type": "close",
+              "label": "⌨️⏷",
+              "fontSize": 29,
               "showOn": [
                 "large-screen"
               ]
             },
             {
               "type": "enter",
-              "width": 1.5
+              "width": 1.5,
+              "showOn": [
+                "mobile"
+              ]
             }
           ]
         }
@@ -323,13 +355,18 @@
             },
             {
               "type": "close",
+              "label": "⌨️⏷",
+              "fontSize": 29,
               "showOn": [
                 "large-screen"
               ]
             },
             {
               "type": "enter",
-              "width": 1.5
+              "width": 1.5,
+              "showOn": [
+                "mobile"
+              ]
             }
           ]
         }
@@ -479,13 +516,18 @@
             },
             {
               "type": "close",
+              "label": "⌨️⏷",
+              "fontSize": 29,
               "showOn": [
                 "large-screen"
               ]
             },
             {
               "type": "enter",
-              "width": 1.5
+              "width": 1.5,
+              "showOn": [
+                "mobile"
+              ]
             }
           ]
         }
@@ -587,6 +629,13 @@
             {
               "value": "l",
               "sValue": "L"
+            },
+            {
+              "type": "enter",
+              "width": 2,
+              "showOn": [
+                "large-screen"
+              ]
             }
           ]
         },
@@ -594,7 +643,17 @@
           "keys": [
             {
               "type": "shift",
-              "width": 1.5
+              "width": 1.5,
+              "showOn": [
+                "mobile"
+              ]
+            },
+            {
+              "type": "shift",
+              "width": 1,
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "value": "z",
@@ -634,12 +693,21 @@
             },
             {
               "value": ",",
+              "sValue": "!",
               "showOn": [
                 "large-screen"
               ]
             },
             {
               "value": ".",
+              "sValue": "?",
+              "showOn": [
+                "large-screen"
+              ]
+            },
+            {
+              "type": "shift",
+              "width": 1.5,
               "showOn": [
                 "large-screen"
               ]
@@ -649,16 +717,19 @@
         {
           "keys": [
             {
-              "type": "next-keyboard",
-              "width": 1
-            },
-            {
               "type": "keyset",
               "keysetValue": "en_123",
               "returnKeysetValue": "en_abc",
               "label": "123",
               "returnKeysetLabel": "ABC",
-              "width": 1.5
+              "width": 1
+            },
+            {
+              "type": "next-keyboard",
+              "width": 1
+            },
+            {
+              "type": "settings"
             },
             {
               "hidden": true,
@@ -666,9 +737,6 @@
               "showOn": [
                 "large-screen"
               ]
-            },
-            {
-              "type": "settings"
             },
             {
               "caption": "SPACE",
@@ -692,13 +760,29 @@
               ]
             },
             {
-              "type": "close",
+              "type": "keyset",
+              "keysetValue": "en_123",
+              "returnKeysetValue": "en_abc",
+              "label": "123",
+              "returnKeysetLabel": "ABC",
+              "width": 1,
               "showOn": [
                 "large-screen"
               ]
             },
             {
-              "type": "enter"
+              "type": "close",
+              "label": "⌨️⏷",
+              "fontSize": 29,
+              "showOn": [
+                "large-screen"
+              ]
+            },
+            {
+              "type": "enter",
+              "showOn": [
+                "mobile"
+              ]
             }
           ]
         }
@@ -816,16 +900,19 @@
         {
           "keys": [
             {
-              "type": "next-keyboard",
-              "width": 1
-            },
-            {
               "type": "keyset",
               "keysetValue": "en_abc",
               "returnKeysetValue": "en_123",
               "label": "ABC",
               "returnKeysetLabel": "123",
-              "width": 1.5
+              "width": 1
+            },
+            {
+              "type": "next-keyboard",
+              "width": 1
+            },
+            {
+              "type": "settings"
             },
             {
               "hidden": true,
@@ -833,9 +920,6 @@
               "showOn": [
                 "large-screen"
               ]
-            },
-            {
-              "type": "settings"
             },
             {
               "caption": "SPACE",
@@ -859,13 +943,29 @@
               ]
             },
             {
-              "type": "close",
+              "type": "keyset",
+              "keysetValue": "en_abc",
+              "returnKeysetValue": "en_123",
+              "label": "ABC",
+              "returnKeysetLabel": "123",
+              "width": 1,
               "showOn": [
                 "large-screen"
               ]
             },
             {
-              "type": "enter"
+              "type": "close",
+              "label": "⌨️⏷",
+              "fontSize": 29,
+              "showOn": [
+                "large-screen"
+              ]
+            },
+            {
+              "type": "enter",
+              "showOn": [
+                "mobile"
+              ]
             }
           ]
         }
@@ -983,16 +1083,19 @@
         {
           "keys": [
             {
-              "type": "next-keyboard",
-              "width": 1
-            },
-            {
               "type": "keyset",
               "keysetValue": "en_abc",
               "returnKeysetValue": "en_#+=",
               "label": "ABC",
               "returnKeysetLabel": "123",
-              "width": 1.5
+              "width": 1
+            },
+            {
+              "type": "next-keyboard",
+              "width": 1
+            },
+            {
+              "type": "settings"
             },
             {
               "hidden": true,
@@ -1000,9 +1103,6 @@
               "showOn": [
                 "large-screen"
               ]
-            },
-            {
-              "type": "settings"
             },
             {
               "caption": "SPACE",
@@ -1026,13 +1126,29 @@
               ]
             },
             {
-              "type": "close",
+              "type": "keyset",
+              "keysetValue": "en_abc",
+              "returnKeysetValue": "en_#+=",
+              "label": "ABC",
+              "returnKeysetLabel": "123",
+              "width": 1,
               "showOn": [
                 "large-screen"
               ]
             },
             {
-              "type": "enter"
+              "type": "close",
+              "label": "⌨️⏷",
+              "fontSize": 29,
+              "showOn": [
+                "large-screen"
+              ]
+            },
+            {
+              "type": "enter",
+              "showOn": [
+                "mobile"
+              ]
             }
           ]
         }

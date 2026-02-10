@@ -179,9 +179,9 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
     <View style={styles.container}>
       {/* Preview Header */}
       <View style={styles.previewHeader}>
-        <Text style={styles.previewLabel}>Preview</Text>
+        <Text allowFontScaling={false} style={styles.previewLabel}>Preview</Text>
         <View style={styles.languageBadge}>
-          <Text style={styles.languageBadgeText}>
+          <Text allowFontScaling={false} style={styles.languageBadgeText}>
             {languageDisplayName}
           </Text>
         </View>

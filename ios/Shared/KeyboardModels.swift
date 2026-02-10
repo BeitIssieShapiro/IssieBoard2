@@ -81,6 +81,7 @@ struct Key: Codable {
     let hidden: Bool?
     let color: String?
     let bgColor: String?
+    let fontSize: Double?  // Custom font size for this key (overrides default)
     let label: String?
     let keysetValue: String?
     let returnKeysetValue: String?
@@ -101,6 +102,7 @@ struct Key: Codable {
         case hidden
         case color
         case bgColor
+        case fontSize
         case label
         case keysetValue
         case returnKeysetValue
@@ -343,6 +345,7 @@ struct ParsedKey {
     let hidden: Bool
     let textColor: UIColor
     let backgroundColor: UIColor
+    let fontSize: Double?  // Custom font size (nil = use default)
     let label: String
     let keysetValue: String
     let returnKeysetValue: String
@@ -357,6 +360,7 @@ struct ParsedKey {
         self.caption = key.caption ?? value
         self.sCaption = key.sCaption ?? (key.sValue ?? (key.caption ?? value))
         self.type = keyType
+        self.fontSize = key.fontSize  // Pass through custom font size
         self.label = key.label ?? ""
         self.keysetValue = key.keysetValue ?? ""
         self.returnKeysetValue = key.returnKeysetValue ?? ""

@@ -100,12 +100,12 @@ export const Toolbox: React.FC<ToolboxProps> = ({
           activeOpacity={0.7}
         >
           <View style={styles.accordionHeaderContent}>
-            <Text style={styles.accordionHeaderText}>{title}</Text>
-            {badge && <Text style={styles.accordionBadge}>{badge}</Text>}
+            <Text allowFontScaling={false} style={styles.accordionHeaderText}>{title}</Text>
+            {badge && <Text allowFontScaling={false} style={styles.accordionBadge}>{badge}</Text>}
           </View>
           <View style={styles.accordionHeaderActions}>
             {actionButton}
-            <Text style={styles.accordionIcon}>{isOpen ? '▴' : '▾'}</Text>
+            <Text allowFontScaling={false} style={styles.accordionIcon}>{isOpen ? '▴' : '▾'}</Text>
           </View>
         </TouchableOpacity>
         {isOpen && (

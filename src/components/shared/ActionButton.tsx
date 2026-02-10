@@ -29,8 +29,8 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
       onPress={onPress}
       disabled={disabled}
     >
-      {icon && <Text style={styles.actionButtonIcon}>{icon}</Text>}
-      <Text style={styles.actionButtonText}>{label}</Text>
+      {icon && <Text allowFontScaling={false} style={styles.actionButtonIcon}>{icon}</Text>}
+      <Text allowFontScaling={false} style={styles.actionButtonText}>{label}</Text>
     </TouchableOpacity>
   );
 };

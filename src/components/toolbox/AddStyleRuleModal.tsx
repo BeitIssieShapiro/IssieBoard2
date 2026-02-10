@@ -300,7 +300,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
         <View style={styles.modalContainer}>
           {/* Header with title and action buttons */}
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>
+            <Text allowFontScaling={false} style={styles.headerTitle}>
               {editingGroup ? 'Edit Keys Group' : 'New Keys Group'}
             </Text>
             <View style={styles.headerActions}>
@@ -320,7 +320,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
 
           {/* Name input row */}
           <View style={styles.nameRow}>
-            <Text style={styles.nameLabel}>Name:</Text>
+            <Text allowFontScaling={false} style={styles.nameLabel}>Name:</Text>
             <TextInput
               style={styles.nameInput}
               value={ruleName}
@@ -333,15 +333,15 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
             {/* Keys with inline badges and Preview */}
             <View style={styles.section}>
               <View style={styles.keysRow}>
-                <Text style={styles.sectionTitle}>Keys:</Text>
+                <Text allowFontScaling={false} style={styles.sectionTitle}>Keys:</Text>
                 <View style={styles.inlineKeysList}>
                   {selectedKeyValues.slice(0, 7).map((keyValue, index) => (
                     <View key={index} style={styles.keyBadge}>
-                      <Text style={styles.keyBadgeText}>{getKeyDisplay(keyValue)}</Text>
+                      <Text allowFontScaling={false} style={styles.keyBadgeText}>{getKeyDisplay(keyValue)}</Text>
                     </View>
                   ))}
                   {selectedKeyValues.length > 7 && (
-                    <Text style={styles.ellipsisText}>...</Text>
+                    <Text allowFontScaling={false} style={styles.ellipsisText}>...</Text>
                   )}
                 </View>
               </View>
@@ -369,12 +369,12 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
                 onSelect={(id) => setVisibilityMode(id as VisibilityMode)}
               />
               {visibilityMode === 'showOnly' && (
-                <Text style={styles.visibilityHint}>
+                <Text allowFontScaling={false} style={styles.visibilityHint}>
                   ⓘ All keys except these will be hidden
                 </Text>
               )}
               {visibilityMode === 'hide' && (
-                <Text style={styles.visibilityHint}>
+                <Text allowFontScaling={false} style={styles.visibilityHint}>
                   ⓘ Colors are not applicable for hidden keys
                 </Text>
               )}
@@ -409,8 +409,8 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
             {/* Active Toggle - at the end */}
             <View style={styles.optionRow}>
               <View style={styles.optionInfo}>
-                <Text style={styles.optionLabel}>Active</Text>
-                <Text style={styles.optionDescription}>Apply this rule to the keyboard</Text>
+                <Text allowFontScaling={false} style={styles.optionLabel}>Active</Text>
+                <Text allowFontScaling={false} style={styles.optionDescription}>Apply this rule to the keyboard</Text>
               </View>
               <Switch
                 value={isActive}

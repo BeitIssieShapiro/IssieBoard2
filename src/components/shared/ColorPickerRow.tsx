@@ -29,7 +29,7 @@ export const ColorPickerRow: React.FC<ColorPickerRowProps> = ({
 }) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
+      <Text allowFontScaling={false} style={styles.title}>{title}</Text>
       <ColorPicker
         value={value}
         onChange={onChange}
