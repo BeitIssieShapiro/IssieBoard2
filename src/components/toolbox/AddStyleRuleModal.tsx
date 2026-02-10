@@ -20,6 +20,10 @@ interface AddStyleRuleModalProps {
   visible: boolean;
   editingGroup: StyleGroup | null;
   initialSelectedKeys?: string[]; // Pre-selected key values when creating new rule
+  initialName?: string; // Pre-filled name when creating from template
+  initialBgColor?: string; // Pre-filled background color when creating from template
+  initialTextColor?: string; // Pre-filled text color when creating from template
+  initialVisibilityMode?: VisibilityMode; // Pre-filled visibility mode when creating from template
   onClose: () => void;
 }
 
@@ -27,6 +31,10 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
   visible,
   editingGroup,
   initialSelectedKeys,
+  initialName,
+  initialBgColor,
+  initialTextColor,
+  initialVisibilityMode,
   onClose,
 }) => {
   const { 
@@ -95,12 +103,12 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
         }
         setIsActive(editingGroup.active !== false);
       } else {
-        // New rule - use initial selected keys if provided
-        setRuleName(generateRuleName());
+        // New rule - use initial values if provided (from template)
+        setRuleName(initialName || generateRuleName());
         setSelectedKeyValues(initialSelectedKeys || []);
-        setBgColor('');
-        setTextColor('');
-        setVisibilityMode('default');
+        setBgColor(initialBgColor || '');
+        setTextColor(initialTextColor || '');
+        setVisibilityMode(initialVisibilityMode || 'default');
         setIsActive(true);
       }
       // Reset predefined rules browser state when opening

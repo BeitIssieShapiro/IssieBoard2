@@ -173,6 +173,7 @@ class KeyboardPreviewView: UIView {
         switch key.type.lowercased() {
         case "backspace":
             handleBackspace()
+            return  // Don't call emitKeyPress - handleBackspace already emits
             
         case "enter", "action":
             typedText += "\n"

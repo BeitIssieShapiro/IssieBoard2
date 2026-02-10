@@ -30,3 +30,5 @@ feedback:
 - word prediction
 - nikkud and settings button (svg) should take color from key color
 
+-good.
+now last change: In Preview only, in shift mode (not a locked shift), do not turn off shift when clicking something . because I want to be able to select few keys under shift

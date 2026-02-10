@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, FlatList } from 'react-native';
 import { useEditor, getKeyValueFromPositionId } from '../../context/EditorContext';
 import { GlobalSettingsPanel } from './GlobalSettingsPanel';
 import { StyleRulesPanel } from './StyleRulesPanel';
@@ -7,6 +7,31 @@ import { DiacriticsPanel } from './DiacriticsPanel';
 import { ActionButton } from '../shared/ActionButton';
 import { AddStyleRuleModal } from './AddStyleRuleModal';
 import { StyleGroup } from '../../../types';
+
+// Import predefined rules
+import heTemplates from '../../../assets/predefined-rules/he.json';
+import enTemplates from '../../../assets/predefined-rules/en.json';
+import arTemplates from '../../../assets/predefined-rules/ar.json';
+
+// Template definitions for each language
+interface GroupTemplate {
+  id: string;
+  name: string;
+  description: string;
+  members: string[];
+  style: {
+    hidden?: boolean;
+    visibilityMode?: 'default' | 'hide' | 'showOnly';
+    bgColor?: string;
+    color?: string;
+  };
+}
+
+const TEMPLATES: Record<string, GroupTemplate[]> = {
+  he: heTemplates.rules,
+  en: enTemplates.rules,
+  ar: arTemplates.rules,
+};
 
 type SectionId = 'settings' | 'styleRules' | 'diacritics';
 
@@ -29,9 +54,11 @@ export const Toolbox: React.FC<ToolboxProps> = ({
   currentKeyboardId,
   onKeyboardVariantChange,
 }) => {
-  const { state, clearSelection } = useEditor();
+  const { state, clearSelection, createGroupFromValues } = useEditor();
   const [showStyleRuleModal, setShowStyleRuleModal] = useState(false);
+  const [showTemplatesModal, setShowTemplatesModal] = useState(false);
   const [editingGroup, setEditingGroup] = useState<StyleGroup | null>(null);
+  const [templateData, setTemplateData] = useState<GroupTemplate | null>(null);
   
   // All accordions open by default
   const [openSections, setOpenSections] = useState<Set<SectionId>>(
@@ -62,8 +89,32 @@ export const Toolbox: React.FC<ToolboxProps> = ({
   const handleCloseModal = useCallback(() => {
     setShowStyleRuleModal(false);
     setEditingGroup(null);
+    setTemplateData(null); // Clear template data
     clearSelection();
   }, [clearSelection]);
+
+  const handleTemplateSelect = useCallback((template: GroupTemplate) => {
+    // Close templates modal
+    setShowTemplatesModal(false);
+    
+    // Store template data and open AddStyleRuleModal in CREATE mode
+    setTemplateData(template);
+    setEditingGroup(null); // Ensure we're in create mode
+    setShowStyleRuleModal(true);
+  }, []);
+
+  // Get templates for current language
+  const getCurrentLanguage = (): string => {
+    const keyboards = state.config.keyboards || [];
+    if (keyboards.length > 0) {
+      const firstKeyboard = keyboards[0];
+      // Extract language from keyboard ID (e.g., "he" from "he_abc")
+      return firstKeyboard.split('_')[0];
+    }
+    return 'en'; // fallback
+  };
+
+  const currentTemplates = TEMPLATES[getCurrentLanguage()] || TEMPLATES['en'];
 
   const toggleSection = (sectionId: SectionId) => {
     setOpenSections(prev => {
@@ -132,7 +183,13 @@ export const Toolbox: React.FC<ToolboxProps> = ({
         title="☰ Keys Groups"
         badge={state.styleGroups.length > 0 ? `${state.styleGroups.length}` : undefined}
         actionButton={
-          <View onStartShouldSetResponder={() => true}>
+          <View onStartShouldSetResponder={() => true} style={{ flexDirection: 'row', gap: 8 }}>
+            <ActionButton
+              label="Templates"
+              color="blue"
+              icon="📋"
+              onPress={() => setShowTemplatesModal(true)}
+            />
             <ActionButton
               label="New"
               color="green"
@@ -154,11 +211,59 @@ export const Toolbox: React.FC<ToolboxProps> = ({
         </AccordionSection>
       )}
 
+      {/* Templates Browser Modal */}
+      <Modal
+        visible={showTemplatesModal}
+        transparent
+        animationType="fade"
+        supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']}
+        onRequestClose={() => setShowTemplatesModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowTemplatesModal(false)}
+        >
+          <View style={styles.templatesModal} onStartShouldSetResponder={() => true}>
+            <View style={styles.templatesHeader}>
+              <Text allowFontScaling={false} style={styles.templatesTitle}>📋 Keys Group Templates</Text>
+              <TouchableOpacity onPress={() => setShowTemplatesModal(false)}>
+                <Text allowFontScaling={false} style={styles.templatesCloseButton}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={currentTemplates}
+              keyExtractor={(item, index) => `${item.name}_${index}`}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.templateItem}
+                  onPress={() => handleTemplateSelect(item)}
+                >
+                  <View style={styles.templateInfo}>
+                    <Text allowFontScaling={false} style={styles.templateName}>{item.name}</Text>
+                    <Text allowFontScaling={false} style={styles.templateDescription}>{item.description}</Text>
+                    <Text allowFontScaling={false} style={styles.templateKeys}>
+                      {item.members.length} keys: {item.members.slice(0, 8).join(', ')}
+                      {item.members.length > 8 ? '...' : ''}
+                    </Text>
+                  </View>
+                  <Text allowFontScaling={false} style={styles.templateArrow}>›</Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       {/* Add/Edit Style Rule Modal */}
       <AddStyleRuleModal
         visible={showStyleRuleModal}
         editingGroup={editingGroup}
-        initialSelectedKeys={editingGroup ? undefined : getSelectedKeyValues()}
+        initialSelectedKeys={editingGroup ? undefined : (templateData?.members || getSelectedKeyValues())}
+        initialName={templateData?.name}
+        initialBgColor={templateData?.style.bgColor}
+        initialTextColor={templateData?.style.color}
+        initialVisibilityMode={templateData?.style.visibilityMode}
         onClose={handleCloseModal}
       />
     </ScrollView>
@@ -233,6 +338,73 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 13,
     fontWeight: '600',
+  },
+  // Templates Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  templatesModal: {
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    width: '90%',
+    maxHeight: '70%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  templatesHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  templatesTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  templatesCloseButton: {
+    fontSize: 24,
+    color: '#666',
+    fontWeight: 'bold',
+  },
+  templateItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  templateInfo: {
+    flex: 1,
+  },
+  templateName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  templateDescription: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  templateKeys: {
+    fontSize: 12,
+    color: '#999',
+  },
+  templateArrow: {
+    fontSize: 24,
+    color: '#3B82F6',
+    marginLeft: 12,
   },
 });
 

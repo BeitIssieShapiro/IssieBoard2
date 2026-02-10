@@ -786,30 +786,34 @@ class KeyboardRenderer {
         }
         
         // THIRD PASS: Add extended tap areas for first and last keys
-        if let first = firstVisibleKey {
-            addExtendedTapArea(
-                for: first.key,
-                button: first.button,
-                keyX: first.x,
-                keyWidth: first.width,
-                rowHeight: rowHeight,
-                availableWidth: availableWidth,
-                isLeftEdge: true,
-                container: rowContainer
-            )
-        }
-        
-        if let last = lastVisibleKey, last.button !== firstVisibleKey?.button {
-            addExtendedTapArea(
-                for: last.key,
-                button: last.button,
-                keyX: last.x,
-                keyWidth: last.width,
-                rowHeight: rowHeight,
-                availableWidth: availableWidth,
-                isLeftEdge: false,
-                container: rowContainer
-            )
+        // BUT: Skip in selection mode (preview) since extended areas would cause double-firing
+        let isSelectionMode = onKeyLongPress != nil
+        if !isSelectionMode {
+            if let first = firstVisibleKey {
+                addExtendedTapArea(
+                    for: first.key,
+                    button: first.button,
+                    keyX: first.x,
+                    keyWidth: first.width,
+                    rowHeight: rowHeight,
+                    availableWidth: availableWidth,
+                    isLeftEdge: true,
+                    container: rowContainer
+                )
+            }
+            
+            if let last = lastVisibleKey, last.button !== firstVisibleKey?.button {
+                addExtendedTapArea(
+                    for: last.key,
+                    button: last.button,
+                    keyX: last.x,
+                    keyWidth: last.width,
+                    rowHeight: rowHeight,
+                    availableWidth: availableWidth,
+                    isLeftEdge: false,
+                    container: rowContainer
+                )
+            }
         }
         
         return rowContainer
@@ -884,24 +888,50 @@ class KeyboardRenderer {
         // Using a nearly invisible background to ensure it's tappable
         button.backgroundColor = UIColor(white: 1.0, alpha: 0.001)
         
-        // Add touch handlers for popup bubble
-        button.addTarget(self, action: #selector(keyTouchDown(_:)), for: .touchDown)
-        button.addTarget(self, action: #selector(keyTouchUp(_:)), for: [.touchUpInside, .touchUpOutside])
-        button.addTarget(self, action: #selector(keyTouchCancelled(_:)), for: .touchCancel)
+        // Check if we're in selection/preview mode
+        let isSelectionMode = onKeyLongPress != nil
+        
+        // Get key type early for all checks
+        let keyType = key.type.lowercased()
         
         // For backspace key, use gesture recognizer for reliable long-press detection
-        if key.type.lowercased() == "backspace" {
-            // Tap for single delete
+        if keyType == "backspace" {
+            if isSelectionMode {
+                // Selection mode: tap to select (no touch handlers to avoid double-fire)
+                button.addTarget(self, action: #selector(keyTapped(_:)), for: .touchUpInside)
+            } else {
+                // Normal keyboard mode: add touch handlers for popup bubble
+                button.addTarget(self, action: #selector(keyTouchDown(_:)), for: .touchDown)
+                button.addTarget(self, action: #selector(keyTouchUp(_:)), for: [.touchUpInside, .touchUpOutside])
+                button.addTarget(self, action: #selector(keyTouchCancelled(_:)), for: .touchCancel)
+                
+                // Tap for single delete, long-press for repeat
+                button.addTarget(self, action: #selector(keyTapped(_:)), for: .touchUpInside)
+                
+                let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(backspaceLongPressed(_:)))
+                longPressGesture.minimumPressDuration = 0.5
+                button.addGestureRecognizer(longPressGesture)
+            }
+        } else if keyType == "settings" || keyType == "close" {
+            // Settings and close: no touch handlers (to avoid popup)
+            // Settings and close: always tap-selectable
+            button.addTarget(self, action: #selector(keyTapped(_:)), for: .touchUpInside)
+        } else if keyType == "shift" {
+            // Shift: normal tap for toggle, long-press for selection in edit mode
             button.addTarget(self, action: #selector(keyTapped(_:)), for: .touchUpInside)
             
-            // Gesture recognizer for long-press repeat
-            let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(backspaceLongPressed(_:)))
-            longPressGesture.minimumPressDuration = 0.5
-            button.addGestureRecognizer(longPressGesture)
+            if isSelectionMode {
+                let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(keyLongPressed(_:)))
+                longPressGesture.minimumPressDuration = 0.5
+                button.addGestureRecognizer(longPressGesture)
+            }
         } else {
-            button.addTarget(self, action: #selector(keyTapped(_:)), for: .touchUpInside)
+            // All other keys: add touch handlers for popup bubble
+            button.addTarget(self, action: #selector(keyTouchDown(_:)), for: .touchDown)
+            button.addTarget(self, action: #selector(keyTouchUp(_:)), for: [.touchUpInside, .touchUpOutside])
+            button.addTarget(self, action: #selector(keyTouchCancelled(_:)), for: .touchCancel)
             
-            let keyType = key.type.lowercased()
+            button.addTarget(self, action: #selector(keyTapped(_:)), for: .touchUpInside)
             
             // Add long-press gesture for space key (for cursor movement mode)
             if keyType == "space" || key.value == " " {
@@ -1588,9 +1618,16 @@ class KeyboardRenderer {
         
         switch key.type.lowercased() {
         case "backspace":
-            // Backspace single tap - emit the key press but don't reset shift
             print("   → Backspace tap")
-            onKeyPress?(key)
+            // In selection mode, emit for selection
+            // In normal mode, call delete callback
+            if onKeyLongPress != nil {
+                print("   → Selection mode: emitting key press")
+                onKeyPress?(key)
+            } else {
+                print("   → Normal mode: calling delete callback")
+                onDeleteCharacter?()
+            }
             return
         
         case "shift":
@@ -1652,11 +1689,25 @@ class KeyboardRenderer {
             
         case "close":
             print("   → Handling CLOSE")
-            onDismissKeyboard?()
+            // In selection mode, emit key press for selection
+            // In normal mode, call the dismiss callback
+            if onKeyLongPress != nil {
+                print("   → Selection mode: emitting key press")
+                onKeyPress?(key)
+            } else {
+                onDismissKeyboard?()
+            }
             
         case "settings":
             print("   → Handling SETTINGS")
-            onOpenSettings?()
+            // In selection mode, emit key press for selection
+            // In normal mode, call the settings callback
+            if onKeyLongPress != nil {
+                print("   → Selection mode: emitting key press")
+                onKeyPress?(key)
+            } else {
+                onOpenSettings?()
+            }
             
         default:
             // For regular keys, check if nikkud popup should be shown

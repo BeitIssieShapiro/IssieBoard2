@@ -1125,70 +1125,165 @@ class KeyboardRenderer(private val context: Context) {
             setMargins(keyInternalPadding, keyInternalPadding, keyInternalPadding, keyInternalPadding)
         })
         
+        // Check if we're in selection/preview mode (edit mode in modal)
+        val isSelectionMode = onKeyLongPress != null
+        
+        val keyType = key.type.lowercase()
+        
         // Set up touch handling with visual feedback
-        if (key.type.lowercase() == "backspace") {
-            // For backspace, use Android's built-in long press detection
-            var isLongPressing = false
+        if (keyType == "backspace") {
+            if (isSelectionMode) {
+                // In selection mode: backspace is selectable with normal tap
+                buttonContainer.setOnClickListener {
+                    debugLog("⌫ Backspace clicked in selection mode")
+                    handleKeyClick(key, it)
+                }
+                
+                // Add touch feedback
+                buttonContainer.setOnTouchListener { _, event ->
+                    when (event.action) {
+                        MotionEvent.ACTION_DOWN -> {
+                            visualKeyView.animate()
+                                .scaleX(0.95f)
+                                .scaleY(0.95f)
+                                .setDuration(100)
+                                .start()
+                            false
+                        }
+                        MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                            visualKeyView.animate()
+                                .scaleX(1.0f)
+                                .scaleY(1.0f)
+                                .setDuration(100)
+                                .start()
+                            false
+                        }
+                        else -> false
+                    }
+                }
+            } else {
+                // Normal keyboard mode: backspace with long-press support
+                var isLongPressing = false
+                
+                buttonContainer.setOnTouchListener { v, event ->
+                    when (event.action) {
+                        MotionEvent.ACTION_DOWN -> {
+                            debugLog("⌫ Backspace touch DOWN")
+                            isLongPressing = false
+                            visualKeyView.animate()
+                                .scaleX(0.95f)
+                                .scaleY(0.95f)
+                                .setDuration(100)
+                                .start()
+                            false
+                        }
+                        MotionEvent.ACTION_UP -> {
+                            debugLog("⌫ Backspace touch UP, wasLongPress=$isLongPressing")
+                            visualKeyView.animate()
+                                .scaleX(1.0f)
+                                .scaleY(1.0f)
+                                .setDuration(100)
+                                .start()
+                            
+                            if (isLongPressing) {
+                                backspaceHandler.handleTouchUp()
+                                true
+                            } else {
+                                false
+                            }
+                        }
+                        MotionEvent.ACTION_CANCEL -> {
+                            debugLog("⌫ Backspace touch CANCEL")
+                            visualKeyView.animate()
+                                .scaleX(1.0f)
+                                .scaleY(1.0f)
+                                .setDuration(100)
+                                .start()
+                            backspaceHandler.handleTouchUp()
+                            true
+                        }
+                        else -> false
+                    }
+                }
+                
+                buttonContainer.setOnClickListener {
+                    if (!isLongPressing) {
+                        debugLog("⌫ Backspace single click")
+                        handleKeyClick(key, it)
+                    }
+                }
+                
+                buttonContainer.setOnLongClickListener {
+                    debugLog("⌫ Backspace LONG PRESS started")
+                    isLongPressing = true
+                    backspaceHandler.handleTouchDown()
+                    true
+                }
+            }
+        } else if (keyType == "settings" || keyType == "close") {
+            // Settings and close buttons: always selectable with normal tap in selection mode
+            buttonContainer.setOnClickListener {
+                handleKeyClick(key, it)
+            }
             
-            buttonContainer.setOnTouchListener { v, event ->
+            // Add touch feedback
+            buttonContainer.setOnTouchListener { _, event ->
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
-                        debugLog("⌫ Backspace touch DOWN")
-                        isLongPressing = false
-                        // Animate press
                         visualKeyView.animate()
                             .scaleX(0.95f)
                             .scaleY(0.95f)
                             .setDuration(100)
                             .start()
-                        false  // Let long press handler also process
+                        false
                     }
-                    MotionEvent.ACTION_UP -> {
-                        debugLog("⌫ Backspace touch UP, wasLongPress=$isLongPressing")
-                        // Animate release
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                         visualKeyView.animate()
                             .scaleX(1.0f)
                             .scaleY(1.0f)
                             .setDuration(100)
                             .start()
-                        
-                        if (isLongPressing) {
-                            // Stop long-press deletion
-                            backspaceHandler.handleTouchUp()
-                            true  // Consume if was long-pressing
-                        } else {
-                            false  // Let click handler process single tap
-                        }
-                    }
-                    MotionEvent.ACTION_CANCEL -> {
-                        debugLog("⌫ Backspace touch CANCEL")
-                        // Animate release
-                        visualKeyView.animate()
-                            .scaleX(1.0f)
-                            .scaleY(1.0f)
-                            .setDuration(100)
-                            .start()
-                        backspaceHandler.handleTouchUp()
-                        true
+                        false
                     }
                     else -> false
                 }
             }
-            
-            // Handle single tap
-            buttonContainer.setOnClickListener {
-                if (!isLongPressing) {
-                    debugLog("⌫ Backspace single click")
-                    handleKeyClick(key, it)
+        } else if (keyType == "shift") {
+            // Shift: selectable with long-press in selection mode
+            if (isSelectionMode) {
+                buttonContainer.setOnLongClickListener {
+                    debugLog("🔑 Shift long-pressed for selection")
+                    onKeyLongPress?.invoke(key)
+                    true
                 }
             }
             
-            // Handle long press
-            buttonContainer.setOnLongClickListener {
-                debugLog("⌫ Backspace LONG PRESS started")
-                isLongPressing = true
-                backspaceHandler.handleTouchDown()
-                true  // Consume the long press event
+            // Normal click still works for shift toggle
+            buttonContainer.setOnClickListener {
+                handleKeyClick(key, it)
+            }
+            
+            // Add touch feedback
+            buttonContainer.setOnTouchListener { _, event ->
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        visualKeyView.animate()
+                            .scaleX(0.95f)
+                            .scaleY(0.95f)
+                            .setDuration(100)
+                            .start()
+                        false
+                    }
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                        visualKeyView.animate()
+                            .scaleX(1.0f)
+                            .scaleY(1.0f)
+                            .setDuration(100)
+                            .start()
+                        false
+                    }
+                    else -> false
+                }
             }
         } else {
             // Add touch feedback for all other keys
