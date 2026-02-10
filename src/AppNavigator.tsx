@@ -143,13 +143,7 @@ export const AppNavigator: React.FC = () => {
     };
   }, []);
 
-  const navigateToEditor = useCallback((profileId?: string) => {
-    setCurrentScreen({ type: 'editor', profileId });
-  }, []);
-
-  const navigateToLegacy = useCallback(() => {
-    setCurrentScreen({ type: 'legacy' });
-  }, []);
+  
 
   // Don't render until initial settings are loaded
   if (!initialLoaded) {
@@ -164,7 +158,6 @@ export const AppNavigator: React.FC = () => {
         key={editorKey}
         profileId={profileId}
         initialLanguage={initialLanguage}
-        onBack={navigateToLegacy}
       />
     </View>
   );

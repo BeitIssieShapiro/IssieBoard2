@@ -211,7 +211,6 @@ interface EditorScreenInnerProps {
   language: LanguageId;
   keyboardId: string;
   isActiveProfile: boolean;
-  onBack: () => void;
   onSave: (config: KeyboardConfig, styleGroups: any[]) => Promise<void>;
   onSetActive: () => Promise<void>;
   onDuplicate: (newName: string) => Promise<{ newProfileId: string; newConfig: KeyboardConfig; styleGroups: any[] }>;
@@ -260,7 +259,6 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   language,
   keyboardId,
   isActiveProfile,
-  onBack,
   onSave,
   onSetActive,
   onDuplicate,
@@ -777,26 +775,6 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     }
   }, []);
 
-  const handleBack = useCallback(() => {
-    if (state.isDirty) {
-      Alert.alert(
-        'Unsaved Changes',
-        'You have unsaved changes. Do you want to save before leaving?',
-        [
-          { text: 'Discard', style: 'destructive', onPress: onBack },
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Save', onPress: async () => {
-              await handleSave();
-              onBack();
-            }
-          },
-        ]
-      );
-    } else {
-      onBack();
-    }
-  }, [state.isDirty, onBack, handleSave]);
 
   // Check if current profile is a default profile (not deletable but can be edited)
   const isDefaultProfile = currentProfileId === getDefaultProfileId(currentLanguage);
@@ -1513,7 +1491,6 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
         language={currentLanguage}
         keyboardId={currentKeyboardId}
         isActiveProfile={currentProfileId === activeKeyboardProfileId}
-        onBack={onBack}
         onSave={handleSave}
         onSetActive={handleSetActive}
         onDuplicate={handleDuplicate}
