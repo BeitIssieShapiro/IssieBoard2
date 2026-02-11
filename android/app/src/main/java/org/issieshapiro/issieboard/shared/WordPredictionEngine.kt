@@ -1,4 +1,4 @@
-package com.issieboardng.shared
+package org.issieshapiro.issieboard.shared
 
 import android.content.Context
 import java.io.IOException
@@ -150,16 +150,17 @@ class WordPredictionEngine private constructor(
             val probability = data.get(position).toUByte()
             position += 1
             
-            val word = when (type.toInt()) {
+            val word: String? = when (type.toInt()) {
                 0 -> {
                     // Type 0: Index reference
                     val wordIndex = data.getShort(position).toUShort()
                     position += 2
                     
-                    trieEngine?.getWord(wordIndex) ?: run {
+                    val resolvedWord = trieEngine?.getWord(wordIndex)
+                    if (resolvedWord == null) {
                         debugLog("⚠️ WordPredictionEngine: Could not resolve index $wordIndex")
-                        continue
                     }
+                    resolvedWord
                 }
                 1 -> {
                     // Type 1: Inline word
@@ -176,11 +177,13 @@ class WordPredictionEngine private constructor(
                 }
                 else -> {
                     debugLog("⚠️ WordPredictionEngine: Unknown type $type")
-                    continue
+                    null
                 }
             }
             
-            predictions.add(Prediction(word, probability))
+            if (word != null) {
+                predictions.add(Prediction(word, probability))
+            }
         }
         
         // Sort by probability (highest first)

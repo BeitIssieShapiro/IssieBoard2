@@ -1,4 +1,4 @@
-package com.issieboardng.shared
+package org.issieshapiro.issieboard.shared
 
 import org.json.JSONArray
 import org.json.JSONObject

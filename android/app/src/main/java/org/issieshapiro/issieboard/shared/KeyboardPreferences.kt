@@ -1,4 +1,4 @@
-package com.issieboardng.shared
+package org.issieshapiro.issieboard.shared
 
 import android.content.Context
 import android.content.SharedPreferences

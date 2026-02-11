@@ -4,7 +4,7 @@
   Port of ios/IssieBoardEn/Info.plist keyboard settings
 -->
 <input-method xmlns:android="http://schemas.android.com/apk/res/android"
-    android:settingsActivity="com.issieboardng.MainActivity">
+    android:settingsActivity="org.issieshapiro.issieboard.MainActivity">
     <subtype
         android:label="@string/subtype_label_en"
         android:imeSubtypeLocale="en_US"

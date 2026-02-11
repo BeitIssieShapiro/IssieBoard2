@@ -1,4 +1,4 @@
-package com.issieboardng
+package org.issieshapiro.issieboard
 
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.common.MapBuilder

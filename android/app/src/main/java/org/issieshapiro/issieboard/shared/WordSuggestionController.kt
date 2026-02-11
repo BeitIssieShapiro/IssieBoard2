@@ -1,4 +1,4 @@
-package com.issieboardng.shared
+package org.issieshapiro.issieboard.shared
 
 import android.content.Context
 
@@ -25,7 +25,7 @@ class WordSuggestionController(private var renderer: KeyboardRenderer? = null) {
         private set
     
     /** Current language for suggestions */
-    var currentLanguage: String = "en"
+    var currentLanguage: String = ""
         private set
     
     /** Whether word suggestions are enabled */
@@ -127,11 +127,13 @@ class WordSuggestionController(private var renderer: KeyboardRenderer? = null) {
      * @return The word that should replace the typed text (if auto-correct triggered), or null
      */
     fun handleSpace(): String? {
+        debugLog("📝 WordSuggestionController.handleSpace() called, currentWord='$currentWord', isEnabled=$isEnabled")
         var replacement: String? = null
-        
+
         // Save the current word as last completed word (if any)
         if (currentWord.isNotEmpty()) {
             lastCompletedWord = currentWord
+            debugLog("📝 WordSuggestionController: Saved lastCompletedWord='$lastCompletedWord'")
         }
         
         // Check if we should auto-correct with fuzzy match
@@ -188,33 +190,98 @@ class WordSuggestionController(private var renderer: KeyboardRenderer? = null) {
     }
     
     // MARK: - Word Detection
-    
+
     /**
      * Detect current word from text before cursor
      * Call this when keyboard appears or text field changes
+     * Port of ios/Shared/WordSuggestionController.swift detectCurrentWord(from:)
      */
     fun detectCurrentWord(beforeText: String?) {
         if (!isEnabled) return
-        
+
+        // Handle empty text - show predictions if we have a last completed word
         if (beforeText.isNullOrEmpty()) {
             currentWord = ""
             lastSuggestionResult = null
-            showDefaultSuggestions()
+
+            // Show predictions if available, otherwise defaults
+            if (lastCompletedWord.isNotEmpty()) {
+                isPredictionMode = true
+                showWordPredictions()
+            } else {
+                isPredictionMode = false
+                showDefaultSuggestions()
+            }
             return
         }
-        
+
         // Check if cursor is right after whitespace
         if (beforeText.last().isWhitespace()) {
+            // Find the word before the whitespace for predictions
+            val beforeSpace = beforeText.dropLast(1)
+            var lastWordStart = 0
+
+            for (i in beforeSpace.length - 1 downTo 0) {
+                val char = beforeSpace[i]
+                if (char.isWhitespace()) {
+                    lastWordStart = i + 1
+                    break
+                }
+            }
+
+            val completedWord = beforeSpace.substring(lastWordStart)
+
+            // Update last completed word and show predictions
+            if (completedWord.isNotEmpty()) {
+                lastCompletedWord = completedWord
+                debugLog("📝 WordSuggestionController: Detected completed word '$completedWord', switching to prediction mode")
+            }
+
             currentWord = ""
             lastSuggestionResult = null
-            showDefaultSuggestions()
+            isPredictionMode = true
+            showWordPredictions()
             return
         }
-        
-        // Find word before cursor (characters after last whitespace)
-        val words = beforeText.split(Regex("\\s+"))
-        val detectedWord = words.lastOrNull() ?: ""
-        
+
+        // User is typing - find current word and show completions
+        isPredictionMode = false
+
+        var wordStart = beforeText.length
+        var lastCompleteWord = ""
+        var foundSpace = false
+
+        for (i in beforeText.length - 1 downTo 0) {
+            val char = beforeText[i]
+            if (char.isWhitespace()) {
+                if (!foundSpace) {
+                    // This is the space before current word
+                    wordStart = i + 1
+                    foundSpace = true
+                } else {
+                    // Found space before the previous word
+                    val prevWordStart = i + 1
+                    lastCompleteWord = beforeText.substring(prevWordStart, wordStart)
+                    break
+                }
+            }
+            if (i == 0) {
+                if (!foundSpace) {
+                    wordStart = 0
+                } else {
+                    // Previous word starts at beginning
+                    lastCompleteWord = beforeText.substring(0, wordStart)
+                }
+            }
+        }
+
+        // Update last completed word if found
+        if (lastCompleteWord.isNotEmpty()) {
+            lastCompletedWord = lastCompleteWord.trim()
+        }
+
+        val detectedWord = beforeText.substring(wordStart)
+
         // Only update if different
         if (detectedWord != currentWord) {
             currentWord = detectedWord
@@ -255,40 +322,45 @@ class WordSuggestionController(private var renderer: KeyboardRenderer? = null) {
     private fun showDefaultSuggestions() {
         if (!isEnabled) return
         val r = renderer ?: return
-        
+
         isPredictionMode = false
         var suggestions = WordCompletionManager.shared.getSuggestions("").toMutableList()
-        
+
         // Reverse for RTL languages (Hebrew, Arabic)
         if (currentLanguage == "he" || currentLanguage == "ar") {
             suggestions.reverse()
         }
-        
+
+        debugLog("📝 WordSuggestionController: Showing default suggestions: $suggestions")
         r.updateSuggestions(suggestions)
     }
-    
+
     /** Show word predictions after completing a word */
     private fun showWordPredictions() {
         if (!isEnabled) return
         val r = renderer ?: return
-        
+
         // If no last completed word, show defaults
         if (lastCompletedWord.isEmpty()) {
+            debugLog("📝 WordSuggestionController: No lastCompletedWord, showing defaults")
             showDefaultSuggestions()
             return
         }
-        
+
         // Get predictions for the last completed word
+        debugLog("📝 WordSuggestionController: Getting predictions after '$lastCompletedWord'")
         var predictions = WordCompletionManager.shared.getWordPredictions(lastCompletedWord, 4).toMutableList()
-        
+
         // If no predictions available, show defaults
         if (predictions.isEmpty()) {
+            debugLog("📝 WordSuggestionController: No predictions available, showing defaults")
             showDefaultSuggestions()
         } else {
             // Reverse for RTL languages (Hebrew, Arabic)
             if (currentLanguage == "he" || currentLanguage == "ar") {
                 predictions.reverse()
             }
+            debugLog("📝 WordSuggestionController: Showing predictions: $predictions")
             r.updateSuggestions(predictions)
         }
     }

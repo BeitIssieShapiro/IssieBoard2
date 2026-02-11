@@ -1,6 +1,6 @@
-package com.issieboardng.keyboards
+package org.issieshapiro.issieboard.keyboards
 
-import com.issieboardng.shared.BaseKeyboardService
+import org.issieshapiro.issieboard.shared.BaseKeyboardService
 
 /**
  * English Keyboard Service

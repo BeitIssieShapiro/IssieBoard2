@@ -1,4 +1,4 @@
-package com.issieboardng.shared
+package org.issieshapiro.issieboard.shared
 
 /**
  * KeyboardNeighbors - Keyboard neighbor maps for fuzzy search

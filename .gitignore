@@ -81,3 +81,10 @@ dict/*_news_*-sentences.txt
 dict/heb_news_*
 dict/eng_news_*
 dict/ara_news_*
+
+# Android release files
+android/app/*.keystore
+!android/app/debug.keystore
+android/gradle.properties
+releases/
+.claude

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">IssieBoardNG</string>
+    <string name="app_name">IssieBoard</string>
     
     <!-- Keyboard Service Labels -->
     <string name="keyboard_label_he">IssieBoard (עברית)</string>

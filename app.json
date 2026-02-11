@@ -1,4 +1,9 @@
 {
-  "name": "IssieBoardNG",
-  "displayName": "IssieBoardNG"
+  "name": "IssieBoard",
+  "displayName": "IssieBoard",
+  "react-native": {
+    "android": {
+      "package": "org.issieshapiro.issieboard"
+    }
+  }
 }

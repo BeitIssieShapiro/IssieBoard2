@@ -1,9 +1,9 @@
-package com.issieboardng.shared
+package org.issieshapiro.issieboard.shared
 
 import android.util.Log
 
 /**
- * Debug logging utility for IssieBoardNG
+ * Debug logging utility for IssieBoard
  * Port of ios/Shared/DebugLog.swift
  * 
  * Provides a centralized way to control debug logging throughout the codebase.
@@ -21,7 +21,7 @@ import android.util.Log
 const val DEBUG_LOGGING_ENABLED = true
 
 /** Tag for Android Log */
-private const val TAG = "IssieBoardNG"
+private const val TAG = "IssieBoard"
 
 /** Categories for filtering logs */
 enum class LogCategory(val emoji: String) {

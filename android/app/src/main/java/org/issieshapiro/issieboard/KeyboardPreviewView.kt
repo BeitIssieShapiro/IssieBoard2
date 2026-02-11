@@ -1,4 +1,4 @@
-package com.issieboardng
+package org.issieshapiro.issieboard
 
 import android.content.Context
 import android.graphics.Color
@@ -13,7 +13,7 @@ import com.facebook.react.bridge.ReactContext
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.uimanager.UIManagerHelper
 import com.facebook.react.uimanager.events.Event
-import com.issieboardng.shared.*
+import org.issieshapiro.issieboard.shared.*
 
 /**
  * Native keyboard preview view for React Native
@@ -428,8 +428,8 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
         
         // Add the suggestion + space
         typedText += suggestion + " "
-        
-        suggestionController?.handleSuggestionSelected()
+
+        suggestionController?.handleSuggestionSelected(suggestion)
         
         // Emit event to React Native
         val eventData: WritableMap = Arguments.createMap().apply {

@@ -1,6 +1,6 @@
-package com.issieboardng
+package org.issieshapiro.issieboard
 
-import com.issieboardng.shared.*
+import org.issieshapiro.issieboard.shared.*
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.*

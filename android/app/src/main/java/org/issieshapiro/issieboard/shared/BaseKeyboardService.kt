@@ -1,4 +1,4 @@
-package com.issieboardng.shared
+package org.issieshapiro.issieboard.shared
 
 import android.content.Context
 import android.content.Intent
@@ -515,8 +515,8 @@ abstract class BaseKeyboardService : InputMethodService() {
         
         // Insert suggestion with space
         ic.commitText("$suggestion ", 1)
-        
-        suggestionController?.handleSuggestionSelected()
+
+        suggestionController?.handleSuggestionSelected(suggestion)
     }
     
     private fun handleSpaceKey() {
