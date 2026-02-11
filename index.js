@@ -1,10 +1,10 @@
-/**
- * @format
- */
+import {AppRegistry} from 'react-native';
 
-import { AppRegistry } from 'react-native';
-// Use the new AppNavigator which includes both Legacy and Visual Editor screens
-import AppNavigator from './src/AppNavigator';
-import { name as appName } from './app.json';
+// Register IssieBoardNG (
+//  app)
+import AppNavigator from './src/AppNavigator'
+AppRegistry.registerComponent('IssieBoardNG', () => AppNavigator);
 
-AppRegistry.registerComponent(appName, () => AppNavigator);
+// Register IssieVoice (assistive communication app)
+import IssieVoice from './apps/issievoice/App';
+AppRegistry.registerComponent('IssieVoice', () => IssieVoice);

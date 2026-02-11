@@ -18,11 +18,16 @@
   },
   "dependencies": {
     "@react-native/new-app-screen": "0.83.1",
+    "@react-navigation/native": "^7.1.28",
+    "@react-navigation/stack": "^7.7.1",
     "js-yaml": "^4.1.1",
     "react": "19.2.0",
     "react-native": "0.83.1",
     "react-native-default-preference": "^1.4.4",
-    "react-native-safe-area-context": "^5.5.2"
+    "react-native-gesture-handler": "^2.30.0",
+    "react-native-safe-area-context": "^5.6.2",
+    "react-native-screens": "^4.23.0",
+    "react-native-tts": "^4.1.1"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

@@ -23,8 +23,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     window = UIWindow(frame: UIScreen.main.bounds)
 
+    // Determine which app mode based on bundle identifier
+    let bundleId = Bundle.main.bundleIdentifier ?? ""
+    print("🔍 Bundle ID: \(bundleId)")
+    
+    let moduleName = bundleId.contains("IssieVoice") ? "IssieVoice" : "IssieBoardNG"
+    print("🎯 Loading module: \(moduleName)")
+    
     factory.startReactNative(
-      withModuleName: "IssieBoardNG",
+      withModuleName: moduleName,
       in: window,
       launchOptions: launchOptions
     )
