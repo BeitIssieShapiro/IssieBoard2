@@ -421,6 +421,182 @@ class TrieEngine private constructor(private val data: ByteBuffer) {
         }
     }
     
+    // MARK: - Word Index Methods (for Predictions)
+    
+    /**
+     * Get the index of a word in the dictionary (its position in DFS traversal order)
+     * This is used by the prediction engine to look up prediction data
+     * @param word The word to find
+     * @return The index (0-based) if found, null otherwise
+     */
+    fun getWordIndex(word: String): UShort? {
+        val searchWord = word.lowercase()
+        
+        // Find the node for this word
+        val nodeIndex = findNodeForPrefix(0, searchWord) ?: run {
+            debugLog("🔍 TrieEngine.getWordIndex: '$word' not found in trie")
+            return null
+        }
+        
+        // Check if this node marks the end of a word
+        val flags = getUInt16(nodeIndex, 2)
+        val isWordEnd = (flags.toInt() and 0x01) != 0
+        
+        if (!isWordEnd) {
+            debugLog("🔍 TrieEngine.getWordIndex: '$word' found but not a word end")
+            return null
+        }
+        
+        // Calculate the index by counting all words that come before this one
+        // We do this by traversing the trie in the same order it was built
+        var wordCount: UShort = 0u
+        val found = countWordsUntil(
+            nodeIndex = 0,
+            targetNode = nodeIndex,
+            currentPath = "",
+            targetPath = searchWord,
+            wordCount = { wordCount }
+        ) { wordCount = it }
+        
+        if (found) {
+            debugLog("🔍 TrieEngine.getWordIndex: '$word' → index $wordCount")
+        } else {
+            debugLog("🔍 TrieEngine.getWordIndex: '$word' traversal failed")
+        }
+        
+        return if (found) wordCount else null
+    }
+    
+    /**
+     * Count words in the trie until we reach the target word
+     */
+    private fun countWordsUntil(
+        nodeIndex: Int,
+        targetNode: Int,
+        currentPath: String,
+        targetPath: String,
+        wordCount: () -> UShort,
+        setWordCount: (UShort) -> Unit
+    ): Boolean {
+        // Check if current node is a word end
+        val flags = getUInt16(nodeIndex, 2)
+        val isWordEnd = (flags.toInt() and 0x01) != 0
+        
+        if (isWordEnd && currentPath == targetPath) {
+            // Found the target word
+            return true
+        }
+        
+        if (isWordEnd && currentPath.isNotEmpty()) {
+            // This is a word, but not our target - increment count
+            setWordCount((wordCount().toInt() + 1).toUShort())
+        }
+        
+        // Visit children (in the same order they were added to trie)
+        val firstChild = getInt32(nodeIndex, 4)
+        if (firstChild != -1) {
+            var childIdx = firstChild
+            while (childIdx != -1) {
+                val charCode = getUInt16(childIdx, 0)
+                val char = charCode.toInt().toChar()
+                val newPath = currentPath + char
+                
+                // Recursively search this child
+                if (countWordsUntil(
+                        nodeIndex = childIdx,
+                        targetNode = targetNode,
+                        currentPath = newPath,
+                        targetPath = targetPath,
+                        wordCount = wordCount,
+                        setWordCount = setWordCount
+                    )) {
+                    return true
+                }
+                
+                val nextSib = getInt32(childIdx, 8)
+                childIdx = nextSib
+            }
+        }
+        
+        return false
+    }
+    
+    /**
+     * Get a word by its index in the dictionary
+     * This is used to convert prediction indices back to words
+     * @param index The word index (0-based, matches DFS traversal order)
+     * @return The word at that index, or null if index is out of bounds
+     */
+    fun getWord(atIndex: UShort): String? {
+        var targetIndex = atIndex
+        var result: String? = null
+        
+        // Traverse the trie to find the nth word
+        findWordAtIndex(
+            nodeIndex = 0,
+            currentPath = "",
+            targetIndex = { targetIndex },
+            setTargetIndex = { targetIndex = it },
+            result = { result },
+            setResult = { result = it }
+        )
+        
+        return result
+    }
+    
+    /**
+     * Traverse trie to find the word at the target index
+     */
+    private fun findWordAtIndex(
+        nodeIndex: Int,
+        currentPath: String,
+        targetIndex: () -> UShort,
+        setTargetIndex: (UShort) -> Unit,
+        result: () -> String?,
+        setResult: (String?) -> Unit
+    ) {
+        // If we already found the result, stop searching
+        if (result() != null) {
+            return
+        }
+        
+        // Check if current node is a word end
+        val flags = getUInt16(nodeIndex, 2)
+        val isWordEnd = (flags.toInt() and 0x01) != 0
+        
+        if (isWordEnd && currentPath.isNotEmpty()) {
+            if (targetIndex().toInt() == 0) {
+                // Found the target word
+                setResult(currentPath)
+                return
+            }
+            setTargetIndex((targetIndex().toInt() - 1).toUShort())
+        }
+        
+        // Visit children (in the same order they were added to trie)
+        val firstChild = getInt32(nodeIndex, 4)
+        if (firstChild != -1) {
+            var childIdx = firstChild
+            while (childIdx != -1 && result() == null) {
+                val charCode = getUInt16(childIdx, 0)
+                val char = charCode.toInt().toChar()
+                val newPath = currentPath + char
+                
+                findWordAtIndex(
+                    nodeIndex = childIdx,
+                    currentPath = newPath,
+                    targetIndex = targetIndex,
+                    setTargetIndex = setTargetIndex,
+                    result = result,
+                    setResult = setResult
+                )
+                
+                val nextSib = getInt32(childIdx, 8)
+                childIdx = nextSib
+            }
+        }
+    }
+    
     // MARK: - Low-Level Memory Access
     
     /**

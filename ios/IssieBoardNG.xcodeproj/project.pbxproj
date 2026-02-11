@@ -20,6 +20,11 @@
 		6A73B6902F24E9B1003898A5 /* KeyboardPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A73B68B2F24E9B1003898A5 /* KeyboardPreviewView.swift */; };
 		6A877C1E2F34DAB900888533 /* Gveret Levin AlefAlefAlef-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 6A877C1D2F34DAB900888533 /* Gveret Levin AlefAlefAlef-Regular.ttf */; };
 		6A877C1F2F34DAB900888533 /* Gveret Levin AlefAlefAlef-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 6A877C1D2F34DAB900888533 /* Gveret Levin AlefAlefAlef-Regular.ttf */; };
+		6AA1FCB32F3CB103002BD212 /* WordPredictionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AA1FCB22F3CB103002BD212 /* WordPredictionEngine.swift */; };
+		6AA1FCB42F3CB103002BD212 /* WordPredictionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AA1FCB22F3CB103002BD212 /* WordPredictionEngine.swift */; };
+		6AA1FCB52F3CB103002BD212 /* WordPredictionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AA1FCB22F3CB103002BD212 /* WordPredictionEngine.swift */; };
+		6AA1FCB62F3CB103002BD212 /* WordPredictionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AA1FCB22F3CB103002BD212 /* WordPredictionEngine.swift */; };
+		6AA1FCB72F3CB103002BD212 /* WordPredictionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AA1FCB22F3CB103002BD212 /* WordPredictionEngine.swift */; };
 		6ACC1E292F2B564800F1FA30 /* TrieEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ACC1E282F2B564800F1FA30 /* TrieEngine.swift */; };
 		6ACC1E2A2F2B564800F1FA30 /* TrieEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ACC1E282F2B564800F1FA30 /* TrieEngine.swift */; };
 		6ACC1E5D2F2CDE8300F1FA30 /* IssieBoardEn.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6ACC1E562F2CDE8300F1FA30 /* IssieBoardEn.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -45,9 +50,6 @@
 		6ACC1EA72F2D024000F1FA30 /* KeyboardPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A1E336D2F220FCA00035455 /* KeyboardPreferences.swift */; };
 		6ACC1EA92F2D024000F1FA30 /* WordCompletionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AWORD00042F300100035455 /* WordCompletionManager.swift */; };
 		6ACC1F452F2F755E00F1FA30 /* KeyboardNeighbors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AKBNG00002F400100035455 /* KeyboardNeighbors.swift */; };
-		6ACC1F492F2F983A00F1FA30 /* ar_50k.bin in Resources */ = {isa = PBXBuildFile; fileRef = 6ACC1F482F2F983A00F1FA30 /* ar_50k.bin */; };
-		6ACC1F4B2F2F991C00F1FA30 /* en_50k.bin in Resources */ = {isa = PBXBuildFile; fileRef = 6ACC1F4A2F2F991C00F1FA30 /* en_50k.bin */; };
-		6ACC1F4D2F2F992B00F1FA30 /* he_50k.bin in Resources */ = {isa = PBXBuildFile; fileRef = 6ACC1F4C2F2F992B00F1FA30 /* he_50k.bin */; };
 		6ACC1F912F30AF7000F1FA30 /* DebugLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ACC1F902F30AF7000F1FA30 /* DebugLog.swift */; };
 		6ACC1F922F30AF7000F1FA30 /* DebugLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ACC1F902F30AF7000F1FA30 /* DebugLog.swift */; };
 		6ACC1F932F30AF7000F1FA30 /* DebugLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ACC1F902F30AF7000F1FA30 /* DebugLog.swift */; };
@@ -157,15 +159,13 @@
 		6A73B68C2F24E9B1003898A5 /* KeyboardPreviewViewManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = KeyboardPreviewViewManager.m; path = IssieBoardNG/KeyboardPreviewViewManager.m; sourceTree = "<group>"; };
 		6A73B68D2F24E9B1003898A5 /* KeyboardPreviewViewManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KeyboardPreviewViewManager.swift; path = IssieBoardNG/KeyboardPreviewViewManager.swift; sourceTree = "<group>"; };
 		6A877C1D2F34DAB900888533 /* Gveret Levin AlefAlefAlef-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Gveret Levin AlefAlefAlef-Regular.ttf"; path = "../assets/fonts/Gveret Levin AlefAlefAlef-Regular.ttf"; sourceTree = SOURCE_ROOT; };
+		6AA1FCB22F3CB103002BD212 /* WordPredictionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordPredictionEngine.swift; sourceTree = "<group>"; };
 		6ACC1DF72F2AB0A800F1FA30 /* IssieBoardNGTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = IssieBoardNGTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6ACC1E282F2B564800F1FA30 /* TrieEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrieEngine.swift; sourceTree = "<group>"; };
 		6ACC1E562F2CDE8300F1FA30 /* IssieBoardEn.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = IssieBoardEn.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		6ACC1E6B2F2CDEA800F1FA30 /* IssieBoardHe.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = IssieBoardHe.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		6ACC1E802F2CDEBE00F1FA30 /* IssieBoardAr.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = IssieBoardAr.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		6ACC1E932F2D007500F1FA30 /* BaseKeyboardViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaseKeyboardViewController.swift; sourceTree = "<group>"; };
-		6ACC1F482F2F983A00F1FA30 /* ar_50k.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = ar_50k.bin; path = IssieBoardNG/ar_50k.bin; sourceTree = "<group>"; };
-		6ACC1F4A2F2F991C00F1FA30 /* en_50k.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = en_50k.bin; path = IssieBoardNG/en_50k.bin; sourceTree = "<group>"; };
-		6ACC1F4C2F2F992B00F1FA30 /* he_50k.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = he_50k.bin; path = IssieBoardNG/he_50k.bin; sourceTree = "<group>"; };
 		6ACC1F902F30AF7000F1FA30 /* DebugLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugLog.swift; sourceTree = "<group>"; };
 		6ACC1F962F30AF8900F1FA30 /* WordSuggestionController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordSuggestionController.swift; sourceTree = "<group>"; };
 		6ACC1FA02F30B20000F1FA30 /* BackspaceHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackspaceHandler.swift; sourceTree = "<group>"; };
@@ -290,9 +290,6 @@
 				6A73B68D2F24E9B1003898A5 /* KeyboardPreviewViewManager.swift */,
 				6A1E33742F22170B00035455 /* KeyboardPreferencesModule.swift */,
 				6A1E33732F2216F000035455 /* IssieBoardNG-Bridging-Header.h */,
-				6ACC1F4C2F2F992B00F1FA30 /* he_50k.bin */,
-				6ACC1F4A2F2F991C00F1FA30 /* en_50k.bin */,
-				6ACC1F482F2F983A00F1FA30 /* ar_50k.bin */,
 			);
 			name = IssieBoardNG;
 			sourceTree = "<group>";
@@ -317,6 +314,7 @@
 				6ACC1E932F2D007500F1FA30 /* BaseKeyboardViewController.swift */,
 				6ACC1E282F2B564800F1FA30 /* TrieEngine.swift */,
 				6A1E336D2F220FCA00035455 /* KeyboardPreferences.swift */,
+				6AA1FCB22F3CB103002BD212 /* WordPredictionEngine.swift */,
 				6AWORD00042F300100035455 /* WordCompletionManager.swift */,
 				6AKBNG00002F400100035455 /* KeyboardNeighbors.swift */,
 				6ACC1FA02F30B20000F1FA30 /* BackspaceHandler.swift */,
@@ -547,13 +545,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
-				6ACC1F4D2F2F992B00F1FA30 /* he_50k.bin in Resources */,
-				6ACC1F4B2F2F991C00F1FA30 /* en_50k.bin in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				6ASHARED0005000000035455 /* SharedAssets.xcassets in Resources */,
 				6A877C1E2F34DAB900888533 /* Gveret Levin AlefAlefAlef-Regular.ttf in Resources */,
 				5326AF4A4DECB80A70586DB4 /* PrivacyInfo.xcprivacy in Resources */,
-				6ACC1F492F2F983A00F1FA30 /* ar_50k.bin in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -712,6 +707,7 @@
 				6A1E33752F22170C00035455 /* KeyboardPreferencesModule.swift in Sources */,
 				6A73B6892F24E985003898A5 /* KeyboardRenderer.swift in Sources */,
 				6AWORD00032F300100035455 /* WordCompletionManager.swift in Sources */,
+				6AA1FCB62F3CB103002BD212 /* WordPredictionEngine.swift in Sources */,
 				6AKBNG00042F400100035455 /* KeyboardNeighbors.swift in Sources */,
 				6ACC1FA32F30B20000F1FA30 /* BackspaceHandler.swift in Sources */,
 				6ACC1FA72F30B20000F1FA30 /* SuggestionsBarView.swift in Sources */,
@@ -731,6 +727,7 @@
 				6ACC20642F30C9B000F1FA30 /* KeyboardPreferences.swift in Sources */,
 				6ACC20652F30C9B000F1FA30 /* NikkudPickerController.swift in Sources */,
 				6ACC20662F30C9B000F1FA30 /* SuggestionsBarView.swift in Sources */,
+				6AA1FCB52F3CB103002BD212 /* WordPredictionEngine.swift in Sources */,
 				6ACC20672F30C9B000F1FA30 /* BackspaceHandler.swift in Sources */,
 				6ACC20682F30C9B000F1FA30 /* KeyboardModels.swift in Sources */,
 				6ACC20692F30C9B000F1FA30 /* WordSuggestionController.swift in Sources */,
@@ -744,6 +741,7 @@
 			files = (
 				6ACC1E9E2F2D023F00F1FA30 /* KeyboardPreferences.swift in Sources */,
 				6ACC1E9F2F2D023F00F1FA30 /* WordCompletionManager.swift in Sources */,
+				6AA1FCB42F3CB103002BD212 /* WordPredictionEngine.swift in Sources */,
 				6ACC1F922F30AF7000F1FA30 /* DebugLog.swift in Sources */,
 				6ACC1EA12F2D023F00F1FA30 /* TrieEngine.swift in Sources */,
 				6ACC1E9B2F2D023A00F1FA30 /* KeyboardModels.swift in Sources */,
@@ -763,6 +761,7 @@
 			files = (
 				6ACC1E9C2F2D023A00F1FA30 /* KeyboardModels.swift in Sources */,
 				6ACC1E942F2D007500F1FA30 /* BaseKeyboardViewController.swift in Sources */,
+				6AA1FCB72F3CB103002BD212 /* WordPredictionEngine.swift in Sources */,
 				6ACC1F952F30AF7000F1FA30 /* DebugLog.swift in Sources */,
 				6ACC1E992F2D023300F1FA30 /* KeyboardRenderer.swift in Sources */,
 				6ACC1EA22F2D024000F1FA30 /* TrieEngine.swift in Sources */,
@@ -782,6 +781,7 @@
 			files = (
 				6ACC1E9D2F2D023A00F1FA30 /* KeyboardModels.swift in Sources */,
 				6ACC1E952F2D007500F1FA30 /* BaseKeyboardViewController.swift in Sources */,
+				6AA1FCB32F3CB103002BD212 /* WordPredictionEngine.swift in Sources */,
 				6ACC1F942F30AF7000F1FA30 /* DebugLog.swift in Sources */,
 				6ACC1E9A2F2D023300F1FA30 /* KeyboardRenderer.swift in Sources */,
 				6ACC1EA62F2D024000F1FA30 /* TrieEngine.swift in Sources */,

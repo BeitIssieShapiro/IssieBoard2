@@ -27,8 +27,14 @@ Android:
 
 feedback:
 - kb for iPad: higher buttons
-- word prediction
+V- word prediction
 - nikkud and settings button (svg) should take color from key color
 
 -good.
 now last change: In Preview only, in shift mode (not a locked shift), do not turn off shift when clicking something . because I want to be able to select few keys under shift
+
+Future Enhancements:
+- Prediction-boosted fuzzy matching: Use prediction context to improve typo correction
+  Example: "Why sre" → prioritize "are" if predicted after "Why"
+  See WORD_PREDICTION_GUIDE.md "Future Enhancements" section for implementation details
+- Trigram support: Predict based on last 2 words for better context

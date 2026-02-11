@@ -474,4 +474,165 @@ class TrieEngine {
         let address = basePointer.advanced(by: (nodeIndex * nodeSize) + offset)
         return address.load(as: Int32.self)
     }
+    
+    // MARK: - Word Index Methods (for Predictions)
+    
+    /// Get the index of a word in the dictionary (its position in the original .txt file)
+    /// This is used by the prediction engine to look up prediction data
+    /// - Parameter word: The word to find
+    /// - Returns: The index (0-based) if found, nil otherwise
+    func getWordIndex(_ word: String) -> UInt16? {
+        let searchWord = word.lowercased()
+        
+        // Find the node for this word
+        guard let nodeIndex = findNodeForPrefix(rootIndex: 0, prefix: searchWord) else {
+            print("🔍 TrieEngine.getWordIndex: '\(word)' not found in trie")
+            return nil
+        }
+        
+        // Check if this node marks the end of a word
+        let flags = getUInt16(at: nodeIndex, offset: 2)
+        let isWordEnd = (flags & 0x01) != 0
+        
+        guard isWordEnd else {
+            print("🔍 TrieEngine.getWordIndex: '\(word)' found but not a word end")
+            return nil  // Not a complete word
+        }
+        
+        // Calculate the index by counting all words that come before this one
+        // We do this by traversing the trie in the same order it was built
+        var wordCount: UInt16 = 0
+        let found = countWordsUntil(
+            nodeIndex: 0,
+            targetNode: nodeIndex,
+            currentPath: "",
+            targetPath: searchWord,
+            wordCount: &wordCount
+        )
+        
+        if found {
+            print("🔍 TrieEngine.getWordIndex: '\(word)' → index \(wordCount)")
+        } else {
+            print("🔍 TrieEngine.getWordIndex: '\(word)' traversal failed")
+        }
+        
+        return found ? wordCount : nil
+    }
+    
+    /// Count words in the trie until we reach the target word
+    private func countWordsUntil(
+        nodeIndex: Int,
+        targetNode: Int,
+        currentPath: String,
+        targetPath: String,
+        wordCount: inout UInt16
+    ) -> Bool {
+        // Check if current node is a word end
+        let flags = getUInt16(at: nodeIndex, offset: 2)
+        let isWordEnd = (flags & 0x01) != 0
+        
+        if isWordEnd && currentPath == targetPath {
+            // Found the target word
+            return true
+        }
+        
+        if isWordEnd && !currentPath.isEmpty {
+            // This is a word, but not our target - increment count
+            wordCount += 1
+        }
+        
+        // Visit children (in the same order they were added to trie)
+        let firstChild = getInt32(at: nodeIndex, offset: 4)
+        if firstChild != -1 {
+            var childIdx = Int(firstChild)
+            while childIdx != -1 {
+                let charCode = getUInt16(at: childIdx, offset: 0)
+                if let scalar = UnicodeScalar(charCode) {
+                    let newPath = currentPath + String(scalar)
+                    
+                    // Recursively search this child
+                    if countWordsUntil(
+                        nodeIndex: childIdx,
+                        targetNode: targetNode,
+                        currentPath: newPath,
+                        targetPath: targetPath,
+                        wordCount: &wordCount
+                    ) {
+                        return true
+                    }
+                }
+                
+                let nextSib = getInt32(at: childIdx, offset: 8)
+                childIdx = Int(nextSib)
+            }
+        }
+        
+        return false
+    }
+    
+    /// Get a word by its index in the dictionary
+    /// This is used to convert prediction indices back to words
+    /// - Parameter index: The word index (0-based, matches line number in original .txt)
+    /// - Returns: The word at that index, or nil if index is out of bounds
+    func getWord(atIndex index: UInt16) -> String? {
+        var targetIndex = index
+        var result: String? = nil
+        
+        // Traverse the trie to find the nth word
+        findWordAtIndex(
+            nodeIndex: 0,
+            currentPath: "",
+            targetIndex: &targetIndex,
+            result: &result
+        )
+        
+        return result
+    }
+    
+    /// Traverse trie to find the word at the target index
+    private func findWordAtIndex(
+        nodeIndex: Int,
+        currentPath: String,
+        targetIndex: inout UInt16,
+        result: inout String?
+    ) {
+        // If we already found the result, stop searching
+        if result != nil {
+            return
+        }
+        
+        // Check if current node is a word end
+        let flags = getUInt16(at: nodeIndex, offset: 2)
+        let isWordEnd = (flags & 0x01) != 0
+        
+        if isWordEnd && !currentPath.isEmpty {
+            if targetIndex == 0 {
+                // Found the target word
+                result = currentPath
+                return
+            }
+            targetIndex -= 1
+        }
+        
+        // Visit children (in the same order they were added to trie)
+        let firstChild = getInt32(at: nodeIndex, offset: 4)
+        if firstChild != -1 {
+            var childIdx = Int(firstChild)
+            while childIdx != -1 && result == nil {
+                let charCode = getUInt16(at: childIdx, offset: 0)
+                if let scalar = UnicodeScalar(charCode) {
+                    let newPath = currentPath + String(scalar)
+                    findWordAtIndex(
+                        nodeIndex: childIdx,
+                        currentPath: newPath,
+                        targetIndex: &targetIndex,
+                        result: &result
+                    )
+                }
+                
+                let nextSib = getInt32(at: childIdx, offset: 8)
+                childIdx = Int(nextSib)
+            }
+        }
+    }
 }

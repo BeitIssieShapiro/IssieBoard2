@@ -62,6 +62,9 @@ class WordCompletionManager private constructor() {
     /** Cache of loaded TrieEngine instances by language code */
     private val engines: MutableMap<String, TrieEngine> = mutableMapOf()
     
+    /** Cache of loaded WordPredictionEngine instances by language code */
+    private val predictionEngines: MutableMap<String, WordPredictionEngine> = mutableMapOf()
+    
     /** Currently active language code (e.g., "en", "he", "ar") */
     private var currentLanguage: String? = null
     
@@ -370,6 +373,36 @@ class WordCompletionManager private constructor() {
     fun clearCache() {
         debugLog("📚 WordCompletionManager: Clearing engine cache")
         engines.clear()
+        predictionEngines.clear()
+    }
+    
+    // MARK: - Word Predictions
+    
+    /**
+     * Get next-word predictions after completing a word
+     * @param afterWord The completed word to predict after
+     * @param limit Maximum number of predictions to return (default: 4)
+     * @return List of predicted next words
+     */
+    fun getWordPredictions(afterWord: String, limit: Int = 4): List<String> {
+        val language = currentLanguage ?: return emptyList()
+        
+        val predictionEngine = getPredictionEngine(language)
+        if (predictionEngine == null) {
+            debugLog("🔮 WordCompletionManager: No prediction engine for '$language'")
+            return emptyList()
+        }
+        
+        val predictions = predictionEngine.getPredictions(afterWord, limit)
+        return predictions.map { it.word }
+    }
+    
+    /**
+     * Check if prediction engine is available for current language
+     */
+    fun isPredictionAvailable(): Boolean {
+        val language = currentLanguage ?: return false
+        return getPredictionEngine(language) != null
     }
     
     // MARK: - Private Helpers
@@ -424,6 +457,37 @@ class WordCompletionManager private constructor() {
         }
         
         debugLog("📚 WordCompletionManager: Failed to load engine for '$languageCode'")
+        return null
+    }
+    
+    /**
+     * Get or load a WordPredictionEngine for the given language
+     */
+    private fun getPredictionEngine(languageCode: String): WordPredictionEngine? {
+        // Return cached engine if available
+        predictionEngines[languageCode]?.let { return it }
+        
+        // Get context for asset loading
+        val context = appContext
+        if (context == null) {
+            debugLog("📚 WordCompletionManager: No context for prediction engine")
+            return null
+        }
+        
+        // Get the corresponding trie engine (needed for index-to-word conversion)
+        val trieEngine = getEngine(languageCode)
+        
+        // Try to load the prediction engine
+        val filename = "${languageCode}_predictions.bin"
+        val predEngine = WordPredictionEngine.create(context, filename, trieEngine)
+        
+        if (predEngine != null) {
+            predictionEngines[languageCode] = predEngine
+            debugLog("📚 WordCompletionManager: Loaded prediction engine for '$languageCode'")
+            return predEngine
+        }
+        
+        debugLog("📚 WordCompletionManager: No prediction engine available for '$languageCode'")
         return null
     }
 }

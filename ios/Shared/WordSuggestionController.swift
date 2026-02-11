@@ -33,6 +33,12 @@ class WordSuggestionController {
     /// Last suggestion result (for fuzzy auto-replace)
     private(set) var currentSuggestionResult: WordCompletionManager.SuggestionResult?
     
+    /// Last completed word (for predictions)
+    private(set) var lastCompletedWord: String = ""
+    
+    /// Whether we're currently in prediction mode (showing next-word predictions)
+    private(set) var isPredictionMode: Bool = false
+    
     // MARK: - Initialization
     
     init(renderer: KeyboardRenderer? = nil) {
@@ -73,6 +79,9 @@ class WordSuggestionController {
     func handleCharacterTyped(_ character: String) {
         guard isEnabled else { return }
         
+        // Exit prediction mode when user starts typing
+        isPredictionMode = false
+        
         currentWord += character
         updateSuggestions()
     }
@@ -91,28 +100,48 @@ class WordSuggestionController {
         return false
     }
     
-    /// Handle space key - clears current word and shows defaults
+    /// Handle space key - switches to prediction mode
     func handleSpace() {
+        // Save the current word as last completed word (if any)
+        if !currentWord.isEmpty {
+            lastCompletedWord = currentWord
+        }
+        
         currentWord = ""
         currentSuggestionResult = nil
-        showDefaultSuggestions()
+        
+        // Switch to prediction mode and show next-word predictions
+        isPredictionMode = true
+        showWordPredictions()
     }
     
     /// Handle enter key - clears current word and shows defaults
     func handleEnter() {
         currentWord = ""
+        lastCompletedWord = ""
         currentSuggestionResult = nil
+        isPredictionMode = false
         showDefaultSuggestions()
     }
     
-    /// Handle suggestion selected - clears current word
-    /// - Returns: The word that was replaced (the current word)
-    func handleSuggestionSelected() -> String {
+    /// Handle suggestion selected - updates state based on current mode
+    /// - Parameter selectedWord: The word that was selected from suggestions
+    /// - Returns: The word that was replaced (the current word if in typing mode, empty if in prediction mode)
+    func handleSuggestionSelected(_ selectedWord: String) -> String {
         let replacedWord = currentWord
         currentWord = ""
         currentSuggestionResult = nil
-        showDefaultSuggestions()
-        return replacedWord
+        
+        // If we were in prediction mode, stay in prediction mode with the new word
+        if isPredictionMode {
+            lastCompletedWord = selectedWord
+            showWordPredictions()
+            return ""  // No text was replaced, word was inserted
+        } else {
+            // Was in typing mode - show defaults after selection
+            showDefaultSuggestions()
+            return replacedWord
+        }
     }
     
     /// Show default suggestions (public method for external callers)
@@ -128,32 +157,84 @@ class WordSuggestionController {
     func detectCurrentWord(from beforeText: String?) {
         guard isEnabled else { return }
         
+        // Handle empty text - show predictions if we have a last completed word
         guard let text = beforeText, !text.isEmpty else {
             currentWord = ""
             currentSuggestionResult = nil
-            showDefaultSuggestions()
+            
+            // Show predictions if available, otherwise defaults
+            if !lastCompletedWord.isEmpty {
+                isPredictionMode = true
+                showWordPredictions()
+            } else {
+                isPredictionMode = false
+                showDefaultSuggestions()
+            }
             return
         }
         
         // Check if cursor is right after whitespace
         if let lastChar = text.last, lastChar.isWhitespace {
+            // Find the word before the whitespace for predictions
+            let beforeSpace = text.dropLast()
+            var lastWordStart = beforeSpace.startIndex
+            
+            for i in beforeSpace.indices.reversed() {
+                let char = beforeSpace[i]
+                if char.isWhitespace {
+                    lastWordStart = beforeSpace.index(after: i)
+                    break
+                }
+            }
+            
+            let completedWord = String(beforeSpace[lastWordStart...])
+            
+            // Update last completed word and show predictions
+            if !completedWord.isEmpty {
+                lastCompletedWord = completedWord
+            }
+            
             currentWord = ""
             currentSuggestionResult = nil
-            showDefaultSuggestions()
+            isPredictionMode = true
+            showWordPredictions()
             return
         }
         
-        // Find word before cursor (characters after last whitespace)
+        // User is typing - find current word and show completions
+        isPredictionMode = false
+        
         var wordStart = text.endIndex
+        var lastCompleteWord = ""
+        var foundSpace = false
+        
         for i in text.indices.reversed() {
             let char = text[i]
             if char.isWhitespace {
-                wordStart = text.index(after: i)
-                break
+                if !foundSpace {
+                    // This is the space before current word
+                    wordStart = text.index(after: i)
+                    foundSpace = true
+                } else {
+                    // Found space before the previous word
+                    let prevWordStart = text.index(after: i)
+                    lastCompleteWord = String(text[prevWordStart..<wordStart])
+                    break
+                }
             }
             if i == text.startIndex {
-                wordStart = i
+                if !foundSpace {
+                    wordStart = i
+                } else {
+                    // Previous word starts at beginning
+                    lastCompleteWord = String(text[i..<wordStart])
+                }
             }
+        }
+        
+        // Update last completed word if found
+        if !lastCompleteWord.isEmpty {
+            lastCompletedWord = lastCompleteWord.trimmingCharacters(in: .whitespaces)
         }
         
         let detectedWord = String(text[wordStart...])
@@ -214,9 +295,23 @@ class WordSuggestionController {
             displaySuggestions = result.suggestions
         }
         
+        // Reverse for RTL languages (Hebrew, Arabic)
+        if currentLanguage == "he" || currentLanguage == "ar" {
+            displaySuggestions.reverse()
+        }
+        
         // Update renderer with suggestions
         // Only highlight the best fuzzy match if auto-correct is enabled
-        let highlightIndex: Int? = (result.hasFuzzyOnly && isAutoCorrectEnabled) ? 1 : nil
+        // Adjust highlight index for RTL languages
+        var highlightIndex: Int? = nil
+        if result.hasFuzzyOnly && isAutoCorrectEnabled {
+            if currentLanguage == "he" || currentLanguage == "ar" {
+                // In RTL, index 1 becomes (count - 2) after reversal
+                highlightIndex = displaySuggestions.count - 2
+            } else {
+                highlightIndex = 1
+            }
+        }
         renderer.updateSuggestions(displaySuggestions, highlightIndex: highlightIndex)
     }
     
@@ -224,14 +319,51 @@ class WordSuggestionController {
     private func showDefaultSuggestions() {
         guard isEnabled, let renderer = renderer else { return }
         
-        let suggestions = WordCompletionManager.shared.getSuggestions(for: "")
+        isPredictionMode = false
+        var suggestions = WordCompletionManager.shared.getSuggestions(for: "")
+        
+        // Reverse for RTL languages (Hebrew, Arabic)
+        if currentLanguage == "he" || currentLanguage == "ar" {
+            suggestions.reverse()
+        }
+        
         renderer.updateSuggestions(suggestions)
+    }
+    
+    /// Show word predictions after completing a word
+    private func showWordPredictions() {
+        guard isEnabled, let renderer = renderer else { return }
+        
+        // If no last completed word, show defaults
+        guard !lastCompletedWord.isEmpty else {
+            showDefaultSuggestions()
+            return
+        }
+        
+        // Get predictions for the last completed word
+        var predictions = WordCompletionManager.shared.getWordPredictions(
+            afterWord: lastCompletedWord,
+            limit: 4
+        )
+        
+        // If no predictions available, show defaults
+        if predictions.isEmpty {
+            showDefaultSuggestions()
+        } else {
+            // Reverse for RTL languages (Hebrew, Arabic)
+            if currentLanguage == "he" || currentLanguage == "ar" {
+                predictions.reverse()
+            }
+            renderer.updateSuggestions(predictions)
+        }
     }
     
     /// Clear all suggestions
     private func clearSuggestions() {
         currentWord = ""
+        lastCompletedWord = ""
         currentSuggestionResult = nil
+        isPredictionMode = false
         renderer?.clearSuggestions()
     }
 }

@@ -49,6 +49,9 @@ class WordCompletionManager {
     /// Cache of loaded TrieEngine instances by language code
     private var engines: [String: TrieEngine] = [:]
     
+    /// Cache of loaded WordPredictionEngine instances by language code
+    private var predictionEngines: [String: WordPredictionEngine] = [:]
+    
     /// Currently active language code (e.g., "en", "he", "ar")
     private var currentLanguage: String?
     
@@ -365,10 +368,80 @@ class WordCompletionManager {
         if let engine = TrieEngine(filename: filename) {
             engines[languageCode] = engine
             print("📚 WordCompletionManager: Loaded engine for '\(languageCode)'")
+            
+            // Also try to load prediction engine for this language
+            _ = getPredictionEngine(for: languageCode, trieEngine: engine)
+            
             return engine
         }
         
         print("📚 WordCompletionManager: Failed to load engine for '\(languageCode)'")
         return nil
+    }
+    
+    /// Get or load a WordPredictionEngine for the given language
+    private func getPredictionEngine(for languageCode: String, trieEngine: TrieEngine) -> WordPredictionEngine? {
+        // Return cached prediction engine if available
+        if let predictionEngine = predictionEngines[languageCode] {
+            return predictionEngine
+        }
+        
+        // Get the dictionary filename for this language
+        guard let filename = languageMap[languageCode] else {
+            print("📚 WordCompletionManager: No dictionary mapping for '\(languageCode)'")
+            return nil
+        }
+        
+        // Try to load the prediction engine
+        if let predictionEngine = WordPredictionEngine(filename: filename, trieEngine: trieEngine) {
+            predictionEngines[languageCode] = predictionEngine
+            print("📚 WordCompletionManager: Loaded prediction engine for '\(languageCode)'")
+            return predictionEngine
+        }
+        
+        print("📚 WordCompletionManager: Prediction engine not available for '\(languageCode)' (this is optional)")
+        return nil
+    }
+    
+    // MARK: - Word Prediction API
+    
+    /// Get word predictions after typing a word (next word suggestions)
+    /// - Parameters:
+    ///   - word: The word that was just completed
+    ///   - limit: Maximum number of predictions to return
+    /// - Returns: Array of predicted next words
+    func getWordPredictions(afterWord word: String, limit: Int = 4) -> [String] {
+        guard let language = currentLanguage else {
+            print("📚 WordCompletionManager: No language set for predictions")
+            return []
+        }
+        
+        return getWordPredictions(afterWord: word, language: language, limit: limit)
+    }
+    
+    /// Get word predictions using a specific language
+    /// - Parameters:
+    ///   - word: The word that was just completed
+    ///   - languageCode: The language to use for predictions
+    ///   - limit: Maximum number of predictions to return
+    /// - Returns: Array of predicted next words
+    func getWordPredictions(afterWord word: String, language languageCode: String, limit: Int = 4) -> [String] {
+        guard let engine = getEngine(for: languageCode),
+              let predictionEngine = getPredictionEngine(for: languageCode, trieEngine: engine) else {
+            return []
+        }
+        
+        let predictions = predictionEngine.getPredictions(afterWord: word, limit: limit)
+        let words = predictions.map { $0.word }
+        
+        print("📚 WordCompletionManager: Predictions after '\(word)': \(words)")
+        return words
+    }
+    
+    /// Check if word prediction is available for the current language
+    /// - Returns: true if prediction data is loaded
+    func isPredictionAvailable() -> Bool {
+        guard let language = currentLanguage else { return false }
+        return predictionEngines[language] != nil
     }
 }

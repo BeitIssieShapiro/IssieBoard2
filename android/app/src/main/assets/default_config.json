@@ -1188,15 +1188,17 @@
             },
             {
               "value": "ح"
+            },
+            {
+              "value": "ج"
+            },
+            {
+              "value": "د"
             }
           ]
         },
         {
           "keys": [
-            {
-              "hidden": true,
-              "width": 0.5
-            },
             {
               "value": "ش"
             },
@@ -1223,11 +1225,20 @@
             },
             {
               "value": "م"
+            },
+            {
+              "value": "ك"
+            },
+            {
+              "value": "ط"
             }
           ]
         },
         {
           "keys": [
+            {
+              "value": "ئ"
+            },
             {
               "value": "ء"
             },
@@ -1236,6 +1247,9 @@
             },
             {
               "value": "ر"
+            },
+            {
+              "value": "لا"
             },
             {
               "value": "ى"
@@ -1251,6 +1265,9 @@
             },
             {
               "value": "ظ"
+            },
+            {
+              "value": "ذ"
             },
             {
               "type": "backspace",
@@ -1806,26 +1823,29 @@
         {
           "id": "fatha",
           "mark": "َ",
-          "name": "فَتحة"
+          "name": "فَتحة",
+          "isAdvanced": false
         },
         {
           "id": "kasra",
           "mark": "ِ",
-          "name": "كَسرة"
+          "name": "كَسرة",
+          "isAdvanced": false
         },
         {
           "id": "damma",
           "mark": "ُ",
-          "name": "ضَمّة"
+          "name": "ضَمّة",
+          "isAdvanced": false
         },
         {
           "id": "sukun",
           "mark": "ْ",
           "name": "سُكون",
           "excludeFor": [
-            "ا",
-            "ء"
-          ]
+            "ا"
+          ],
+          "isAdvanced": false
         },
         {
           "id": "tanwinFath",
@@ -1837,20 +1857,22 @@
           "id": "tanwinKasr",
           "mark": "ٍ",
           "name": "تنوين كسر",
-          "excludeFor": [
-            "ة",
-            "ى"
-          ],
           "isAdvanced": true
         },
         {
           "id": "tanwinDamm",
           "mark": "ٌ",
           "name": "تنوين ضم",
-          "excludeFor": [
-            "ة",
-            "ى"
+          "isAdvanced": true
+        },
+        {
+          "id": "wasla",
+          "mark": "ٱ",
+          "name": "وصلة",
+          "onlyFor": [
+            "ا"
           ],
+          "isReplacement": true,
           "isAdvanced": true
         },
         {
@@ -1860,7 +1882,8 @@
           "onlyFor": [
             "ا"
           ],
-          "isReplacement": true
+          "isReplacement": true,
+          "isAdvanced": false
         },
         {
           "id": "hamzaBelow",
@@ -1869,7 +1892,8 @@
           "onlyFor": [
             "ا"
           ],
-          "isReplacement": true
+          "isReplacement": true,
+          "isAdvanced": false
         },
         {
           "id": "madda",
@@ -1878,16 +1902,8 @@
           "onlyFor": [
             "ا"
           ],
-          "isReplacement": true
-        },
-        {
-          "id": "wasla",
-          "mark": "ٱ",
-          "name": "وصلة",
-          "onlyFor": [
-            "ا"
-          ],
-          "isReplacement": true
+          "isReplacement": true,
+          "isAdvanced": false
         }
       ],
       "modifier": {
@@ -1895,12 +1911,9 @@
         "mark": "ّ",
         "name": "شَدّة",
         "excludeFor": [
-          "ا",
-          "ء",
-          "ؤ",
-          "ة",
-          "ى"
-        ]
+          "ا"
+        ],
+        "isAdvanced": false
       }
     }
   },

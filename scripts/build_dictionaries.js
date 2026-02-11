@@ -29,7 +29,8 @@ function buildTree(wordList) {
     const root = new TrieNode('');
     let count = 0;
 
-    for (const item of wordList) {
+    for (let idx = 0; idx < wordList.length; idx++) {
+        const item = wordList[idx];
         const { word, freq } = item;
         
         let node = root;
@@ -42,6 +43,7 @@ function buildTree(wordList) {
         }
         node.isWordEnd = true;
         node.score = freq; // Store the raw frequency on the end node
+        node.originalIndex = idx; // Store original position in input array
         count++;
     }
     return { root, count };

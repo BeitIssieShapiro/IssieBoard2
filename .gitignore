@@ -73,3 +73,11 @@ yarn-error.log
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# Dictionary generation intermediate files
+dict/*_predictions.json
+dict/bin/*_trie_order.txt
+dict/*_news_*-sentences.txt
+dict/heb_news_*
+dict/eng_news_*
+dict/ara_news_*

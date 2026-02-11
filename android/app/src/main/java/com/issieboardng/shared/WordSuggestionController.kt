@@ -39,6 +39,14 @@ class WordSuggestionController(private var renderer: KeyboardRenderer? = null) {
     /** Last suggestion result with fuzzy metadata */
     private var lastSuggestionResult: WordCompletionManager.SuggestionResult? = null
     
+    /** Last completed word (for predictions) */
+    var lastCompletedWord: String = ""
+        private set
+    
+    /** Whether we're currently in prediction mode (showing next-word predictions) */
+    var isPredictionMode: Boolean = false
+        private set
+    
     // MARK: - Initialization
     
     init {
@@ -94,6 +102,9 @@ class WordSuggestionController(private var renderer: KeyboardRenderer? = null) {
             return
         }
         
+        // Exit prediction mode when user starts typing
+        isPredictionMode = false
+        
         currentWord += character
         debugLog("📝 WordSuggestionController: currentWord is now '$currentWord'")
         updateSuggestions()
@@ -112,11 +123,16 @@ class WordSuggestionController(private var renderer: KeyboardRenderer? = null) {
     }
     
     /**
-     * Handle space key - potentially auto-correct then clear current word
+     * Handle space key - potentially auto-correct then switch to prediction mode
      * @return The word that should replace the typed text (if auto-correct triggered), or null
      */
     fun handleSpace(): String? {
         var replacement: String? = null
+        
+        // Save the current word as last completed word (if any)
+        if (currentWord.isNotEmpty()) {
+            lastCompletedWord = currentWord
+        }
         
         // Check if we should auto-correct with fuzzy match
         if (isAutoCorrectEnabled && currentWord.isNotEmpty()) {
@@ -124,13 +140,17 @@ class WordSuggestionController(private var renderer: KeyboardRenderer? = null) {
             if (result != null && result.hasFuzzyOnly && result.bestFuzzyMatch != null) {
                 // Auto-replace: return the best fuzzy match to replace the typed word
                 replacement = result.bestFuzzyMatch
+                lastCompletedWord = replacement
                 debugLog("📝 WordSuggestionController: Auto-correcting '${result.originalPrefix}' -> '$replacement'")
             }
         }
         
         currentWord = ""
         lastSuggestionResult = null
-        showDefaultSuggestions()
+        
+        // Switch to prediction mode and show next-word predictions
+        isPredictionMode = true
+        showWordPredictions()
         
         return replacement
     }
@@ -138,17 +158,28 @@ class WordSuggestionController(private var renderer: KeyboardRenderer? = null) {
     /** Handle enter key - clears current word and shows defaults */
     fun handleEnter() {
         currentWord = ""
+        lastCompletedWord = ""
         lastSuggestionResult = null
+        isPredictionMode = false
         showDefaultSuggestions()
     }
     
-    /** Handle suggestion selected - clears current word */
-    fun handleSuggestionSelected(): String {
+    /** Handle suggestion selected - updates state based on current mode */
+    fun handleSuggestionSelected(selectedWord: String): String {
         val replacedWord = currentWord
         currentWord = ""
         lastSuggestionResult = null
-        showDefaultSuggestions()
-        return replacedWord
+        
+        // If we were in prediction mode, stay in prediction mode with the new word
+        if (isPredictionMode) {
+            lastCompletedWord = selectedWord
+            showWordPredictions()
+            return "" // No text was replaced, word was inserted
+        } else {
+            // Was in typing mode - show defaults after selection
+            showDefaultSuggestions()
+            return replacedWord
+        }
     }
     
     /** Show default suggestions (public method for external callers) */
@@ -208,9 +239,16 @@ class WordSuggestionController(private var renderer: KeyboardRenderer? = null) {
         val result = WordCompletionManager.shared.getSuggestionsStructured(currentWord, currentLanguage)
         lastSuggestionResult = result
         
-        debugLog("📝 WordSuggestionController: Got ${result.suggestions.size} suggestions for '$currentWord': ${result.suggestions}")
+        var displaySuggestions = result.suggestions.toMutableList()
         
-        r.updateSuggestions(result.suggestions)
+        // Reverse for RTL languages (Hebrew, Arabic)
+        if (currentLanguage == "he" || currentLanguage == "ar") {
+            displaySuggestions.reverse()
+        }
+        
+        debugLog("📝 WordSuggestionController: Got ${displaySuggestions.size} suggestions for '$currentWord': $displaySuggestions")
+        
+        r.updateSuggestions(displaySuggestions)
     }
     
     /** Show default suggestions (when no text is being typed) */
@@ -218,9 +256,41 @@ class WordSuggestionController(private var renderer: KeyboardRenderer? = null) {
         if (!isEnabled) return
         val r = renderer ?: return
         
-        // Get default suggestions from WordCompletionManager
-        val suggestions = WordCompletionManager.shared.getSuggestions("")
+        isPredictionMode = false
+        var suggestions = WordCompletionManager.shared.getSuggestions("").toMutableList()
+        
+        // Reverse for RTL languages (Hebrew, Arabic)
+        if (currentLanguage == "he" || currentLanguage == "ar") {
+            suggestions.reverse()
+        }
+        
         r.updateSuggestions(suggestions)
+    }
+    
+    /** Show word predictions after completing a word */
+    private fun showWordPredictions() {
+        if (!isEnabled) return
+        val r = renderer ?: return
+        
+        // If no last completed word, show defaults
+        if (lastCompletedWord.isEmpty()) {
+            showDefaultSuggestions()
+            return
+        }
+        
+        // Get predictions for the last completed word
+        var predictions = WordCompletionManager.shared.getWordPredictions(lastCompletedWord, 4).toMutableList()
+        
+        // If no predictions available, show defaults
+        if (predictions.isEmpty()) {
+            showDefaultSuggestions()
+        } else {
+            // Reverse for RTL languages (Hebrew, Arabic)
+            if (currentLanguage == "he" || currentLanguage == "ar") {
+                predictions.reverse()
+            }
+            r.updateSuggestions(predictions)
+        }
     }
     
     /** Clear all suggestions */

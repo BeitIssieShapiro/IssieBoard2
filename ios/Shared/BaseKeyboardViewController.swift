@@ -577,17 +577,15 @@ class BaseKeyboardViewController: UIInputViewController {
     }
     
     private func handleSuggestionSelected(_ suggestion: String) {
-        let currentWord = suggestionController.currentWord
+        let replacedWord = suggestionController.handleSuggestionSelected(suggestion)
         
-        // Delete the current word
-        for _ in 0..<currentWord.count {
+        // Delete the current word if any (when in typing mode)
+        for _ in 0..<replacedWord.count {
             textDocumentProxy.deleteBackward()
         }
         
         // Insert suggestion with space
         textDocumentProxy.insertText(suggestion + " ")
-        
-        _ = suggestionController.handleSuggestionSelected()
     }
     
     private func handleSpaceKey() {

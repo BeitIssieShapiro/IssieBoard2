@@ -249,10 +249,10 @@ class KeyboardPreviewView: UIView {
     }
     
     private func handleSuggestionSelected(_ suggestion: String) {
-        let currentWord = suggestionController.currentWord
+        let replacedWord = suggestionController.handleSuggestionSelected(suggestion)
         
-        // Remove current word from typedText
-        for _ in 0..<currentWord.count {
+        // Remove current word from typedText if any (when in typing mode)
+        for _ in 0..<replacedWord.count {
             if !typedText.isEmpty {
                 typedText.removeLast()
             }
@@ -261,12 +261,10 @@ class KeyboardPreviewView: UIView {
         // Add the suggestion + space
         typedText += suggestion + " "
         
-        _ = suggestionController.handleSuggestionSelected()
-        
         // Emit events to React Native
         onSuggestionSelect?([
             "suggestion": suggestion,
-            "replacedWord": currentWord
+            "replacedWord": replacedWord
         ])
         
         onKeyPress?([
