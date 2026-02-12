@@ -7,6 +7,7 @@ interface TTSContextType {
   isSpeaking: boolean;
   settings: TTSSettings;
   updateSettings: (settings: Partial<TTSSettings>) => Promise<void>;
+  setLanguage: (lang: string) => Promise<void>;
 }
 
 const TTSContext = createContext<TTSContextType | undefined>(undefined);
@@ -70,8 +71,27 @@ export const TTSProvider = ({children}: {children: ReactNode}) => {
     }
   };
 
+  // Helper function to set language (maps language codes to TTS language codes)
+  const setLanguage = async (lang: string): Promise<void> => {
+    const languageMap: Record<string, string> = {
+      'en': 'en-US',
+      'he': 'he-IL',
+      'ar': 'ar-SA',
+    };
+    
+    const ttsLang = languageMap[lang] || 'en-US';
+    
+    // Skip update if it's the same language after mapping
+    if (settings.language === ttsLang) {
+      return; // Don't update if it's effectively the same language
+    }
+    
+    console.log(`🗣️ Setting TTS language: ${lang} -> ${ttsLang}`);
+    await updateSettings({ language: ttsLang });
+  };
+
   return (
-    <TTSContext.Provider value={{speak, stop, isSpeaking, settings, updateSettings}}>
+    <TTSContext.Provider value={{speak, stop, isSpeaking, settings, updateSettings, setLanguage}}>
       {children}
     </TTSContext.Provider>
   );

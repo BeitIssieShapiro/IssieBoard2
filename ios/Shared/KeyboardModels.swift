@@ -18,6 +18,7 @@ struct KeyboardConfig: Codable {
     let wordSuggestionsEnabled: Bool?  // Enable/disable word suggestions (default: true)
     let autoCorrectEnabled: Bool?  // Enable/disable auto-correct on space (default: false)
     let fontName: String?  // Custom font name to use for character keys (e.g., 'DanaYadAlefAlefAlef-Normal')
+    let keyHeight: Double?  // Custom key row height in points (default: 54 for iPhone, 74 for iPad keyboard extension)
     
     enum CodingKeys: String, CodingKey {
         case backgroundColor
@@ -34,6 +35,7 @@ struct KeyboardConfig: Codable {
         case wordSuggestionsEnabled
         case autoCorrectEnabled
         case fontName
+        case keyHeight
     }
     
     /// Check if word suggestions are enabled (defaults to true if not specified)

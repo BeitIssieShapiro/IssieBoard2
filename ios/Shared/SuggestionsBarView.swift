@@ -131,6 +131,12 @@ class SuggestionsBarView {
             button.titleLabel?.minimumScaleFactor = 0.6
             button.titleLabel?.textAlignment = .center
             
+            // Set semantic content attribute for RTL support
+            if isRTL {
+                button.semanticContentAttribute = .forceRightToLeft
+                button.contentHorizontalAlignment = .center
+            }
+            
             // Highlighted suggestion styling
             if isHighlighted {
                 button.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.15)

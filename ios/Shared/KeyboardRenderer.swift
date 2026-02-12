@@ -16,6 +16,9 @@ class KeyboardRenderer {
     // Callback for word suggestion selection
     var onSuggestionSelected: ((String) -> Void)?
     
+    // Callback for suggestions update (to send to React Native)
+    var onSuggestionsUpdated: (([String]) -> Void)?
+    
     // Whether to show the globe (next-keyboard) button
     // This is controlled by needsInputModeSwitchKey from the keyboard extension
     private var showGlobeButton: Bool = true
@@ -105,8 +108,14 @@ class KeyboardRenderer {
     }
     
     // UI Constants - same for preview and keyboard
-    // Dynamic row height: 54px base, +20px on iPad when NOT in preview mode
+    // Dynamic row height: uses config keyHeight if provided, otherwise 54px base, +20px on iPad when NOT in preview mode
     private var rowHeight: CGFloat {
+        // Check if config specifies a custom key height
+        if let customHeight = config?.keyHeight {
+            return CGFloat(customHeight)
+        }
+        
+        // Otherwise use default logic
         let baseHeight: CGFloat = 54
         if isLargeScreen && !isPreviewMode {
             return baseHeight + 20  // 74px on iPad actual keyboard
@@ -288,12 +297,16 @@ class KeyboardRenderer {
         currentSuggestions = suggestions
         suggestionHighlightIndex = highlightIndex
         updateSuggestionsBar()
+        // Notify callback (for React Native)
+        onSuggestionsUpdated?(suggestions)
     }
     
     /// Clear all suggestions
     func clearSuggestions() {
         currentSuggestions = []
         updateSuggestionsBar()
+        // Notify callback (for React Native)
+        onSuggestionsUpdated?([])
     }
     
     /// Set whether to show the globe (next-keyboard) button
@@ -418,29 +431,24 @@ class KeyboardRenderer {
             print("📝 Word suggestions enabled: \(wordSuggestionsEnabled) (from config)")
         }
         
-        // Calculate top offset based on whether suggestions bar is shown
+        // Show suggestions bar in real keyboard, hide in preview (preview sends to React Native)
         var topOffset: CGFloat = 4
-        
-        // Create suggestions bar at the top only if enabled
-        if wordSuggestionsEnabled {
-            // Use the modular SuggestionsBarView helper
-            suggestionsBarView.currentKeyboardId = currentKeyboardId
+
+        if wordSuggestionsEnabled && !isPreviewMode {
+            // Real keyboard - show native suggestions bar
             let bar = suggestionsBarView.createBar(width: container.bounds.width)
             container.addSubview(bar)
-            suggestionsBar = bar
-            
-            // Update suggestions bar with current suggestions
-            suggestionsBarView.updateSuggestions(currentSuggestions, highlightIndex: suggestionHighlightIndex)
-            
-            topOffset = suggestionsBarHeight + 4
+            topOffset = 50
+            suggestionsBar = bar  // Store UIView reference for legacy code
         } else {
+            // Preview mode - don't show bar (React Native handles it)
             suggestionsBar = nil
         }
-        
+
         // Create rows container below suggestions bar (or at top if disabled)
         let rowsContainer = UIView()
         container.addSubview(rowsContainer)
-        
+
         rowsContainer.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             rowsContainer.leftAnchor.constraint(equalTo: container.leftAnchor),

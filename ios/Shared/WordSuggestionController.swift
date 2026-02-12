@@ -1,369 +1,303 @@
 import Foundation
 
 /**
- * WordSuggestionController - Manages word suggestion state and logic
+ * WordSuggestionController - Manages word suggestions and input tracking
  * 
- * This controller eliminates duplication between BaseKeyboardViewController
- * and KeyboardPreviewView by centralizing all word suggestion logic.
- * 
- * Usage:
- * 1. Create an instance with a KeyboardRenderer reference
- * 2. Call handleCharacterTyped(), handleBackspace(), handleSpace(), handleEnter()
- * 3. Controller automatically updates the renderer's suggestions bar
+ * This class acts as a coordinator between the keyboard UI and word completion/prediction engines.
+ * It handles tracking current word, processing user input, and providing suggestions.
  */
 class WordSuggestionController {
     
     // MARK: - Properties
     
-    /// The renderer to update with suggestions
+    // Reference to the renderer for updating the UI
     private weak var renderer: KeyboardRenderer?
     
-    /// Current word being typed (text between last space and cursor)
+    // Current language code (e.g., "en", "he", "ar")
+    private var currentLanguage: String = "en"
+    
+    // Current input word being typed
     private(set) var currentWord: String = ""
     
-    /// Current language for suggestions
-    private(set) var currentLanguage: String = "en"
+    // Whether suggestions are enabled
+    private var suggestionsEnabled: Bool = true
     
-    /// Whether word suggestions are enabled
-    private(set) var isEnabled: Bool = true
-    
-    /// Whether auto-correct is enabled (replace on space with fuzzy match)
-    private(set) var isAutoCorrectEnabled: Bool = true
-    
-    /// Last suggestion result (for fuzzy auto-replace)
-    private(set) var currentSuggestionResult: WordCompletionManager.SuggestionResult?
-    
-    /// Last completed word (for predictions)
-    private(set) var lastCompletedWord: String = ""
-    
-    /// Whether we're currently in prediction mode (showing next-word predictions)
-    private(set) var isPredictionMode: Bool = false
+    // Whether auto-correct is enabled
+    private var autoCorrectEnabled: Bool = false
     
     // MARK: - Initialization
     
-    init(renderer: KeyboardRenderer? = nil) {
+    init(renderer: KeyboardRenderer?) {
         self.renderer = renderer
     }
     
-    // MARK: - Configuration
-    
-    /// Set the renderer to update with suggestions
-    func setRenderer(_ renderer: KeyboardRenderer) {
-        self.renderer = renderer
-    }
+    // MARK: - Language Control
     
     /// Set the current language for suggestions
+    /// - Parameter language: Language code (e.g., "en", "he", "ar")
     func setLanguage(_ language: String) {
-        guard language != currentLanguage else { return }
-        currentLanguage = language
-        WordCompletionManager.shared.setLanguage(language)
-    }
-    
-    /// Enable or disable word suggestions
-    func setEnabled(_ enabled: Bool) {
-        isEnabled = enabled
-        if !enabled {
-            clearSuggestions()
+        print("🔤 WordSuggestionController: Setting language to '\(language)'")
+        if self.currentLanguage != language {
+            self.currentLanguage = language
+            
+            // Update WordCompletionManager's language
+            WordCompletionManager.shared.setLanguage(language)
+            
+            // Show initial suggestions for the new language
+            if suggestionsEnabled {
+                showDefaults()
+            }
         }
     }
     
-    /// Enable or disable auto-correct
-    func setAutoCorrectEnabled(_ enabled: Bool) {
-        isAutoCorrectEnabled = enabled
-    }
+    // MARK: - Word Tracking
     
-    // MARK: - Input Handling
-    
-    /// Handle a character being typed
+    /// Handle character typed - update current word and fetch suggestions
     /// - Parameter character: The character that was typed
-    func handleCharacterTyped(_ character: String) {
-        guard isEnabled else { return }
-        
-        // Exit prediction mode when user starts typing
-        isPredictionMode = false
-        
+    /// - Returns: true if handled, false otherwise
+    func handleCharacterTyped(_ character: String) -> Bool {
+        guard suggestionsEnabled else { return false }
+
+        // Append to current word
         currentWord += character
+        print("🔤 handleCharacterTyped: '\(character)' - currentWord now: '\(currentWord)'")
+
+        // Get suggestions for current word
         updateSuggestions()
+
+        return true
     }
     
-    /// Handle backspace - remove last character from current word
-    /// Returns true if there was a character to remove
-    @discardableResult
+    /// Handle space key - reset current word and show predictions
+    /// - Returns: The previous word that was being typed
+    func handleSpace() -> String {
+        print("🔮 WordSuggestionController.handleSpace() called - currentWord: '\(currentWord)'")
+
+        guard suggestionsEnabled else {
+            let oldWord = currentWord
+            currentWord = ""
+            return oldWord
+        }
+
+        // If auto-correct is enabled and we have a fuzzy match, replace with best match
+        if autoCorrectEnabled && currentWord.count > 1 {
+            let result = WordCompletionManager.shared.getSuggestionsStructured(for: currentWord, language: currentLanguage)
+            if result.hasFuzzyOnly, let bestMatch = result.bestFuzzyMatch {
+                // Auto-correct would happen here in the keyboard extension
+                print("🔤 WordSuggestionController: Auto-correct would replace '\(currentWord)' with '\(bestMatch)'")
+            }
+        }
+
+        // Save current word before resetting (for return value)
+        let oldWord = currentWord
+
+        // Get predictions for next word
+        if !currentWord.isEmpty {
+            print("🔮 Getting predictions after word: '\(currentWord)'")
+            // Get word predictions based on last word
+            let predictions = WordCompletionManager.shared.getWordPredictions(
+                afterWord: currentWord,
+                language: currentLanguage
+            )
+
+            print("🔮 Got \(predictions.count) predictions: \(predictions)")
+
+            // IMPORTANT: Reset currentWord BEFORE showing suggestions
+            // This prevents showDefaults() from using the old word for completions
+            currentWord = ""
+
+            // Show predictions
+            if !predictions.isEmpty {
+                print("🔮 Showing predictions via renderer")
+                renderer?.updateSuggestions(predictions)
+            } else {
+                // Show default suggestions if no predictions available
+                print("🔮 No predictions, showing defaults (currentWord is now empty)")
+                showDefaults()
+            }
+        } else {
+            // If no current word, show defaults
+            print("🔮 currentWord is empty, showing defaults")
+            currentWord = ""
+            showDefaults()
+        }
+
+        print("🔮 WordSuggestionController.handleSpace() complete - currentWord: '\(currentWord)'")
+
+        return oldWord
+    }
+    
+    /// Handle backspace key - update current word and fetch suggestions
+    /// - Returns: true if handled, false otherwise
     func handleBackspace() -> Bool {
-        guard isEnabled else { return false }
+        guard suggestionsEnabled, !currentWord.isEmpty else { return false }
         
+        // Remove last character from current word
+        currentWord.removeLast()
+        
+        // Get suggestions for current word (or show defaults if empty)
         if !currentWord.isEmpty {
-            currentWord.removeLast()
             updateSuggestions()
-            return true
-        }
-        return false
-    }
-    
-    /// Handle space key - switches to prediction mode
-    func handleSpace() {
-        // Save the current word as last completed word (if any)
-        if !currentWord.isEmpty {
-            lastCompletedWord = currentWord
+        } else {
+            showDefaults()
         }
         
+        return true
+    }
+    
+    /// Handle enter key - reset current word
+    /// - Returns: true if handled, false otherwise
+    func handleEnter() -> Bool {
         currentWord = ""
-        currentSuggestionResult = nil
         
-        // Switch to prediction mode and show next-word predictions
-        isPredictionMode = true
-        showWordPredictions()
+        // Show defaults since current word is empty
+        if suggestionsEnabled {
+            showDefaults()
+        }
+        
+        return true
     }
     
-    /// Handle enter key - clears current word and shows defaults
-    func handleEnter() {
-        currentWord = ""
-        lastCompletedWord = ""
-        currentSuggestionResult = nil
-        isPredictionMode = false
-        showDefaultSuggestions()
-    }
-    
-    /// Handle suggestion selected - updates state based on current mode
-    /// - Parameter selectedWord: The word that was selected from suggestions
-    /// - Returns: The word that was replaced (the current word if in typing mode, empty if in prediction mode)
-    func handleSuggestionSelected(_ selectedWord: String) -> String {
+    /// Handle suggestion selected
+    /// - Parameter suggestion: The selected suggestion
+    /// - Returns: The replaced word (current word)
+    func handleSuggestionSelected(_ suggestion: String) -> String {
         let replacedWord = currentWord
         currentWord = ""
-        currentSuggestionResult = nil
         
-        // If we were in prediction mode, stay in prediction mode with the new word
-        if isPredictionMode {
-            lastCompletedWord = selectedWord
-            showWordPredictions()
-            return ""  // No text was replaced, word was inserted
-        } else {
-            // Was in typing mode - show defaults after selection
-            showDefaultSuggestions()
-            return replacedWord
+        // Show defaults since current word is now empty
+        if suggestionsEnabled {
+            showDefaults()
         }
+        
+        return replacedWord
     }
     
-    /// Show default suggestions (public method for external callers)
-    func showDefaults() {
-        showDefaultSuggestions()
-    }
+    // MARK: - Auto Replacement
     
-    // MARK: - Word Detection
-    
-    /// Detect current word from text before cursor
-    /// Call this when keyboard appears or text field changes
-    /// - Parameter beforeText: Text before the cursor position
-    func detectCurrentWord(from beforeText: String?) {
-        guard isEnabled else { return }
-        
-        // Handle empty text - show predictions if we have a last completed word
-        guard let text = beforeText, !text.isEmpty else {
-            currentWord = ""
-            currentSuggestionResult = nil
-            
-            // Show predictions if available, otherwise defaults
-            if !lastCompletedWord.isEmpty {
-                isPredictionMode = true
-                showWordPredictions()
-            } else {
-                isPredictionMode = false
-                showDefaultSuggestions()
-            }
-            return
-        }
-        
-        // Check if cursor is right after whitespace
-        if let lastChar = text.last, lastChar.isWhitespace {
-            // Find the word before the whitespace for predictions
-            let beforeSpace = text.dropLast()
-            var lastWordStart = beforeSpace.startIndex
-            
-            for i in beforeSpace.indices.reversed() {
-                let char = beforeSpace[i]
-                if char.isWhitespace {
-                    lastWordStart = beforeSpace.index(after: i)
-                    break
-                }
-            }
-            
-            let completedWord = String(beforeSpace[lastWordStart...])
-            
-            // Update last completed word and show predictions
-            if !completedWord.isEmpty {
-                lastCompletedWord = completedWord
-            }
-            
-            currentWord = ""
-            currentSuggestionResult = nil
-            isPredictionMode = true
-            showWordPredictions()
-            return
-        }
-        
-        // User is typing - find current word and show completions
-        isPredictionMode = false
-        
-        var wordStart = text.endIndex
-        var lastCompleteWord = ""
-        var foundSpace = false
-        
-        for i in text.indices.reversed() {
-            let char = text[i]
-            if char.isWhitespace {
-                if !foundSpace {
-                    // This is the space before current word
-                    wordStart = text.index(after: i)
-                    foundSpace = true
-                } else {
-                    // Found space before the previous word
-                    let prevWordStart = text.index(after: i)
-                    lastCompleteWord = String(text[prevWordStart..<wordStart])
-                    break
-                }
-            }
-            if i == text.startIndex {
-                if !foundSpace {
-                    wordStart = i
-                } else {
-                    // Previous word starts at beginning
-                    lastCompleteWord = String(text[i..<wordStart])
-                }
-            }
-        }
-        
-        // Update last completed word if found
-        if !lastCompleteWord.isEmpty {
-            lastCompletedWord = lastCompleteWord.trimmingCharacters(in: .whitespaces)
-        }
-        
-        let detectedWord = String(text[wordStart...])
-        
-        // Only update if different
-        if detectedWord != currentWord {
-            currentWord = detectedWord
-            updateSuggestions()
-        }
-    }
-    
-    // MARK: - Fuzzy Auto-Replace
-    
-    /// Check if fuzzy auto-replace should happen on space
-    /// Returns the word to replace with, or nil if no replacement
+    /// Get the best fuzzy replacement for the current word, if any
+    /// - Returns: The best fuzzy replacement, or nil if none available
     func getFuzzyAutoReplacement() -> String? {
-        guard isAutoCorrectEnabled,
-              let result = currentSuggestionResult,
-              result.hasFuzzyOnly,
-              WordCompletionManager.shared.smartAutoReplaceEnabled,
-              let bestMatch = result.bestFuzzyMatch,
-              !currentWord.isEmpty else {
-            return nil
-        }
-        return bestMatch
+        guard autoCorrectEnabled, !currentWord.isEmpty else { return nil }
+        
+        // Get structured suggestions to check for fuzzy matches
+        let result = WordCompletionManager.shared.getSuggestionsStructured(
+            for: currentWord, 
+            language: currentLanguage
+        )
+        
+        // Return the best fuzzy match if available
+        return result.hasFuzzyOnly ? result.bestFuzzyMatch : nil
     }
     
-    // MARK: - Private Helpers
+    // MARK: - Suggestions Management
     
     /// Update suggestions based on current word
     private func updateSuggestions() {
-        guard isEnabled, let renderer = renderer else {
-            currentSuggestionResult = nil
-            return
-        }
+        guard suggestionsEnabled, !currentWord.isEmpty else { return }
         
-        guard !currentWord.isEmpty else {
-            currentSuggestionResult = nil
-            renderer.clearSuggestions()
-            return
-        }
-        
-        let result = WordCompletionManager.shared.getSuggestionsStructured(
-            for: currentWord,
+        // Get suggestions from the word completion manager
+        // Include the current word as the first suggestion
+        var suggestions = WordCompletionManager.shared.getSuggestions(
+            for: currentWord, 
             language: currentLanguage
         )
-        currentSuggestionResult = result
         
-        // Build display suggestions based on fuzzy state
-        var displaySuggestions: [String] = []
-        
-        if result.hasFuzzyOnly && !result.suggestions.isEmpty {
-            // Only fuzzy matches - show quoted literal first, then best fuzzy highlighted
-            let quotedLiteral = "\"\(currentWord)\""
-            displaySuggestions.append(quotedLiteral)
-            displaySuggestions.append(contentsOf: result.suggestions)
-        } else {
-            displaySuggestions = result.suggestions
+        // Only include current word as a suggestion if it's not already in the results
+        if !currentWord.isEmpty && !suggestions.contains(currentWord) {
+            suggestions.insert("\"\(currentWord)\"", at: 0)
         }
         
-        // Reverse for RTL languages (Hebrew, Arabic)
-        if currentLanguage == "he" || currentLanguage == "ar" {
-            displaySuggestions.reverse()
+        // Show suggestions
+        renderer?.updateSuggestions(suggestions)
+    }
+    
+    /// Show default suggestions when no word is being typed
+    func showDefaults() {
+        guard suggestionsEnabled else { return }
+        
+        // Get language-specific default suggestions
+        var defaults = getDefaultSuggestions()
+        
+        // Ensure we have at least 3 suggestions
+        while defaults.count < 3 {
+            defaults.append("")
         }
         
-        // Update renderer with suggestions
-        // Only highlight the best fuzzy match if auto-correct is enabled
-        // Adjust highlight index for RTL languages
-        var highlightIndex: Int? = nil
-        if result.hasFuzzyOnly && isAutoCorrectEnabled {
-            if currentLanguage == "he" || currentLanguage == "ar" {
-                // In RTL, index 1 becomes (count - 2) after reversal
-                highlightIndex = displaySuggestions.count - 2
-            } else {
-                highlightIndex = 1
+        // Show default suggestions
+        renderer?.updateSuggestions(defaults)
+    }
+    
+    /// Get default suggestions based on current language
+    private func getDefaultSuggestions() -> [String] {
+        // Use WordCompletionManager's defaults
+        if currentWord.isEmpty {
+            return WordCompletionManager.shared.getSuggestions(for: "", language: currentLanguage)
+        }
+        
+        // Or get suggestions for current word
+        return WordCompletionManager.shared.getSuggestions(for: currentWord, language: currentLanguage)
+    }
+    
+    /// Reset the current word to empty string
+    func resetCurrentWord() {
+        currentWord = ""
+        
+        if suggestionsEnabled {
+            showDefaults()
+        }
+    }
+    
+    // MARK: - Settings Management
+    
+    /// Set whether suggestions are enabled
+    /// - Parameter enabled: true to enable suggestions, false to disable
+    func setEnabled(_ enabled: Bool) {
+        suggestionsEnabled = enabled
+    }
+    
+    /// Set whether auto-correct is enabled
+    /// - Parameter enabled: true to enable auto-correct, false to disable
+    func setAutoCorrectEnabled(_ enabled: Bool) {
+        autoCorrectEnabled = enabled
+    }
+    
+    // MARK: - Word Extraction
+    
+    /// Extract current word from text
+    /// - Parameter text: The full text
+    func detectCurrentWord(from text: String) {
+        print("🔍 detectCurrentWord called with text: '\(text)'")
+
+        guard !text.isEmpty else {
+            currentWord = ""
+            if suggestionsEnabled {
+                showDefaults()
             }
-        }
-        renderer.updateSuggestions(displaySuggestions, highlightIndex: highlightIndex)
-    }
-    
-    /// Show default suggestions (when no text is being typed)
-    private func showDefaultSuggestions() {
-        guard isEnabled, let renderer = renderer else { return }
-        
-        isPredictionMode = false
-        var suggestions = WordCompletionManager.shared.getSuggestions(for: "")
-        
-        // Reverse for RTL languages (Hebrew, Arabic)
-        if currentLanguage == "he" || currentLanguage == "ar" {
-            suggestions.reverse()
-        }
-        
-        renderer.updateSuggestions(suggestions)
-    }
-    
-    /// Show word predictions after completing a word
-    private func showWordPredictions() {
-        guard isEnabled, let renderer = renderer else { return }
-        
-        // If no last completed word, show defaults
-        guard !lastCompletedWord.isEmpty else {
-            showDefaultSuggestions()
             return
         }
-        
-        // Get predictions for the last completed word
-        var predictions = WordCompletionManager.shared.getWordPredictions(
-            afterWord: lastCompletedWord,
-            limit: 4
-        )
-        
-        // If no predictions available, show defaults
-        if predictions.isEmpty {
-            showDefaultSuggestions()
+
+        // Extract the last word from text
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let components = trimmed.components(separatedBy: .whitespacesAndNewlines)
+
+        if let lastWord = components.last, !lastWord.isEmpty {
+            currentWord = lastWord
+            print("🔍 detectCurrentWord - set currentWord to: '\(currentWord)' - calling updateSuggestions()")
+            updateSuggestions()
         } else {
-            // Reverse for RTL languages (Hebrew, Arabic)
-            if currentLanguage == "he" || currentLanguage == "ar" {
-                predictions.reverse()
+            currentWord = ""
+            if suggestionsEnabled {
+                print("🔍 detectCurrentWord - no word found, showing defaults")
+                showDefaults()
             }
-            renderer.updateSuggestions(predictions)
         }
     }
-    
-    /// Clear all suggestions
-    private func clearSuggestions() {
-        currentWord = ""
-        lastCompletedWord = ""
-        currentSuggestionResult = nil
-        isPredictionMode = false
-        renderer?.clearSuggestions()
+
+    /// Set the current word without triggering suggestions update
+    /// Useful when you need to set context before calling handleSpace()
+    /// - Parameter word: The word to set as current
+    func setCurrentWordSilently(_ word: String) {
+        currentWord = word
     }
 }

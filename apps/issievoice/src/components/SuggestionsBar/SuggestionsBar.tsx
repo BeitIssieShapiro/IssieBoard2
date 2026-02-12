@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -11,72 +11,97 @@ import {colors, sizes} from '../../constants';
 
 interface SuggestionsBarProps {
   currentText: string;
+  kbSuggestions?: string[];
+  language?: 'en' | 'he';
+  onSuggestionPress?: (suggestion: string) => void;
 }
 
-const SuggestionsBar: React.FC<SuggestionsBarProps> = ({currentText}) => {
-  const {appendText} = useText();
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-
-  useEffect(() => {
-    // Get word suggestions based on current text
-    // For now, using mock suggestions - will integrate with prediction engine later
-    const words = currentText.split(' ');
-    const lastWord = words[words.length - 1]?.toLowerCase() || '';
-
-    if (lastWord.length === 0) {
-      // Suggest common next words
-      setSuggestions(['I', 'you', 'please', 'thank', 'can']);
-    } else {
-      // Mock completion suggestions
-      const mockSuggestions = [
-        'hello',
-        'help',
-        'thank you',
-        'please',
-        'yes',
-        'no',
-        'water',
-        'food',
-        'bathroom',
-      ].filter(word => word.toLowerCase().startsWith(lastWord));
-
-      setSuggestions(mockSuggestions.slice(0, 5));
+// Helper function to find the last word boundary, handling Hebrew and other scripts
+const findLastWordBoundary = (text: string): number => {
+  // Regex to match word boundaries - handles Hebrew, Arabic, and Latin scripts
+  // Look for whitespace characters (space, newline, etc.)
+  const trimmed = text.trimEnd();
+  
+  // Search backwards for a whitespace character
+  for (let i = trimmed.length - 1; i >= 0; i--) {
+    const char = trimmed[i];
+    // Check if character is whitespace
+    if (/\s/.test(char)) {
+      return i;
     }
-  }, [currentText]);
+  }
+  
+  // No whitespace found
+  return -1;
+};
+
+const SuggestionsBar: React.FC<SuggestionsBarProps> = ({
+  currentText, 
+  kbSuggestions = [],
+  language = 'en',
+  onSuggestionPress
+}) => {
+  // Determine text direction based on language
+  const isRTL = language === 'he';
+  const {setText} = useText();
 
   const handleSuggestionPress = (suggestion: string) => {
-    const words = currentText.split(' ');
-    const lastWord = words[words.length - 1];
-
-    if (lastWord && lastWord.length > 0) {
-      // Replace the last word being typed
-      words[words.length - 1] = suggestion;
-      const newText = words.join(' ');
-      // Use setText from context to replace, then add space
-      appendText(suggestion.substring(lastWord.length) + ' ');
-    } else {
-      // Just append the suggestion
-      appendText(suggestion + ' ');
+    // Strip quotes if the suggestion is wrapped in quotes (literal word)
+    let cleanSuggestion = suggestion;
+    if (suggestion.startsWith('"') && suggestion.endsWith('"')) {
+      cleanSuggestion = suggestion.slice(1, -1);
     }
+    
+    // If a callback is provided, let the parent handle it (to notify keyboard)
+    if (onSuggestionPress) {
+      onSuggestionPress(cleanSuggestion);
+      return;
+    }
+    
+    // Fallback: Replace the partial word with the full suggestion + space
+    // Find the last word boundary in currentText
+    const trimmed = currentText.trimEnd();
+    const lastSpaceIndex = findLastWordBoundary(trimmed);
+    
+    let newText: string;
+    if (lastSpaceIndex === -1) {
+      // No whitespace found, replace entire text with suggestion
+      newText = cleanSuggestion + ' ';
+    } else {
+      // Keep everything up to and including the last whitespace, then add suggestion
+      newText = trimmed.substring(0, lastSpaceIndex + 1) + cleanSuggestion + ' ';
+    }
+    
+    setText(newText);
   };
 
-  if (suggestions.length === 0) {
-    return null;
+  if (kbSuggestions.length === 0) {
+    // Instead of returning null, return an empty bar with the same height
+    return <View style={styles.container} />;
   }
 
+  // For RTL, reverse the suggestions order so first suggestion appears on the right
+  const displaySuggestions = isRTL ? [...kbSuggestions].reverse() : kbSuggestions;
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isRTL && styles.containerRTL]}>
       <ScrollView
-        horizontal
+        horizontal={true}
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}>
-        {suggestions.map((suggestion, index) => (
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={[
+          styles.scrollContent,
+          isRTL && styles.rtlScrollContent
+        ]}>
+        {displaySuggestions.map((suggestion, index) => (
           <TouchableOpacity
             key={`${suggestion}-${index}`}
             style={styles.suggestionButton}
             onPress={() => handleSuggestionPress(suggestion)}
             activeOpacity={0.7}>
-            <Text style={styles.suggestionText}>{suggestion}</Text>
+            <Text style={styles.suggestionText} numberOfLines={1}>
+              {suggestion}
+            </Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -86,21 +111,31 @@ const SuggestionsBar: React.FC<SuggestionsBarProps> = ({currentText}) => {
 
 const styles = StyleSheet.create({
   container: {
-    height: sizes.suggestionButton,
+    height: 50,
     backgroundColor: colors.surfaceDark,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
+  containerRTL: {
+    // Align scroll view to the right for RTL
+    alignItems: 'flex-end',
+  },
   scrollContent: {
     paddingHorizontal: sizes.spacing.md,
+    paddingVertical: sizes.spacing.sm,
+    gap: sizes.spacing.md,
     alignItems: 'center',
-    gap: sizes.spacing.sm,
+    flexDirection: 'row',
+  },
+  rtlScrollContent: {
+    // Keep row direction but justify content to end for RTL
+    justifyContent: 'flex-end',
   },
   suggestionButton: {
-    height: sizes.touchTarget.small,
+    height: 40,
     paddingHorizontal: sizes.spacing.lg,
     backgroundColor: colors.primary,
-    borderRadius: sizes.borderRadius.medium,
+    borderRadius: sizes.borderRadius.large,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -112,7 +147,8 @@ const styles = StyleSheet.create({
   suggestionText: {
     color: '#FFFFFF',
     fontSize: sizes.fontSize.medium,
-    fontWeight: '500',
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });
 

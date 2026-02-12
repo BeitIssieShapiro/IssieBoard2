@@ -75,10 +75,31 @@ class WordCompletionManager {
     /// - Parameter languageCode: Language code (e.g., "en", "he", "ar")
     func setLanguage(_ languageCode: String) {
         print("📚 WordCompletionManager: Setting language to '\(languageCode)'")
-        currentLanguage = languageCode
-        
-        // Pre-load the engine for this language if not already loaded
-        _ = getEngine(for: languageCode)
+        // Only update if language is actually changing
+        if currentLanguage != languageCode {
+            currentLanguage = languageCode
+
+            // Pre-load the engine for this language if not already loaded
+            if let engine = getEngine(for: languageCode) {
+                print("📚 WordCompletionManager: Engine loaded successfully for '\(languageCode)'")
+                // Test a simple lookup to ensure it's working
+                let testSuggestions = engine.getSuggestions(for: "t", limit: 3)
+                print("📚 WordCompletionManager: Test lookup for 't' returned: \(testSuggestions)")
+            } else {
+                print("⚠️ WordCompletionManager: Failed to load engine for '\(languageCode)'")
+            }
+            
+            // Clear any cached engines for other languages to reduce memory usage
+            for (lang, _) in engines {
+                if lang != languageCode {
+                    engines.removeValue(forKey: lang)
+                    predictionEngines.removeValue(forKey: lang)
+                    print("📚 WordCompletionManager: Cleared cached engine for '\(lang)' to save memory")
+                }
+            }
+            
+            print("📚 WordCompletionManager: Language successfully set to '\(languageCode)'")
+        }
     }
     
     /// Get word suggestions for the given prefix using current language
@@ -115,6 +136,7 @@ class WordCompletionManager {
             return defaults
         }
         
+        print("📚 WordCompletionManager: Getting suggestions for prefix '\(prefix)' with explicitly requested language '\(languageCode)'")
         return getSuggestionsWithFuzzy(for: prefix, language: languageCode)
     }
     
@@ -143,7 +165,7 @@ class WordCompletionManager {
         }
         
         guard let engine = getEngine(for: language) else {
-            print("📚 WordCompletionManager: No engine available for '\(language)'")
+            print("⚠️ WordCompletionManager: No engine available for '\(language)' - this should not happen!")
             return SuggestionResult(
                 suggestions: [],
                 hasFuzzyOnly: false,
@@ -151,17 +173,20 @@ class WordCompletionManager {
                 originalPrefix: prefix
             )
         }
-        
-        print("📚 WordCompletionManager: Querying engine for prefix '\(prefix)' in '\(language)' (length: \(prefix.count))")
-        
+
+        // Normalize prefix to lowercase for dictionary lookup (dictionaries are lowercase)
+        let normalizedPrefix = prefix.lowercased()
+
+        print("📚 WordCompletionManager: Querying engine for prefix '\(prefix)' (normalized: '\(normalizedPrefix)') in '\(language)' (length: \(prefix.count))")
+
         // Step 1: Check if prefix is an EXACT word in dictionary (prioritize exact matches)
-        let isExactWord = engine.wordExists(prefix)
+        let isExactWord = engine.wordExists(normalizedPrefix)
         if isExactWord {
-            print("📚 WordCompletionManager: '\(prefix)' is an exact word in dictionary - will prioritize")
+            print("📚 WordCompletionManager: '\(normalizedPrefix)' is an exact word in dictionary - will prioritize")
         }
-        
+
         // Step 2: Try prefix-based suggestions
-        let exactSuggestions = engine.getSuggestions(for: prefix, limit: maxSuggestions + 4)
+        let exactSuggestions = engine.getSuggestions(for: normalizedPrefix, limit: maxSuggestions + 4)
         print("📚 WordCompletionManager: Engine returned \(exactSuggestions.count) exact suggestions: \(exactSuggestions)")
         
         // Filter out single-letter suggestions
@@ -170,28 +195,78 @@ class WordCompletionManager {
         // Step 3: For Hebrew, try prefix stripping if we don't have enough results
         var prefixStrippedSuggestions: [String] = []
         if language == "he" && filteredExact.count <= fuzzyTriggerThreshold {
-            prefixStrippedSuggestions = getPrefixStrippedSuggestions(for: prefix, engine: engine)
+            prefixStrippedSuggestions = getPrefixStrippedSuggestions(for: normalizedPrefix, engine: engine)
             print("📚 WordCompletionManager: Hebrew prefix stripping returned \(prefixStrippedSuggestions.count) suggestions: \(prefixStrippedSuggestions)")
         }
-        
+
         // Step 4: If exact word match, ensure it's in suggestions even if not in top results
-        if isExactWord && prefix.count > 1 && !filteredExact.contains(prefix) {
+        if isExactWord && normalizedPrefix.count > 1 && !filteredExact.contains(normalizedPrefix) {
             // Insert the exact match at the beginning
-            filteredExact.insert(prefix, at: 0)
-            print("📚 WordCompletionManager: Added exact match '\(prefix)' to suggestions")
+            filteredExact.insert(normalizedPrefix, at: 0)
+            print("📚 WordCompletionManager: Added exact match '\(normalizedPrefix)' to suggestions")
         }
-        
+
         // Step 5: If exact matches are sufficient (including prefix-stripped), return them
         let combinedExact = filteredExact + prefixStrippedSuggestions.filter { !filteredExact.contains($0) }
-        if combinedExact.count > fuzzyTriggerThreshold || prefix.count < 2 {
-            var finalSuggestions = Array(combinedExact.prefix(maxSuggestions))
+
+        print("📚 WordCompletionManager: combinedExact count: \(combinedExact.count), normalizedPrefix.count: \(normalizedPrefix.count)")
+
+        // For single-letter prefixes, return results only if we have them
+        // Don't do fuzzy search on single letters (doesn't make sense)
+        if normalizedPrefix.count < 2 {
+            if combinedExact.isEmpty {
+                print("📚 WordCompletionManager: No exact matches for single-letter prefix '\(normalizedPrefix)' - returning defaults")
+                // Return default suggestions instead of empty
+                let defaults = getDefaultSuggestions(for: language)
+                return SuggestionResult(
+                    suggestions: defaults,
+                    hasFuzzyOnly: false,
+                    bestFuzzyMatch: nil,
+                    originalPrefix: prefix
+                )
+            }
+
+            // We have results for single-letter prefix - return them
+            var lowercaseSuggestions = Array(combinedExact.prefix(maxSuggestions))
             // Ensure no duplicates
             var seen = Set<String>()
-            finalSuggestions = finalSuggestions.filter { 
+            lowercaseSuggestions = lowercaseSuggestions.filter {
                 if seen.contains($0) { return false }
                 seen.insert($0)
                 return true
             }
+
+            // Restore original case from prefix
+            let finalSuggestions = lowercaseSuggestions.map { suggestion in
+                restoreCase(suggestion: suggestion, originalPrefix: prefix)
+            }
+
+            print("📚 WordCompletionManager: Returning \(finalSuggestions.count) suggestions for single-letter prefix '\(prefix)': \(finalSuggestions)")
+
+            return SuggestionResult(
+                suggestions: finalSuggestions,
+                hasFuzzyOnly: false,
+                bestFuzzyMatch: nil,
+                originalPrefix: prefix
+            )
+        }
+
+        // For 2+ letter prefixes, check if we have enough exact matches
+        if combinedExact.count > fuzzyTriggerThreshold {
+            var lowercaseSuggestions = Array(combinedExact.prefix(maxSuggestions))
+            // Ensure no duplicates
+            var seen = Set<String>()
+            lowercaseSuggestions = lowercaseSuggestions.filter {
+                if seen.contains($0) { return false }
+                seen.insert($0)
+                return true
+            }
+
+            // Restore original case from prefix
+            let finalSuggestions = lowercaseSuggestions.map { suggestion in
+                restoreCase(suggestion: suggestion, originalPrefix: prefix)
+            }
+
             return SuggestionResult(
                 suggestions: finalSuggestions,
                 hasFuzzyOnly: false,
@@ -202,13 +277,13 @@ class WordCompletionManager {
         
         // Step 6: Exact matches insufficient, try fuzzy search
         print("📚 WordCompletionManager: Few exact matches (\(combinedExact.count)), trying fuzzy search with budget \(fuzzyErrorBudget)")
-        
+
         // Get keyboard neighbors for fuzzy search
         let neighbors = KeyboardNeighbors.neighbors(for: language)
-        
+
         // Perform fuzzy search
         let fuzzySuggestions = engine.getFuzzySuggestions(
-            for: prefix,
+            for: normalizedPrefix,
             errorBudget: fuzzyErrorBudget,
             neighbors: neighbors,
             limit: maxSuggestions + 4
@@ -226,9 +301,9 @@ class WordCompletionManager {
         var seen = Set<String>()
         
         // Add exact word match first if it exists
-        if isExactWord && prefix.count > 1 {
-            merged.append(prefix)
-            seen.insert(prefix)
+        if isExactWord && normalizedPrefix.count > 1 {
+            merged.append(normalizedPrefix)
+            seen.insert(normalizedPrefix)
         }
         
         // Add exact matches
@@ -256,11 +331,17 @@ class WordCompletionManager {
         }
         
         print("📚 WordCompletionManager: After merging fuzzy results: \(merged.count) total suggestions")
-        
+
         // Return top N results
-        let finalSuggestions = Array(merged.prefix(maxSuggestions))
+        let lowercaseSuggestions = Array(merged.prefix(maxSuggestions))
+
+        // Restore original case from prefix
+        let finalSuggestions = lowercaseSuggestions.map { suggestion in
+            restoreCase(suggestion: suggestion, originalPrefix: prefix)
+        }
+
         print("📚 WordCompletionManager: Returning \(finalSuggestions.count) suggestions for '\(prefix)': \(finalSuggestions), hasFuzzyOnly: \(hasFuzzyOnly), bestFuzzy: \(bestFuzzyMatch ?? "none")")
-        
+
         return SuggestionResult(
             suggestions: finalSuggestions,
             hasFuzzyOnly: hasFuzzyOnly,
@@ -269,6 +350,29 @@ class WordCompletionManager {
         )
     }
     
+    /// Restore the original case from the typed prefix to the suggestion
+    /// E.g., if user typed "Th" and dictionary returns "the", return "The"
+    /// - Parameters:
+    ///   - suggestion: The lowercase suggestion from the dictionary
+    ///   - originalPrefix: The original prefix as typed by the user (with original case)
+    /// - Returns: Suggestion with case restored from the prefix
+    private func restoreCase(suggestion: String, originalPrefix: String) -> String {
+        guard !originalPrefix.isEmpty, !suggestion.isEmpty else { return suggestion }
+
+        let prefixLength = min(originalPrefix.count, suggestion.count)
+        let casedPrefix = String(originalPrefix.prefix(prefixLength))
+        let suggestionPrefix = String(suggestion.prefix(prefixLength))
+
+        // Verify that the lowercase versions match (they should, since we normalized before lookup)
+        guard suggestionPrefix.lowercased() == casedPrefix.lowercased() else {
+            return suggestion
+        }
+
+        // Replace the suggestion prefix with the original cased prefix
+        let suggestionRemainder = String(suggestion.dropFirst(prefixLength))
+        return casedPrefix + suggestionRemainder
+    }
+
     /// For Hebrew: Try stripping common prefixes and find root words
     /// - Parameters:
     ///   - word: The word to check with prefix

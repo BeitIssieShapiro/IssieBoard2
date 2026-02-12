@@ -1,11 +1,12 @@
 import React, {useRef, useEffect} from 'react';
 import {
   View,
-  Text,
+  TextInput,
   StyleSheet,
   ScrollView,
   Dimensions,
 } from 'react-native';
+import {useText} from '../../context/TextContext';
 import {colors, sizes} from '../../constants';
 
 interface TextDisplayAreaProps {
@@ -13,35 +14,46 @@ interface TextDisplayAreaProps {
 }
 
 const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({text}) => {
-  const scrollViewRef = useRef<ScrollView>(null);
+  const {setText} = useText();
+  const textInputRef = useRef<TextInput>(null);
 
   // Log whenever text prop changes
   useEffect(() => {
     console.log('📺 TextDisplayArea received text:', text, 'length:', text.length);
   }, [text]);
 
-  // Auto-scroll to bottom when text changes
-  useEffect(() => {
-    if (scrollViewRef.current && text.length > 0) {
-      scrollViewRef.current.scrollToEnd({animated: true});
-    }
-  }, [text]);
+  // Keep TextInput focused to show cursor
+  // useEffect(() => {
+  //   if (textInputRef.current) {
+  //     textInputRef.current.focus();
+  //   }
+  // }, []);
 
   return (
     <View style={styles.container}>
       <ScrollView
-        ref={scrollViewRef}
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={true}
-        bounces={true}>
-        {text.length > 0 ? (
-          <Text style={styles.text}>{text}</Text>
-        ) : (
-          <Text style={styles.placeholder}>
-            Start typing to compose your message...
-          </Text>
-        )}
+        bounces={true}
+        keyboardShouldPersistTaps="handled">
+        <TextInput
+          ref={textInputRef}
+          style={styles.textInput}
+          value={text}
+          onChangeText={(newText) => {
+            console.log('⌨️ External keyboard input detected:', newText);
+            setText(newText);
+          }}
+          multiline={true}
+          editable={true}
+          autoFocus
+          placeholder="Start typing to compose your message..."
+          placeholderTextColor={colors.textLight}
+          inputAccessoryViewID="customKeyboard"
+          showSoftInputOnFocus={false}
+          caretHidden={false}
+        />
       </ScrollView>
     </View>
   );
@@ -59,18 +71,14 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: sizes.spacing.md,
-    minHeight: sizes.textDisplay,
-    justifyContent: 'center',
+    flexGrow: 1,
   },
-  text: {
+  textInput: {
     fontSize: sizes.fontSize.large,
     color: colors.text,
     lineHeight: sizes.fontSize.large * 1.5,
-  },
-  placeholder: {
-    fontSize: sizes.fontSize.medium,
-    color: colors.textLight,
-    fontStyle: 'italic',
+    minHeight: sizes.textDisplay - (sizes.spacing.md * 2),
+    textAlignVertical: 'top',
   },
 });
 

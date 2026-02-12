@@ -26,7 +26,7 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation}) => {
   const [filteredSentences, setFilteredSentences] = useState<SavedSentence[]>(
     [],
   );
-  const {setText} = useText();
+  const {setText, currentText} = useText();
   const {speak} = useTTS();
 
   useEffect(() => {
@@ -53,8 +53,15 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation}) => {
     setFilteredSentences(saved);
   };
 
-  const handleSentencePress = (sentence: SavedSentence) => {
+  const handleReplaceText = (sentence: SavedSentence) => {
     setText(sentence.text);
+    navigation.goBack();
+  };
+
+  const handleInsertText = (sentence: SavedSentence) => {
+    // Insert at the end of current text
+    const newText = currentText + (currentText && !currentText.endsWith(' ') ? ' ' : '') + sentence.text;
+    setText(newText);
     navigation.goBack();
   };
 
@@ -84,7 +91,7 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation}) => {
     <View style={styles.sentenceItem}>
       <TouchableOpacity
         style={styles.sentenceTextContainer}
-        onPress={() => handleSentencePress(item)}
+        onPress={() => handleReplaceText(item)}
         activeOpacity={0.7}>
         <Text style={styles.sentenceText} numberOfLines={2}>
           {item.text}
@@ -95,6 +102,13 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation}) => {
       </TouchableOpacity>
 
       <View style={styles.actionButtons}>
+        <TouchableOpacity
+          style={[styles.actionButton, styles.insertButton]}
+          onPress={() => handleInsertText(item)}
+          activeOpacity={0.7}>
+          <Text style={styles.actionButtonText}>➕</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity
           style={[styles.actionButton, styles.speakButton]}
           onPress={() => handleSpeakPress(item)}
@@ -244,6 +258,9 @@ const styles = StyleSheet.create({
     borderRadius: sizes.borderRadius.small,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  insertButton: {
+    backgroundColor: '#9C27B0', // Purple for insert
   },
   speakButton: {
     backgroundColor: colors.speak,

@@ -1,4 +1,7 @@
-# Android Porting Instructions
+# Android Porting Agent
+You are an agent who port changes from native ios to native android.
+when started, you'd look after the last commit you already covered, and you will look at all code changes in native code. then follow the instractions below to port to android.
+When done, you will update this file with last changes you handled.
 
 ## 🎯 Porting Principles
 
@@ -233,19 +236,3 @@ Android:
 5. **Dependencies**: Minimize external dependencies. Use Android SDK classes where possible.
 
 ---
-
-## 📅 Next Porting Tasks (Priority Order)
-
-When instructed to continue porting:
-
-1. **BackspaceHandler.kt** - Backspace repeat and word deletion logic
-2. **KeyboardRenderer.kt** - Full implementation (currently a stub)
-3. **TrieEngine.kt** - Dictionary lookup engine
-4. **WordCompletionManager.kt** - Word suggestions management
-5. **WordSuggestionController.kt** - Suggestion UI controller
-6. **NikkudPickerController.kt** - Diacritics picker (Hebrew specific)
-7. **KeyboardNeighbors.kt** - Fuzzy typing support
-
----
-
-*Last Updated: 2026-02-02*

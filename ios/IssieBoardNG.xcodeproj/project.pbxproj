@@ -103,7 +103,34 @@
 		6ACC20682F30C9B000F1FA30 /* KeyboardModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A1E33762F22198A00035455 /* KeyboardModels.swift */; };
 		6ACC20692F30C9B000F1FA30 /* WordSuggestionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ACC1F962F30AF8900F1FA30 /* WordSuggestionController.swift */; };
 		6ACC206A2F30C9BF00F1FA30 /* KeyboardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A73B6882F24E985003898A5 /* KeyboardRenderer.swift */; };
-		6AFD743C2F3D365200EDBDAA /* en_50k.bin in Resources */ = {isa = PBXBuildFile; fileRef = 6AFD743B2F3D365200EDBDAA /* en_50k.bin */; };
+		6ADAC3652F3DDC6F00C85EBD /* he_50k.bin in Resources */ = {isa = PBXBuildFile; fileRef = 6ADAC3642F3DDC6F00C85EBD /* he_50k.bin */; };
+		6ADAC3672F3DDC9400C85EBD /* he_predictions.bin in Resources */ = {isa = PBXBuildFile; fileRef = 6ADAC3662F3DDC9400C85EBD /* he_predictions.bin */; };
+		6ADAC3692F3DDD2900C85EBD /* en_predictions.bin in Resources */ = {isa = PBXBuildFile; fileRef = 6ADAC3682F3DDD2900C85EBD /* en_predictions.bin */; };
+		6ADAC36B2F3DF77D00C85EBD /* CustomTextDocumentProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ADAC36A2F3DF77D00C85EBD /* CustomTextDocumentProxy.swift */; };
+		6ADAC36C2F3DF77D00C85EBD /* CustomTextDocumentProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ADAC36A2F3DF77D00C85EBD /* CustomTextDocumentProxy.swift */; };
+		6ADAC36D2F3DF77D00C85EBD /* CustomTextDocumentProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ADAC36A2F3DF77D00C85EBD /* CustomTextDocumentProxy.swift */; };
+		6ADAC36F2F3DF78D00C85EBD /* TextDocumentProxyProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ADAC36E2F3DF78D00C85EBD /* TextDocumentProxyProtocol.swift */; };
+		6ADAC3702F3DF78D00C85EBD /* TextDocumentProxyProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ADAC36E2F3DF78D00C85EBD /* TextDocumentProxyProtocol.swift */; };
+		6ADAC3712F3DF78D00C85EBD /* TextDocumentProxyProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ADAC36E2F3DF78D00C85EBD /* TextDocumentProxyProtocol.swift */; };
+		6ADAC3732F3DF7A200C85EBD /* KeyboardEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ADAC3722F3DF7A200C85EBD /* KeyboardEngine.swift */; };
+		6ADAC3742F3DF7A200C85EBD /* KeyboardEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ADAC3722F3DF7A200C85EBD /* KeyboardEngine.swift */; };
+		6ADAC3752F3DF7A200C85EBD /* KeyboardEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ADAC3722F3DF7A200C85EBD /* KeyboardEngine.swift */; };
+		6ADAC3762F3DF7A200C85EBD /* KeyboardEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ADAC3722F3DF7A200C85EBD /* KeyboardEngine.swift */; };
+		6ADAC3772F3DF7A200C85EBD /* KeyboardEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ADAC3722F3DF7A200C85EBD /* KeyboardEngine.swift */; };
+		6ADAC3782F3DF7A200C85EBD /* KeyboardEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ADAC3722F3DF7A200C85EBD /* KeyboardEngine.swift */; };
+		6ADAC3792F3DF80400C85EBD /* CustomTextDocumentProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ADAC36A2F3DF77D00C85EBD /* CustomTextDocumentProxy.swift */; };
+		6ADAC37A2F3DF80400C85EBD /* CustomTextDocumentProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ADAC36A2F3DF77D00C85EBD /* CustomTextDocumentProxy.swift */; };
+		6ADAC37B2F3DF80400C85EBD /* CustomTextDocumentProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ADAC36A2F3DF77D00C85EBD /* CustomTextDocumentProxy.swift */; };
+		6ADAC37C2F3DF82100C85EBD /* TextDocumentProxyProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ADAC36E2F3DF78D00C85EBD /* TextDocumentProxyProtocol.swift */; };
+		6ADAC37D2F3DF82100C85EBD /* TextDocumentProxyProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ADAC36E2F3DF78D00C85EBD /* TextDocumentProxyProtocol.swift */; };
+		6ADAC37E2F3DF82100C85EBD /* TextDocumentProxyProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ADAC36E2F3DF78D00C85EBD /* TextDocumentProxyProtocol.swift */; };
+		6ADAC3802F3E0B8700C85EBD /* SystemTextDocumentProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ADAC37F2F3E0B8700C85EBD /* SystemTextDocumentProxy.swift */; };
+		6ADAC3812F3E0B8700C85EBD /* SystemTextDocumentProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ADAC37F2F3E0B8700C85EBD /* SystemTextDocumentProxy.swift */; };
+		6ADAC3822F3E0B8700C85EBD /* SystemTextDocumentProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ADAC37F2F3E0B8700C85EBD /* SystemTextDocumentProxy.swift */; };
+		6ADAC3832F3E0BE300C85EBD /* SystemTextDocumentProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ADAC37F2F3E0B8700C85EBD /* SystemTextDocumentProxy.swift */; };
+		6ADAC3842F3E0BE300C85EBD /* SystemTextDocumentProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ADAC37F2F3E0B8700C85EBD /* SystemTextDocumentProxy.swift */; };
+		6ADAC3852F3E0BE300C85EBD /* SystemTextDocumentProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ADAC37F2F3E0B8700C85EBD /* SystemTextDocumentProxy.swift */; };
+		6AFD743E2F3DB18B00EDBDAA /* en_50k.bin in Resources */ = {isa = PBXBuildFile; fileRef = 6AFD743D2F3DB18B00EDBDAA /* en_50k.bin */; };
 		6AKBNG00012F400100035455 /* KeyboardNeighbors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AKBNG00002F400100035455 /* KeyboardNeighbors.swift */; };
 		6AKBNG00022F400100035455 /* KeyboardNeighbors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AKBNG00002F400100035455 /* KeyboardNeighbors.swift */; };
 		6AKBNG00032F400100035455 /* KeyboardNeighbors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AKBNG00002F400100035455 /* KeyboardNeighbors.swift */; };
@@ -208,7 +235,6 @@
 		6A877C1D2F34DAB900888533 /* Gveret Levin AlefAlefAlef-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Gveret Levin AlefAlefAlef-Regular.ttf"; path = "../assets/fonts/Gveret Levin AlefAlefAlef-Regular.ttf"; sourceTree = SOURCE_ROOT; };
 		6AA1FCB22F3CB103002BD212 /* WordPredictionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordPredictionEngine.swift; sourceTree = "<group>"; };
 		6AA1FD162F3D26FA002BD212 /* IssieVoice.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = IssieVoice.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		6AA1FD172F3D26FA002BD212 /* IssieBoard copy-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "IssieBoard copy-Info.plist"; path = "/Users/i022021/dev/Issie/IssieBoardNG/ios/IssieBoard copy-Info.plist"; sourceTree = "<absolute>"; };
 		6ACC1DF72F2AB0A800F1FA30 /* IssieBoardNGTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = IssieBoardNGTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6ACC1E282F2B564800F1FA30 /* TrieEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrieEngine.swift; sourceTree = "<group>"; };
 		6ACC1E562F2CDE8300F1FA30 /* IssieBoardEn.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = IssieBoardEn.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -220,7 +246,15 @@
 		6ACC1FA02F30B20000F1FA30 /* BackspaceHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackspaceHandler.swift; sourceTree = "<group>"; };
 		6ACC1FA12F30B20000F1FA30 /* SuggestionsBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestionsBarView.swift; sourceTree = "<group>"; };
 		6ACC1FA22F30B20000F1FA30 /* NikkudPickerController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NikkudPickerController.swift; sourceTree = "<group>"; };
-		6AFD743B2F3D365200EDBDAA /* en_50k.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = en_50k.bin; sourceTree = "<group>"; };
+		6ADAC3642F3DDC6F00C85EBD /* he_50k.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = he_50k.bin; sourceTree = "<group>"; };
+		6ADAC3662F3DDC9400C85EBD /* he_predictions.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = he_predictions.bin; sourceTree = "<group>"; };
+		6ADAC3682F3DDD2900C85EBD /* en_predictions.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = en_predictions.bin; sourceTree = "<group>"; };
+		6ADAC36A2F3DF77D00C85EBD /* CustomTextDocumentProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomTextDocumentProxy.swift; sourceTree = "<group>"; };
+		6ADAC36E2F3DF78D00C85EBD /* TextDocumentProxyProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextDocumentProxyProtocol.swift; sourceTree = "<group>"; };
+		6ADAC3722F3DF7A200C85EBD /* KeyboardEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardEngine.swift; sourceTree = "<group>"; };
+		6ADAC37F2F3E0B8700C85EBD /* SystemTextDocumentProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemTextDocumentProxy.swift; sourceTree = "<group>"; };
+		6AFD743D2F3DB18B00EDBDAA /* en_50k.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = en_50k.bin; sourceTree = "<group>"; };
+		6AFD74402F3DB21C00EDBDAA /* IssieVoice-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "IssieVoice-Info.plist"; sourceTree = "<group>"; };
 		6AKBNG00002F400100035455 /* KeyboardNeighbors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardNeighbors.swift; sourceTree = "<group>"; };
 		6ASHARED0001000000035455 /* SharedAssets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = SharedAssets.xcassets; sourceTree = "<group>"; };
 		6AWORD00042F300100035455 /* WordCompletionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordCompletionManager.swift; sourceTree = "<group>"; };
@@ -257,21 +291,6 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		6AA1FCC12F3D2399002BD212 /* IssieVoice */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = IssieVoice;
-			sourceTree = "<group>";
-		};
-		6AA1FCCF2F3D239C002BD212 /* IssieVoiceTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = IssieVoiceTests;
-			sourceTree = "<group>";
-		};
-		6AA1FCD92F3D239C002BD212 /* IssieVoiceUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = IssieVoiceUITests;
-			sourceTree = "<group>";
-		};
 		6ACC1DF82F2AB0A900F1FA30 /* IssieBoardNGTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = IssieBoardNGTests;
@@ -365,8 +384,11 @@
 				6A73B68C2F24E9B1003898A5 /* KeyboardPreviewViewManager.m */,
 				6A73B68D2F24E9B1003898A5 /* KeyboardPreviewViewManager.swift */,
 				6A1E33742F22170B00035455 /* KeyboardPreferencesModule.swift */,
+				6ADAC3662F3DDC9400C85EBD /* he_predictions.bin */,
+				6ADAC3682F3DDD2900C85EBD /* en_predictions.bin */,
+				6ADAC3642F3DDC6F00C85EBD /* he_50k.bin */,
+				6AFD743D2F3DB18B00EDBDAA /* en_50k.bin */,
 				6A1E33732F2216F000035455 /* IssieBoardNG-Bridging-Header.h */,
-				6AFD743B2F3D365200EDBDAA /* en_50k.bin */,
 			);
 			name = IssieBoardNG;
 			sourceTree = "<group>";
@@ -388,9 +410,13 @@
 				6A73B6882F24E985003898A5 /* KeyboardRenderer.swift */,
 				6ACC1F902F30AF7000F1FA30 /* DebugLog.swift */,
 				6A1E33762F22198A00035455 /* KeyboardModels.swift */,
+				6ADAC3722F3DF7A200C85EBD /* KeyboardEngine.swift */,
+				6ADAC36A2F3DF77D00C85EBD /* CustomTextDocumentProxy.swift */,
+				6ADAC36E2F3DF78D00C85EBD /* TextDocumentProxyProtocol.swift */,
 				6ACC1F962F30AF8900F1FA30 /* WordSuggestionController.swift */,
 				6ACC1E932F2D007500F1FA30 /* BaseKeyboardViewController.swift */,
 				6ACC1E282F2B564800F1FA30 /* TrieEngine.swift */,
+				6ADAC37F2F3E0B8700C85EBD /* SystemTextDocumentProxy.swift */,
 				6A1E336D2F220FCA00035455 /* KeyboardPreferences.swift */,
 				6AA1FCB22F3CB103002BD212 /* WordPredictionEngine.swift */,
 				6AWORD00042F300100035455 /* WordCompletionManager.swift */,
@@ -410,6 +436,14 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
+		6AFD74922F3DB46D00EDBDAA /* IssieVoice */ = {
+			isa = PBXGroup;
+			children = (
+				6AFD74402F3DB21C00EDBDAA /* IssieVoice-Info.plist */,
+			);
+			path = IssieVoice;
+			sourceTree = "<group>";
+		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
 			isa = PBXGroup;
 			children = (
@@ -420,6 +454,7 @@
 		83CBB9F61A601CBA00E9B192 = {
 			isa = PBXGroup;
 			children = (
+				6AFD74922F3DB46D00EDBDAA /* IssieVoice */,
 				6A877C1C2F34DA3F00888533 /* Resources */,
 				13B07FAE1A68108700A75B9A /* IssieBoardNG */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
@@ -428,13 +463,9 @@
 				6ACC1E572F2CDE8300F1FA30 /* IssieBoardEn */,
 				6ACC1E6C2F2CDEA800F1FA30 /* IssieBoardHe */,
 				6ACC1E812F2CDEBE00F1FA30 /* IssieBoardAr */,
-				6AA1FCC12F3D2399002BD212 /* IssieVoice */,
-				6AA1FCCF2F3D239C002BD212 /* IssieVoiceTests */,
-				6AA1FCD92F3D239C002BD212 /* IssieVoiceUITests */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				BBD78D7AC51CEA395F1C20DB /* Pods */,
-				6AA1FD172F3D26FA002BD212 /* IssieBoard copy-Info.plist */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -503,7 +534,6 @@
 				6AA1FCF02F3D26FA002BD212 /* Sources */,
 				6AA1FD042F3D26FA002BD212 /* Frameworks */,
 				6AA1FD062F3D26FA002BD212 /* Resources */,
-				6AA1FD0C2F3D26FA002BD212 /* Bundle React Native code and images */,
 				CBE376FB9F6DA08E41B521BD /* [CP] Embed Pods Frameworks */,
 				90EF52C0FC0014FA18A8A1D6 /* [CP] Copy Pods Resources */,
 			);
@@ -667,10 +697,13 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6ADAC3652F3DDC6F00C85EBD /* he_50k.bin in Resources */,
+				6ADAC3672F3DDC9400C85EBD /* he_predictions.bin in Resources */,
 				6AA1FD072F3D26FA002BD212 /* LaunchScreen.storyboard in Resources */,
-				6AFD743C2F3D365200EDBDAA /* en_50k.bin in Resources */,
+				6AFD743E2F3DB18B00EDBDAA /* en_50k.bin in Resources */,
 				6AA1FD082F3D26FA002BD212 /* Images.xcassets in Resources */,
 				6AA1FD092F3D26FA002BD212 /* SharedAssets.xcassets in Resources */,
+				6ADAC3692F3DDD2900C85EBD /* en_predictions.bin in Resources */,
 				6AA1FD0A2F3D26FA002BD212 /* Gveret Levin AlefAlefAlef-Regular.ttf in Resources */,
 				6AA1FD0B2F3D26FA002BD212 /* PrivacyInfo.xcprivacy in Resources */,
 			);
@@ -788,22 +821,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"$SRCROOT/build_keyboard_configs.sh\"\n";
-		};
-		6AA1FD0C2F3D26FA002BD212 /* Bundle React Native code and images */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"$(SRCROOT)/.xcode.env.local",
-				"$(SRCROOT)/.xcode.env",
-			);
-			name = "Bundle React Native code and images";
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "set -e\n\nWITH_ENVIRONMENT=\"$REACT_NATIVE_PATH/scripts/xcode/with-environment.sh\"\nREACT_NATIVE_XCODE=\"$REACT_NATIVE_PATH/scripts/react-native-xcode.sh\"\n\n/bin/sh -c \"\\\"$WITH_ENVIRONMENT\\\" \\\"$REACT_NATIVE_XCODE\\\"\"\n";
 		};
 		6ACC1E512F2CDD8700F1FA30 /* Run Script - generate default keyboards */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -926,13 +943,17 @@
 				6ACC1E2A2F2B564800F1FA30 /* TrieEngine.swift in Sources */,
 				6A1E33772F22198A00035455 /* KeyboardModels.swift in Sources */,
 				6ACC1F9B2F30AF8900F1FA30 /* WordSuggestionController.swift in Sources */,
+				6ADAC3832F3E0BE300C85EBD /* SystemTextDocumentProxy.swift in Sources */,
 				6A1E33702F220FCA00035455 /* KeyboardPreferences.swift in Sources */,
 				6A1E33752F22170C00035455 /* KeyboardPreferencesModule.swift in Sources */,
+				6ADAC3782F3DF7A200C85EBD /* KeyboardEngine.swift in Sources */,
 				6A73B6892F24E985003898A5 /* KeyboardRenderer.swift in Sources */,
+				6ADAC36C2F3DF77D00C85EBD /* CustomTextDocumentProxy.swift in Sources */,
 				6AWORD00032F300100035455 /* WordCompletionManager.swift in Sources */,
 				6AA1FCB62F3CB103002BD212 /* WordPredictionEngine.swift in Sources */,
 				6AKBNG00042F400100035455 /* KeyboardNeighbors.swift in Sources */,
 				6ACC1FA32F30B20000F1FA30 /* BackspaceHandler.swift in Sources */,
+				6ADAC36F2F3DF78D00C85EBD /* TextDocumentProxyProtocol.swift in Sources */,
 				6ACC1FA72F30B20000F1FA30 /* SuggestionsBarView.swift in Sources */,
 				6ACC1FAB2F30B20000F1FA30 /* NikkudPickerController.swift in Sources */,
 			);
@@ -952,13 +973,17 @@
 				6AA1FCF82F3D26FA002BD212 /* TrieEngine.swift in Sources */,
 				6AA1FCF92F3D26FA002BD212 /* KeyboardModels.swift in Sources */,
 				6AA1FCFA2F3D26FA002BD212 /* WordSuggestionController.swift in Sources */,
+				6ADAC3852F3E0BE300C85EBD /* SystemTextDocumentProxy.swift in Sources */,
 				6AA1FCFB2F3D26FA002BD212 /* KeyboardPreferences.swift in Sources */,
 				6AA1FCFC2F3D26FA002BD212 /* KeyboardPreferencesModule.swift in Sources */,
+				6ADAC3752F3DF7A200C85EBD /* KeyboardEngine.swift in Sources */,
 				6AA1FCFD2F3D26FA002BD212 /* KeyboardRenderer.swift in Sources */,
+				6ADAC36B2F3DF77D00C85EBD /* CustomTextDocumentProxy.swift in Sources */,
 				6AA1FCFE2F3D26FA002BD212 /* WordCompletionManager.swift in Sources */,
 				6AA1FCFF2F3D26FA002BD212 /* WordPredictionEngine.swift in Sources */,
 				6AA1FD002F3D26FA002BD212 /* KeyboardNeighbors.swift in Sources */,
 				6AA1FD012F3D26FA002BD212 /* BackspaceHandler.swift in Sources */,
+				6ADAC3702F3DF78D00C85EBD /* TextDocumentProxyProtocol.swift in Sources */,
 				6AA1FD022F3D26FA002BD212 /* SuggestionsBarView.swift in Sources */,
 				6AA1FD032F3D26FA002BD212 /* NikkudPickerController.swift in Sources */,
 			);
@@ -971,12 +996,16 @@
 				6ACC1F452F2F755E00F1FA30 /* KeyboardNeighbors.swift in Sources */,
 				6ACC1F932F30AF7000F1FA30 /* DebugLog.swift in Sources */,
 				6ACC1E292F2B564800F1FA30 /* TrieEngine.swift in Sources */,
+				6ADAC3842F3E0BE300C85EBD /* SystemTextDocumentProxy.swift in Sources */,
 				6ACC20622F30C9B000F1FA30 /* WordCompletionManager.swift in Sources */,
 				6ACC20632F30C9B000F1FA30 /* BaseKeyboardViewController.swift in Sources */,
 				6ACC20642F30C9B000F1FA30 /* KeyboardPreferences.swift in Sources */,
 				6ACC20652F30C9B000F1FA30 /* NikkudPickerController.swift in Sources */,
+				6ADAC36D2F3DF77D00C85EBD /* CustomTextDocumentProxy.swift in Sources */,
 				6ACC20662F30C9B000F1FA30 /* SuggestionsBarView.swift in Sources */,
 				6AA1FCB52F3CB103002BD212 /* WordPredictionEngine.swift in Sources */,
+				6ADAC3712F3DF78D00C85EBD /* TextDocumentProxyProtocol.swift in Sources */,
+				6ADAC3762F3DF7A200C85EBD /* KeyboardEngine.swift in Sources */,
 				6ACC20672F30C9B000F1FA30 /* BackspaceHandler.swift in Sources */,
 				6ACC20682F30C9B000F1FA30 /* KeyboardModels.swift in Sources */,
 				6ACC20692F30C9B000F1FA30 /* WordSuggestionController.swift in Sources */,
@@ -992,15 +1021,19 @@
 				6ACC1E9F2F2D023F00F1FA30 /* WordCompletionManager.swift in Sources */,
 				6AA1FCB42F3CB103002BD212 /* WordPredictionEngine.swift in Sources */,
 				6ACC1F922F30AF7000F1FA30 /* DebugLog.swift in Sources */,
+				6ADAC37C2F3DF82100C85EBD /* TextDocumentProxyProtocol.swift in Sources */,
+				6ADAC3822F3E0B8700C85EBD /* SystemTextDocumentProxy.swift in Sources */,
 				6ACC1EA12F2D023F00F1FA30 /* TrieEngine.swift in Sources */,
 				6ACC1E9B2F2D023A00F1FA30 /* KeyboardModels.swift in Sources */,
 				6ACC1E972F2D007500F1FA30 /* BaseKeyboardViewController.swift in Sources */,
 				6ACC1E982F2D023300F1FA30 /* KeyboardRenderer.swift in Sources */,
 				6AKBNG00012F400100035455 /* KeyboardNeighbors.swift in Sources */,
+				6ADAC3792F3DF80400C85EBD /* CustomTextDocumentProxy.swift in Sources */,
 				6ACC1F9A2F30AF8900F1FA30 /* WordSuggestionController.swift in Sources */,
 				6ACC1FA42F30B20000F1FA30 /* BackspaceHandler.swift in Sources */,
 				6ACC1FA82F30B20000F1FA30 /* SuggestionsBarView.swift in Sources */,
 				6ACC1FAC2F30B20000F1FA30 /* NikkudPickerController.swift in Sources */,
+				6ADAC3772F3DF7A200C85EBD /* KeyboardEngine.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1012,15 +1045,19 @@
 				6ACC1E942F2D007500F1FA30 /* BaseKeyboardViewController.swift in Sources */,
 				6AA1FCB72F3CB103002BD212 /* WordPredictionEngine.swift in Sources */,
 				6ACC1F952F30AF7000F1FA30 /* DebugLog.swift in Sources */,
+				6ADAC37D2F3DF82100C85EBD /* TextDocumentProxyProtocol.swift in Sources */,
+				6ADAC3812F3E0B8700C85EBD /* SystemTextDocumentProxy.swift in Sources */,
 				6ACC1E992F2D023300F1FA30 /* KeyboardRenderer.swift in Sources */,
 				6ACC1EA22F2D024000F1FA30 /* TrieEngine.swift in Sources */,
 				6ACC1EA32F2D024000F1FA30 /* KeyboardPreferences.swift in Sources */,
 				6ACC1EA42F2D024000F1FA30 /* WordCompletionManager.swift in Sources */,
 				6AKBNG00022F400100035455 /* KeyboardNeighbors.swift in Sources */,
+				6ADAC37A2F3DF80400C85EBD /* CustomTextDocumentProxy.swift in Sources */,
 				6ACC1F992F30AF8900F1FA30 /* WordSuggestionController.swift in Sources */,
 				6ACC1FA52F30B20000F1FA30 /* BackspaceHandler.swift in Sources */,
 				6ACC1FA92F30B20000F1FA30 /* SuggestionsBarView.swift in Sources */,
 				6ACC1FAD2F30B20000F1FA30 /* NikkudPickerController.swift in Sources */,
+				6ADAC3732F3DF7A200C85EBD /* KeyboardEngine.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1032,15 +1069,19 @@
 				6ACC1E952F2D007500F1FA30 /* BaseKeyboardViewController.swift in Sources */,
 				6AA1FCB32F3CB103002BD212 /* WordPredictionEngine.swift in Sources */,
 				6ACC1F942F30AF7000F1FA30 /* DebugLog.swift in Sources */,
+				6ADAC37E2F3DF82100C85EBD /* TextDocumentProxyProtocol.swift in Sources */,
+				6ADAC3802F3E0B8700C85EBD /* SystemTextDocumentProxy.swift in Sources */,
 				6ACC1E9A2F2D023300F1FA30 /* KeyboardRenderer.swift in Sources */,
 				6ACC1EA62F2D024000F1FA30 /* TrieEngine.swift in Sources */,
 				6ACC1EA72F2D024000F1FA30 /* KeyboardPreferences.swift in Sources */,
 				6ACC1EA92F2D024000F1FA30 /* WordCompletionManager.swift in Sources */,
 				6AKBNG00032F400100035455 /* KeyboardNeighbors.swift in Sources */,
+				6ADAC37B2F3DF80400C85EBD /* CustomTextDocumentProxy.swift in Sources */,
 				6ACC1F982F30AF8900F1FA30 /* WordSuggestionController.swift in Sources */,
 				6ACC1FA62F30B20000F1FA30 /* BackspaceHandler.swift in Sources */,
 				6ACC1FAA2F30B20000F1FA30 /* SuggestionsBarView.swift in Sources */,
 				6ACC1FAE2F30B20000F1FA30 /* NikkudPickerController.swift in Sources */,
+				6ADAC3742F3DF7A200C85EBD /* KeyboardEngine.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1159,13 +1200,14 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 4DC95CEF6EC880EFAEE5AA4F /* Pods-IssieVoice.debug.xcconfig */;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = IssieVoiceAppIcon;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = IssieBoardNG/IssieBoardNG.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = SKNJT9TD9G;
 				ENABLE_BITCODE = NO;
-				INFOPLIST_FILE = "IssieBoard copy-Info.plist";
+				INFOPLIST_FILE = "IssieVoice/IssieVoice-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = IssieVoice;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
@@ -1179,7 +1221,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.issieshapiro.IssieVoice;
+				PRODUCT_BUNDLE_IDENTIFIER = org.issieshapiro.IssieVoice;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -1195,12 +1237,13 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 8E0B30B84C1C3017D0B426A5 /* Pods-IssieVoice.release.xcconfig */;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = IssieVoiceAppIcon;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = IssieBoardNG/IssieBoardNG.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = SKNJT9TD9G;
-				INFOPLIST_FILE = "IssieBoard copy-Info.plist";
+				INFOPLIST_FILE = "IssieVoice/IssieVoice-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = IssieVoice;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
@@ -1214,7 +1257,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.issieshapiro.IssieVoice;
+				PRODUCT_BUNDLE_IDENTIFIER = org.issieshapiro.IssieVoice;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;

@@ -9,24 +9,16 @@ import UIKit
 class BaseKeyboardViewController: UIInputViewController {
     
     // MARK: - Properties
-    
+
     private var keyboardView: UIView!
     private let preferences = KeyboardPreferences()
     private var preferenceObserver: KeyboardPreferenceObserver?
-    
-    // Keyboard renderer - handles all UI rendering and keyboard state
-    private var renderer: KeyboardRenderer!
+
+    // Keyboard engine - handles all keyboard logic
+    private var keyboardEngine: KeyboardEngine!
+
+    // Parsed config
     private var parsedConfig: KeyboardConfig?
-    
-    // Word suggestion controller - handles all word completion logic
-    private var suggestionController: WordSuggestionController!
-    
-    // Double-space shortcut (". " instead of "  ")
-    private var lastSpaceTime: Date?
-    private let doubleSpaceThreshold: TimeInterval = 2.0
-    
-    // Track if backspace is currently being pressed (to avoid re-render during touch)
-    private var isBackspaceActive: Bool = false
     
     /// Override this in subclasses to specify the keyboard language
     var keyboardLanguage: String {
@@ -56,8 +48,7 @@ class BaseKeyboardViewController: UIInputViewController {
         self.hasDictationKey = false
         
         setupKeyboard()
-        setupRenderer()
-        setupSuggestionController()
+        setupKeyboardEngine()
         loadPreferences()
         startObservingPreferences()
     }
@@ -65,21 +56,21 @@ class BaseKeyboardViewController: UIInputViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         let assistant = self.inputAssistantItem
-        assistant.leadingBarButtonGroups = [] 
+        assistant.leadingBarButtonGroups = []
         assistant.trailingBarButtonGroups = []
 
         loadPreferences()
-        suggestionController.detectCurrentWord(from: textDocumentProxy.documentContextBeforeInput)
-        
-        // Apply auto-shift if at beginning of sentence 
-        autoShiftAfterPunctuation()
+        keyboardEngine.updateSuggestions()
+
+        // Apply auto-shift if at beginning of sentence
+        keyboardEngine.autoShiftAfterPunctuation()
     }
     
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         updateGlobeButtonVisibility()
         if parsedConfig != nil {
-            renderer.rerenderIfNeeded()
+            keyboardEngine.renderer.rerenderIfNeeded()
         }
     }
     
@@ -94,22 +85,22 @@ class BaseKeyboardViewController: UIInputViewController {
     
     override func textDidChange(_ textInput: UITextInput?) {
         super.textDidChange(textInput)
-        
+
         // Skip suggestion detection if in cursor movement mode
-        if !renderer.isInCursorMoveMode() {
-            suggestionController.detectCurrentWord(from: textDocumentProxy.documentContextBeforeInput)
+        if !keyboardEngine.renderer.isInCursorMoveMode() {
+            keyboardEngine.handleTextChanged()
         }
-        
-        // Check if we should auto-shift after text change (e.g., after paste, autocorrect, backspace)
+
+        // Check if we should auto-shift after text change (e.g., after paste, autocorrect, external keyboard)
         // But skip if text is empty and shift is already active (avoid loops)
         let beforeText = textDocumentProxy.documentContextBeforeInput ?? ""
-        if beforeText.isEmpty && renderer.isShiftActive() {
+        if beforeText.isEmpty && keyboardEngine.renderer.isShiftActive() {
             debugLog("📝 textDidChange: Text empty and shift already active, skipping auto-shift check")
             return
         }
-        
+
         debugLog("📝 textDidChange called, checking auto-shift")
-        autoShiftAfterPunctuation()
+        keyboardEngine.autoShiftAfterPunctuation()
     }
     
     override func viewDidDisappear(_ animated: Bool) {
@@ -146,83 +137,54 @@ class BaseKeyboardViewController: UIInputViewController {
     
     private func updateKeyboardHeight() {
         guard let config = parsedConfig else { return }
-        
+
         // Determine if suggestions should be shown based on config and input type
         let shouldDisable = shouldDisableSuggestionsForKeyboardType()
         let suggestionsEnabled = config.isWordSuggestionsEnabled && !shouldDisable
-        
-        let requiredHeight = renderer.calculateKeyboardHeight(for: config, keysetId: renderer.currentKeysetId, suggestionsEnabled: suggestionsEnabled)
+
+        let requiredHeight = keyboardEngine.renderer.calculateKeyboardHeight(for: config, keysetId: keyboardEngine.renderer.currentKeysetId, suggestionsEnabled: suggestionsEnabled)
         keyboardHeightConstraint?.constant = requiredHeight
         view.setNeedsLayout()
     }
     
-    private func setupRenderer() {
-        renderer = KeyboardRenderer()
-        
-        renderer.onKeysetChanged = { [weak self] keysetId in
-            self?.saveCurrentKeyset(keysetId)
-        }
-        
-        renderer.onKeyPress = { [weak self] key in
-            self?.handleKeyPress(key)
-        }
-        
-        renderer.onDeleteCharacter = { [weak self] in
-            self?.handleBackspace()
-        }
-        
-        renderer.onDeleteWord = { [weak self] in
-            self?.handleDeleteWord()
-        }
-        
-        renderer.onNikkudSelected = { [weak self] value in
-            self?.textDocumentProxy.insertText(value)
-            self?.suggestionController.handleSpace()
-        }
-        
-        renderer.onSuggestionSelected = { [weak self] suggestion in
-            self?.handleSuggestionSelected(suggestion)
-        }
-        
-        renderer.onNextKeyboard = { [weak self] in
+    private func setupKeyboardEngine() {
+        // Create keyboard engine with system text proxy
+        let systemProxy = SystemTextDocumentProxy(proxy: textDocumentProxy)
+        keyboardEngine = KeyboardEngine(textProxy: systemProxy, language: keyboardLanguage)
+
+        // Set up engine callbacks
+        keyboardEngine.onNextKeyboard = { [weak self] in
             self?.advanceToNextInputMode()
         }
-        
-        renderer.onDismissKeyboard = { [weak self] in
+
+        keyboardEngine.onDismissKeyboard = { [weak self] in
             self?.dismissKeyboard()
         }
-        
-        renderer.onOpenSettings = { [weak self] in
+
+        keyboardEngine.onOpenSettings = { [weak self] in
             self?.openSettings()
         }
-        
-        renderer.onBackspaceTouchBegan = { [weak self] in
-            self?.isBackspaceActive = true
+
+        keyboardEngine.onKeysetChanged = { [weak self] keysetId in
+            self?.saveCurrentKeyset(keysetId)
         }
-        
-        renderer.onBackspaceTouchEnded = { [weak self] in
-            self?.isBackspaceActive = false
-            // Render now if shift state needs updating
-            self?.autoShiftAfterPunctuation()
-        }
-        
-        renderer.onCursorMove = { [weak self] offset in
-            self?.handleCursorMove(offset)
-        }
-        
-        renderer.onGetTextDirection = { [weak self] in
+
+        keyboardEngine.onGetTextDirection = { [weak self] in
             return self?.getTextDirectionAtCursor() ?? false
         }
+
+        keyboardEngine.getCurrentText = { [weak self] in
+            return self?.textDocumentProxy.documentContextBeforeInput ?? ""
+        }
+
+        keyboardEngine.onRenderKeyboard = { [weak self] in
+            self?.renderKeyboard()
+        }
+
+        // Configure renderer
+        keyboardEngine.renderer.setShowGlobeButton(self.needsInputModeSwitchKey)
     }
     
-    private func handleCursorMove(_ offset: Int) {
-        textDocumentProxy.adjustTextPosition(byCharacterOffset: offset)
-        debugLog("🔄 Cursor moved by \(offset) characters")
-        
-        // Don't trigger suggestions while moving cursor
-        // The cursor position change would normally trigger textDidChange,
-        // but we want to suppress suggestion generation during cursor movement
-    }
     
     /// Detect the actual text direction at the cursor position
     /// Returns true if RTL (Hebrew/Arabic), false if LTR (English/numbers)
@@ -253,10 +215,6 @@ class BaseKeyboardViewController: UIInputViewController {
         return keyboardLanguage == "he" || keyboardLanguage == "ar"
     }
     
-    private func setupSuggestionController() {
-        suggestionController = WordSuggestionController(renderer: renderer)
-        suggestionController.setLanguage(keyboardLanguage)
-    }
     
     // MARK: - Preferences
     
@@ -331,40 +289,38 @@ class BaseKeyboardViewController: UIInputViewController {
             renderFallbackKeyboard()
             return
         }
-        
+
         // Configure suggestion controller based on config and input type
         let shouldDisable = shouldDisableSuggestionsForKeyboardType()
         let suggestionsEnabled = config.isWordSuggestionsEnabled && !shouldDisable
-        
-        suggestionController.setEnabled(suggestionsEnabled)
-        suggestionController.setAutoCorrectEnabled(config.isAutoCorrectEnabled)
-        suggestionController.setLanguage(keyboardLanguage)
-        
-        renderer.setWordSuggestionsEnabled(suggestionsEnabled)
-        
+
+        keyboardEngine.suggestionController.setEnabled(suggestionsEnabled)
+        keyboardEngine.suggestionController.setAutoCorrectEnabled(config.isAutoCorrectEnabled)
+        keyboardEngine.renderer.setWordSuggestionsEnabled(suggestionsEnabled)
+
         let editorContext = analyzeEditorContext()
-        
+
         var initialKeyset: String
-        if !renderer.currentKeysetId.isEmpty && renderer.currentKeysetId != "abc" {
-            initialKeyset = renderer.currentKeysetId
+        if !keyboardEngine.renderer.currentKeysetId.isEmpty && keyboardEngine.renderer.currentKeysetId != "abc" {
+            initialKeyset = keyboardEngine.renderer.currentKeysetId
         } else if let savedKeyset = loadSavedKeyset() {
             initialKeyset = savedKeyset
         } else {
             initialKeyset = config.defaultKeyset ?? "abc"
         }
-        
-        renderer.renderKeyboard(
+
+        keyboardEngine.renderer.renderKeyboard(
             in: keyboardView,
             config: config,
             currentKeysetId: initialKeyset,
             editorContext: editorContext
         )
-        
+
         updateKeyboardHeight()
-        
+
         // Show default suggestions only if enabled for this field type
-        if suggestionsEnabled && suggestionController.currentWord.isEmpty {
-            suggestionController.showDefaults()
+        if suggestionsEnabled && keyboardEngine.suggestionController.currentWord.isEmpty {
+            keyboardEngine.suggestionController.showDefaults()
         }
     }
     
@@ -484,276 +440,13 @@ class BaseKeyboardViewController: UIInputViewController {
         }
     }
     
-    // MARK: - Key Press Handling
-    
-    private func handleKeyPress(_ key: ParsedKey) {
-        switch key.type.lowercased() {
-        case "backspace":
-            handleBackspace()
-            
-        case "enter", "action":
-            textDocumentProxy.insertText("\n")
-            suggestionController.handleEnter()
-            
-        case "space":
-            handleSpaceKey()
-        
-        case "keyset":
-            break
-            
-        case "next-keyboard":
-            advanceToNextInputMode()
-            
-        default:
-            // Determine which value to use based on shift state
-            let valueToInsert: String
-            if renderer.isShiftActive() && !key.sValue.isEmpty {
-                // Use shift value (uppercase) when shift is active
-                valueToInsert = key.sValue
-            } else {
-                // Use normal value (lowercase)
-                valueToInsert = key.value
-            }
-            
-            if !valueToInsert.isEmpty {
-                if valueToInsert == " " {
-                    handleSpaceKey()
-                } else {
-                    textDocumentProxy.insertText(valueToInsert)
-                    suggestionController.handleCharacterTyped(valueToInsert)
-                }
-            }
-        }
-    }
-    
-    private func handleBackspace() {
-        // Check if text is already empty before deleting
-        let beforeText = textDocumentProxy.documentContextBeforeInput ?? ""
-        if beforeText.isEmpty {
-            // Nothing to delete - this can happen if backspace timer keeps firing
-            // Just return without doing anything
-            return
-        }
-        
-        textDocumentProxy.deleteBackward()
-        if !suggestionController.handleBackspace() {
-            suggestionController.detectCurrentWord(from: textDocumentProxy.documentContextBeforeInput)
-        }
-        
-        // Always call auto-shift after backspace to update shift state
-        // textDidChange() is not always called reliably for backspace on iOS
-        // Don't call during long-press (isBackspaceActive will defer the render)
-        autoShiftAfterPunctuation()
-    }
-    
-    private func handleDeleteWord() {
-        guard let beforeText = textDocumentProxy.documentContextBeforeInput, !beforeText.isEmpty else {
-            textDocumentProxy.deleteBackward()
-            return
-        }
-        
-        var charsToDelete = 0
-        var foundNonSpace = false
-        
-        for char in beforeText.reversed() {
-            if char.isWhitespace {
-                if foundNonSpace { break }
-                charsToDelete += 1
-            } else {
-                foundNonSpace = true
-                charsToDelete += 1
-            }
-        }
-        
-        if charsToDelete > 0 {
-            for _ in 0..<charsToDelete {
-                textDocumentProxy.deleteBackward()
-            }
-        } else {
-            textDocumentProxy.deleteBackward()
-        }
-        
-        suggestionController.detectCurrentWord(from: textDocumentProxy.documentContextBeforeInput)
-    }
-    
-    private func handleSuggestionSelected(_ suggestion: String) {
-        let replacedWord = suggestionController.handleSuggestionSelected(suggestion)
-        
-        // Delete the current word if any (when in typing mode)
-        for _ in 0..<replacedWord.count {
-            textDocumentProxy.deleteBackward()
-        }
-        
-        // Insert suggestion with space
-        textDocumentProxy.insertText(suggestion + " ")
-    }
-    
-    private func handleSpaceKey() {
-        let now = Date()
-        
-        // Check for auto-capitalize "i" to "I" 
-        if let beforeText = textDocumentProxy.documentContextBeforeInput,
-           beforeText.hasSuffix("i") {
-            // Check if "i" is standalone (preceded by space or nothing)
-            let textBeforeI = String(beforeText.dropLast())
-            if textBeforeI.isEmpty || textBeforeI.last?.isWhitespace == true {
-                // Replace "i" with "I"
-                textDocumentProxy.deleteBackward()
-                textDocumentProxy.insertText("I ")
-                lastSpaceTime = now
-                suggestionController.handleSpace()
-                
-                // Auto-return from special chars 
-                autoReturnFromSpecialChars()
-                return
-            }
-        }
-        
-        // Check for fuzzy auto-replace
-        if let replacement = suggestionController.getFuzzyAutoReplacement() {
-            let currentWord = suggestionController.currentWord
-            
-            for _ in 0..<currentWord.count {
-                textDocumentProxy.deleteBackward()
-            }
-            
-            textDocumentProxy.insertText(replacement + " ")
-            suggestionController.handleSpace()
-            lastSpaceTime = now
-            
-            // Auto-return from special chars (behavior 2)
-            autoReturnFromSpecialChars()
-            return
-        }
-        
-        // Double-space shortcut for period
-        if let lastTime = lastSpaceTime,
-           now.timeIntervalSince(lastTime) < doubleSpaceThreshold {
-            if let beforeText = textDocumentProxy.documentContextBeforeInput,
-               beforeText.hasSuffix(" ") {
-                let textBeforeSpace = String(beforeText.dropLast())
-                let charBeforeSpace = textBeforeSpace.last
-                
-                if charBeforeSpace != " " && charBeforeSpace != "." {
-                    textDocumentProxy.deleteBackward()
-                    textDocumentProxy.insertText(". ")
-                    lastSpaceTime = nil
-                    suggestionController.handleSpace()
-                    
-                    // Auto-shift after ". " (behavior 3)
-                    autoShiftAfterPunctuation()
-                    return
-                }
-            }
-        }
-        
-        textDocumentProxy.insertText(" ")
-        lastSpaceTime = now
-        suggestionController.handleSpace()
-        
-        // Auto-return from special chars 
-        autoReturnFromSpecialChars()
-        
-        // Auto-shift after ". " or empty text 
-        autoShiftAfterPunctuation()
-    }
-    
     // MARK: - Auto Behaviors
-    
+
     /// Auto-return from special characters keyboard (123/#+=) to main keyboard (abc) after space
     /// Behavior 2: If user is on 123 or #+= keyboard, return to abc after typing special char + space
     private func autoReturnFromSpecialChars() {
-        let currentKeyset = renderer.currentKeysetId
-        
-        // Check if we're on a special characters keyset (123 or #+=)
-        if currentKeyset == "123" || currentKeyset == "#+=" {
-            // Switch back to abc keyset
-            if let config = parsedConfig,
-               config.keysets.contains(where: { $0.id == "abc" }) {
-                debugLog("🔄 Auto-returning from \(currentKeyset) to abc")
-                renderer.currentKeysetId = "abc"
-                renderKeyboard()
-            }
-        }
-    }
-    
-    
-    
-    /// Auto-shift after punctuation or when text is empty
-    /// Behavior 3: For English keyboard only, activate shift after ". " or when text is empty
-    private func autoShiftAfterPunctuation() {
-        debugLog("🔍 autoShiftAfterPunctuation called")
-        
-        // Skip if in cursor movement mode - don't interfere with cursor mode
-        if renderer.isInCursorMoveMode() {
-            debugLog("  ❌ In cursor move mode, skipping auto-shift")
-            return
-        }
-        
-        // Only apply to English keyboard
-        guard keyboardLanguage == "en" else {
-            debugLog("  ❌ Not English keyboard (\(keyboardLanguage)), skipping")
-            return
-        }
-        debugLog("  ✅ English keyboard")
-        
-        let isShiftActive = renderer.isShiftActive()
-        debugLog("  Shift active: \(isShiftActive)")
-        
-        let beforeText = textDocumentProxy.documentContextBeforeInput ?? ""
-        debugLog("  Text before cursor: '\(beforeText.suffix(20))'")
-        
-        // Check if text is empty
-        if beforeText.isEmpty {
-            debugLog("  Should activate shift: true (empty text)")
-            debugLog("  ⇧ AUTO-ACTIVATING SHIFT!")
-            renderer.activateShift()
-            renderKeyboard()
-            return
-        }
-        
-        // Check if ends with sentence-ending punctuation followed by space(s)
-        // Trim trailing whitespace to find the last non-space character
-        let trimmed = beforeText.trimmingCharacters(in: .whitespaces)
-        let endsWithSpace = beforeText.last?.isWhitespace == true
-        let endsWithPunctuation = trimmed.last == "." || trimmed.last == "?" || trimmed.last == "!"
-        let endsWithNewline = beforeText.hasSuffix("\n")
-        
-        let shouldActivateShift = (endsWithPunctuation && endsWithSpace) || endsWithNewline
-        
-        debugLog("  Trimmed text ends with: '\(String(describing: trimmed.last))'")
-        debugLog("  Ends with space: \(endsWithSpace)")
-        debugLog("  Ends with punctuation: \(endsWithPunctuation)")
-        debugLog("  Should activate shift: \(shouldActivateShift)")
-        
-        if shouldActivateShift && !renderer.isShiftActive() {
-            debugLog("  ⇧ AUTO-ACTIVATING SHIFT!")
-            debugLog("  🎯 BEFORE activateShift: isShiftActive = \(renderer.isShiftActive())")
-            let wasInactive = !renderer.isShiftActive()
-            renderer.activateShift()
-            debugLog("  🎯 AFTER activateShift: isShiftActive = \(renderer.isShiftActive())")
-            // Only re-render if shift state actually changed from inactive to active
-            // AND backspace is not currently active (to avoid re-render during backspace touch)
-            if wasInactive && renderer.isShiftActive() {
-                if isBackspaceActive {
-                    debugLog("  ⏸️ Backspace active, deferring render until touch ends")
-                } else {
-                    renderKeyboard()
-                    debugLog("  🎯 AFTER renderKeyboard: isShiftActive = \(renderer.isShiftActive())")
-                }
-            } else {
-                debugLog("  🎯 Shift was already active, skipping render to avoid loop")
-            }
-        } else if !shouldActivateShift && renderer.isShiftActive() {
-            // Deactivate shift if conditions don't require it
-            renderer.deactivateShift()
-            if !isBackspaceActive {
-                renderKeyboard()
-            }
-            debugLog("  ⇧ Deactivating shift as should be inactive and is active")
-        } else {
-            debugLog("  ✅ Desired state and active state match - do nothing")
-        }
+        guard let config = parsedConfig else { return }
+        keyboardEngine.autoReturnFromSpecialChars(config: config)
     }
     
     // MARK: - Globe Button
@@ -762,10 +455,10 @@ class BaseKeyboardViewController: UIInputViewController {
     
     private func updateGlobeButtonVisibility() {
         let shouldShowGlobe = self.needsInputModeSwitchKey
-        
+
         if lastNeedsInputModeSwitchKey != shouldShowGlobe {
             lastNeedsInputModeSwitchKey = shouldShowGlobe
-            renderer.setShowGlobeButton(shouldShowGlobe)
+            keyboardEngine.renderer.setShowGlobeButton(shouldShowGlobe)
         }
     }
     

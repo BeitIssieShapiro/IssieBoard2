@@ -7,8 +7,10 @@ interface ActionBarProps {
   onClear: () => void;
   onSave: () => void;
   onBrowse: () => void;
+  onSwitchLanguage?: () => void;
   isSpeaking: boolean;
   hasText: boolean;
+  currentLanguage?: 'en' | 'he';
 }
 
 const ActionBar: React.FC<ActionBarProps> = ({
@@ -16,8 +18,10 @@ const ActionBar: React.FC<ActionBarProps> = ({
   onClear,
   onSave,
   onBrowse,
+  onSwitchLanguage,
   isSpeaking,
   hasText,
+  currentLanguage = 'en',
 }) => {
   return (
     <View style={styles.container}>
@@ -69,6 +73,19 @@ const ActionBar: React.FC<ActionBarProps> = ({
         activeOpacity={0.7}>
         <Text style={styles.buttonText}>📚 Browse</Text>
       </TouchableOpacity>
+
+      {/* Language Switch Button - Blue */}
+      {onSwitchLanguage && (
+        <TouchableOpacity
+          style={[styles.button, styles.langButton]}
+          onPress={onSwitchLanguage}
+          accessibilityLabel={`Switch to ${currentLanguage === 'en' ? 'Hebrew' : 'English'}`}
+          activeOpacity={0.7}>
+          <Text style={styles.buttonText}>
+            {currentLanguage === 'en' ? '🔄 עברית' : '🔄 English'}
+          </Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -106,6 +123,9 @@ const styles = StyleSheet.create({
   },
   browseButton: {
     backgroundColor: colors.browse,
+  },
+  langButton: {
+    backgroundColor: '#2196F3', // Blue color for language button
   },
   buttonDisabled: {
     opacity: 0.4,
