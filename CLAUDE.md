@@ -81,6 +81,36 @@ npm run lint
 
 ## Code Structure
 
+### IssieVoice - Assistive Communication App (`apps/issievoice/`)
+
+IssieVoice is a companion app for people who cannot speak, providing text-to-speech communication using the IssieBoard keyboard engine.
+
+**Key Files:**
+- **apps/issievoice/src/screens/MainScreen.tsx**: Main typing and speaking interface
+- **apps/issievoice/src/screens/BrowseScreen.tsx**: Browse saved sentences
+- **apps/issievoice/src/components/ActionBar/**: Speak, Clear, Save, Browse buttons
+- **apps/issievoice/src/components/TextDisplayArea/**: Large text display area
+- **apps/issievoice/src/components/SuggestionsBar/**: Word suggestions UI
+- **apps/issievoice/src/components/SettingsModal/**: TTS settings (voice, language mode)
+- **apps/issievoice/src/context/TTSContext.tsx**: Text-to-speech state management
+- **apps/issievoice/src/context/TextContext.tsx**: Text state management
+- **apps/issievoice/src/services/TextToSpeech.ts**: TTS wrapper service
+- **apps/issievoice/src/services/SavedSentencesManager.ts**: Saved sentences storage
+
+**Key Features:**
+- Text-to-speech with language auto-detection (Hebrew/English)
+- Separate voice selection per language
+- Language mode settings (English Only, Hebrew Only, Auto-Detect)
+- Embedded KeyboardPreview component for typing
+- Language switch button on keyboard (blue button after "123")
+- Saved sentences with KeyboardPreferences storage
+- Settings modal with collapsible voice lists
+- Large touch targets for accessibility (120px action buttons)
+
+**Custom Key Types:**
+- **language** key type: Emits events to switch keyboard language without inserting text
+- Preview mode shows all keys from config and allows custom keys to emit events
+
 ### React Native Configurator (`src/`, `components/`, `App.tsx`)
 
 - **App.tsx**: Main entry point, loads keyboard configurations from `keyboards/*.json`
@@ -282,6 +312,8 @@ When changing the JSON config structure:
 ## Important Files to Review
 
 - **README.md**: Project overview and architecture explanation
+- **ISSIEVOICE_STRUCTURE.md**: IssieVoice app structure and implementation details
+- **ISSIEVOICE_XCODE_SETUP.md**: IssieVoice Xcode setup instructions
 - **android/PORTING_INSTRUCTIONS.md**: Complete guide for porting iOS features to Android (CRITICAL)
 - **MODULAR_STRUCTURE.md**: Details on keyboard/profile separation
 - **WORD_PREDICTION_GUIDE.md**: Complete guide to word prediction system

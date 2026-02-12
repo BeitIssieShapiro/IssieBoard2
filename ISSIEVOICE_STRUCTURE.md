@@ -1,255 +1,392 @@
-# IssieVoice App Structure
+# IssieVoice App - Implementation Guide
 
 ## Overview
 
-IssieVoice is an assistive communication app built with React Native (iOS-only) that helps people who cannot speak to type text and have it read aloud using text-to-speech.
+IssieVoice is an assistive communication app built with React Native (iOS) that helps people who cannot speak to type text and have it read aloud using text-to-speech. It uses the IssieBoard keyboard engine for typing.
 
-## Monorepo Structure
-
-```
-IssieBoardNG/                          # Root monorepo
-├── packages/                          # Shared packages
-│   ├── shared-utils/                  # Utilities (storage, localization, types)
-│   │   ├── src/
-│   │   │   ├── storage/
-│   │   │   ├── localization/
-│   │   │   ├── types/
-│   │   │   └── index.ts
-│   │   ├── package.json
-│   │   └── tsconfig.json
-│   │
-│   ├── shared-components/             # Reusable React Native components
-│   │   ├── src/
-│   │   │   ├── buttons/
-│   │   │   ├── inputs/
-│   │   │   └── index.ts
-│   │   └── package.json
-│   │
-│   └── shared-keyboard-engine/        # Word prediction & keyboard logic
-│       ├── src/
-│       │   ├── prediction/
-│       │   └── index.ts
-│       └── package.json
-│
-├── apps/                              # Individual applications
-│   ├── issieboard/                    # Original IssieBoard app
-│   │   ├── (existing structure)
-│   │
-│   └── issievoice/                    # NEW IssieVoice app
-│       ├── src/
-│       │   ├── components/            # IssieVoice-specific components
-│       │   │   ├── TextDisplayArea/
-│       │   │   │   └── TextDisplayArea.tsx
-│       │   │   ├── ActionBar/
-│       │   │   │   ├── ActionBar.tsx
-│       │   │   │   ├── SpeakButton.tsx
-│       │   │   │   ├── ClearButton.tsx
-│       │   │   │   ├── SaveButton.tsx
-│       │   │   │   └── BrowseButton.tsx
-│       │   │   ├── SuggestionsBar/
-│       │   │   │   └── SuggestionsBar.tsx
-│       │   │   └── SavedSentences/
-│       │   │       └── SavedSentencesList.tsx
-│       │   ├── screens/               # Main screens
-│       │   │   ├── MainScreen.tsx     # Primary typing & speaking
-│       │   │   ├── BrowseScreen.tsx   # Browse saved sentences
-│       │   │   └── SettingsScreen.tsx # TTS settings
-│       │   ├── context/               # State management
-│       │   │   ├── TextContext.tsx    # Text state
-│       │   │   └── TTSContext.tsx     # TTS state
-│       │   ├── services/              # Business logic
-│       │   │   ├── TextToSpeech.ts    # TTS service
-│       │   │   └── SavedSentencesManager.ts
-│       │   ├── navigation/
-│       │   │   └── AppNavigator.tsx
-│       │   ├── constants/
-│       │   │   ├── colors.ts          # Color palette
-│       │   │   ├── sizes.ts           # Touch target sizes
-│       │   │   └── index.ts
-│       │   └── hooks/
-│       ├── ios/                       # iOS-specific code
-│       ├── assets/                    # App-specific assets
-│       ├── App.tsx                    # App entry point
-│       ├── index.js
-│       ├── package.json
-│       └── README.md
-│
-├── scripts/                           # Build scripts (shared)
-├── package.json                       # Root package.json
-└── README.md
-```
-
-## Key Features
-
-### 1. **Text Display Area**
-- Large, scrollable text display
-- Shows currently typed text
-- Auto-scrolls for long sentences
-
-### 2. **Action Bar** (4 large buttons)
-- **Speak Button** (Green): Reads text aloud using TTS
-- **Clear Button** (Red): Clears all text
-- **Save Button** (Amber): Saves current text as a saved sentence
-- **Browse Button** (Purple): Opens saved sentences browser
-
-### 3. **Suggestions Bar**
-- Shows word suggestions based on typing
-- Large tap targets for easy selection
-- Updates dynamically as user types
-
-### 4. **Large-Key Keyboard**
-- Embedded keyboard with generously sized keys (min 60px)
-- High contrast for visibility
-- Supports multiple languages (Hebrew, English, Arabic)
-
-### 5. **Saved Sentences**
-- Store frequently-used phrases
-- Quick search and browse
-- One-tap to load and speak
+**Status**: ✅ **Fully Implemented and Functional**
 
 ## Technology Stack
 
-- **React Native 0.83.1**: Cross-platform framework (iOS-only for now)
+- **React Native 0.76+**: Cross-platform framework (iOS implementation)
 - **React Navigation**: Stack navigation
-- **React Native TTS**: Text-to-speech engine
-- **AsyncStorage**: Local data persistence
+- **react-native-tts**: Text-to-speech engine
+- **KeyboardPreferences**: Shared storage (UserDefaults)
 - **TypeScript**: Type safety
-- **Monorepo**: npm workspaces
+- **IssieBoard Keyboard Engine**: Swift-based keyboard rendering
 
-## Accessibility Features
+## Project Structure
 
-### Large Touch Targets
-All interactive elements meet minimum accessibility standards:
-- Small: 60px
-- Medium: 80px
-- Large: 100px
-- Extra Large: 120px
-
-### High Contrast Colors
-Color palette designed for visibility:
-- Clear visual hierarchy
-- Distinct button colors by function
-- High contrast text
-
-### Simple Navigation
-- No deep menus
-- All core functions accessible from main screen
-- Large, clear buttons with icons
-
-## Setup Instructions
-
-### Prerequisites
-- Node.js >=20
-- iOS development environment (Xcode)
-- CocoaPods
-
-### Installation
-
-1. **Install dependencies**:
-```bash
-cd IssieBoardNG
-npm install
+```
+apps/issievoice/
+├── src/
+│   ├── components/
+│   │   ├── ActionBar/
+│   │   │   └── ActionBar.tsx              # Speak, Clear, Save, Browse buttons
+│   │   ├── TextDisplayArea/
+│   │   │   └── TextDisplayArea.tsx        # Large text display with scroll
+│   │   ├── SuggestionsBar/
+│   │   │   └── SuggestionsBar.tsx         # Word completion suggestions
+│   │   └── SettingsModal/
+│   │       └── SettingsModal.tsx          # Voice & language settings
+│   ├── screens/
+│   │   ├── MainScreen.tsx                 # Primary typing & speaking UI
+│   │   └── BrowseScreen.tsx               # Browse saved sentences
+│   ├── context/
+│   │   ├── TextContext.tsx                # Current text state
+│   │   ├── TTSContext.tsx                 # TTS state & settings
+│   │   ├── LocalizationContext.tsx        # UI language (en/he)
+│   │   └── NotificationContext.tsx        # Toast notifications
+│   ├── services/
+│   │   ├── TextToSpeech.ts                # TTS wrapper
+│   │   └── SavedSentencesManager.ts       # Saved sentences CRUD
+│   ├── constants/
+│   │   ├── colors.ts                      # Color palette
+│   │   ├── sizes.ts                       # Accessibility touch targets
+│   │   └── index.ts
+│   ├── localization/
+│   │   └── strings.ts                     # UI strings (en/he)
+│   └── navigation/
+│       └── AppNavigator.tsx               # Stack navigator
+├── App.tsx                                 # App entry point
+├── index.js
+└── package.json
 ```
 
-2. **Install iOS pods**:
-```bash
-cd apps/issievoice/ios
-pod install
+## Implemented Features
+
+### 1. Main Screen UI ✅
+
+**Components:**
+- **Title Bar**: App title with settings button (⚙️)
+- **Text Display Area**: Scrollable text input (adjustable height)
+- **Suggestions Bar**: Word completion suggestions with test buttons
+- **Action Bar**: 4 large buttons (120px height)
+  - 🗣️ **Speak** (Green, 2x width): Text-to-speech
+  - 🗑️ **Clear** (Red): Clear all text
+  - 💾 **Save** (Amber): Save current sentence
+  - 📚 **Browse** (Purple): Open saved sentences
+- **Keyboard Preview**: Embedded IssieBoard keyboard with language switch
+
+**Layout:**
+- RTL/LTR support (reverses button order for English)
+- High contrast colors
+- Large touch targets (minimum 60px)
+
+### 2. Text-to-Speech System ✅
+
+**Features:**
+- Multi-language support (English/Hebrew)
+- **Language Mode** settings:
+  - **English Only**: Always use English TTS
+  - **Hebrew Only**: Always use Hebrew TTS
+  - **Auto-Detect**: Detect based on text content
+    - If device language is English AND text has no Hebrew characters → English
+    - Otherwise → Hebrew
+- **Per-language voice selection**:
+  - Separate voice picker for English voices
+  - Separate voice picker for Hebrew voices
+  - Test button (🔊) for each voice ("Hello" / "שלום")
+- **Settings persistence** via KeyboardPreferences
+
+**Implementation:**
+- `TTSContext.tsx`: Manages TTS state, voice selection, language detection
+- `TextToSpeech.ts`: Wrapper around react-native-tts
+- Auto-detects Hebrew characters: `/[\u0590-\u05FF]/`
+
+### 3. Settings Modal ✅
+
+**Sections:**
+1. **Language Mode**: 3 radio options (always expanded)
+2. **Hebrew Voice**: Collapsible accordion with voice list
+3. **English Voice**: Collapsible accordion with voice list
+
+**Features:**
+- Modal supports all orientations
+- Accordion headers show current selection
+- Test button for each voice
+- Filtered to English/Hebrew voices only
+- Settings saved to KeyboardPreferences:
+  - `issievoice_languageMode`
+  - `issievoice_englishVoice`
+  - `issievoice_hebrewVoice`
+
+### 4. Keyboard Integration ✅
+
+**KeyboardPreview Component:**
+- Embedded keyboard using `KeyboardEngine.swift`
+- Full word completion/prediction support
+- Suggestions synced with SuggestionsBar
+- Custom language switch key (blue button after "123")
+
+**Language Switch Key:**
+- Type: `"language"`
+- Label: "עב" (English keyboard) or "En" (Hebrew keyboard)
+- Color: Blue (`#2196F3`)
+- Position: After first key (123 button) on bottom row
+- Emits event to toggle language without inserting text
+
+**Key Event Handling:**
+- `text_changed` events update React state
+- `language` events trigger `toggleLanguage()`
+- Preview mode shows all keys and emits custom events
+
+### 5. Saved Sentences ✅
+
+**Storage:**
+- Uses `KeyboardPreferences` (not AsyncStorage)
+- Storage key: `issievoice_saved_sentences`
+- JSON array format with id, text, createdAt, category
+
+**BrowseScreen Features:**
+- Search functionality
+- Delete individual sentences
+- Clear all button
+- One-tap to load sentence into main screen
+- Swipe-to-delete on iOS
+
+**Manager API:**
+```typescript
+SavedSentencesManager.getSavedSentences()
+SavedSentencesManager.saveSentence(text, category?)
+SavedSentencesManager.deleteSentence(id)
+SavedSentencesManager.updateSentence(id, updates)
+SavedSentencesManager.searchSentences(query)
+SavedSentencesManager.clearAll()
 ```
 
-3. **Run the app**:
-```bash
-cd apps/issievoice
-npm run ios
+### 6. Word Suggestions ✅
+
+**SuggestionsBar Component:**
+- Displays keyboard-generated suggestions
+- Height: 70px, Button height: 60px, Min width: 100px
+- RTL support (reverses suggestion order for Hebrew)
+- Handles both completion and prediction modes:
+  - **Completion**: Replaces partial word
+  - **Prediction**: Appends predicted word + space
+
+**Integration:**
+- Receives suggestions from KeyboardEngine via `onSuggestionsChange`
+- Tapping suggestion updates text and notifies keyboard
+- Maintains consistent 70px height even when empty
+
+### 7. Accessibility ✅
+
+**Touch Target Sizes:**
+```typescript
+touchTarget: {
+  small: 60,
+  medium: 80,
+  large: 100,
+  xlarge: 120,
+}
 ```
 
-## File Structure Rationale
+**Font Sizes:**
+```typescript
+fontSize: {
+  small: 18,
+  medium: 24,
+  large: 28,
+  xlarge: 36,
+  xxlarge: 52,
+}
+```
 
-### Why Monorepo?
-- **Code Reuse**: Share utilities, components, and keyboard logic
-- **Independent Deployment**: Each app has its own package.json and build
-- **Clear Separation**: IssieBoard and IssieVoice are distinct apps
-- **Easy Maintenance**: Shared code updates benefit both apps
+**Action Buttons:**
+- Height: 120px (1.5x standard)
+- Speak button: 2x width with enhanced shadow
+- High contrast colors for each function
 
-### Component Organization
-Components are organized by feature:
-- **TextDisplayArea**: Text display and scroll logic
-- **ActionBar**: All action buttons (Speak, Clear, Save, Browse)
-- **SuggestionsBar**: Word suggestion UI
-- **SavedSentences**: Saved sentence management UI
+## Architecture Details
 
-### State Management
-Two contexts provide clean separation:
-- **TextContext**: Manages current text, append, clear operations
-- **TTSContext**: Manages TTS state, settings, speak/stop operations
+### Keyboard Configuration
+
+Language switch key injection (MainScreen.tsx):
+
+```typescript
+const languageKey = {
+  type: 'language',
+  label: language === 'en' ? 'עב' : 'En',
+  caption: language === 'en' ? 'עב' : 'En',
+  value: '',
+  width: 1,
+  bgColor: '#2196F3',
+};
+
+// Insert after first key (123 button)
+const modifiedBottomRow = {
+  ...bottomRow,
+  keys: bottomRow.keys
+    .filter((key: any) => key.type !== 'next-keyboard')
+    .reduce((acc: any[], key: any, index: number) => {
+      acc.push(key);
+      if (index === 0) acc.push(languageKey);
+      return acc;
+    }, []),
+};
+```
+
+### TTS Language Detection
+
+```typescript
+// Auto-detect mode logic
+const hasHebrewCharacters = (text: string): boolean => {
+  return /[\u0590-\u05FF]/.test(text);
+};
+
+const isDeviceEnglish = deviceLang.startsWith('en');
+const textHasHebrew = hasHebrewCharacters(text);
+
+// If device is English AND no Hebrew chars → English
+// Otherwise → Hebrew
+const languageToUse = (isDeviceEnglish && !textHasHebrew)
+  ? 'en-US'
+  : 'he-IL';
+```
+
+### Preview Mode Behavior
+
+In preview mode (`isPreviewMode = true`):
+- All keys from config are shown (no filtering by system keyboard count)
+- Custom key types emit events to React Native
+- Language key shows regardless of iOS keyboard settings
+- Generic system for adding more custom keys in future
+
+## Splash Screens
+
+- **IssieBoard**: Uses `LaunchScreen.storyboard` (shows "IssieBoard")
+- **IssieVoice**: Uses `IssieVoiceSplash.storyboard` (shows "IssieVoice")
+- Separate launch screens per app target
+
+## Color Palette
+
+```typescript
+colors = {
+  primary: '#3F51B5',      // Indigo
+  background: '#F5F5F5',   // Light gray
+  surface: '#FFFFFF',      // White
+  surfaceDark: '#E8E8E8',  // Gray
+  text: '#212121',         // Dark gray
+  textLight: '#757575',    // Medium gray
+  border: '#BDBDBD',       // Light border
+  borderLight: '#E0E0E0',  // Very light border
+
+  // Action colors
+  speak: '#4CAF50',        // Green
+  clear: '#F44336',        // Red
+  save: '#FFC107',         // Amber
+  browse: '#9C27B0',       // Purple
+}
+```
+
+## Storage Keys
+
+All settings use KeyboardPreferences:
+- `issievoice_saved_sentences`: Saved sentences JSON array
+- `issievoice_languageMode`: TTS language mode (en-only/he-only/detect)
+- `issievoice_englishVoice`: Selected English voice ID
+- `issievoice_hebrewVoice`: Selected Hebrew voice ID
+
+## iOS-Specific Notes
+
+### Native Bridge
+- **KeyboardPreview**: UIView wrapper around KeyboardEngine
+- **KeyboardPreferences**: UserDefaults bridge
+- **TextToSpeech**: react-native-tts bridge
+
+### Xcode Setup
+- App target: IssieVoice
+- Launch screen: IssieVoiceSplash.storyboard
+- App Group: Shared with keyboard extensions for preferences
+- Info.plist keys for TTS permissions
 
 ## Development Workflow
 
-### Adding a New Component
-1. Create component in appropriate folder under `src/components/`
-2. Export from component's `index.ts`
-3. Use in screens as needed
+### Running the App
+```bash
+cd apps/issievoice
+npm install
+npm run ios
+```
 
-### Adding a New Screen
-1. Create screen in `src/screens/`
-2. Register in `App.tsx` navigation
-3. Add navigation logic
+### Building Keyboards
+```bash
+# From project root
+npm run build:keyboards
+```
 
-### Modifying Shared Code
-1. Make changes in `packages/`
-2. Changes automatically available to both apps (workspace linking)
+### Testing TTS
+1. Open Settings modal (⚙️ icon)
+2. Select language mode
+3. Test voices with 🔊 button
+4. Select preferred voice for each language
+5. Return to main screen and type text
+6. Press Speak button
 
-## Next Steps
+## Design Decisions
 
-The following components still need to be implemented:
-1. Main Screen UI
-2. Browse Screen UI
-3. Settings Screen UI
-4. Action Bar components
-5. Text Display component
-6. Suggestions Bar component
-7. Large-key keyboard component
-8. iOS-specific TTS configuration
-9. Word prediction integration
-10. Comprehensive testing
+### Why Not AsyncStorage?
+- KeyboardPreferences uses UserDefaults (iOS native)
+- Shared with keyboard extensions via App Groups
+- Consistent with SavedSentencesManager pattern
+- Better performance than AsyncStorage
 
-## Design Principles
+### Why Embedded Keyboard vs Custom?
+- Reuses proven IssieBoard keyboard engine
+- Gets word prediction/completion for free
+- Consistent keyboard behavior across apps
+- Less code to maintain
 
-1. **Accessibility First**: Large touch targets, high contrast, simple navigation
-2. **Speed**: Minimize taps needed for common actions
-3. **Clarity**: Clear visual hierarchy, distinct button colors
-4. **Simplicity**: No hidden menus, all functions visible
-5. **Reliability**: Robust error handling, graceful degradation
+### Why Language Key Instead of Settings Button?
+- Faster switching (no modal)
+- Visible language indicator
+- Familiar pattern (like iOS globe key)
+- Works in preview mode
 
-## Architecture Decisions
-
-### iOS-Only (for now)
-- Simpler development and testing
-- Better TTS quality on iOS
-- Can expand to Android later
-
-### React Native
-- Fast development
-- Code reuse with IssieBoard
-- Native performance
-- Access to native TTS APIs
-
-### Context API (not Redux)
-- Simpler for this app's scope
-- Less boilerplate
-- Easier to understand
-- Sufficient for state management needs
+### Why Per-Language Voice Selection?
+- Users may want different voices for each language
+- Hebrew voices work better with Hebrew text
+- English voices work better with English text
+- More flexible than single voice setting
 
 ## Performance Considerations
 
-- Text updates are debounced
-- Suggestions computed asynchronously
-- Lazy loading for saved sentences list
-- Optimized re-renders with React.memo where appropriate
+- Text updates batched via React state
+- Suggestions computed asynchronously by KeyboardEngine
+- Settings loaded once on mount
+- Voice list filtered to en/he only
+- Accordions collapse long lists
+
+## Future Enhancements
+
+### Possible Additions
+- Categories for saved sentences
+- Quick phrase shortcuts
+- TTS rate/pitch controls visible in UI
+- Multiple language support beyond en/he
+- Export/import saved sentences
+- Voice profiles (different voices per category)
+- Android support
+
+### Not Planned
+- Complex sentence editing (focus is on simple communication)
+- Rich text formatting (accessibility focus)
+- Cloud sync (privacy concerns)
+- In-app purchases (free and open)
+
+## Related Documentation
+
+- **ISSIEVOICE_XCODE_SETUP.md**: Xcode project setup
+- **CLAUDE.md**: Full project architecture
+- **WORD_PREDICTION_GUIDE.md**: Keyboard prediction system
+- **KeyboardRenderer.swift**: Keyboard rendering logic
+- **KeyboardEngine.swift**: Keyboard event handling
 
 ---
 
-**Created**: February 11, 2026  
-**Status**: Structure complete, implementation in progress  
-**iOS Target**: iOS 14+  
-**Languages**: Hebrew, English, Arabic
+**Created**: February 11, 2026
+**Last Updated**: February 12, 2026
+**Status**: ✅ Production Ready
+**iOS Version**: iOS 14+
+**Languages**: Hebrew, English (Arabic keyboard available but TTS not configured)

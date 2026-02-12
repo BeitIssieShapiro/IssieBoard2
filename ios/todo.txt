@@ -38,3 +38,7 @@ Future Enhancements:
   Example: "Why sre" → prioritize "are" if predicted after "Why"
   See WORD_PREDICTION_GUIDE.md "Future Enhancements" section for implementation details
 - Trigram support: Predict based on last 2 words for better context
+
+
+- Suggestions/Completion:
+  - newline after punk or space?
