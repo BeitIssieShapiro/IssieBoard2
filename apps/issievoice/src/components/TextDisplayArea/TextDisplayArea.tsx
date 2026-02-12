@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import {useText} from '../../context/TextContext';
 import {colors, sizes} from '../../constants';
+import {useLocalization} from '../../context/LocalizationContext';
 
 interface TextDisplayAreaProps {
   text: string;
@@ -15,6 +16,7 @@ interface TextDisplayAreaProps {
 
 const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({text}) => {
   const {setText} = useText();
+  const {strings, isRTL} = useLocalization();
   const textInputRef = useRef<TextInput>(null);
 
   // Log whenever text prop changes
@@ -39,7 +41,10 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({text}) => {
         keyboardShouldPersistTaps="handled">
         <TextInput
           ref={textInputRef}
-          style={styles.textInput}
+          style={[
+            styles.textInput,
+            isRTL && styles.textInputRTL,
+          ]}
           value={text}
           onChangeText={(newText) => {
             console.log('⌨️ External keyboard input detected:', newText);
@@ -48,11 +53,12 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({text}) => {
           multiline={true}
           editable={true}
           autoFocus
-          placeholder="Start typing to compose your message..."
+          placeholder={strings.textPlaceholder}
           placeholderTextColor={colors.textLight}
           inputAccessoryViewID="customKeyboard"
           showSoftInputOnFocus={false}
           caretHidden={false}
+          writingDirection={isRTL ? 'rtl' : 'ltr'}
         />
       </ScrollView>
     </View>
@@ -79,6 +85,10 @@ const styles = StyleSheet.create({
     lineHeight: sizes.fontSize.large * 1.5,
     minHeight: sizes.textDisplay - (sizes.spacing.md * 2),
     textAlignVertical: 'top',
+    textAlign: 'left',
+  },
+  textInputRTL: {
+    textAlign: 'right',
   },
 });
 

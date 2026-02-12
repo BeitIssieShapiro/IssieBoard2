@@ -1,6 +1,7 @@
 import React from 'react';
 import {View, StyleSheet, TouchableOpacity, Text} from 'react-native';
 import {colors, sizes} from '../../constants';
+import {useLocalization} from '../../context/LocalizationContext';
 
 interface ActionBarProps {
   onSpeak: () => void;
@@ -23,6 +24,8 @@ const ActionBar: React.FC<ActionBarProps> = ({
   hasText,
   currentLanguage = 'en',
 }) => {
+  const {strings} = useLocalization();
+
   return (
     <View style={styles.container}>
       {/* Speak Button - Green */}
@@ -36,7 +39,7 @@ const ActionBar: React.FC<ActionBarProps> = ({
         disabled={!hasText || isSpeaking}
         activeOpacity={0.7}>
         <Text style={styles.buttonText}>
-          {isSpeaking ? '🔊 Speaking...' : '🗣️ Speak'}
+          {isSpeaking ? strings.speaking : strings.speak}
         </Text>
       </TouchableOpacity>
 
@@ -50,7 +53,7 @@ const ActionBar: React.FC<ActionBarProps> = ({
         onPress={onClear}
         disabled={!hasText}
         activeOpacity={0.7}>
-        <Text style={styles.buttonText}>🗑️ Clear</Text>
+        <Text style={styles.buttonText}>{strings.clear}</Text>
       </TouchableOpacity>
 
       {/* Save Button - Amber */}
@@ -63,7 +66,7 @@ const ActionBar: React.FC<ActionBarProps> = ({
         onPress={onSave}
         disabled={!hasText}
         activeOpacity={0.7}>
-        <Text style={styles.buttonText}>💾 Save</Text>
+        <Text style={styles.buttonText}>{strings.save}</Text>
       </TouchableOpacity>
 
       {/* Browse Button - Purple */}
@@ -71,7 +74,7 @@ const ActionBar: React.FC<ActionBarProps> = ({
         style={[styles.button, styles.browseButton]}
         onPress={onBrowse}
         activeOpacity={0.7}>
-        <Text style={styles.buttonText}>📚 Browse</Text>
+        <Text style={styles.buttonText}>{strings.browse}</Text>
       </TouchableOpacity>
 
       {/* Language Switch Button - Blue */}
@@ -79,10 +82,10 @@ const ActionBar: React.FC<ActionBarProps> = ({
         <TouchableOpacity
           style={[styles.button, styles.langButton]}
           onPress={onSwitchLanguage}
-          accessibilityLabel={`Switch to ${currentLanguage === 'en' ? 'Hebrew' : 'English'}`}
+          accessibilityLabel={currentLanguage === 'en' ? strings.switchToHebrew : strings.switchToEnglish}
           activeOpacity={0.7}>
           <Text style={styles.buttonText}>
-            {currentLanguage === 'en' ? '🔄 עברית' : '🔄 English'}
+            {currentLanguage === 'en' ? strings.switchToHebrew : strings.switchToEnglish}
           </Text>
         </TouchableOpacity>
       )}

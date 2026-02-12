@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 import {useText} from '../context/TextContext';
 import {useTTS} from '../context/TTSContext';
+import {useLocalization} from '../context/LocalizationContext';
+import {useNotification} from '../context/NotificationContext';
 import SavedSentencesManager, {
   SavedSentence,
 } from '../services/SavedSentencesManager';
@@ -28,6 +30,8 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation}) => {
   );
   const {setText, currentText} = useText();
   const {speak} = useTTS();
+  const {strings} = useLocalization();
+  const {showNotification} = useNotification();
 
   useEffect(() => {
     loadSentences();
@@ -71,16 +75,17 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation}) => {
 
   const handleDeletePress = (sentence: SavedSentence) => {
     Alert.alert(
-      'Delete Sentence',
-      `Are you sure you want to delete "${sentence.text.substring(0, 30)}..."?`,
+      strings.deleteText,
+      `${strings.deleteConfirm} "${sentence.text.substring(0, 30)}..."?`,
       [
-        {text: 'Cancel', style: 'cancel'},
+        {text: strings.cancel, style: 'cancel'},
         {
-          text: 'Delete',
+          text: strings.delete,
           style: 'destructive',
           onPress: async () => {
             await SavedSentencesManager.deleteSentence(sentence.id);
             await loadSentences();
+            showNotification(strings.deleted, 'success');
           },
         },
       ],
@@ -126,6 +131,27 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation}) => {
     </View>
   );
 
+  const handleClearAll = () => {
+    if (sentences.length === 0) return;
+
+    Alert.alert(
+      strings.clearAll,
+      `${strings.clearAllConfirm} (${sentences.length})`,
+      [
+        {text: strings.cancel, style: 'cancel'},
+        {
+          text: strings.delete,
+          style: 'destructive',
+          onPress: async () => {
+            await SavedSentencesManager.clearAll();
+            await loadSentences();
+            showNotification(strings.allDeleted, 'success');
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -134,16 +160,29 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation}) => {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}>
-          <Text style={styles.backButtonText}>← Back</Text>
+          <Text style={styles.backButtonText}>{strings.back}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Saved Sentences</Text>
+        <Text style={styles.headerTitle}>{strings.savedSentences}</Text>
+        <TouchableOpacity
+          style={styles.clearAllButton}
+          onPress={handleClearAll}
+          disabled={sentences.length === 0}
+          activeOpacity={0.7}>
+          <Text
+            style={[
+              styles.clearAllButtonText,
+              sentences.length === 0 && styles.clearAllButtonTextDisabled,
+            ]}>
+            {strings.clearAll}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
-          placeholder="Search sentences..."
+          placeholder={strings.searchSentences}
           value={searchQuery}
           onChangeText={setSearchQuery}
           autoCapitalize="none"
@@ -164,13 +203,13 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation}) => {
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>
             {searchQuery
-              ? 'No sentences match your search'
-              : 'No saved sentences yet'}
+              ? strings.noMatchingSearch
+              : strings.noSavedSentences}
           </Text>
           <Text style={styles.emptySubtext}>
             {searchQuery
-              ? 'Try a different search term'
-              : 'Save sentences from the main screen to see them here'}
+              ? strings.tryDifferentSearch
+              : strings.noSavedSentencesSubtext}
           </Text>
         </View>
       )}
@@ -186,6 +225,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: sizes.spacing.md,
     paddingVertical: sizes.spacing.md,
     backgroundColor: colors.surface,
@@ -204,6 +244,19 @@ const styles = StyleSheet.create({
     fontSize: sizes.fontSize.xlarge,
     fontWeight: 'bold',
     color: colors.text,
+    flex: 1,
+    textAlign: 'center',
+  },
+  clearAllButton: {
+    paddingLeft: sizes.spacing.md,
+  },
+  clearAllButtonText: {
+    fontSize: sizes.fontSize.medium,
+    color: colors.error,
+    fontWeight: '600',
+  },
+  clearAllButtonTextDisabled: {
+    color: colors.textLight,
   },
   searchContainer: {
     paddingHorizontal: sizes.spacing.md,

@@ -5,10 +5,11 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Text,
-  Alert,
 } from 'react-native';
 import {useText} from '../context/TextContext';
 import {useTTS} from '../context/TTSContext';
+import {useLocalization} from '../context/LocalizationContext';
+import {useNotification} from '../context/NotificationContext';
 import TextDisplayArea from '../components/TextDisplayArea/TextDisplayArea';
 import ActionBar from '../components/ActionBar/ActionBar';
 import SuggestionsBar from '../components/SuggestionsBar/SuggestionsBar';
@@ -22,11 +23,13 @@ interface MainScreenProps {
 
 const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
   const {currentText, setText, clearText} = useText();
-  const {speak, isSpeaking, setLanguage} = useTTS();
+  const {speak, isSpeaking, setLanguage: setTTSLanguage} = useTTS();
+  const {strings, language: deviceLanguage} = useLocalization();
+  const {showNotification} = useNotification();
   const [keyboardConfig, setKeyboardConfig] = useState<string>('');
   const [kbSuggestions, setKbSuggestions] = useState<string[]>([]);
   const [keyboardHeight, setKeyboardHeight] = useState(350);
-  const [currentLanguage, setCurrentLanguage] = useState<'en' | 'he'>('en');
+  const [currentLanguage, setCurrentLanguage] = useState<'en' | 'he'>(deviceLanguage);
   const keyboardConfigRef = useRef<any>(null);
 
   // Calculate appropriate keyboard height based on configuration
@@ -115,6 +118,7 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
         ...config,
         keysets: allKeysets,
         keyHeight: 74, // Use iPad-sized keys for better visibility
+        language: language, // Set the language for suggestions
         groups: [
           ...(config.groups || []),
           {
@@ -151,11 +155,11 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
     console.log(`🗣️ Updating TTS language: ${currentLanguage}`);
     // Use a timeout to ensure this doesn't cause an infinite loop
     const timer = setTimeout(() => {
-      setLanguage(currentLanguage);
+      setTTSLanguage(currentLanguage);
     }, 100);
-    
+
     return () => clearTimeout(timer);
-  }, [currentLanguage, setLanguage]);
+  }, [currentLanguage, setTTSLanguage]);
   
   // No need for a separate initial load effect as the above effect will run on mount
 
@@ -227,9 +231,9 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
 
     try {
       await SavedSentencesManager.saveSentence(currentText);
-      Alert.alert('Saved!', 'Your text has been saved successfully.');
+      showNotification(strings.savedSuccessMessage, 'success');
     } catch (error) {
-      Alert.alert('Error', 'Failed to save text. Please try again.');
+      showNotification(strings.failedToSave, 'error');
       console.error('Save error:', error);
     }
   };
