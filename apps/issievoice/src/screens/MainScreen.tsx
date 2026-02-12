@@ -14,7 +14,7 @@ import TextDisplayArea from '../components/TextDisplayArea/TextDisplayArea';
 import ActionBar from '../components/ActionBar/ActionBar';
 import SuggestionsBar from '../components/SuggestionsBar/SuggestionsBar';
 import {KeyboardPreview, KeyPressEvent} from '../../../../src/components/KeyboardPreview';
-import {colors} from '../constants';
+import {colors, sizes} from '../constants';
 import SavedSentencesManager from '../services/SavedSentencesManager';
 
 interface MainScreenProps {
@@ -75,9 +75,10 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
   
   // Function to load keyboard configuration for a specific language
   const loadKeyboardConfig = (language: string) => {
+    console.log('🔄 Loading keyboard config for language:', language);
     try {
       // Load configuration based on language
-      const config = language === 'en' 
+      const config = language === 'en'
         ? require('../../../../keyboards/en.json')
         : require('../../../../keyboards/he.json');
       const common = require('../../../../keyboards/common.js');
@@ -103,14 +104,74 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
       // Append "alwaysInclude" rows from the language config to common keysets
       const bottomRow = config.keysets[0].rows.find((row: any) => row.alwaysInclude);
       console.log('📋 Bottom row found:', !!bottomRow);
-      
+
+      if (!bottomRow) {
+        console.error('❌ Bottom row not found in keyboard config!');
+        return;
+      }
+
+      // Create language switch key (blue button)
+      const languageKey = {
+        type: 'language',
+        label: language === 'en' ? 'עב' : 'En',
+        caption: language === 'en' ? 'עב' : 'En',
+        value: '',  // No text output
+        width: 1,
+        bgColor: '#2196F3',  // Blue background
+      };
+
+      console.log('🔑 Language key:', languageKey);
+      console.log('📋 Original bottom row keys:', bottomRow.keys.length);
+
+      // Remove next-keyboard and insert language key after the first key (123 button)
+      const modifiedBottomRow = {
+        ...bottomRow,
+        keys: bottomRow.keys
+          .filter((key: any) => key.type !== 'next-keyboard')  // Remove globe button
+          .reduce((acc: any[], key: any, index: number) => {
+            acc.push(key);
+            // Insert language button after first key (123 button)
+            if (index === 0) {
+              console.log('🔄 Inserting language key after 123 button');
+              acc.push(languageKey);
+            }
+            return acc;
+          }, []),
+      };
+
+      console.log('📋 Modified bottom row keys:', modifiedBottomRow.keys.length);
+      console.log('📋 Modified bottom row keys types:', modifiedBottomRow.keys.map((k: any) => k.type || k.value));
+
       const mergedCommonKeysets = commonKeysets.map((keyset: any) => ({
         ...keyset,
-        rows: [...keyset.rows, bottomRow],
+        rows: [...keyset.rows, modifiedBottomRow],
       }));
-      
+
+      // Also modify the original language-specific keysets
+      const modifiedLanguageKeysets = config.keysets.map((keyset: any) => ({
+        ...keyset,
+        rows: keyset.rows.map((row: any) => {
+          if (row.alwaysInclude) {
+            // This is the bottom row - remove next-keyboard and insert language key after first key
+            return {
+              ...row,
+              keys: row.keys
+                .filter((key: any) => key.type !== 'next-keyboard')
+                .reduce((acc: any[], key: any, index: number) => {
+                  acc.push(key);
+                  if (index === 0) {
+                    acc.push(languageKey);
+                  }
+                  return acc;
+                }, []),
+            };
+          }
+          return row;
+        }),
+      }));
+
       // Combine language-specific keysets with merged common keysets
-      const allKeysets = [...config.keysets, ...mergedCommonKeysets];
+      const allKeysets = [...modifiedLanguageKeysets, ...mergedCommonKeysets];
       console.log('📋 All keysets:', allKeysets.map((k: any) => k.id));
       
       // Add IssieVoice-specific settings to the config
@@ -132,14 +193,28 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
       };
       
       console.log('📋 Final config keysets:', issieVoiceConfig.keysets.map((k: any) => k.id));
-      
+
+      // Log the bottom row of the first keyset to verify language key is there
+      const firstKeyset = issieVoiceConfig.keysets[0];
+      const bottomRowCheck = firstKeyset.rows.find((r: any) => r.alwaysInclude);
+      if (bottomRowCheck) {
+        console.log('🔍 Final bottom row keys:', bottomRowCheck.keys.map((k: any) => ({
+          type: k.type,
+          label: k.label,
+          value: k.value
+        })));
+      }
+
       // Store the config object for height calculations
       keyboardConfigRef.current = issieVoiceConfig;
       
       // Calculate appropriate keyboard height
       calculateKeyboardHeight(issieVoiceConfig);
-      
-      setKeyboardConfig(JSON.stringify(issieVoiceConfig));
+
+      const configString = JSON.stringify(issieVoiceConfig);
+      console.log('📤 Setting keyboard config, length:', configString.length);
+
+      setKeyboardConfig(configString);
     } catch (error) {
       console.error('❌ Failed to load keyboard config:', error);
     }
@@ -174,6 +249,13 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
       // Just update React Native state to match
       console.log('📝 Text changed by KeyboardEngine:', value);
       setText(value);
+      return;
+    }
+
+    // Handle language switch button
+    if (type === 'language') {
+      console.log('🌐 Language switch button pressed');
+      toggleLanguage();
       return;
     }
 
@@ -306,6 +388,11 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
+        {/* Title Bar */}
+        <View style={styles.titleBar}>
+          <Text style={styles.titleText}>{strings.appTitle}</Text>
+        </View>
+
         {/* Text Display Area - Top */}
         <TextDisplayArea text={currentText} />
 
@@ -324,7 +411,6 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
             onClear={handleClear}
             onSave={handleSave}
             onBrowse={handleBrowse}
-            onSwitchLanguage={toggleLanguage}
             isSpeaking={isSpeaking}
             hasText={currentText.length > 0}
             currentLanguage={currentLanguage}
@@ -354,6 +440,21 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  titleBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: sizes.spacing.md,
+    paddingVertical: sizes.spacing.md,
+    backgroundColor: colors.primary,
+    borderBottomWidth: 2,
+    borderBottomColor: colors.border,
+  },
+  titleText: {
+    fontSize: sizes.fontSize.xlarge,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
   keyboardContainer: {
     backgroundColor: colors.surface,

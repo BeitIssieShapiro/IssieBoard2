@@ -43,7 +43,6 @@
 		6AA1FD012F3D26FA002BD212 /* BackspaceHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ACC1FA02F30B20000F1FA30 /* BackspaceHandler.swift */; };
 		6AA1FD022F3D26FA002BD212 /* SuggestionsBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ACC1FA12F30B20000F1FA30 /* SuggestionsBarView.swift */; };
 		6AA1FD032F3D26FA002BD212 /* NikkudPickerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ACC1FA22F30B20000F1FA30 /* NikkudPickerController.swift */; };
-		6AA1FD072F3D26FA002BD212 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		6AA1FD082F3D26FA002BD212 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		6AA1FD092F3D26FA002BD212 /* SharedAssets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6ASHARED0001000000035455 /* SharedAssets.xcassets */; };
 		6AA1FD0A2F3D26FA002BD212 /* Gveret Levin AlefAlefAlef-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 6A877C1D2F34DAB900888533 /* Gveret Levin AlefAlefAlef-Regular.ttf */; };
@@ -130,6 +129,7 @@
 		6ADAC3832F3E0BE300C85EBD /* SystemTextDocumentProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ADAC37F2F3E0B8700C85EBD /* SystemTextDocumentProxy.swift */; };
 		6ADAC3842F3E0BE300C85EBD /* SystemTextDocumentProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ADAC37F2F3E0B8700C85EBD /* SystemTextDocumentProxy.swift */; };
 		6ADAC3852F3E0BE300C85EBD /* SystemTextDocumentProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ADAC37F2F3E0B8700C85EBD /* SystemTextDocumentProxy.swift */; };
+		6ADAC3882F3E30F900C85EBD /* IssieVoiceSplash.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6ADAC3862F3E293000C85EBD /* IssieVoiceSplash.storyboard */; };
 		6AFD743E2F3DB18B00EDBDAA /* en_50k.bin in Resources */ = {isa = PBXBuildFile; fileRef = 6AFD743D2F3DB18B00EDBDAA /* en_50k.bin */; };
 		6AKBNG00012F400100035455 /* KeyboardNeighbors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AKBNG00002F400100035455 /* KeyboardNeighbors.swift */; };
 		6AKBNG00022F400100035455 /* KeyboardNeighbors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AKBNG00002F400100035455 /* KeyboardNeighbors.swift */; };
@@ -147,27 +147,6 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		6AA1FCE92F3D26FA002BD212 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 83CBB9F71A601CBA00E9B192 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 6ACC1E552F2CDE8300F1FA30;
-			remoteInfo = IssieBoardEn;
-		};
-		6AA1FCEB2F3D26FA002BD212 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 83CBB9F71A601CBA00E9B192 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 6ACC1E6A2F2CDEA800F1FA30;
-			remoteInfo = IssieBoardHe;
-		};
-		6AA1FCED2F3D26FA002BD212 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 83CBB9F71A601CBA00E9B192 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 6ACC1E7F2F2CDEBE00F1FA30;
-			remoteInfo = IssieBoardAr;
-		};
 		6ACC1DFB2F2AB0A900F1FA30 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 83CBB9F71A601CBA00E9B192 /* Project object */;
@@ -253,6 +232,7 @@
 		6ADAC36E2F3DF78D00C85EBD /* TextDocumentProxyProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextDocumentProxyProtocol.swift; sourceTree = "<group>"; };
 		6ADAC3722F3DF7A200C85EBD /* KeyboardEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardEngine.swift; sourceTree = "<group>"; };
 		6ADAC37F2F3E0B8700C85EBD /* SystemTextDocumentProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemTextDocumentProxy.swift; sourceTree = "<group>"; };
+		6ADAC3862F3E293000C85EBD /* IssieVoiceSplash.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = IssieVoiceSplash.storyboard; sourceTree = "<group>"; };
 		6AFD743D2F3DB18B00EDBDAA /* en_50k.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = en_50k.bin; sourceTree = "<group>"; };
 		6AFD74402F3DB21C00EDBDAA /* IssieVoice-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "IssieVoice-Info.plist"; sourceTree = "<group>"; };
 		6AKBNG00002F400100035455 /* KeyboardNeighbors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardNeighbors.swift; sourceTree = "<group>"; };
@@ -378,6 +358,7 @@
 				761780EC2CA45674006654EE /* AppDelegate.swift */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
+				6ADAC3862F3E293000C85EBD /* IssieVoiceSplash.storyboard */,
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
 				6A1E33712F2216ED00035455 /* KeyboardPreferencesModule.m */,
 				6A73B68B2F24E9B1003898A5 /* KeyboardPreviewView.swift */,
@@ -534,15 +515,13 @@
 				6AA1FCF02F3D26FA002BD212 /* Sources */,
 				6AA1FD042F3D26FA002BD212 /* Frameworks */,
 				6AA1FD062F3D26FA002BD212 /* Resources */,
+				6ADAC3892F3E328300C85EBD /* Bundle react-native code and images */,
 				CBE376FB9F6DA08E41B521BD /* [CP] Embed Pods Frameworks */,
 				90EF52C0FC0014FA18A8A1D6 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				6AA1FCE82F3D26FA002BD212 /* PBXTargetDependency */,
-				6AA1FCEA2F3D26FA002BD212 /* PBXTargetDependency */,
-				6AA1FCEC2F3D26FA002BD212 /* PBXTargetDependency */,
 			);
 			name = IssieVoice;
 			productName = IssieBoardNG;
@@ -699,9 +678,9 @@
 			files = (
 				6ADAC3652F3DDC6F00C85EBD /* he_50k.bin in Resources */,
 				6ADAC3672F3DDC9400C85EBD /* he_predictions.bin in Resources */,
-				6AA1FD072F3D26FA002BD212 /* LaunchScreen.storyboard in Resources */,
 				6AFD743E2F3DB18B00EDBDAA /* en_50k.bin in Resources */,
 				6AA1FD082F3D26FA002BD212 /* Images.xcassets in Resources */,
+				6ADAC3882F3E30F900C85EBD /* IssieVoiceSplash.storyboard in Resources */,
 				6AA1FD092F3D26FA002BD212 /* SharedAssets.xcassets in Resources */,
 				6ADAC3692F3DDD2900C85EBD /* en_predictions.bin in Resources */,
 				6AA1FD0A2F3D26FA002BD212 /* Gveret Levin AlefAlefAlef-Regular.ttf in Resources */,
@@ -840,6 +819,24 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"$SRCROOT/build_keyboard_configs.sh\"\n";
+		};
+		6ADAC3892F3E328300C85EBD /* Bundle react-native code and images */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Bundle react-native code and images";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -e\n\nWITH_ENVIRONMENT=\"$REACT_NATIVE_PATH/scripts/xcode/with-environment.sh\"\nREACT_NATIVE_XCODE=\"$REACT_NATIVE_PATH/scripts/react-native-xcode.sh\"\n\n/bin/sh -c \"\\\"$WITH_ENVIRONMENT\\\" \\\"$REACT_NATIVE_XCODE\\\"\"\n\n";
 		};
 		90EF52C0FC0014FA18A8A1D6 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -1088,21 +1085,6 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		6AA1FCE82F3D26FA002BD212 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 6ACC1E552F2CDE8300F1FA30 /* IssieBoardEn */;
-			targetProxy = 6AA1FCE92F3D26FA002BD212 /* PBXContainerItemProxy */;
-		};
-		6AA1FCEA2F3D26FA002BD212 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 6ACC1E6A2F2CDEA800F1FA30 /* IssieBoardHe */;
-			targetProxy = 6AA1FCEB2F3D26FA002BD212 /* PBXContainerItemProxy */;
-		};
-		6AA1FCEC2F3D26FA002BD212 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 6ACC1E7F2F2CDEBE00F1FA30 /* IssieBoardAr */;
-			targetProxy = 6AA1FCED2F3D26FA002BD212 /* PBXContainerItemProxy */;
-		};
 		6ACC1DFC2F2AB0A900F1FA30 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 13B07F861A680F5B00A75B9A /* IssieBoard */;
@@ -1204,7 +1186,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = IssieBoardNG/IssieBoardNG.entitlements;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = SKNJT9TD9G;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = "IssieVoice/IssieVoice-Info.plist";
@@ -1215,7 +1197,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.0;
+				MARKETING_VERSION = 1.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -1241,7 +1223,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = IssieBoardNG/IssieBoardNG.entitlements;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = SKNJT9TD9G;
 				INFOPLIST_FILE = "IssieVoice/IssieVoice-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = IssieVoice;
@@ -1251,7 +1233,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.0;
+				MARKETING_VERSION = 1.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",

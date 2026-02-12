@@ -18,14 +18,14 @@ const LocalizationContext = createContext<LocalizationContextType | undefined>(
 const getDeviceLanguage = (): Language => {
   let deviceLanguage = 'he';
 
-  // if (Platform.OS === 'ios') {
-  //   deviceLanguage =
-  //     NativeModules.SettingsManager?.settings?.AppleLocale ||
-  //     NativeModules.SettingsManager?.settings?.AppleLanguages?.[0] ||
-  //     'en';
-  // } else {
-  //   deviceLanguage = NativeModules.I18nManager?.localeIdentifier || 'en';
-  // }
+  if (Platform.OS === 'ios') {
+    deviceLanguage =
+      NativeModules.SettingsManager?.settings?.AppleLocale ||
+      NativeModules.SettingsManager?.settings?.AppleLanguages?.[0] ||
+      'en';
+  } else {
+    deviceLanguage = NativeModules.I18nManager?.localeIdentifier || 'en';
+  }
 
   // Extract language code (e.g., "he_IL" -> "he", "en_US" -> "en")
   const langCode = deviceLanguage.split('_')[0].split('-')[0].toLowerCase();

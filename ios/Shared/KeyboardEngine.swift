@@ -50,6 +50,9 @@ class KeyboardEngine {
     /// Called when settings button is pressed
     var onOpenSettings: (() -> Void)?
 
+    /// Called when language switch button is pressed
+    var onLanguageSwitch: (() -> Void)?
+
     /// Called when keyset changes (for state persistence)
     var onKeysetChanged: ((String) -> Void)?
 
@@ -116,6 +119,10 @@ class KeyboardEngine {
 
         renderer.onOpenSettings = { [weak self] in
             self?.onOpenSettings?()
+        }
+
+        renderer.onLanguageSwitch = { [weak self] in
+            self?.onLanguageSwitch?()
         }
 
         renderer.onBackspaceTouchBegan = { [weak self] in
@@ -218,6 +225,9 @@ class KeyboardEngine {
 
         case "keyset":
             break
+
+        case "language":
+            onLanguageSwitch?()
 
         case "next-keyboard":
             onNextKeyboard?()

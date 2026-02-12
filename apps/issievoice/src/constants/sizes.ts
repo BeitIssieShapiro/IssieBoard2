@@ -35,7 +35,7 @@ export const sizes = {
   },
   
   // Component heights
-  actionButton: 80,
+  actionButton: 120,  // 1.5x larger for better accessibility
   suggestionButton: 70,
   keyboardKey: 60,
   textDisplay: 200, // Increased for better visibility

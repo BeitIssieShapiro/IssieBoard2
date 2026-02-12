@@ -202,6 +202,11 @@ class KeyboardPreviewView: UIView {
         engine.onRenderKeyboard = { [weak self] in
             self?.renderKeyboard()
         }
+
+        // Set up language switch callback
+        engine.onLanguageSwitch = { [weak self] in
+            self?.sendLanguageSwitchToReactNative()
+        }
     }
 
     private func notifyReactNativeOfTextChange(_ newText: String) {
@@ -386,6 +391,17 @@ class KeyboardPreviewView: UIView {
         guard let onSuggestionsChange = onSuggestionsChange else { return }
         print("🔮 Sending suggestions to React Native:", suggestions)
         onSuggestionsChange(["suggestions": suggestions])
+    }
+
+    private func sendLanguageSwitchToReactNative() {
+        guard let onKeyPress = onKeyPress else { return }
+        print("🌐 Sending language switch event to React Native")
+        onKeyPress([
+            "type": "language",
+            "value": "",
+            "label": "",
+            "hasNikkud": false
+        ])
     }
 
     // MARK: - Layout

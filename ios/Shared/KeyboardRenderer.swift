@@ -27,6 +27,7 @@ class KeyboardRenderer {
     var onNextKeyboard: (() -> Void)?
     var onDismissKeyboard: (() -> Void)?
     var onOpenSettings: (() -> Void)?
+    var onLanguageSwitch: (() -> Void)?
     
     // Callbacks for backspace touch state (to coordinate with controller)
     var onBackspaceTouchBegan: (() -> Void)?
@@ -529,9 +530,12 @@ class KeyboardRenderer {
                                          defaultBgColor: getDefaultKeyBgColor())
                 
                 let keyType = parsedKey.type.lowercased()
-                
-                // Skip language/next-keyboard keys if only one language
-                if hasOnlyOneLanguage && keyType == "language" || !showGlobeButton && keyType == "next-keyboard" {
+
+                // Skip language/next-keyboard keys if only one language (except in preview mode - let config decide)
+                // In preview mode (IssieBoard/IssieVoice), show all keys defined in config and let them emit events
+                let shouldSkipLanguage = keyType == "language" && hasOnlyOneLanguage && !isPreviewMode
+                let shouldSkipNextKeyboard = keyType == "next-keyboard" && !showGlobeButton
+                if shouldSkipLanguage || shouldSkipNextKeyboard {
                     continue
                 }
                 
@@ -677,7 +681,8 @@ class KeyboardRenderer {
             let keyType = parsedKey.type.lowercased()
             
             // Check for hidden language/next-keyboard keys - these ARE in baseline, so redistribute
-            if keyType == "language" && hasOnlyOneLanguage {
+            // In preview mode, show all keys defined in config (let config decide)
+            if keyType == "language" && hasOnlyOneLanguage && !isPreviewMode {
                 hiddenWidthToRedistribute += parsedKey.width
                 continue
             }
@@ -718,13 +723,22 @@ class KeyboardRenderer {
             let parsedKey = ParsedKey(from: key, groups: groups,
                                      defaultTextColor: getDefaultTextColor(),
                                      defaultBgColor: getDefaultKeyBgColor())
+
+            // Debug log for language key
+            if parsedKey.type == "language" {
+                print("🌐 FOUND LANGUAGE KEY: label=\(parsedKey.label), hidden=\(parsedKey.hidden), width=\(key.width ?? 0)")
+            }
             
             // Skip language/next-keyboard keys based on:
-            // 1. Only one language configured, OR
+            // 1. Only one language configured (but NOT in preview mode - let config decide), OR
             // 2. System is showing globe button (needsInputModeSwitchKey is false)
             let keyType = parsedKey.type.lowercased()
-            if (keyType == "language" && hasOnlyOneLanguage || keyType == "next-keyboard" && !showGlobeButton) {
-                // Skip if only one language OR if system doesn't need us to show the globe
+            // In preview mode (IssieBoard/IssieVoice), show all keys in config - they emit events, don't insert text
+            let shouldHideLanguageKey = keyType == "language" && hasOnlyOneLanguage && !isPreviewMode
+            let shouldHideNextKeyboard = keyType == "next-keyboard" && !showGlobeButton
+
+            if (shouldHideLanguageKey || shouldHideNextKeyboard) {
+                // Skip if only one language (except in preview) OR if system doesn't need us to show the globe
                 keyIndex += 1
                 continue
             }
@@ -895,12 +909,17 @@ class KeyboardRenderer {
         // UIButton needs some visible content to have a hit area
         // Using a nearly invisible background to ensure it's tappable
         button.backgroundColor = UIColor(white: 1.0, alpha: 0.001)
-        
+
         // Check if we're in selection/preview mode
         let isSelectionMode = onKeyLongPress != nil
-        
+
         // Get key type early for all checks
         let keyType = key.type.lowercased()
+
+        // Debug log for language key
+        if keyType == "language" {
+            print("🌐 CREATING LANGUAGE KEY VIEW: width=\(width), height=\(height), label=\(key.label)")
+        }
         
         // For backspace key, use gesture recognizer for reliable long-press detection
         if keyType == "backspace" {
@@ -1734,6 +1753,17 @@ class KeyboardRenderer {
                 onKeyPress?(key)
             } else {
                 onOpenSettings?()
+            }
+
+        case "language":
+            print("   → Handling LANGUAGE SWITCH")
+            // In selection mode, emit key press for selection
+            // In normal mode, call the language switch callback
+            if onKeyLongPress != nil {
+                print("   → Selection mode: emitting key press")
+                onKeyPress?(key)
+            } else {
+                onLanguageSwitch?()
             }
             
         default:

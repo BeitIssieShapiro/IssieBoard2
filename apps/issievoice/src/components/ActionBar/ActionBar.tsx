@@ -8,7 +8,6 @@ interface ActionBarProps {
   onClear: () => void;
   onSave: () => void;
   onBrowse: () => void;
-  onSwitchLanguage?: () => void;
   isSpeaking: boolean;
   hasText: boolean;
   currentLanguage?: 'en' | 'he';
@@ -19,16 +18,16 @@ const ActionBar: React.FC<ActionBarProps> = ({
   onClear,
   onSave,
   onBrowse,
-  onSwitchLanguage,
   isSpeaking,
   hasText,
   currentLanguage = 'en',
 }) => {
-  const {strings} = useLocalization();
+  const {strings, isRTL} = useLocalization();
 
+  // Render buttons in order, then reverse container for LTR
   return (
-    <View style={styles.container}>
-      {/* Speak Button - Green */}
+    <View style={[styles.container, !isRTL && styles.containerReversed]}>
+      {/* Speak Button - Green, More Prominent */}
       <TouchableOpacity
         style={[
           styles.button,
@@ -38,7 +37,7 @@ const ActionBar: React.FC<ActionBarProps> = ({
         onPress={onSpeak}
         disabled={!hasText || isSpeaking}
         activeOpacity={0.7}>
-        <Text style={styles.buttonText}>
+        <Text style={styles.speakButtonText}>
           {isSpeaking ? strings.speaking : strings.speak}
         </Text>
       </TouchableOpacity>
@@ -76,19 +75,6 @@ const ActionBar: React.FC<ActionBarProps> = ({
         activeOpacity={0.7}>
         <Text style={styles.buttonText}>{strings.browse}</Text>
       </TouchableOpacity>
-
-      {/* Language Switch Button - Blue */}
-      {onSwitchLanguage && (
-        <TouchableOpacity
-          style={[styles.button, styles.langButton]}
-          onPress={onSwitchLanguage}
-          accessibilityLabel={currentLanguage === 'en' ? strings.switchToHebrew : strings.switchToEnglish}
-          activeOpacity={0.7}>
-          <Text style={styles.buttonText}>
-            {currentLanguage === 'en' ? strings.switchToHebrew : strings.switchToEnglish}
-          </Text>
-        </TouchableOpacity>
-      )}
     </View>
   );
 };
@@ -103,6 +89,9 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.borderLight,
     gap: sizes.spacing.sm,
   },
+  containerReversed: {
+    flexDirection: 'row-reverse',
+  },
   button: {
     flex: 1,
     height: sizes.actionButton,
@@ -116,7 +105,19 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   speakButton: {
+    flex: 2,  // Double width of other buttons
     backgroundColor: colors.speak,
+    shadowColor: colors.speak,
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  speakButtonText: {
+    color: '#FFFFFF',
+    fontSize: sizes.fontSize.large,  // Larger font
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
   clearButton: {
     backgroundColor: colors.clear,
@@ -126,9 +127,6 @@ const styles = StyleSheet.create({
   },
   browseButton: {
     backgroundColor: colors.browse,
-  },
-  langButton: {
-    backgroundColor: '#2196F3', // Blue color for language button
   },
   buttonDisabled: {
     opacity: 0.4,

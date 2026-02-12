@@ -1,4 +1,7 @@
 export interface Strings {
+  // App Title
+  appTitle: string;
+
   // Action Bar
   speak: string;
   speaking: string;
@@ -40,6 +43,9 @@ export interface Strings {
 }
 
 export const en: Strings = {
+  // App Title
+  appTitle: 'IssieVoice',
+
   // Action Bar
   speak: '🗣️ Speak',
   speaking: '🔊 Speaking...',
@@ -81,6 +87,9 @@ export const en: Strings = {
 };
 
 export const he: Strings = {
+  // App Title
+  appTitle: 'IssieVoice',
+
   // Action Bar
   speak: '🗣️ הקראה',
   speaking: '🔊 מקריא...',

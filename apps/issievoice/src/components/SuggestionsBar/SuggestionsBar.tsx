@@ -111,7 +111,7 @@ const SuggestionsBar: React.FC<SuggestionsBarProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    height: 50,
+    height: 70,
     backgroundColor: colors.surfaceDark,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
@@ -132,7 +132,8 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   suggestionButton: {
-    height: 40,
+    height: 60,
+    minWidth: 100,
     paddingHorizontal: sizes.spacing.lg,
     backgroundColor: colors.primary,
     borderRadius: sizes.borderRadius.large,
