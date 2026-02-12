@@ -16,7 +16,7 @@ const LocalizationContext = createContext<LocalizationContextType | undefined>(
 );
 
 const getDeviceLanguage = (): Language => {
-  let deviceLanguage = 'he';
+  let deviceLanguage = 'en';
 
   if (Platform.OS === 'ios') {
     deviceLanguage =

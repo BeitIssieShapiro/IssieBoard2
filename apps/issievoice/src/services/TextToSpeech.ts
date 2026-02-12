@@ -4,6 +4,7 @@ export interface TTSSettings {
   rate: number; // 0.01 to 0.99
   pitch: number; // 0.5 to 2.0
   language: string;
+  voice?: string; // Optional voice ID
 }
 
 class TextToSpeechService {
@@ -64,6 +65,14 @@ class TextToSpeechService {
       await Tts.setDefaultLanguage(language);
     } catch (error) {
       console.error('Failed to set language:', error);
+    }
+  }
+
+  async setVoice(voiceId: string): Promise<void> {
+    try {
+      await Tts.setDefaultVoice(voiceId);
+    } catch (error) {
+      console.error('Failed to set voice:', error);
     }
   }
 

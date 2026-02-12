@@ -13,9 +13,11 @@ import {useNotification} from '../context/NotificationContext';
 import TextDisplayArea from '../components/TextDisplayArea/TextDisplayArea';
 import ActionBar from '../components/ActionBar/ActionBar';
 import SuggestionsBar from '../components/SuggestionsBar/SuggestionsBar';
+import SettingsModal from '../components/SettingsModal/SettingsModal';
 import {KeyboardPreview, KeyPressEvent} from '../../../../src/components/KeyboardPreview';
 import {colors, sizes} from '../constants';
 import SavedSentencesManager from '../services/SavedSentencesManager';
+import KeyboardPreferences from '../../../../src/native/KeyboardPreferences';
 
 interface MainScreenProps {
   navigation: any;
@@ -30,6 +32,10 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
   const [kbSuggestions, setKbSuggestions] = useState<string[]>([]);
   const [keyboardHeight, setKeyboardHeight] = useState(350);
   const [currentLanguage, setCurrentLanguage] = useState<'en' | 'he'>(deviceLanguage);
+  const [settingsVisible, setSettingsVisible] = useState(false);
+  const [languageMode, setLanguageMode] = useState<'en-only' | 'he-only' | 'detect'>('detect');
+  const [englishVoice, setEnglishVoice] = useState<string | undefined>(undefined);
+  const [hebrewVoice, setHebrewVoice] = useState<string | undefined>(undefined);
   const keyboardConfigRef = useRef<any>(null);
 
   // Calculate appropriate keyboard height based on configuration
@@ -220,6 +226,31 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
     }
   };
   
+  // Load settings from storage on mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const savedMode = await KeyboardPreferences.getProfile('issievoice_languageMode');
+        if (savedMode && (savedMode === 'en-only' || savedMode === 'he-only' || savedMode === 'detect')) {
+          setLanguageMode(savedMode as 'en-only' | 'he-only' | 'detect');
+        }
+
+        const savedEnVoice = await KeyboardPreferences.getProfile('issievoice_englishVoice');
+        if (savedEnVoice) {
+          setEnglishVoice(savedEnVoice);
+        }
+
+        const savedHeVoice = await KeyboardPreferences.getProfile('issievoice_hebrewVoice');
+        if (savedHeVoice) {
+          setHebrewVoice(savedHeVoice);
+        }
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+      }
+    };
+    loadSettings();
+  }, []);
+
   // Effect for loading keyboard config when language changes
   useEffect(() => {
     console.log(`🔄 Language change effect triggered: ${currentLanguage}`);
@@ -299,7 +330,7 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
 
   const handleSpeak = async () => {
     if (currentText.trim()) {
-      await speak(currentText);
+      await speak(currentText, languageMode, englishVoice, hebrewVoice);
     }
   };
 
@@ -380,9 +411,41 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
     const newLanguage = currentLanguage === 'en' ? 'he' : 'en';
     console.log(`🌐 Switching language from ${currentLanguage} to ${newLanguage}`);
     setCurrentLanguage(newLanguage);
-    
+
     // Clear suggestions when language changes to prevent showing suggestions from wrong language
     setKbSuggestions([]);
+  };
+
+  // Handle language mode change
+  const handleLanguageModeChange = async (mode: 'en-only' | 'he-only' | 'detect') => {
+    setLanguageMode(mode);
+    try {
+      await KeyboardPreferences.setProfile(mode, 'issievoice_languageMode');
+      console.log(`💾 Language mode saved: ${mode}`);
+    } catch (error) {
+      console.error('Failed to save language mode:', error);
+    }
+  };
+
+  // Handle voice change
+  const handleVoiceChange = async (language: 'en' | 'he', voiceId: string) => {
+    if (language === 'en') {
+      setEnglishVoice(voiceId);
+      try {
+        await KeyboardPreferences.setProfile(voiceId, 'issievoice_englishVoice');
+        console.log(`💾 English voice saved: ${voiceId}`);
+      } catch (error) {
+        console.error('Failed to save English voice:', error);
+      }
+    } else {
+      setHebrewVoice(voiceId);
+      try {
+        await KeyboardPreferences.setProfile(voiceId, 'issievoice_hebrewVoice');
+        console.log(`💾 Hebrew voice saved: ${voiceId}`);
+      } catch (error) {
+        console.error('Failed to save Hebrew voice:', error);
+      }
+    }
   };
 
   return (
@@ -391,6 +454,12 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
         {/* Title Bar */}
         <View style={styles.titleBar}>
           <Text style={styles.titleText}>{strings.appTitle}</Text>
+          <TouchableOpacity
+            style={styles.settingsButton}
+            onPress={() => setSettingsVisible(true)}
+            activeOpacity={0.7}>
+            <Text style={styles.settingsButtonText}>⚙️</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Text Display Area - Top */}
@@ -428,6 +497,17 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
             onSuggestionsChange={handleSuggestionsChange}
           />
         </View>
+
+        {/* Settings Modal */}
+        <SettingsModal
+          visible={settingsVisible}
+          onClose={() => setSettingsVisible(false)}
+          languageMode={languageMode}
+          onLanguageModeChange={handleLanguageModeChange}
+          englishVoice={englishVoice}
+          hebrewVoice={hebrewVoice}
+          onVoiceChange={handleVoiceChange}
+        />
       </View>
     </SafeAreaView>
   );
@@ -444,7 +524,7 @@ const styles = StyleSheet.create({
   titleBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: sizes.spacing.md,
     paddingVertical: sizes.spacing.md,
     backgroundColor: colors.primary,
@@ -455,6 +535,19 @@ const styles = StyleSheet.create({
     fontSize: sizes.fontSize.xlarge,
     fontWeight: 'bold',
     color: '#FFFFFF',
+    flex: 1,
+    textAlign: 'center',
+  },
+  settingsButton: {
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: sizes.borderRadius.medium,
+  },
+  settingsButtonText: {
+    fontSize: sizes.fontSize.large,
   },
   keyboardContainer: {
     backgroundColor: colors.surface,
