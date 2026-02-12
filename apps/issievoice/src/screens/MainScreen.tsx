@@ -118,6 +118,7 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
         ...config,
         keysets: allKeysets,
         keyHeight: 74, // Use iPad-sized keys for better visibility
+        fontSize: 32, // Larger font size for better readability
         language: language, // Set the language for suggestions
         groups: [
           ...(config.groups || []),

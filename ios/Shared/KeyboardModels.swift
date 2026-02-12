@@ -18,8 +18,9 @@ struct KeyboardConfig: Codable {
     let wordSuggestionsEnabled: Bool?  // Enable/disable word suggestions (default: true)
     let autoCorrectEnabled: Bool?  // Enable/disable auto-correct on space (default: false)
     let fontName: String?  // Custom font name to use for character keys (e.g., 'DanaYadAlefAlefAlef-Normal')
+    let fontSize: Double?  // Global font size for all keys (default varies by platform). Individual keys can override this.
     let keyHeight: Double?  // Custom key row height in points (default: 54 for iPhone, 74 for iPad keyboard extension)
-    
+
     enum CodingKeys: String, CodingKey {
         case backgroundColor
         case keysBgColor
@@ -35,6 +36,7 @@ struct KeyboardConfig: Codable {
         case wordSuggestionsEnabled
         case autoCorrectEnabled
         case fontName
+        case fontSize
         case keyHeight
     }
     
@@ -291,9 +293,10 @@ struct GroupTemplate: Codable {
     let visibilityMode: VisibilityMode?  // New tri-state visibility
     let color: String?
     let bgColor: String?
-    
+    let fontSize: Double?        // Font size for keys in this group
+
     enum CodingKeys: String, CodingKey {
-        case width, offset, hidden, visibilityMode, color, bgColor
+        case width, offset, hidden, visibilityMode, color, bgColor, fontSize
     }
     
     /// Get effective visibility mode (handles backward compatibility with hidden boolean)

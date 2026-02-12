@@ -1095,19 +1095,38 @@ class KeyboardRenderer {
             label.text = finalText
         }
         
-        // Font size - check for custom fontSize first, then use defaults
+        // Font size - check for custom fontSize first, then global config fontSize, then use defaults
         let isLargeKey = ["shift", "backspace", "enter"].contains(key.type.lowercased())
         let isMultiChar = finalText.count > 1
-        
+
         var finalFontSize: CGFloat
         if let customFontSize = key.fontSize {
-            // Use custom font size if specified
+            // Use custom font size if specified on the key
             finalFontSize = CGFloat(customFontSize)
         } else {
-            // Use default sizing logic
-            let baseFontSize: CGFloat = isLargeKey ? largeFontSize : fontSize
-            finalFontSize = isMultiChar ? min(baseFontSize * 0.7, 14) : baseFontSize
-            
+            // Use global config fontSize, or fall back to default sizing logic
+            let defaultFontSize: CGFloat = fontSize
+            let defaultLargeFontSize: CGFloat = largeFontSize
+
+            // Check for global fontSize in config
+            let globalFontSize: CGFloat = config?.fontSize.map { CGFloat($0) } ?? defaultFontSize
+            let globalLargeFontSize: CGFloat = config?.fontSize.map { CGFloat($0) * (defaultLargeFontSize / defaultFontSize) } ?? defaultLargeFontSize
+
+            let baseFontSize: CGFloat = isLargeKey ? globalLargeFontSize : globalFontSize
+
+            // For multi-character keys, scale down proportionally but still respect global fontSize
+            if isMultiChar {
+                // If global fontSize is set, use it as base and scale down proportionally
+                if config?.fontSize != nil {
+                    finalFontSize = baseFontSize * 0.7
+                } else {
+                    // No global fontSize, use old logic with 14px cap
+                    finalFontSize = min(baseFontSize * 0.7, 14)
+                }
+            } else {
+                finalFontSize = baseFontSize
+            }
+
             // Make nikkud diacritic mark larger for visibility
             if isNikkudKey {
                 finalFontSize = 36

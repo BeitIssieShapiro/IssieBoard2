@@ -131,6 +131,7 @@ export interface GroupTemplate {
     bgColor: string;
     hidden?: boolean;  // Backward compatibility
     visibilityMode?: VisibilityMode;  // New tri-state visibility
+    fontSize?: number;  // Font size for keys in this group
 }
 
 // Group configuration
@@ -182,6 +183,7 @@ export interface KeyboardConfig {
     wordSuggestionsEnabled?: boolean;  // Whether word suggestions bar is shown (default: true)
     autoCorrectEnabled?: boolean;  // Whether auto-correct replaces typed word with suggestion on space (default: true)
     fontName?: string;  // Custom font name to use for character keys (e.g., 'DanaYadAlefAlefAlef-Normal'). If not set, system font is used.
+    fontSize?: number;  // Global font size for all keys (default varies by platform). Individual keys can override this.
     settingsButtonEnabled?: boolean;  // Whether settings button is shown on keyboard (default: true)
 }
 

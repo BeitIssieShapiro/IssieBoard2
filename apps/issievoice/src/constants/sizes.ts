@@ -20,11 +20,11 @@ export const sizes = {
   
   // Font sizes - larger for readability
   fontSize: {
-    small: 16,
-    medium: 20,
-    large: 24,
-    xlarge: 32,
-    xxlarge: 48,
+    small: 18,
+    medium: 24,
+    large: 28,
+    xlarge: 36,
+    xxlarge: 52,
   },
   
   // Border radius
