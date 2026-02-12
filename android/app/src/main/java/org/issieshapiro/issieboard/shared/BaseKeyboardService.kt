@@ -791,14 +791,16 @@ abstract class BaseKeyboardService : InputMethodService() {
     // MARK: - Settings
     
     private fun openSettings() {
+        alwaysLog("⚙️ openSettings() called for keyboard: $keyboardLanguage")
         // Check if we have the necessary permission
         preferences.setString(keyboardLanguage, "launch_keyboard")
-        
+
         try {
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 data = Uri.parse("issieboard://settings?keyboard=$keyboardLanguage")
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
             }
+            alwaysLog("⚙️ Starting activity with intent: issieboard://settings?keyboard=$keyboardLanguage")
             startActivity(intent)
             
             // Dismiss keyboard after a short delay

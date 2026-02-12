@@ -131,17 +131,35 @@ class WordSuggestionController {
     /// - Returns: true if handled, false otherwise
     func handleBackspace() -> Bool {
         guard suggestionsEnabled, !currentWord.isEmpty else { return false }
-        
+
         // Remove last character from current word
         currentWord.removeLast()
-        
-        // Get suggestions for current word (or show defaults if empty)
+
+        // Get suggestions for current word (or show predictions/defaults if empty)
         if !currentWord.isEmpty {
             updateSuggestions()
         } else {
-            showDefaults()
+            // We just emptied currentWord - check if we should show predictions
+            // This happens when backspacing "get k" → "get " (removing 'k')
+            if !lastCompletedWord.isEmpty {
+                print("⌫ handleBackspace: currentWord now empty but have lastCompletedWord='\(lastCompletedWord)', showing predictions")
+                // Get predictions for the last completed word
+                let predictions = WordCompletionManager.shared.getWordPredictions(
+                    afterWord: lastCompletedWord,
+                    language: currentLanguage
+                )
+
+                if !predictions.isEmpty {
+                    print("⌫ Showing predictions: \(predictions)")
+                    renderer?.updateSuggestions(predictions)
+                } else {
+                    showDefaults()
+                }
+            } else {
+                showDefaults()
+            }
         }
-        
+
         return true
     }
     

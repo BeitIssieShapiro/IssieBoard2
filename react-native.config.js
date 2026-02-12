@@ -1,7 +1,9 @@
 module.exports = {
   project: {
     ios: {},
-    android: {},
+    android: {
+      packageName: 'org.issieshapiro.issieboard',
+    },
   },
   assets: ['./assets/fonts/'],
 };

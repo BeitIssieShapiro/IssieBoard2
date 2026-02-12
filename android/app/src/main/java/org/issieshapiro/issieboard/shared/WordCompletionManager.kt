@@ -189,16 +189,19 @@ class WordCompletionManager private constructor() {
             )
         }
         
-        debugLog("📚 WordCompletionManager: Querying engine for prefix '$prefix' in '$language' (length: ${prefix.length})")
-        
+        // Normalize prefix to lowercase for dictionary lookup (dictionaries are lowercase)
+        val normalizedPrefix = prefix.lowercase()
+
+        debugLog("📚 WordCompletionManager: Querying engine for prefix '$prefix' (normalized: '$normalizedPrefix') in '$language' (length: ${prefix.length})")
+
         // Step 1: Check if prefix is an EXACT word in dictionary (prioritize exact matches)
-        val isExactWord = engine.wordExists(prefix)
+        val isExactWord = engine.wordExists(normalizedPrefix)
         if (isExactWord) {
-            debugLog("📚 WordCompletionManager: '$prefix' is an exact word in dictionary - will prioritize")
+            debugLog("📚 WordCompletionManager: '$normalizedPrefix' is an exact word in dictionary - will prioritize")
         }
-        
+
         // Step 2: Try prefix-based suggestions
-        val exactSuggestions = engine.getSuggestions(prefix, maxSuggestions + 4)
+        val exactSuggestions = engine.getSuggestions(normalizedPrefix, maxSuggestions + 4)
         debugLog("📚 WordCompletionManager: Engine returned ${exactSuggestions.size} exact suggestions: $exactSuggestions")
         
         // Filter out single-letter suggestions
@@ -207,14 +210,14 @@ class WordCompletionManager private constructor() {
         // Step 3: For Hebrew, try prefix stripping if we don't have enough results
         var prefixStrippedSuggestions: List<String> = emptyList()
         if (language == "he" && filteredExact.size <= fuzzyTriggerThreshold) {
-            prefixStrippedSuggestions = getPrefixStrippedSuggestions(prefix, engine)
+            prefixStrippedSuggestions = getPrefixStrippedSuggestions(normalizedPrefix, engine)
             debugLog("📚 WordCompletionManager: Hebrew prefix stripping returned ${prefixStrippedSuggestions.size} suggestions: $prefixStrippedSuggestions")
         }
-        
+
         // Step 4: If exact word match, ensure it's in suggestions even if not in top results
-        if (isExactWord && prefix.length > 1 && !filteredExact.contains(prefix)) {
+        if (isExactWord && normalizedPrefix.length > 1 && !filteredExact.contains(normalizedPrefix)) {
             // Insert the exact match at the beginning
-            filteredExact.add(0, prefix)
+            filteredExact.add(0, normalizedPrefix)
             debugLog("📚 WordCompletionManager: Added exact match '$prefix' to suggestions")
         }
         
@@ -224,15 +227,17 @@ class WordCompletionManager private constructor() {
             var finalSuggestions = combinedExact.take(maxSuggestions)
             // Ensure no duplicates
             val seen = mutableSetOf<String>()
-            finalSuggestions = finalSuggestions.filter { 
+            finalSuggestions = finalSuggestions.filter {
                 if (seen.contains(it)) false
                 else {
                     seen.add(it)
                     true
                 }
             }
+            // Restore original case from prefix
+            val casedSuggestions = finalSuggestions.map { restoreCase(it, prefix) }
             return SuggestionResult(
-                suggestions = finalSuggestions,
+                suggestions = casedSuggestions,
                 hasFuzzyOnly = false,
                 bestFuzzyMatch = null,
                 originalPrefix = prefix
@@ -247,7 +252,7 @@ class WordCompletionManager private constructor() {
         
         // Perform fuzzy search
         val fuzzySuggestions = engine.getFuzzySuggestions(
-            prefix = prefix,
+            prefix = normalizedPrefix,
             errorBudget = fuzzyErrorBudget,
             neighbors = neighbors,
             limit = maxSuggestions + 4
@@ -265,9 +270,9 @@ class WordCompletionManager private constructor() {
         val seen = mutableSetOf<String>()
         
         // Add exact word match first if it exists
-        if (isExactWord && prefix.length > 1) {
-            merged.add(prefix)
-            seen.add(prefix)
+        if (isExactWord && normalizedPrefix.length > 1) {
+            merged.add(normalizedPrefix)
+            seen.add(normalizedPrefix)
         }
         
         // Add exact matches
@@ -295,15 +300,20 @@ class WordCompletionManager private constructor() {
         }
         
         debugLog("📚 WordCompletionManager: After merging fuzzy results: ${merged.size} total suggestions")
-        
+
         // Return top N results
         val finalSuggestions = merged.take(maxSuggestions)
-        debugLog("📚 WordCompletionManager: Returning ${finalSuggestions.size} suggestions for '$prefix': $finalSuggestions, hasFuzzyOnly: $hasFuzzyOnly, bestFuzzy: ${bestFuzzyMatch ?: "none"}")
-        
+
+        // Restore original case from prefix
+        val casedSuggestions = finalSuggestions.map { restoreCase(it, prefix) }
+        val casedBestFuzzy = bestFuzzyMatch?.let { restoreCase(it, prefix) }
+
+        debugLog("📚 WordCompletionManager: Returning ${casedSuggestions.size} suggestions for '$prefix': $casedSuggestions, hasFuzzyOnly: $hasFuzzyOnly, bestFuzzy: ${casedBestFuzzy ?: "none"}")
+
         return SuggestionResult(
-            suggestions = finalSuggestions,
+            suggestions = casedSuggestions,
             hasFuzzyOnly = hasFuzzyOnly,
-            bestFuzzyMatch = bestFuzzyMatch,
+            bestFuzzyMatch = casedBestFuzzy,
             originalPrefix = prefix
         )
     }
@@ -349,6 +359,31 @@ class WordCompletionManager private constructor() {
     }
     
     /**
+     * Restore the original case from the typed prefix to the suggestion
+     * E.g., if user typed "Th" and dictionary returns "the", return "The"
+     * Port of ios/Shared/WordCompletionManager.swift restoreCase()
+     * @param suggestion The lowercase suggestion from the dictionary
+     * @param originalPrefix The original prefix as typed by the user (with original case)
+     * @return Suggestion with case restored from the prefix
+     */
+    private fun restoreCase(suggestion: String, originalPrefix: String): String {
+        if (originalPrefix.isEmpty() || suggestion.isEmpty()) return suggestion
+
+        val prefixLength = minOf(originalPrefix.length, suggestion.length)
+        val casedPrefix = originalPrefix.take(prefixLength)
+        val suggestionPrefix = suggestion.take(prefixLength)
+
+        // Verify that the lowercase versions match (they should, since we normalized before lookup)
+        if (suggestionPrefix.lowercase() != casedPrefix.lowercase()) {
+            return suggestion
+        }
+
+        // Replace the suggestion prefix with the original cased prefix
+        val suggestionRemainder = suggestion.drop(prefixLength)
+        return casedPrefix + suggestionRemainder
+    }
+
+    /**
      * Check if a dictionary is available for the given language
      * @param languageCode Language code to check
      * @return true if dictionary is available
@@ -386,14 +421,16 @@ class WordCompletionManager private constructor() {
      */
     fun getWordPredictions(afterWord: String, limit: Int = 4): List<String> {
         val language = currentLanguage ?: return emptyList()
-        
+
         val predictionEngine = getPredictionEngine(language)
         if (predictionEngine == null) {
             debugLog("🔮 WordCompletionManager: No prediction engine for '$language'")
             return emptyList()
         }
-        
-        val predictions = predictionEngine.getPredictions(afterWord, limit)
+
+        // Normalize to lowercase for dictionary lookup (prediction data uses lowercase)
+        val normalizedWord = afterWord.lowercase()
+        val predictions = predictionEngine.getPredictions(normalizedWord, limit)
         return predictions.map { it.word }
     }
     

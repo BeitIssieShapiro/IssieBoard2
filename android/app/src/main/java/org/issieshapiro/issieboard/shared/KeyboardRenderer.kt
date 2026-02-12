@@ -36,7 +36,10 @@ class KeyboardRenderer(private val context: Context) {
     
     // Callback for word suggestion selection
     var onSuggestionSelected: ((String) -> Unit)? = null
-    
+
+    // Callback for suggestions update (to send to React Native)
+    var onSuggestionsUpdated: ((List<String>) -> Unit)? = null
+
     // Whether to show the globe (next-keyboard) button
     private var showGlobeButton: Boolean = true
     
@@ -44,6 +47,7 @@ class KeyboardRenderer(private val context: Context) {
     var onNextKeyboard: (() -> Unit)? = null
     var onDismissKeyboard: (() -> Unit)? = null
     var onOpenSettings: (() -> Unit)? = null
+    var onLanguageSwitch: (() -> Unit)? = null
     
     // Callbacks for backspace touch state (to coordinate with controller)
     var onBackspaceTouchBegan: (() -> Unit)? = null
@@ -127,9 +131,22 @@ class KeyboardRenderer(private val context: Context) {
             debugLog("📱 isLargeScreen check: screenSize=$screenSize, LARGE=${android.content.res.Configuration.SCREENLAYOUT_SIZE_LARGE}, isLarge=$isLarge")
             return isLarge
         }
-    
+
+    // Preview mode flag - when true, shows all keys from config (no filtering by system keyboard count)
+    private var isPreviewMode: Boolean = false
+
     // UI Constants - same for preview and keyboard
-    private val rowHeight: Int = dpToPx(54)
+    // Dynamic row height: uses config keyHeight if provided, otherwise 54px base
+    private val rowHeight: Int
+        get() {
+            // Check if config specifies a custom key height
+            config?.keyHeight?.let { customHeight ->
+                return dpToPx(customHeight)
+            }
+
+            // Otherwise use default
+            return dpToPx(54)
+        }
     private val keySpacing: Int = 0
     private val keyInternalPadding: Int = dpToPx(3)
     private val rowSpacing: Int = 0
@@ -278,12 +295,16 @@ class KeyboardRenderer(private val context: Context) {
         currentSuggestions = suggestions
         suggestionHighlightIndex = highlightIndex
         updateSuggestionsBar()
+        // Notify callback (for React Native)
+        onSuggestionsUpdated?.invoke(suggestions)
     }
-    
+
     /** Clear all suggestions */
     fun clearSuggestions() {
         currentSuggestions = emptyList()
         updateSuggestionsBar()
+        // Notify callback (for React Native)
+        onSuggestionsUpdated?.invoke(emptyList())
     }
     
     /** Set whether to show the globe (next-keyboard) button */
@@ -294,7 +315,14 @@ class KeyboardRenderer(private val context: Context) {
             rerender()
         }
     }
-    
+
+    /** Set preview mode flag to control key filtering behavior
+     * In preview mode (IssieBoard/IssieVoice), show all keys defined in config and let them emit events
+     * Called by KeyboardPreviewView during initialization */
+    fun setPreviewMode(isPreview: Boolean) {
+        isPreviewMode = isPreview
+    }
+
     /** Set whether word suggestions are enabled (override config setting) */
     fun setWordSuggestionsEnabled(enabled: Boolean?) {
         if (wordSuggestionsOverrideEnabled != enabled) {
@@ -410,11 +438,12 @@ class KeyboardRenderer(private val context: Context) {
         // Check if container is a LinearLayout (for proper LayoutParams)
         val isLinearContainer = container is LinearLayout
         debugLog("📐 Container is LinearLayout: $isLinearContainer")
-        
-        // Create suggestions bar at the top only if enabled
-        if (wordSuggestionsEnabled) {
+
+        // Show suggestions bar in real keyboard, hide in preview (preview sends to React Native)
+        if (wordSuggestionsEnabled && !isPreviewMode) {
+            // Real keyboard - show native suggestions bar
             suggestionsBarView.currentKeyboardId = currentKeyboardId
-            
+
             // Create suggestions bar - we'll add with proper params below
             val bar = LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
@@ -437,6 +466,7 @@ class KeyboardRenderer(private val context: Context) {
             suggestionsBarView.setBarView(bar)
             suggestionsBarView.updateSuggestions(currentSuggestions, suggestionHighlightIndex)
         } else {
+            // Preview mode - don't show bar (React Native handles it)
             suggestionsBar = null
         }
         
@@ -585,20 +615,24 @@ class KeyboardRenderer(private val context: Context) {
     
     private fun calculateBaselineWidth(rows: List<KeyRow>, groups: Map<String, GroupTemplate>, showOnlyKeys: Set<String>?): Double {
         var maxRowWidth = 0.0
-        
+
         val hasOnlyOneLanguage = (config?.keyboards?.size ?: 0) <= 1
         val isNikkudDisabled = config?.diacriticsSettings?.get(currentKeyboardId ?: "")?.isDisabled ?: false
-        
+
         // Get current field type for showForField filtering
         val fieldType = editorContext?.fieldType
-        
+
         for ((rowIndex, row) in rows.withIndex()) {
             var rowWidth = 0.0
             for (key in row.keys) {
                 val parsedKey = ParsedKey.from(key, groups, getDefaultTextColor(), getDefaultKeyBgColor())
-                
+
                 val keyType = parsedKey.type.lowercase()
-                if (hasOnlyOneLanguage && keyType == "language" || !showGlobeButton && keyType == "next-keyboard") {
+                // Skip language/next-keyboard keys if only one language (except in preview mode - let config decide)
+                // In preview mode (IssieBoard/IssieVoice), show all keys defined in config and let them emit events
+                val shouldSkipLanguage = keyType == "language" && hasOnlyOneLanguage && !isPreviewMode
+                val shouldSkipNextKeyboard = keyType == "next-keyboard" && !showGlobeButton
+                if (shouldSkipLanguage || shouldSkipNextKeyboard) {
                     continue
                 }
                 
@@ -683,11 +717,17 @@ class KeyboardRenderer(private val context: Context) {
         
         for (key in row.keys) {
             val parsedKey = ParsedKey.from(key, groups, getDefaultTextColor(), getDefaultKeyBgColor())
-            
+
             val keyType = parsedKey.type.lowercase()
-            
-            // Skip language/next-keyboard keys
-            if ((keyType == "language" && hasOnlyOneLanguage) || (keyType == "next-keyboard" && !showGlobeButton)) {
+
+            // Check for hidden language/next-keyboard keys - these ARE in baseline, so redistribute
+            // In preview mode (IssieBoard/IssieVoice), show all keys defined in config (let config decide)
+            if (keyType == "language" && hasOnlyOneLanguage && !isPreviewMode) {
+                hiddenWidthToRedistribute += parsedKey.width
+                continue
+            }
+            if (keyType == "next-keyboard" && !showGlobeButton) {
+                hiddenWidthToRedistribute += parsedKey.width
                 continue
             }
             
@@ -734,11 +774,18 @@ class KeyboardRenderer(private val context: Context) {
         var currentX = 0  // Track intended X position including hidden spacers
         for (key in row.keys) {
             val parsedKey = ParsedKey.from(key, groups, getDefaultTextColor(), getDefaultKeyBgColor())
-            
+
             val keyType = parsedKey.type.lowercase()
-            
-            // Skip language/next-keyboard keys
-            if ((keyType == "language" && hasOnlyOneLanguage) || (keyType == "next-keyboard" && !showGlobeButton)) {
+
+            // Skip language/next-keyboard keys based on:
+            // 1. Only one language configured (but NOT in preview mode - let config decide), OR
+            // 2. System is showing globe button (showGlobeButton is false)
+            // In preview mode (IssieBoard/IssieVoice), show all keys in config - they emit events, don't insert text
+            val shouldHideLanguageKey = keyType == "language" && hasOnlyOneLanguage && !isPreviewMode
+            val shouldHideNextKeyboard = keyType == "next-keyboard" && !showGlobeButton
+
+            if (shouldHideLanguageKey || shouldHideNextKeyboard) {
+                // Skip if only one language (except in preview) OR if system doesn't need us to show the globe
                 keyIndex++
                 continue
             }
@@ -1025,18 +1072,39 @@ class KeyboardRenderer(private val context: Context) {
             if (!isNikkudKey) {
                 text = finalText
                 
-            // Font size - check for custom fontSize first, then use defaults
+            // Font size - check for custom fontSize first, then global config fontSize, then use defaults
             val isLargeKey = listOf("shift", "backspace", "enter").contains(key.type.lowercase())
             val isMultiChar = finalText.length > 1
-            
-            textSize = if (key.fontSize != null) {
-                // Use custom font size if specified
+
+            val finalFontSize: Float = if (key.fontSize != null) {
+                // Use custom font size if specified on the key
                 key.fontSize.toFloat()
             } else {
-                // Use default sizing logic
-                val baseFontSize = if (isLargeKey) largeFontSize else fontSize
-                if (isMultiChar) minOf(baseFontSize * 0.7f, 14f) else baseFontSize
+                // Use global config fontSize, or fall back to default sizing logic
+                val defaultFontSize = fontSize
+                val defaultLargeFontSize = largeFontSize
+
+                // Check for global fontSize in config
+                val globalFontSize = config?.fontSize?.toFloat() ?: defaultFontSize
+                val globalLargeFontSize = config?.fontSize?.let { it.toFloat() * (defaultLargeFontSize / defaultFontSize) } ?: defaultLargeFontSize
+
+                val baseFontSize = if (isLargeKey) globalLargeFontSize else globalFontSize
+
+                // For multi-character keys, scale down proportionally but still respect global fontSize
+                if (isMultiChar) {
+                    // If global fontSize is set, use it as base and scale down proportionally
+                    if (config?.fontSize != null) {
+                        baseFontSize * 0.7f
+                    } else {
+                        // No global fontSize, use old logic with 14px cap
+                        minOf(baseFontSize * 0.7f, 14f)
+                    }
+                } else {
+                    baseFontSize
+                }
             }
+
+            textSize = finalFontSize
                 
                 // Text color
                 setTextColor(if (key.textColor == Color.BLACK) Color.BLACK else key.textColor)
@@ -1221,11 +1289,20 @@ class KeyboardRenderer(private val context: Context) {
                 }
             }
         } else if (keyType == "settings" || keyType == "close") {
-            // Settings and close buttons: always selectable with normal tap in selection mode
-            buttonContainer.setOnClickListener {
-                handleKeyClick(key, it)
+            // Settings and close buttons: selectable in selection mode, functional otherwise
+            if (isSelectionMode) {
+                // In selection mode: tap to select for styling
+                buttonContainer.setOnClickListener {
+                    debugLog("⚙️ Settings/Close clicked in selection mode")
+                    onKeyLongPress?.invoke(key)
+                }
+            } else {
+                // In keyboard mode: tap to trigger action
+                buttonContainer.setOnClickListener {
+                    handleKeyClick(key, it)
+                }
             }
-            
+
             // Add touch feedback
             buttonContainer.setOnTouchListener { _, event ->
                 when (event.action) {
@@ -1444,6 +1521,7 @@ class KeyboardRenderer(private val context: Context) {
     }
     
     fun handleKeyClick(key: ParsedKey, keyView: View) {
+        alwaysLog("🔑 Key clicked: type='${key.type}', value='${key.value}'")
         debugLog("🔑 Key clicked: type='${key.type}', value='${key.value}'")
         
         when (key.type.lowercase()) {
@@ -1503,10 +1581,17 @@ class KeyboardRenderer(private val context: Context) {
             }
             
             "settings" -> {
+                alwaysLog("⚙️ Settings button tapped in KeyboardRenderer")
                 debugLog("   → Handling SETTINGS")
                 onOpenSettings?.invoke()
+                alwaysLog("⚙️ onOpenSettings callback invoked")
             }
-            
+
+            "language" -> {
+                debugLog("   → Handling LANGUAGE SWITCH")
+                onLanguageSwitch?.invoke()
+            }
+
             else -> {
                 debugLog("   → Handling DEFAULT key")
                 

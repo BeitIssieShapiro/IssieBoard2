@@ -69,7 +69,8 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
         
         // In preview mode, hide the globe (language) button - it's redundant
         r.setShowGlobeButton(false)
-        
+        r.setPreviewMode(true)
+
         r.onKeyPress = { key ->
             handleKeyPress(key)
         }
@@ -111,7 +112,18 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
             }
             emitKeyPressEvent(eventData)
         }
-        
+
+        r.onLanguageSwitch = {
+            // Emit language switch event to React Native
+            val eventData: WritableMap = Arguments.createMap().apply {
+                putString("type", "language")
+                putString("value", "")
+                putString("label", "")
+                putBoolean("hasNikkud", false)
+            }
+            emitKeyPressEvent(eventData)
+        }
+
         r.onStateChange = {
             // Force layout refresh when renderer state changes (shift, nikkud, keyset)
             forceLayoutRefresh()

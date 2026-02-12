@@ -23,7 +23,9 @@ data class KeyboardConfig(
     val diacriticsSettings: Map<String, DiacriticsSettings>? = null,  // Per-keyboard settings from profile
     val wordSuggestionsEnabled: Boolean? = null,  // Enable/disable word suggestions (default: true)
     val autoCorrectEnabled: Boolean? = null,  // Enable/disable auto-correct on space (default: false)
-    val fontName: String? = null  // Custom font name to use for character keys (e.g., 'DanaYadAlefAlefAlef-Normal.otf')
+    val fontName: String? = null,  // Custom font name to use for character keys (e.g., 'DanaYadAlefAlefAlef-Normal.otf')
+    val keyHeight: Int? = null,  // Custom key height in dp (overrides default 54dp)
+    val fontSize: Int? = null  // Global font size for all keys (overrides defaults)
 ) {
     /** Check if word suggestions are enabled (defaults to true if not specified) */
     val isWordSuggestionsEnabled: Boolean

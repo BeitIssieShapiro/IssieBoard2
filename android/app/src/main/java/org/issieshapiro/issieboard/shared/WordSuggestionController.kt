@@ -113,12 +113,30 @@ class WordSuggestionController(private var renderer: KeyboardRenderer? = null) {
     /** Handle backspace - remove last character from current word */
     fun handleBackspace(): Boolean {
         if (!isEnabled) return false
-        
+
         if (currentWord.isNotEmpty()) {
+            alwaysLog("⌫ handleBackspace: removing char from currentWord='$currentWord'")
             currentWord = currentWord.dropLast(1)
-            updateSuggestions()
+            alwaysLog("⌫ handleBackspace: currentWord is now='$currentWord'")
+
+            if (currentWord.isEmpty()) {
+                // We just emptied currentWord - check if we should show predictions
+                // This happens when backspacing "get k" → "get " (removing 'k')
+                if (lastCompletedWord.isNotEmpty()) {
+                    alwaysLog("⌫ handleBackspace: currentWord now empty but have lastCompletedWord='$lastCompletedWord', showing predictions")
+                    isPredictionMode = true
+                    showWordPredictions()
+                } else {
+                    alwaysLog("⌫ handleBackspace: currentWord now empty, showing defaults")
+                    showDefaultSuggestions()
+                }
+            } else {
+                // Still have characters in currentWord, show completions
+                updateSuggestions()
+            }
             return true
         }
+        alwaysLog("⌫ handleBackspace: currentWord empty, returning false (will call detectCurrentWord)")
         return false
     }
     
@@ -217,6 +235,7 @@ class WordSuggestionController(private var renderer: KeyboardRenderer? = null) {
 
         // Check if cursor is right after whitespace
         if (beforeText.last().isWhitespace()) {
+            alwaysLog("📝 detectCurrentWord: text ends with whitespace, beforeText='$beforeText'")
             // Find the word before the whitespace for predictions
             val beforeSpace = beforeText.dropLast(1)
             var lastWordStart = 0
@@ -230,11 +249,12 @@ class WordSuggestionController(private var renderer: KeyboardRenderer? = null) {
             }
 
             val completedWord = beforeSpace.substring(lastWordStart)
+            alwaysLog("📝 detectCurrentWord: completedWord='$completedWord'")
 
             // Update last completed word and show predictions
             if (completedWord.isNotEmpty()) {
                 lastCompletedWord = completedWord
-                debugLog("📝 WordSuggestionController: Detected completed word '$completedWord', switching to prediction mode")
+                alwaysLog("📝 WordSuggestionController: Detected completed word '$completedWord', switching to prediction mode")
             }
 
             currentWord = ""
@@ -342,25 +362,25 @@ class WordSuggestionController(private var renderer: KeyboardRenderer? = null) {
 
         // If no last completed word, show defaults
         if (lastCompletedWord.isEmpty()) {
-            debugLog("📝 WordSuggestionController: No lastCompletedWord, showing defaults")
+            alwaysLog("📝 No lastCompletedWord, showing defaults")
             showDefaultSuggestions()
             return
         }
 
         // Get predictions for the last completed word
-        debugLog("📝 WordSuggestionController: Getting predictions after '$lastCompletedWord'")
+        alwaysLog("📝 Getting predictions after '$lastCompletedWord' in language '$currentLanguage'")
         var predictions = WordCompletionManager.shared.getWordPredictions(lastCompletedWord, 4).toMutableList()
 
         // If no predictions available, show defaults
         if (predictions.isEmpty()) {
-            debugLog("📝 WordSuggestionController: No predictions available, showing defaults")
+            alwaysLog("📝 No predictions available for '$lastCompletedWord', showing defaults")
             showDefaultSuggestions()
         } else {
             // Reverse for RTL languages (Hebrew, Arabic)
             if (currentLanguage == "he" || currentLanguage == "ar") {
                 predictions.reverse()
             }
-            debugLog("📝 WordSuggestionController: Showing predictions: $predictions")
+            alwaysLog("📝 Showing ${predictions.size} predictions: $predictions")
             r.updateSuggestions(predictions)
         }
     }
