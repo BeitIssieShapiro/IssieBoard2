@@ -1,3 +1,15 @@
+2-March
+------
+- make height percent from screen
+- primary colors + wheel saves new colors
+- yad-font (larger)
+- remove "space" word
+- wide gap between keys option
+- Default kb is read-only, when saving then it is a save-as
+- when changing the keyboard abc/qwerty.
+- font of the keys: make it bolder
+- in keygroup modal - remove keys:preview
+- key group from template: read-only, simplified, has also the profile-name at title+apply button
 
 
 Bugs:

@@ -139,6 +139,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
         visible={showCustomModal}
         transparent
         animationType="fade"
+        supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']}
         onRequestClose={() => setShowCustomModal(false)}
       >
         <Pressable 
