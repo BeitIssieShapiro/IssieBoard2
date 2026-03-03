@@ -352,7 +352,7 @@
               "type": "settings"
             },
             {
-              "caption": "רווח",
+              "caption": "",
               "value": " ",
               "width": 4,
               "flex": true
@@ -511,7 +511,7 @@
               "type": "settings"
             },
             {
-              "caption": "רווח",
+              "caption": "",
               "value": " ",
               "width": 4,
               "flex": true
@@ -672,7 +672,7 @@
               "type": "settings"
             },
             {
-              "caption": "רווח",
+              "caption": "",
               "value": " ",
               "width": 4,
               "flex": true

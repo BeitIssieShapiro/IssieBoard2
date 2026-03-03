@@ -188,7 +188,7 @@
               "type": "settings"
             },
             {
-              "caption": "רווח",
+              "caption": "",
               "value": " ",
               "width": 4,
               "flex": true
@@ -347,7 +347,7 @@
               "type": "settings"
             },
             {
-              "caption": "רווח",
+              "caption": "",
               "value": " ",
               "width": 4,
               "flex": true
@@ -508,7 +508,7 @@
               "type": "settings"
             },
             {
-              "caption": "רווח",
+              "caption": "",
               "value": " ",
               "width": 4,
               "flex": true
@@ -741,7 +741,7 @@
               ]
             },
             {
-              "caption": "SPACE",
+              "caption": "",
               "value": " ",
               "width": 3,
               "flex": true
@@ -924,7 +924,7 @@
               ]
             },
             {
-              "caption": "SPACE",
+              "caption": "",
               "value": " ",
               "width": 3,
               "flex": true
@@ -1107,7 +1107,7 @@
               ]
             },
             {
-              "caption": "SPACE",
+              "caption": "",
               "value": " ",
               "width": 3,
               "flex": true
