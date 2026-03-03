@@ -20,6 +20,8 @@ struct KeyboardConfig: Codable {
     let fontName: String?  // Custom font name to use for character keys (e.g., 'DanaYadAlefAlefAlef-Normal')
     let fontSize: Double?  // Global font size for all keys (default varies by platform). Individual keys can override this.
     let keyHeight: Double?  // Custom key row height in points (default: 54 for iPhone, 74 for iPad keyboard extension)
+    let keyGap: Double?  // Gap between keys in points (default: 3)
+    let fontWeight: String?  // Font weight: "ultraLight", "thin", "light", "regular", "medium", "semibold", "bold", "heavy", "black" (default: "regular")
 
     enum CodingKeys: String, CodingKey {
         case backgroundColor
@@ -38,6 +40,8 @@ struct KeyboardConfig: Codable {
         case fontName
         case fontSize
         case keyHeight
+        case keyGap
+        case fontWeight
     }
     
     /// Check if word suggestions are enabled (defaults to true if not specified)

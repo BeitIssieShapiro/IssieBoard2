@@ -36,8 +36,12 @@ class KeyboardPreviewView: UIView {
     // Selected keys for edit mode visualization (config mode only)
     private var selectedKeyIds: Set<String> = []
 
+    // Disable dimension storage (for secondary previews like modals)
+    @objc var disableDimensionStorage: Bool = false
+
     // Layout tracking to prevent infinite loops
     private var lastRenderedWidth: CGFloat = 0
+    private var lastStoredConfigJson: String?
 
     // Synced text that mirrors React Native state (single source of truth proxy)
     private var syncedText: String = ""
@@ -73,6 +77,8 @@ class KeyboardPreviewView: UIView {
             return
         }
 
+        // Store the config for comparison
+        lastStoredConfigJson = configJson
         parseAndRender(configJson)
     }
 
@@ -304,13 +310,41 @@ class KeyboardPreviewView: UIView {
         engine.suggestionController.setAutoCorrectEnabled(config.isAutoCorrectEnabled)
         renderer.setWordSuggestionsEnabled(config.isWordSuggestionsEnabled)
 
+        let currentKeysetId = renderer.currentKeysetId.isEmpty ? (config.defaultKeyset ?? "abc") : renderer.currentKeysetId
+
         // Render
         renderer.renderKeyboard(
             in: self,
             config: config,
-            currentKeysetId: renderer.currentKeysetId.isEmpty ? (config.defaultKeyset ?? "abc") : renderer.currentKeysetId,
+            currentKeysetId: currentKeysetId,
             editorContext: nil
         )
+
+        // Store dimensions for React Native (input mode)
+        // IMPORTANT: Only store dimensions once per config to prevent infinite loop
+        let suggestionsEnabled = config.isWordSuggestionsEnabled
+        let calculatedHeight = renderer.calculateKeyboardHeight(for: config, keysetId: currentKeysetId, suggestionsEnabled: suggestionsEnabled)
+
+        // Use frame.width instead of bounds.width - frame is before transform, bounds is after
+        let width = frame.width
+        let deviceType = UIDevice.current.userInterfaceIdiom == .pad ? "iPad" : "iPhone"
+        let orientation = width > frame.height ? "landscape" : "portrait"
+
+        print("📐 [KeyboardPreviewView-InputMode] Input mode render - frame.width=\(frame.width), bounds.width=\(bounds.width), height=\(calculatedHeight), keyset=\(currentKeysetId)")
+
+        // Only store dimensions if not disabled (for secondary previews like modals)
+        if !disableDimensionStorage {
+            let preferences = KeyboardPreferences()
+            preferences.setKeyboardDimensions(
+                width: width,
+                height: calculatedHeight,
+                device: deviceType,
+                orientation: orientation,
+                keysetId: currentKeysetId
+            )
+        } else {
+            print("📐 [KeyboardPreviewView-InputMode] Dimension storage disabled for this preview")
+        }
 
         // Show initial suggestions ONLY on first initialization
         // Don't update on every render as it overrides what we just set
@@ -350,14 +384,44 @@ class KeyboardPreviewView: UIView {
         renderer.setPreviewMode(true)
         renderer.setSelectedKeys(selectedKeyIds)
 
+        let currentKeysetId = renderer.currentKeysetId.isEmpty ? (config.defaultKeyset ?? "abc") : renderer.currentKeysetId
+
         renderer.renderKeyboard(
             in: self,
             config: config,
-            currentKeysetId: renderer.currentKeysetId.isEmpty ? (config.defaultKeyset ?? "abc") : renderer.currentKeysetId,
+            currentKeysetId: currentKeysetId,
             editorContext: nil
         )
 
         lastRenderedWidth = bounds.width
+
+        // Store dimensions for React Native (same as BaseKeyboardViewController)
+        // IMPORTANT: Only store dimensions once per config to prevent infinite loop
+        // The transform scale applied by React Native causes layoutSubviews to be called again
+        // which would cause bounds.width to grow infinitely
+        let suggestionsEnabled = false // Preview has suggestions disabled
+        let calculatedHeight = renderer.calculateKeyboardHeight(for: config, keysetId: currentKeysetId, suggestionsEnabled: suggestionsEnabled)
+
+        // Use frame.width instead of bounds.width - frame is before transform, bounds is after
+        let width = frame.width
+        let deviceType = UIDevice.current.userInterfaceIdiom == .pad ? "iPad" : "iPhone"
+        let orientation = width > frame.height ? "landscape" : "portrait"
+
+        print("📐 [KeyboardPreviewView] Config mode render - frame.width=\(frame.width), bounds.width=\(bounds.width), height=\(calculatedHeight), keyset=\(currentKeysetId)")
+
+        // Only store dimensions if not disabled (for secondary previews like modals)
+        if !disableDimensionStorage {
+            let preferences = KeyboardPreferences()
+            preferences.setKeyboardDimensions(
+                width: width,
+                height: calculatedHeight,
+                device: deviceType,
+                orientation: orientation,
+                keysetId: currentKeysetId
+            )
+        } else {
+            print("📐 [KeyboardPreviewView] Dimension storage disabled for this preview")
+        }
     }
 
     // MARK: - Event Handlers (Config Mode)

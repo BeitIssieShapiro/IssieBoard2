@@ -33,6 +33,8 @@ interface KeyboardPreviewProps {
   language?: string;
   /** Current text content - used to sync keyboard state with external text changes */
   text?: string;
+  /** Disable storing dimensions (for secondary previews like modals) */
+  disableDimensionStorage?: boolean;
   onKeyPress?: (event: KeyPressEvent) => void;
   onSuggestionsChange?: (event: SuggestionsChangeEvent) => void;
   onLanguageChange?: (event: LanguageChangeEvent) => void;

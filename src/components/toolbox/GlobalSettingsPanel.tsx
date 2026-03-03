@@ -28,6 +28,13 @@ export interface KeyboardVariantOption {
   name: string;
 }
 
+export interface FontOption {
+  id: string;
+  label: string;
+  fontFamily?: string;
+  fontSize?: number;
+}
+
 export interface GlobalSettingsPanelProps {
   /** Available keyboard variants for current language */
   keyboardVariants?: KeyboardVariantOption[];
@@ -42,12 +49,14 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
   currentKeyboardId,
   onKeyboardVariantChange,
 }) => {
-  const { 
-    state, 
+  const {
+    state,
     updateBackgroundColor,
     updateWordSuggestions,
     updateAutoCorrect,
     updateFontName,
+    updateFontSize,
+    updateKeyGap,
     updateSettingsButton,
     dispatch,
   } = useEditor();
@@ -58,15 +67,23 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
   const wordSuggestionsEnabled = state.config.wordSuggestionsEnabled !== false;
   const autoCorrectEnabled = state.config.autoCorrectEnabled === true;
   const currentFontName = state.config.fontName;
+  const currentKeyGap = state.config.keyGap || 3;
   const settingsButtonEnabled = state.config.settingsButtonEnabled !== false;
-  
+
   // Check if current keyboard is Hebrew
   const isHebrewKeyboard = currentKeyboardId === 'he';
-  
+
   // Font options for Hebrew keyboard
-  const hebrewFontOptions = [
-    { id: 'system', label: 'אבג', fontFamily: undefined },
-    { id: 'yad', label: 'אבג', fontFamily: 'GveretLevinAlefAlefAlef-Regular' },
+  const hebrewFontOptions: FontOption[] = [
+    { id: 'system', label: 'אבג', fontFamily: undefined, fontSize: undefined },
+    { id: 'yad', label: 'אבג', fontFamily: 'GveretLevinAlefAlefAlef-Regular', fontSize: 38 },
+  ];
+
+  // Key gap options
+  const keyGapOptions = [
+    { id: 'regular', label: 'Regular', value: 3 },
+    { id: 'medium', label: 'Medium', value: 8 },
+    { id: 'large', label: 'Large', value: 16 },
   ];
 
   const updateTextColor = (color: string) => {
@@ -132,11 +149,39 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
           onSelect={(id) => {
             const option = hebrewFontOptions.find(o => o.id === id);
             updateFontName(option?.fontFamily);
+            // Update fontSize if defined in the font option
+            if (option?.fontSize !== undefined) {
+              updateFontSize(option.fontSize);
+            } else {
+              // Clear fontSize to use default when switching to system font
+              updateFontSize(undefined);
+            }
           }}
         />
       )}
 
-      {/* 5. Keyboard Layout (only show if multiple variants) */}
+      {/* 5. Key Gap */}
+      <ButtonGroupRow
+        title="Gap Between Keys"
+        options={keyGapOptions.map(opt => ({
+          id: opt.id,
+          label: opt.label,
+        }))}
+        selectedId={
+          currentKeyGap === 3 ? 'regular' :
+          currentKeyGap === 8 ? 'medium' :
+          currentKeyGap === 16 ? 'large' :
+          'regular'
+        }
+        onSelect={(id) => {
+          const option = keyGapOptions.find(o => o.id === id);
+          if (option) {
+            updateKeyGap(option.value);
+          }
+        }}
+      />
+
+      {/* 6. Keyboard Layout (only show if multiple variants) */}
       {keyboardVariants && keyboardVariants.length > 1 && (
         <ButtonGroupRow
           title="Keyboard Layout"
@@ -146,7 +191,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
         />
       )}
 
-      {/* 6. Features */}
+      {/* 7. Features */}
       <View style={styles.section}>
         <Text allowFontScaling={false} style={styles.settingTitle}>Features</Text>
         <View style={styles.featureRow}>

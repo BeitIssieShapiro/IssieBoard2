@@ -1,4 +1,4 @@
-import { NativeModules } from 'react-native';
+import { NativeModules, NativeEventEmitter } from 'react-native';
 
 const { KeyboardPreferencesModule } = NativeModules;
 
@@ -11,12 +11,26 @@ if (!KeyboardPreferencesModule) {
   console.warn('Falling back to stub implementation...');
 }
 
+// Create event emitter
+const keyboardPreferencesEmitter = KeyboardPreferencesModule
+  ? new NativeEventEmitter(KeyboardPreferencesModule)
+  : null;
+
 export interface PreferenceInfo {
   appGroup: string;
   currentProfile: string | null;
   selectedLanguage: string | null;
   lastUpdateTime: number;
   hasConfig: boolean;
+}
+
+export interface KeyboardDimensions {
+  width: number;
+  height: number;
+  device: string;
+  orientation: string;
+  keysetId: string;
+  timestamp: number;
 }
 
 export interface SetResult {
@@ -240,6 +254,53 @@ class KeyboardPreferences {
       return 'N/A - Module not loaded';
     }
     return KeyboardPreferencesModule.getAppGroupIdentifier();
+  }
+
+  /**
+   * Get the keyboard dimensions (width, height, device, orientation)
+   * Returns the last calculated dimensions from the native keyboard
+   */
+  async getKeyboardDimensions(): Promise<KeyboardDimensions | null> {
+    if (!KeyboardPreferencesModule) {
+      return null;
+    }
+    const dimensionsJSON = await KeyboardPreferencesModule.getKeyboardDimensions();
+    if (dimensionsJSON) {
+      try {
+        return JSON.parse(dimensionsJSON);
+      } catch (error) {
+        console.error('Failed to parse keyboard dimensions:', error);
+        return null;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Add listener for keyboard dimensions changes
+   * Returns a subscription object with a remove() method
+   */
+  addKeyboardDimensionsListener(callback: (dimensions: KeyboardDimensions) => void): { remove: () => void } {
+    if (!keyboardPreferencesEmitter) {
+      return { remove: () => {} };
+    }
+
+    const subscription = keyboardPreferencesEmitter.addListener(
+      'onKeyboardDimensionsChanged',
+      (event: any) => {
+        const dimensions: KeyboardDimensions = {
+          width: event.width,
+          height: event.height,
+          device: event.device,
+          orientation: event.orientation,
+          keysetId: event.keysetId,
+          timestamp: event.timestamp,
+        };
+        callback(dimensions);
+      }
+    );
+
+    return subscription;
   }
 }
 

@@ -3,7 +3,11 @@
   "defaultKeyset": "abc",
   "wordSuggestionsEnabled": true,
   "autoCorrectEnabled": false,
+  "fontWeight": "bold",
+  "keyGap": 3,
   "groups": [],
+  "keyHeight": 90,
+  "fontSize": 24,
   "keyboards": [
     "he"
   ],

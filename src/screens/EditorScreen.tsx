@@ -34,6 +34,16 @@ import arKeyboard from '../../keyboards/ar.json';
 // Import keyboard config merger utilities
 import { buildKeyboardConfig, SourceKeyboard, mergeCommonKeysets, getCommonKeysets } from '../utils/keyboardConfigMerger';
 
+// ============================================
+// FACTORY DEFAULT CONFIGURATION
+// ============================================
+// Default key height for factory-default profiles (set to null to use device defaults: 54pt iPhone, 74pt iPad)
+// This value is used when creating new profiles or loading factory defaults
+const FACTORY_DEFAULT_KEY_HEIGHT: number | null = 90;  // Change this to test different heights
+// Default font size for factory-default profiles (set to null to use system default)
+const FACTORY_DEFAULT_FONT_SIZE: number | null = 34;  // Change this to test different font sizes
+// ============================================
+
 // Language definitions
 type LanguageId = 'he' | 'en' | 'ar';
 
@@ -86,6 +96,38 @@ const KEYBOARDS: Record<string, KeyboardDefinition> = {
 const getDefaultProfileId = (language: LanguageId): string => `${language}-default`;
 
 /**
+ * Create a factory-default profile definition
+ */
+const createFactoryDefaultProfile = (
+  profileId: string,
+  profileName: string,
+  language: LanguageId,
+  keyboardId: string
+): SavedProfileDefinition => {
+  const profile: SavedProfileDefinition = {
+    id: profileId,
+    name: profileName,
+    version: '1.0.0',
+    language,
+    keyboardId,
+    backgroundColor: 'default',
+    groups: [],
+  };
+
+  // Add keyHeight if configured
+  if (FACTORY_DEFAULT_KEY_HEIGHT !== null) {
+    profile.keyHeight = FACTORY_DEFAULT_KEY_HEIGHT;
+  }
+
+  // Add fontSize if configured
+  if (FACTORY_DEFAULT_FONT_SIZE !== null) {
+    profile.fontSize = FACTORY_DEFAULT_FONT_SIZE;
+  }
+
+  return profile;
+};
+
+/**
  * Normalized profile definition - stored in preferences
  * Now tied to a single language and keyboard
  */
@@ -103,6 +145,10 @@ interface SavedProfileDefinition {
   wordSuggestionsEnabled?: boolean;
   autoCorrectEnabled?: boolean;
   fontName?: string;
+  fontSize?: number;
+  fontWeight?: 'ultraLight' | 'thin' | 'light' | 'regular' | 'medium' | 'semibold' | 'bold' | 'heavy' | 'black';
+  keyGap?: number;
+  keyHeight?: number;
   settingsButtonEnabled?: boolean;
 }
 
@@ -130,6 +176,10 @@ const extractProfileDefinition = (
     wordSuggestionsEnabled: config.wordSuggestionsEnabled,
     autoCorrectEnabled: config.autoCorrectEnabled,
     fontName: config.fontName,
+    fontSize: config.fontSize,
+    fontWeight: config.fontWeight,
+    keyGap: config.keyGap,
+    keyHeight: config.keyHeight,
     settingsButtonEnabled: config.settingsButtonEnabled,
   };
 };
@@ -179,6 +229,10 @@ const buildConfiguration = (profile: SavedProfileDefinition): KeyboardConfig => 
     wordSuggestionsEnabled: profile.wordSuggestionsEnabled,
     autoCorrectEnabled: profile.autoCorrectEnabled,
     fontName: profile.fontName,
+    fontSize: profile.fontSize,
+    fontWeight: profile.fontWeight,
+    keyGap: profile.keyGap,
+    keyHeight: profile.keyHeight,
     settingsButtonEnabled: profile.settingsButtonEnabled,
   } as KeyboardConfig;
 
@@ -294,7 +348,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   onCreateNew,
 }) => {
   const { state, setMode, setConfig, markDirty, dispatch } = useEditor();
-  const { width: windowWidth } = useWindowDimensions();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [testText, setTestText] = useState('');
   const [saving, setSaving] = useState(false);
   const [settingActive, setSettingActive] = useState(false);
@@ -308,6 +362,10 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   const [currentLanguage, setCurrentLanguage] = useState<LanguageId>(language);
   const [currentKeyboardId, setCurrentKeyboardId] = useState(keyboardId);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Secret 5-tap reset feature
+  const [tapCount, setTapCount] = useState(0);
+  const [tapTimeout, setTapTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
 
   // Sync current profile ID with prop (for when parent creates new profile)
   useEffect(() => {
@@ -346,9 +404,18 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     };
   }, []);
 
+  // Cleanup tap timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (tapTimeout) {
+        clearTimeout(tapTimeout);
+      }
+    };
+  }, [tapTimeout]);
+
   const showToast = useCallback((message: string, duration: number = 3000) => {
     setToastMessage(message);
-    
+
     // Animate from bottom
     Animated.sequence([
       Animated.timing(toastOpacity, {
@@ -443,6 +510,75 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     loadProfilesList();
   }, [loadProfilesList, currentLanguage]);
 
+  // Secret feature: tap 5 times on title to reset to factory defaults
+  const handleTitleTap = useCallback(() => {
+    // Clear existing timeout
+    if (tapTimeout) {
+      clearTimeout(tapTimeout);
+    }
+
+    // Use functional update to get current tap count
+    setTapCount((prevCount) => {
+      const newTapCount = prevCount + 1;
+
+      if (newTapCount >= 5) {
+        // Reset tap count
+        setTapCount(0);
+
+        // Show confirmation dialog
+        Alert.alert(
+          'Reset to Factory Defaults',
+          'This will clear all keyboard settings and profiles. Are you sure?',
+          [
+            {
+              text: 'Cancel',
+              style: 'cancel',
+            },
+            {
+              text: 'Reset',
+              style: 'destructive',
+              onPress: async () => {
+                try {
+                  const result = await KeyboardPreferences.clearAll();
+                  if (result.success) {
+                    showToast('✓ Reset to factory defaults');
+                    // Reload to factory defaults
+                    const defaultKeyboardId = currentLanguageDef.keyboards[0].id;
+                    const profileDef = createFactoryDefaultProfile(
+                      currentProfileId,
+                      currentProfileName,
+                      currentLanguage,
+                      defaultKeyboardId
+                    );
+                    const config = buildConfiguration(profileDef);
+                    setConfig(config, []);
+                    // Reload profiles list
+                    await loadProfilesList();
+                  } else {
+                    showToast('✗ Failed to reset');
+                  }
+                } catch (e) {
+                  console.error('Reset error:', e);
+                  showToast('✗ Failed to reset');
+                }
+              },
+            },
+          ]
+        );
+
+        return 0; // Return 0 to reset count
+      } else {
+        // Set timeout to reset tap count after 2 seconds
+        const timeout = setTimeout(() => {
+          setTapCount(0);
+        }, 2000);
+        setTapTimeout(timeout);
+
+        return newTapCount; // Return incremented count
+      }
+    });
+  }, [tapTimeout, currentLanguageDef, currentProfileId, currentProfileName, currentLanguage, setConfig, showToast, loadProfilesList]);
+
   // Handle language change - try to load the ACTIVE profile for that language
   const handleLanguageChange = useCallback(async (newLanguage: LanguageId) => {
     console.log(`📱 handleLanguageChange: switching to ${newLanguage}`);
@@ -472,15 +608,12 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     } else {
       console.log(`📱 No ${effectiveActiveProfile} profile found, using factory defaults`);
       // No saved profile - use factory defaults
-      const profileDef: SavedProfileDefinition = {
-        id: defaultProfileId,
-        name: defaultProfileId,
-        version: '1.0.0',
-        language: newLanguage,
-        keyboardId: firstKeyboardId,
-        backgroundColor: 'default',
-        groups: [],
-      };
+      const profileDef = createFactoryDefaultProfile(
+        defaultProfileId,
+        defaultProfileId,
+        newLanguage,
+        firstKeyboardId
+      );
       const newConfig = buildConfiguration(profileDef);
       setConfig(newConfig, []);
       setCurrentProfileName(defaultProfileId);
@@ -590,15 +723,12 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     } else if (profile.isBuiltIn) {
       // Built-in default profile - load factory defaults
       console.log(`📱 Loading factory defaults for ${profile.id}`);
-      const profileDef: SavedProfileDefinition = {
-        id: profile.id,
-        name: profile.name,
-        version: '1.0.0',
-        language: profile.language,
-        keyboardId: profile.keyboardId,
-        backgroundColor: 'default',
-        groups: [],
-      };
+      const profileDef = createFactoryDefaultProfile(
+        profile.id,
+        profile.name,
+        profile.language,
+        profile.keyboardId
+      );
       const config = buildConfiguration(profileDef);
       setConfig(config, []);
       setCurrentProfileName(profile.name);
@@ -645,15 +775,12 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
               // Profile not saved yet - load factory defaults
               const langDef = LANGUAGES.find(l => l.id === currentLanguage);
               const defaultKeyboardId = langDef?.keyboards[0]?.id || currentLanguage;
-              const profileDef: SavedProfileDefinition = {
-                id: currentProfileId,
-                name: currentProfileName,
-                version: '1.0.0',
-                language: currentLanguage,
-                keyboardId: defaultKeyboardId,
-                backgroundColor: 'default',
-                groups: [],
-              };
+              const profileDef = createFactoryDefaultProfile(
+                currentProfileId,
+                currentProfileName,
+                currentLanguage,
+                defaultKeyboardId
+              );
               const config = buildConfiguration(profileDef);
               setConfig(config, []);
               showToast('✓ Changes discarded');
@@ -716,7 +843,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
               await onDelete(profileToDelete.id, profileToDelete.name);
               showToast(`✓ Deleted "${profileToDelete.name}"`);
               await loadProfilesList();
-              
+
               // If we deleted the currently selected profile, switch to default
               if (profileToDelete.id === currentProfileId) {
                 const defaultProfileId = getDefaultProfileId(currentLanguage);
@@ -833,7 +960,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']}
         onRequestClose={() => setShowDuplicateModal(false)}
       >
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           style={styles.modalOverlay}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
@@ -936,7 +1063,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
                         </View>
                       )}
                     </View>
-                    
+
                     {/* Action buttons: Delete (if not default) then Select */}
                     <View style={styles.profileOptionActions}>
                       {/* Delete button - only for non-default profiles */}
@@ -1005,9 +1132,11 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
           {/* Icon and Label - always on its own row */}
           <View style={styles.profileIconSection}>
             <Text allowFontScaling={false} style={styles.profileIcon}>⌨️</Text>
-            <View style={{flexDirection:"row"}}>
+            <View style={{ flexDirection: "row" }}>
               <Text allowFontScaling={false} style={styles.profileSectionLabel}>Active IssieBoard:</Text>
-              <Text allowFontScaling={false} style={styles.profileName}>{currentProfileName}</Text>
+              <TouchableOpacity onPress={handleTitleTap} activeOpacity={1}>
+                <Text allowFontScaling={false} style={styles.profileName}>{currentProfileName}</Text>
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -1057,7 +1186,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <View style={styles.canvasContainer}>
-          <InteractiveCanvas onTestInput={handleTestInput} />
+          <InteractiveCanvas onTestInput={handleTestInput} height={windowHeight * .30} />
         </View>
 
         <View style={styles.toolboxContainer}>
@@ -1155,15 +1284,12 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
         } else {
           console.log(`📱 No active profile ${effectiveActiveProfile} found, using base keyboard`);
           // Create the profile definition (won't save until user saves)
-          const profileDef: SavedProfileDefinition = {
-            id: defaultProfileId,
-            name: 'Default',
-            version: '1.0.0',
-            language: savedLanguage,
-            keyboardId: defaultKeyboardId,
-            backgroundColor: 'default',
-            groups: [],
-          };
+          const profileDef = createFactoryDefaultProfile(
+            defaultProfileId,
+            'Default',
+            savedLanguage,
+            defaultKeyboardId
+          );
 
           const config = buildConfiguration(profileDef);
           setInitialConfig(config);
@@ -1178,14 +1304,12 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
         // Fallback
         const lang = propInitialLanguage || 'he';
         const defaultProfileId = getDefaultProfileId(lang);
-        const fallbackDef: SavedProfileDefinition = {
-          id: defaultProfileId,
-          name: defaultProfileId,
-          version: '1.0.0',
-          language: lang,
-          keyboardId: lang,
-          backgroundColor: 'default',
-        };
+        const fallbackDef = createFactoryDefaultProfile(
+          defaultProfileId,
+          defaultProfileId,
+          lang,
+          lang
+        );
         setInitialConfig(buildConfiguration(fallbackDef));
         setCurrentProfileId(defaultProfileId);
         setProfileName(defaultProfileId);
@@ -1294,15 +1418,12 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
       if (isDefaultProfile) {
         // For default profile not saved yet, use factory defaults
         console.log(`📱 Building factory default config for ${currentProfileId}`);
-        const profileDef: SavedProfileDefinition = {
-          id: currentProfileId,
-          name: currentProfileId,
-          version: '1.0.0',
-          language: currentLanguage,
-          keyboardId: currentKeyboardId,
-          backgroundColor: 'default',
-          groups: [],
-        };
+        const profileDef = createFactoryDefaultProfile(
+          currentProfileId,
+          currentProfileId,
+          currentLanguage,
+          currentKeyboardId
+        );
         config = buildConfiguration(profileDef);
       } else {
         console.error(`❌ Cannot set active: profile ${currentProfileId} not saved`);
@@ -1375,7 +1496,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
 
     const config = buildConfiguration(profileDef);
     setInitialConfig(config);
-    
+
     return { newProfileId, newConfig: config, styleGroups };
   }, [currentProfileId, currentLanguage, currentKeyboardId]);
 
@@ -1419,9 +1540,9 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
 
     // Load the profile
     const loaded = await loadProfileById(profileIdToActivate);
-    
+
     let config: KeyboardConfig;
-    
+
     if (!loaded) {
       // Check if this is a default profile that hasn't been saved yet
       const defaultProfileId = getDefaultProfileId(currentLanguage);
@@ -1430,16 +1551,13 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
         // Get the first keyboard for this language
         const langDef = LANGUAGES.find(l => l.id === currentLanguage);
         const firstKeyboardId = langDef?.keyboards[0]?.id || currentLanguage;
-        
-        const profileDef: SavedProfileDefinition = {
-          id: defaultProfileId,
-          name: 'Default',
-          version: '1.0.0',
-          language: currentLanguage,
-          keyboardId: firstKeyboardId,
-          backgroundColor: 'default',
-          groups: [],
-        };
+
+        const profileDef = createFactoryDefaultProfile(
+          defaultProfileId,
+          'Default',
+          currentLanguage,
+          firstKeyboardId
+        );
         config = buildConfiguration(profileDef);
       } else {
         console.error(`❌ Cannot set active: profile ${profileIdToActivate} not found`);
@@ -1461,15 +1579,12 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
   const handleCreateNew = useCallback(async (name: string, language: LanguageId, keyboardId: string) => {
     const newProfileId = `custom_${Date.now()}`;
 
-    const profileDef: SavedProfileDefinition = {
-      id: newProfileId,
-      name: name,
-      version: '1.0.0',
+    const profileDef = createFactoryDefaultProfile(
+      newProfileId,
+      name,
       language,
-      keyboardId,
-      backgroundColor: 'default',
-      groups: [],
-    };
+      keyboardId
+    );
 
     await KeyboardPreferences.setProfile(
       JSON.stringify(profileDef),
@@ -2109,7 +2224,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   profileName: {
-    marginHorizontal:10,
+    marginHorizontal: 10,
     fontSize: 18,
     color: '#333',
   },

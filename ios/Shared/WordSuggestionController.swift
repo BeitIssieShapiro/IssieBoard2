@@ -18,7 +18,10 @@ class WordSuggestionController {
     
     // Current input word being typed
     private(set) var currentWord: String = ""
-    
+
+    // Last word that was completed (after space was pressed)
+    private var lastCompletedWord: String = ""
+
     // Whether suggestions are enabled
     private var suggestionsEnabled: Bool = true
     
@@ -88,7 +91,7 @@ class WordSuggestionController {
             }
         }
 
-        // Save current word before resetting (for return value)
+        // Save current word before resetting (for return value and for lastCompletedWord)
         let oldWord = currentWord
 
         // Get predictions for next word
@@ -101,6 +104,9 @@ class WordSuggestionController {
             )
 
             print("🔮 Got \(predictions.count) predictions: \(predictions)")
+
+            // Save as lastCompletedWord before resetting
+            lastCompletedWord = currentWord
 
             // IMPORTANT: Reset currentWord BEFORE showing suggestions
             // This prevents showDefaults() from using the old word for completions
@@ -167,12 +173,13 @@ class WordSuggestionController {
     /// - Returns: true if handled, false otherwise
     func handleEnter() -> Bool {
         currentWord = ""
-        
+        lastCompletedWord = ""
+
         // Show defaults since current word is empty
         if suggestionsEnabled {
             showDefaults()
         }
-        
+
         return true
     }
     
@@ -181,13 +188,17 @@ class WordSuggestionController {
     /// - Returns: The replaced word (current word)
     func handleSuggestionSelected(_ suggestion: String) -> String {
         let replacedWord = currentWord
+
+        // Save as lastCompletedWord (the suggestion becomes the completed word)
+        lastCompletedWord = suggestion
+
         currentWord = ""
-        
+
         // Show defaults since current word is now empty
         if suggestionsEnabled {
             showDefaults()
         }
-        
+
         return replacedWord
     }
     
@@ -260,7 +271,8 @@ class WordSuggestionController {
     /// Reset the current word to empty string
     func resetCurrentWord() {
         currentWord = ""
-        
+        lastCompletedWord = ""
+
         if suggestionsEnabled {
             showDefaults()
         }

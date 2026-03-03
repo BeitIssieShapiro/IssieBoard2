@@ -23,6 +23,25 @@
 const fs = require('fs');
 const path = require('path');
 
+// ============================================
+// CONFIGURATION CONSTANTS
+// ============================================
+
+// Default key height in points (set to null to use device defaults: 54pt iPhone, 74pt iPad)
+// Try values like: 60, 65, 70, 80, etc.
+const DEFAULT_KEY_HEIGHT = 90;  // Change this to test different heights (e.g., 70)
+
+// Default key gap in points (space between keys)
+const DEFAULT_KEY_GAP = 3;
+
+// Default font weight for all keyboards
+const DEFAULT_FONT_WEIGHT = 'bold';
+
+// Default font size in points (set to null to use system default)
+const DEFAULT_FONT_SIZE = 24;  // Change this to test different font sizes (e.g., 24)
+
+// ============================================
+
 // Configuration
 const KEYBOARDS_DIR = path.join(__dirname, '..', 'keyboards');
 const IOS_DIR = path.join(__dirname, '..', 'ios');
@@ -61,8 +80,20 @@ const DEFAULT_CONFIG_TEMPLATE = {
   defaultKeyset: 'abc',
   wordSuggestionsEnabled: true,
   autoCorrectEnabled: false,
+  fontWeight: DEFAULT_FONT_WEIGHT,
+  keyGap: DEFAULT_KEY_GAP,
   groups: []
 };
+
+// Add keyHeight if specified (only include if not null)
+if (DEFAULT_KEY_HEIGHT !== null) {
+  DEFAULT_CONFIG_TEMPLATE.keyHeight = DEFAULT_KEY_HEIGHT;
+}
+
+// Add fontSize if specified (only include if not null)
+if (DEFAULT_FONT_SIZE !== null) {
+  DEFAULT_CONFIG_TEMPLATE.fontSize = DEFAULT_FONT_SIZE;
+}
 
 // System row that gets added at the top of each keyset (if enabled)
 const SYSTEM_ROW = {
@@ -409,12 +440,14 @@ function prefixKeysetReferences(keys, language) {
  */
 function createCombinedAndroidConfig(commonKeysets) {
   console.log('\n📦 Creating combined Android config...');
-  
+
   const combinedConfig = {
     backgroundColor: 'default',
     defaultKeyset: 'abc',
     wordSuggestionsEnabled: true,
     autoCorrectEnabled: false,
+    fontWeight: DEFAULT_FONT_WEIGHT,
+    keyGap: DEFAULT_KEY_GAP,
     keyboards: ['he', 'en', 'ar'],
     defaultKeyboard: 'he',
     keysets: [],
@@ -422,7 +455,17 @@ function createCombinedAndroidConfig(commonKeysets) {
     allDiacritics: {},
     diacriticsSettings: {}
   };
-  
+
+  // Add keyHeight if specified
+  if (DEFAULT_KEY_HEIGHT !== null) {
+    combinedConfig.keyHeight = DEFAULT_KEY_HEIGHT;
+  }
+
+  // Add fontSize if specified
+  if (DEFAULT_FONT_SIZE !== null) {
+    combinedConfig.fontSize = DEFAULT_FONT_SIZE;
+  }
+
   for (const config of KEYBOARD_CONFIGS) {
     const sourcePath = path.join(KEYBOARDS_DIR, config.sourceFile);
     

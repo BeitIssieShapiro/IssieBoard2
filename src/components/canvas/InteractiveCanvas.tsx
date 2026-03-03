@@ -1,7 +1,8 @@
-import React, { useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useMemo, useCallback, useState, useEffect } from 'react';
+import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
 import { KeyboardPreview, KeyPressEvent } from '../KeyboardPreview';
 import { useEditor } from '../../context/EditorContext';
+import KeyboardPreferences, { KeyboardDimensions } from '../../native/KeyboardPreferences';
 
 // Helper to cycle to next keyset of the same type across keyboards
 const getNextKeysetId = (
@@ -42,6 +43,7 @@ import { filterSettingsButton } from '../../utils/keyboardConfigMerger';
 
 interface InteractiveCanvasProps {
   onTestInput?: (text: string) => void;
+  height: number;
 }
 
 // Language display names
@@ -51,9 +53,44 @@ const LANGUAGE_NAMES: Record<string, string> = {
   'ar': 'العربية',
 };
 
-export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInput }) => {
+export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInput, height }) => {
   const { state, dispatch } = useEditor();
-  
+  const [keyboardDimensions, setKeyboardDimensions] = useState<KeyboardDimensions | null>(null);
+  const { width } = useWindowDimensions();
+
+  // Listen for keyboard dimensions changes from native
+  useEffect(() => {
+    // Get initial dimensions
+    const fetchInitialDimensions = async () => {
+      try {
+        const dims = await KeyboardPreferences.getKeyboardDimensions();
+        console.log("📐 Initial keyboard dimensions fetch result:", dims);
+        if (dims) {
+          console.log("📐 Setting dimensions:", dims);
+          setKeyboardDimensions(dims);
+        } else {
+          console.log("📐 No dimensions available yet - keyboard hasn't been opened");
+        }
+      } catch (error) {
+        console.error("📐 Error fetching dimensions:", error);
+      }
+    };
+
+    fetchInitialDimensions();
+
+    // Subscribe to dimension changes
+    console.log("📐 Subscribing to dimension changes...");
+    const subscription = KeyboardPreferences.addKeyboardDimensionsListener((dims) => {
+      console.log('📐 Keyboard dimensions changed event received:', dims);
+      setKeyboardDimensions(dims);
+    });
+
+    return () => {
+      console.log("📐 Unsubscribing from dimension changes");
+      subscription.remove();
+    };
+  }, []);
+
   // Get language display name from keyboard ID
   const languageDisplayName = useMemo(() => {
     const keyboardId = state.config.keyboards?.[0] || 'en';
@@ -161,22 +198,33 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
     return JSON.stringify(configWithGroups);
   }, [configWithGroups]);
 
-  // Calculate dynamic height based on number of rows in active keyset
-  const previewHeight = useMemo(() => {
-    const activeKeyset = state.config.keysets.find(ks => ks.id === state.activeKeyset);
-    const numRows = activeKeyset?.rows?.length || 4;
+  // Calculate the scale to fit keyboard in the available height and width
+  const scale = useMemo(() => {
+    if (!keyboardDimensions) return 1;
 
-    // Height calculation (no suggestions bar in preview):
-    // - Each row: ~50px
-    // - Row spacing: ~10px between rows
-    const rowHeight = 50;
-    const rowSpacing = 10;
+    // Calculate scale for both dimensions
+    const heightScale = height / (keyboardDimensions.height-60);
 
-    return (numRows * rowHeight) + ((numRows - 1) * rowSpacing);
-  }, [state.config.keysets, state.activeKeyset]);
+    // Use the smaller scale to fit both dimensions
+    const finalScale = Math.min(heightScale, 1); // Never scale up
+
+    console.log("📐 Scale calculation:", {
+      availableWidth: width,
+      availableHeight: height,
+      nativeWidth: keyboardDimensions.width,
+      nativeHeight: keyboardDimensions.height,
+      
+      heightScale,
+      finalScale
+    });
+
+    return finalScale;
+  }, [keyboardDimensions, height, width]);
+
+  console.log("kb scale", scale)
 
   return (
-    <View style={styles.container}>
+    <>
       {/* Preview Header */}
       <View style={styles.previewHeader}>
         <Text allowFontScaling={false} style={styles.previewLabel}>Preview</Text>
@@ -185,15 +233,30 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
             {languageDisplayName}
           </Text>
         </View>
+        {keyboardDimensions && (
+          <Text allowFontScaling={false} style={styles.dimensionsText}>
+            {Math.round(keyboardDimensions.width)}×{Math.round(keyboardDimensions.height)}pt{scale < 1 && ` (${Math.round(scale * 100)}%)`}
+          </Text>
+        )}
       </View>
 
-      {/* Keyboard Preview */}
-      <KeyboardPreview
-        style={[styles.preview, { height: previewHeight }]}
-        configJson={configJson}
-        onKeyPress={handleKeyPress}
-      />
-    </View>
+      {/* Keyboard Preview with dynamic scaling */}
+      <View style={[styles.previewWrapper, {height}]}>
+        <KeyboardPreview
+          key="editor-preview"
+          style={[
+            styles.preview,
+            {
+              height: keyboardDimensions?.height || height,
+              width: keyboardDimensions?.width || width,
+              transform: [{ scale }],
+            }
+          ]}
+          configJson={configJson}
+          onKeyPress={handleKeyPress}
+        />
+      </View>
+    </>
   );
 };
 
@@ -201,11 +264,23 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: 'transparent',
   },
+  previewCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+
+  },
   previewHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 5,
+    height: 20,
   },
   previewLabel: {
     fontSize: 16,
@@ -223,8 +298,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: 'white',
   },
+  dimensionsText: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    fontWeight: '500',
+  },
+  previewWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    width:"100%",
+  },
   preview: {
-    borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: "#CBCFD8"
   },

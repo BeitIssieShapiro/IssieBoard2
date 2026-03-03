@@ -7,6 +7,7 @@ import {
   TextInput,
   ScrollView,
   Switch,
+  useWindowDimensions,
 } from 'react-native';
 import { useEditor, getKeyValueFromPositionId } from '../../context/EditorContext';
 import { StyleGroup, KeyStyleOverride, KeyboardConfig, VisibilityMode, PredefinedStyleRule } from '../../../types';
@@ -15,6 +16,7 @@ import { ButtonGroupRow } from '../shared/ButtonGroupRow';
 import { KeyboardPreview, KeyPressEvent } from '../KeyboardPreview';
 import { getPredefinedRules, getAvailableLanguages } from '../../utils/predefinedRules';
 import { ActionButton } from '../shared/ActionButton';
+import KeyboardPreferences, { KeyboardDimensions } from '../../native/KeyboardPreferences';
 
 interface AddStyleRuleModalProps {
   visible: boolean;
@@ -356,9 +358,11 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
               {/* Keyboard Preview */}
               <View style={styles.previewContainer}>
                 <KeyboardPreview
+                  key="modal-preview"
                   style={[styles.keyboardPreview, { height: modalPreviewHeight }]}
                   configJson={previewConfigJson}
                   selectedKeys={selectedKeysJson}
+                  disableDimensionStorage={true}
                   onKeyPress={handleKeyPress}
                 />
               </View>

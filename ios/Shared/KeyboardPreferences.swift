@@ -15,10 +15,12 @@ class KeyboardPreferences {
         static let keyboardConfig = "keyboardConfig"
         static let lastUpdateTime = "lastUpdateTime"
         static let selectedLanguage = "selectedLanguage"
+        static let keyboardDimensions = "keyboardDimensions"
     }
     
     // Notification names for observing changes
     static let preferencesDidChangeNotification = NSNotification.Name("KeyboardPreferencesDidChange")
+    static let keyboardDimensionsDidChangeNotification = NSNotification.Name("KeyboardDimensionsDidChange")
     
     private let userDefaults: UserDefaults?
     
@@ -94,18 +96,67 @@ class KeyboardPreferences {
     }
     
     // MARK: - Generic String Storage
-    
+
     /// Store a string value for a given key
     func setString(_ value: String, forKey key: String) {
         userDefaults?.set(value, forKey: key)
         userDefaults?.synchronize()
     }
-    
+
     /// Retrieve a string value for a given key
     func getString(forKey key: String) -> String? {
         return userDefaults?.string(forKey: key)
     }
-    
+
+    // MARK: - Keyboard Dimensions
+
+    /// Store keyboard dimensions (width, height, device info)
+    func setKeyboardDimensions(width: CGFloat, height: CGFloat, device: String, orientation: String, keysetId: String) {
+        let dimensions: [String: Any] = [
+            "width": Double(width),
+            "height": Double(height),
+            "device": device,
+            "orientation": orientation,
+            "keysetId": keysetId,
+            "timestamp": Date().timeIntervalSince1970
+        ]
+
+        if let jsonData = try? JSONSerialization.data(withJSONObject: dimensions, options: []),
+           let jsonString = String(data: jsonData, encoding: .utf8) {
+            print("📐 [KeyboardPreferences] Saving dimensions JSON: \(jsonString)")
+            userDefaults?.set(jsonString, forKey: Keys.keyboardDimensions)
+            let syncSuccess = userDefaults?.synchronize() ?? false
+            print("📐 [KeyboardPreferences] UserDefaults sync success: \(syncSuccess)")
+
+            // Post Darwin notification for cross-process communication
+            // This works between app and keyboard extension
+            print("📐 [KeyboardPreferences] Posting Darwin notification...")
+            CFNotificationCenterPostNotification(
+                CFNotificationCenterGetDarwinNotifyCenter(),
+                CFNotificationName("com.issieboard.dimensionsChanged" as CFString),
+                nil,
+                nil,
+                true
+            )
+            print("📐 [KeyboardPreferences] Darwin notification posted")
+
+            // Also post regular notification for in-process listeners
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(
+                    name: KeyboardPreferences.keyboardDimensionsDidChangeNotification,
+                    object: nil,
+                    userInfo: dimensions
+                )
+                print("📐 [KeyboardPreferences] Regular notification posted")
+            }
+        }
+    }
+
+    /// Retrieve keyboard dimensions as JSON string
+    func getKeyboardDimensionsJSON() -> String? {
+        return userDefaults?.string(forKey: Keys.keyboardDimensions)
+    }
+
     // MARK: - Notification
     
     private func notifyPreferencesChanged() {

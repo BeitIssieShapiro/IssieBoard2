@@ -124,12 +124,12 @@ class KeyboardRenderer {
         return baseHeight  // 54px otherwise
     }
     private let keySpacing: CGFloat = 0       // No spacing between key tap areas
-    private let keyInternalPadding: CGFloat = 3  // Visual gap between keys (internal margin)
+    private var keyInternalPadding: CGFloat = 3  // Visual gap between keys (internal margin) - configurable via keyGap
     private let rowSpacing: CGFloat = 0       // No spacing between row tap areas (visual gap from keyInternalPadding)
     private let keyVerticalPadding: CGFloat = 5  // Vertical padding for visual gap between rows (2px more than horizontal)
     private let keyCornerRadius: CGFloat = 5
-    private let fontSize: CGFloat = 24
-    private let largeFontSize: CGFloat = 28
+    private let defaultFontSize: CGFloat = 24  // Default font size - configurable via fontSize
+    private var fontWeight: UIFont.Weight = .regular  // Font weight - configurable
     private let suggestionsBarHeight: CGFloat = 40
     private let suggestionsFontSize: CGFloat = 26  // Larger than key font (24) for better readability
     
@@ -244,7 +244,43 @@ class KeyboardRenderer {
     }
     
     // MARK: - Public Methods
-    
+
+    /// Apply configuration settings (gaps, fonts, etc.)
+    /// - Parameter config: The keyboard configuration
+    private func applyConfigurationSettings(_ config: KeyboardConfig) {
+        // Apply key gap
+        if let gap = config.keyGap {
+            keyInternalPadding = CGFloat(gap)
+            print("⚙️ KeyboardRenderer: Applied keyGap = \(gap)")
+        }
+
+        // Apply font weight
+        if let weightString = config.fontWeight {
+            fontWeight = parseFontWeight(weightString)
+            print("⚙️ KeyboardRenderer: Applied fontWeight = \(weightString)")
+        }
+    }
+
+    /// Parse font weight string to UIFont.Weight
+    /// - Parameter weightString: Font weight name (e.g., "bold", "semibold", "regular")
+    /// - Returns: The corresponding UIFont.Weight
+    private func parseFontWeight(_ weightString: String) -> UIFont.Weight {
+        switch weightString.lowercased() {
+        case "ultralight": return .ultraLight
+        case "thin": return .thin
+        case "light": return .light
+        case "regular": return .regular
+        case "medium": return .medium
+        case "semibold": return .semibold
+        case "bold": return .bold
+        case "heavy": return .heavy
+        case "black": return .black
+        default:
+            print("⚠️ Unknown font weight '\(weightString)', using .regular")
+            return .regular
+        }
+    }
+
     /// Calculate the required keyboard height based on the current config
     /// This returns the dynamic height needed to display the keyboard with all its rows
     /// - Parameters:
@@ -253,11 +289,11 @@ class KeyboardRenderer {
     ///   - suggestionsEnabled: Whether suggestions are currently enabled (accounts for input type restrictions)
     /// - Returns: The required height in points
     func calculateKeyboardHeight(for config: KeyboardConfig, keysetId: String, suggestionsEnabled: Bool) -> CGFloat {
-        // Find the keyset
+        // Calculate based on keyboard layout (number of rows, key height, etc.)
         guard let keyset = config.keysets.first(where: { $0.id == keysetId }) else {
             return 216  // Default iOS keyboard height
         }
-        
+
         let numberOfRows = keyset.rows.count
         let rowsHeight = CGFloat(numberOfRows) * rowHeight
         let spacingHeight = CGFloat(max(0, numberOfRows - 1)) * rowSpacing
@@ -265,7 +301,7 @@ class KeyboardRenderer {
         let suggestionsHeight = suggestionsEnabled ? suggestionsBarHeight + 4 : 0
         let topPadding: CGFloat = 4
         let bottomPadding: CGFloat = 4
-        
+
         return rowsHeight + spacingHeight + suggestionsHeight + topPadding + bottomPadding
     }
     
@@ -363,7 +399,10 @@ class KeyboardRenderer {
         self.container = container
         self.config = config
         self.editorContext = editorContext
-        
+
+        // Apply configuration settings (gaps, font sizes, font weight)
+        applyConfigurationSettings(config)
+
         // Only set currentKeysetId from parameter if renderer hasn't been initialized yet
         if self.currentKeysetId == "abc" && currentKeysetId != "abc" {
             self.currentKeysetId = currentKeysetId
@@ -1122,28 +1161,36 @@ class KeyboardRenderer {
         if let customFontSize = key.fontSize {
             // Use custom font size if specified on the key
             finalFontSize = CGFloat(customFontSize)
-        } else {
-            // Use global config fontSize, or fall back to default sizing logic
-            let defaultFontSize: CGFloat = fontSize
-            let defaultLargeFontSize: CGFloat = largeFontSize
+        } else if let globalSize = config?.fontSize {
+            // Use global config fontSize if set
+            let baseSize = CGFloat(globalSize)
 
-            // Check for global fontSize in config
-            let globalFontSize: CGFloat = config?.fontSize.map { CGFloat($0) } ?? defaultFontSize
-            let globalLargeFontSize: CGFloat = config?.fontSize.map { CGFloat($0) * (defaultLargeFontSize / defaultFontSize) } ?? defaultLargeFontSize
+            // Scale up for large keys (shift, backspace, enter)
+            let scaledSize: CGFloat = isLargeKey ? baseSize * 1.16 : baseSize
 
-            let baseFontSize: CGFloat = isLargeKey ? globalLargeFontSize : globalFontSize
-
-            // For multi-character keys, scale down proportionally but still respect global fontSize
+            // For multi-character keys, scale down proportionally
             if isMultiChar {
-                // If global fontSize is set, use it as base and scale down proportionally
-                if config?.fontSize != nil {
-                    finalFontSize = baseFontSize * 0.7
-                } else {
-                    // No global fontSize, use old logic with 14px cap
-                    finalFontSize = min(baseFontSize * 0.7, 14)
-                }
+                finalFontSize = scaledSize * 0.7
             } else {
-                finalFontSize = baseFontSize
+                finalFontSize = scaledSize
+            }
+
+            // Make nikkud diacritic mark larger for visibility
+            if isNikkudKey {
+                finalFontSize = 36
+            }
+        } else {
+            // Use default font size
+            let baseSize = defaultFontSize
+
+            // Scale up for large keys
+            let scaledSize: CGFloat = isLargeKey ? baseSize * 1.16 : baseSize
+
+            // For multi-character keys, scale down
+            if isMultiChar {
+                finalFontSize = scaledSize * 0.7
+            } else {
+                finalFontSize = scaledSize
             }
 
             // Make nikkud diacritic mark larger for visibility
@@ -1151,9 +1198,7 @@ class KeyboardRenderer {
                 finalFontSize = 36
             }
         }
-        
-        let fontWeight: UIFont.Weight = .regular
-        
+
         // Apply custom font if configured
         // Font applies to character keys in "abc" keysets (not special keys like shift, backspace, etc.)
         let isCharacterKey = !isNikkudKey &&
@@ -1166,19 +1211,26 @@ class KeyboardRenderer {
                             key.type.lowercased() != "close" &&
                             key.type.lowercased() != "next-keyboard" &&
                             key.type.lowercased() != "language"
-        
+
         // Check if we're in an "abc" keyset (not "123" or "#+=" keysets)
         let isAbcKeyset = currentKeysetId.hasSuffix("_abc") || currentKeysetId == "abc"
-        
+
         let shouldUseCustomFont = isCharacterKey && isAbcKeyset && config?.fontName != nil
-        
-        if shouldUseCustomFont, let fontName = config?.fontName, let customFont = UIFont(name: fontName, size: finalFontSize + 2) {
-            label.font = customFont
-            // Add spacing for single character labels when using custom font to prevent glyph cutoff
-            if finalText.count == 1 {
-                label.text = " \(finalText) "
+
+        if shouldUseCustomFont, let fontName = config?.fontName {
+            if let customFont = UIFont(name: fontName, size: finalFontSize) {
+                label.font = customFont
+                // Add spacing for single character labels when using custom font to prevent glyph cutoff
+                if finalText.count == 1 {
+                    label.text = " \(finalText) "
+                }
+            } else {
+                // Fallback to system font if custom font not found
+                print("⚠️ Custom font '\(fontName)' not found, using system font")
+                label.font = UIFont.systemFont(ofSize: finalFontSize, weight: fontWeight)
             }
         } else {
+            // Use system font with configured weight
             label.font = UIFont.systemFont(ofSize: finalFontSize, weight: fontWeight)
         }
         

@@ -1,8 +1,8 @@
 2-March
 ------
-- make height percent from screen
+V- make height percent from screen
 - primary colors + wheel saves new colors
-- yad-font (larger)
+V- yad-font (larger)
 - remove "space" word
 - wide gap between keys option
 - Default kb is read-only, when saving then it is a save-as

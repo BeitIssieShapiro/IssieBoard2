@@ -83,6 +83,8 @@ type EditorAction =
   | { type: 'UPDATE_WORD_SUGGESTIONS'; payload: boolean }
   | { type: 'UPDATE_AUTO_CORRECT'; payload: boolean }
   | { type: 'UPDATE_FONT_NAME'; payload: string | undefined }
+  | { type: 'UPDATE_FONT_SIZE'; payload: number | undefined }
+  | { type: 'UPDATE_KEY_GAP'; payload: number | undefined }
   | { type: 'UPDATE_SETTINGS_BUTTON'; payload: boolean }
   | { type: 'MARK_SAVED' }
   | { type: 'MARK_DIRTY' };
@@ -428,6 +430,22 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       };
     }
 
+    case 'UPDATE_FONT_SIZE': {
+      return {
+        ...state,
+        config: { ...state.config, fontSize: action.payload },
+        isDirty: true,
+      };
+    }
+
+    case 'UPDATE_KEY_GAP': {
+      return {
+        ...state,
+        config: { ...state.config, keyGap: action.payload },
+        isDirty: true,
+      };
+    }
+
     case 'UPDATE_SETTINGS_BUTTON': {
       return {
         ...state,
@@ -531,6 +549,8 @@ interface EditorContextValue {
   updateWordSuggestions: (enabled: boolean) => void;
   updateAutoCorrect: (enabled: boolean) => void;
   updateFontName: (fontName: string | undefined) => void;
+  updateFontSize: (fontSize: number | undefined) => void;
+  updateKeyGap: (keyGap: number | undefined) => void;
   updateSettingsButton: (enabled: boolean) => void;
   markDirty: () => void;
 }
@@ -650,6 +670,14 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
     dispatch({ type: 'UPDATE_FONT_NAME', payload: fontName });
   }, []);
 
+  const updateFontSize = useCallback((fontSize: number | undefined) => {
+    dispatch({ type: 'UPDATE_FONT_SIZE', payload: fontSize });
+  }, []);
+
+  const updateKeyGap = useCallback((keyGap: number | undefined) => {
+    dispatch({ type: 'UPDATE_KEY_GAP', payload: keyGap });
+  }, []);
+
   const updateSettingsButton = useCallback((enabled: boolean) => {
     dispatch({ type: 'UPDATE_SETTINGS_BUTTON', payload: enabled });
   }, []);
@@ -684,6 +712,8 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
     updateWordSuggestions,
     updateAutoCorrect,
     updateFontName,
+    updateFontSize,
+    updateKeyGap,
     updateSettingsButton,
     markDirty,
   };

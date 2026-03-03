@@ -76,7 +76,10 @@ class BaseKeyboardViewController: UIInputViewController {
     
     override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
         super.viewWillTransition(to: size, with: coordinator)
-        coordinator.animate(alongsideTransition: nil, completion: nil)
+        coordinator.animate(alongsideTransition: { _ in
+            // Update keyboard height for new orientation (important for iPad)
+            self.updateKeyboardHeight()
+        }, completion: nil)
     }
     
     override func textWillChange(_ textInput: UITextInput?) {
@@ -145,6 +148,23 @@ class BaseKeyboardViewController: UIInputViewController {
         let requiredHeight = keyboardEngine.renderer.calculateKeyboardHeight(for: config, keysetId: keyboardEngine.renderer.currentKeysetId, suggestionsEnabled: suggestionsEnabled)
         keyboardHeightConstraint?.constant = requiredHeight
         view.setNeedsLayout()
+
+        // Store keyboard dimensions in preferences for React Native to read
+        let width = view.bounds.width
+        let deviceType = UIDevice.current.userInterfaceIdiom == .pad ? "iPad" : "iPhone"
+        let orientation = width > view.bounds.height ? "landscape" : "portrait"
+
+        print("📐 [BaseKeyboardVC] Storing dimensions: width=\(width), height=\(requiredHeight), device=\(deviceType), orientation=\(orientation), keyset=\(keyboardEngine.renderer.currentKeysetId)")
+
+        preferences.setKeyboardDimensions(
+            width: width,
+            height: requiredHeight,
+            device: deviceType,
+            orientation: orientation,
+            keysetId: keyboardEngine.renderer.currentKeysetId
+        )
+
+        print("📐 [BaseKeyboardVC] Dimensions stored, Darwin notification should be posted")
     }
     
     private func setupKeyboardEngine() {
@@ -285,7 +305,9 @@ class BaseKeyboardViewController: UIInputViewController {
     // MARK: - Rendering
     
     private func renderKeyboard() {
+        print("📐 [BaseKeyboardVC] renderKeyboard() called")
         guard let config = parsedConfig else {
+            print("📐 [BaseKeyboardVC] No parsedConfig, rendering fallback")
             renderFallbackKeyboard()
             return
         }
@@ -316,7 +338,9 @@ class BaseKeyboardViewController: UIInputViewController {
             editorContext: editorContext
         )
 
+        print("📐 [BaseKeyboardVC] About to call updateKeyboardHeight()")
         updateKeyboardHeight()
+        print("📐 [BaseKeyboardVC] updateKeyboardHeight() completed")
 
         // Show default suggestions only if enabled for this field type
         if suggestionsEnabled && keyboardEngine.suggestionController.currentWord.isEmpty {

@@ -2,15 +2,89 @@ import Foundation
 import React
 
 @objc(KeyboardPreferencesModule)
-class KeyboardPreferencesModule: NSObject {
-    
+class KeyboardPreferencesModule: RCTEventEmitter {
+
     private let preferences = KeyboardPreferences()
-    
-    @objc
-    static func requiresMainQueueSetup() -> Bool {
+
+    override init() {
+        super.init()
+
+        print("📐 [KeyboardPreferencesModule] Initializing...")
+
+        // Listen for Darwin notification from keyboard extension
+        let observer = UnsafeRawPointer(Unmanaged.passUnretained(self).toOpaque())
+        CFNotificationCenterAddObserver(
+            CFNotificationCenterGetDarwinNotifyCenter(),
+            observer,
+            { (center, observer, name, object, userInfo) in
+                print("📐 [KeyboardPreferencesModule] Darwin notification callback triggered!")
+                guard let observer = observer else { return }
+                let mySelf = Unmanaged<KeyboardPreferencesModule>.fromOpaque(observer).takeUnretainedValue()
+                mySelf.handleDarwinNotification()
+            },
+            "com.issieboard.dimensionsChanged" as CFString,
+            nil,
+            .deliverImmediately
+        )
+        print("📐 [KeyboardPreferencesModule] Darwin observer registered")
+
+        // Also listen for regular notifications (in-process)
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleDimensionsChanged(_:)),
+            name: KeyboardPreferences.keyboardDimensionsDidChangeNotification,
+            object: nil
+        )
+        print("📐 [KeyboardPreferencesModule] Regular notification observer registered")
+    }
+
+    deinit {
+        print("📐 [KeyboardPreferencesModule] Deinitializing...")
+        CFNotificationCenterRemoveEveryObserver(
+            CFNotificationCenterGetDarwinNotifyCenter(),
+            UnsafeRawPointer(Unmanaged.passUnretained(self).toOpaque())
+        )
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    @objc private func handleDarwinNotification() {
+        print("📐 [KeyboardPreferencesModule] handleDarwinNotification called!")
+        // Darwin notifications don't carry userInfo, so fetch from preferences
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            print("📐 [KeyboardPreferencesModule] Fetching dimensions from preferences...")
+            if let dimensionsJSON = self.preferences.getKeyboardDimensionsJSON() {
+                print("📐 [KeyboardPreferencesModule] Got dimensions JSON: \(dimensionsJSON)")
+                if let data = dimensionsJSON.data(using: .utf8),
+                   let dimensions = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    print("📐 [KeyboardPreferencesModule] Sending event to React Native: \(dimensions)")
+                    self.sendEvent(withName: "onKeyboardDimensionsChanged", body: dimensions)
+                    print("📐 [KeyboardPreferencesModule] Event sent!")
+                } else {
+                    print("📐 [KeyboardPreferencesModule] Failed to parse dimensions JSON")
+                }
+            } else {
+                print("📐 [KeyboardPreferencesModule] No dimensions JSON available")
+            }
+        }
+    }
+
+    @objc private func handleDimensionsChanged(_ notification: Notification) {
+        print("📐 [KeyboardPreferencesModule] handleDimensionsChanged (regular notification) called!")
+        if let dimensions = notification.userInfo {
+            print("📐 [KeyboardPreferencesModule] Sending event to React Native (from regular notification): \(dimensions)")
+            sendEvent(withName: "onKeyboardDimensionsChanged", body: dimensions)
+        }
+    }
+
+    override static func requiresMainQueueSetup() -> Bool {
         return false
     }
-    
+
+    override func supportedEvents() -> [String]! {
+        return ["onKeyboardDimensionsChanged"]
+    }
+
     // MARK: - Profile Management
     
     @objc
@@ -130,9 +204,20 @@ class KeyboardPreferencesModule: NSObject {
     }
     
     // MARK: - App Group Info
-    
+
     @objc
     func getAppGroupIdentifier(_ resolver: RCTPromiseResolveBlock, rejecter: RCTPromiseRejectBlock) {
         resolver(KeyboardPreferences.appGroupIdentifier)
+    }
+
+    // MARK: - Keyboard Dimensions
+
+    @objc
+    func getKeyboardDimensions(_ resolver: RCTPromiseResolveBlock, rejecter: RCTPromiseRejectBlock) {
+        if let dimensionsJSON = preferences.getKeyboardDimensionsJSON() {
+            resolver(dimensionsJSON)
+        } else {
+            resolver(NSNull())
+        }
     }
 }

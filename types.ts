@@ -159,6 +159,10 @@ export interface ProfileDefinition {
     systemRow?: SystemRowConfig;
     groups?: GroupConfig[];
     diacritics?: Record<string, DiacriticsSettings>;  // Per-keyboard diacritics settings
+    keyHeight?: number;  // Custom key row height in points
+    keyGap?: number;  // Gap between keys in points (default: 3)
+    fontWeight?: 'ultraLight' | 'thin' | 'light' | 'regular' | 'medium' | 'semibold' | 'bold' | 'heavy' | 'black';
+    fontSize?: number;  // Font size for keys (default: 24). Adjust per font as needed (e.g., 32 for Yad font)
 }
 
 // Keyboard definition (as stored in keyboard JSON files)
@@ -183,7 +187,10 @@ export interface KeyboardConfig {
     wordSuggestionsEnabled?: boolean;  // Whether word suggestions bar is shown (default: true)
     autoCorrectEnabled?: boolean;  // Whether auto-correct replaces typed word with suggestion on space (default: true)
     fontName?: string;  // Custom font name to use for character keys (e.g., 'DanaYadAlefAlefAlef-Normal'). If not set, system font is used.
-    fontSize?: number;  // Global font size for all keys (default varies by platform). Individual keys can override this.
+    fontSize?: number;  // Global font size for all keys (default: 24). Individual keys can override this. Use different values per font as needed.
+    keyHeight?: number;  // Custom key row height in points (default: 54 for iPhone, 74 for iPad keyboard extension)
+    keyGap?: number;  // Gap between keys in points (default: 3)
+    fontWeight?: 'ultraLight' | 'thin' | 'light' | 'regular' | 'medium' | 'semibold' | 'bold' | 'heavy' | 'black';  // Font weight (default: 'regular')
     settingsButtonEnabled?: boolean;  // Whether settings button is shown on keyboard (default: true)
 }
 

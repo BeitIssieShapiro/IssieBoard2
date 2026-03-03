@@ -57,4 +57,8 @@ RCT_EXTERN_METHOD(clearAll:(RCTPromiseResolveBlock)resolve
 RCT_EXTERN_METHOD(getAppGroupIdentifier:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
 
+// Keyboard Dimensions
+RCT_EXTERN_METHOD(getKeyboardDimensions:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+
 @end
