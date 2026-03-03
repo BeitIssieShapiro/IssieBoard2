@@ -11,7 +11,7 @@ class KeyboardPreferencesModule: RCTEventEmitter {
 
         print("📐 [KeyboardPreferencesModule] Initializing...")
 
-        // Listen for Darwin notification from keyboard extension
+        // Listen for Darwin notification from keyboard extension (dimensions)
         let observer = UnsafeRawPointer(Unmanaged.passUnretained(self).toOpaque())
         CFNotificationCenterAddObserver(
             CFNotificationCenterGetDarwinNotifyCenter(),
@@ -26,7 +26,23 @@ class KeyboardPreferencesModule: RCTEventEmitter {
             nil,
             .deliverImmediately
         )
-        print("📐 [KeyboardPreferencesModule] Darwin observer registered")
+        print("📐 [KeyboardPreferencesModule] Darwin observer registered for dimensions")
+
+        // Listen for launch keyboard notification from AppDelegate
+        CFNotificationCenterAddObserver(
+            CFNotificationCenterGetDarwinNotifyCenter(),
+            observer,
+            { (center, observer, name, object, userInfo) in
+                print("📱 [KeyboardPreferencesModule] Launch keyboard Darwin notification callback triggered!")
+                guard let observer = observer else { return }
+                let mySelf = Unmanaged<KeyboardPreferencesModule>.fromOpaque(observer).takeUnretainedValue()
+                mySelf.handleLaunchKeyboardNotification()
+            },
+            "com.issieboard.launchKeyboard" as CFString,
+            nil,
+            .deliverImmediately
+        )
+        print("📱 [KeyboardPreferencesModule] Darwin observer registered for launch keyboard")
 
         // Also listen for regular notifications (in-process)
         NotificationCenter.default.addObserver(
@@ -77,12 +93,29 @@ class KeyboardPreferencesModule: RCTEventEmitter {
         }
     }
 
+    @objc private func handleLaunchKeyboardNotification() {
+        print("📱 [KeyboardPreferencesModule] handleLaunchKeyboardNotification called!")
+        // Darwin notifications don't carry userInfo, so fetch from preferences
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            print("📱 [KeyboardPreferencesModule] Fetching launch_keyboard from preferences...")
+            if let language = self.preferences.getString(forKey: "launch_keyboard"), !language.isEmpty {
+                print("📱 [KeyboardPreferencesModule] Got launch_keyboard: \(language)")
+                print("📱 [KeyboardPreferencesModule] Sending event to React Native with language: \(language)")
+                self.sendEvent(withName: "onLaunchKeyboard", body: ["language": language])
+                print("📱 [KeyboardPreferencesModule] Event sent!")
+            } else {
+                print("📱 [KeyboardPreferencesModule] No launch_keyboard value available")
+            }
+        }
+    }
+
     override static func requiresMainQueueSetup() -> Bool {
         return false
     }
 
     override func supportedEvents() -> [String]! {
-        return ["onKeyboardDimensionsChanged"]
+        return ["onKeyboardDimensionsChanged", "onLaunchKeyboard"]
     }
 
     // MARK: - Profile Management

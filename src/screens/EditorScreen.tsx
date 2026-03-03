@@ -16,6 +16,7 @@ import {
   Keyboard,
   Dimensions,
   useWindowDimensions,
+  AppState,
 } from 'react-native';
 import { EditorProvider, useEditor } from '../context/EditorContext';
 import { InteractiveCanvas } from '../components/canvas/InteractiveCanvas';
@@ -618,24 +619,93 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       setCurrentKeyboardId(loaded.profileDef.keyboardId);
       onProfileChange(effectiveActiveProfile, loaded.profileDef.name, newLanguage, loaded.profileDef.keyboardId);
     } else {
-      console.log(`📱 No ${effectiveActiveProfile} profile found, using factory defaults`);
-      // No saved profile - use factory defaults
-      const profileDef = createFactoryDefaultProfile(
-        defaultProfileId,
-        defaultProfileId,
-        newLanguage,
-        firstKeyboardId
-      );
-      const newConfig = buildConfiguration(profileDef);
-      setConfig(newConfig, []);
-      setCurrentProfileName(defaultProfileId);
-      setCurrentProfileId(defaultProfileId);
-      setCurrentKeyboardId(firstKeyboardId);
-      onProfileChange(defaultProfileId, defaultProfileId, newLanguage, firstKeyboardId);
+      // Check if this is a built-in profile that hasn't been saved yet
+      const templateId = extractTemplateId(effectiveActiveProfile);
+      if (templateId) {
+        console.log(`📱 Built-in profile ${effectiveActiveProfile} not saved yet, loading from template: ${templateId}`);
+        const template = getBuiltInProfileTemplate(templateId);
+        if (template) {
+          const profileDef: SavedProfileDefinition = {
+            id: effectiveActiveProfile,
+            name: template.name,
+            version: '1.0.0',
+            language: newLanguage,
+            keyboardId: firstKeyboardId,
+            ...template.config,
+            groups: [],
+          };
+          const createdAt = new Date().toISOString();
+          const styleGroups = template.styleGroups.map((sg, index) => ({
+            ...sg,
+            id: `builtin_${templateId}_${index}`,
+            createdAt,
+          }));
+          const config = buildConfiguration(profileDef);
+          setConfig(config, styleGroups);
+          setCurrentProfileName(template.name);
+          setCurrentProfileId(effectiveActiveProfile);
+          setCurrentKeyboardId(firstKeyboardId);
+          onProfileChange(effectiveActiveProfile, template.name, newLanguage, firstKeyboardId);
+        } else {
+          // Template not found - fallback to factory defaults
+          console.log(`📱 Template ${templateId} not found, using factory defaults`);
+          const profileDef = createFactoryDefaultProfile(
+            defaultProfileId,
+            'Default',
+            newLanguage,
+            firstKeyboardId
+          );
+          const newConfig = buildConfiguration(profileDef);
+          setConfig(newConfig, []);
+          setCurrentProfileName('Default');
+          setCurrentProfileId(defaultProfileId);
+          setCurrentKeyboardId(firstKeyboardId);
+          onProfileChange(defaultProfileId, 'Default', newLanguage, firstKeyboardId);
+        }
+      } else {
+        console.log(`📱 No ${effectiveActiveProfile} profile found, using factory defaults`);
+        // No saved profile - use factory defaults
+        const profileDef = createFactoryDefaultProfile(
+          defaultProfileId,
+          'Default',
+          newLanguage,
+          firstKeyboardId
+        );
+        const newConfig = buildConfiguration(profileDef);
+        setConfig(newConfig, []);
+        setCurrentProfileName('Default');
+        setCurrentProfileId(defaultProfileId);
+        setCurrentKeyboardId(firstKeyboardId);
+        onProfileChange(defaultProfileId, 'Default', newLanguage, firstKeyboardId);
+      }
     }
 
     onLanguageChange(newLanguage);
   }, [setConfig, onLanguageChange, onProfileChange]);
+
+  // Listen for launch keyboard events from native (Darwin notification)
+  useEffect(() => {
+    console.log('📱 [EditorScreenInner] Setting up launch keyboard listener');
+    const subscription = KeyboardPreferences.addLaunchKeyboardListener(async (language) => {
+      console.log(`📱 [EditorScreenInner] Received launch keyboard event: ${language}`);
+      if (['he', 'en', 'ar'].includes(language)) {
+        console.log(`📱 [EditorScreenInner] ✅ Switching to language: ${language}`);
+        // Clear the preference
+        await KeyboardPreferences.setProfile('', 'launch_keyboard');
+        // Switch to that language
+        await handleLanguageChange(language as LanguageId);
+      } else {
+        console.log(`📱 [EditorScreenInner] ❌ Invalid language: ${language}`);
+      }
+    });
+
+    console.log('📱 [EditorScreenInner] Launch keyboard listener registered');
+
+    return () => {
+      console.log('📱 [EditorScreenInner] Removing launch keyboard listener');
+      subscription.remove();
+    };
+  }, [handleLanguageChange]);
 
   // Handle keyboard variant change (within same language) - update current profile's keyboard
   const handleSave = useCallback(async () => {
@@ -724,6 +794,11 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       setCurrentProfileId(newProfileId);
       onProfileChange(newProfileId, newName, currentLanguage, currentKeyboardId);
 
+      // Save as the active profile for this language
+      await KeyboardPreferences.setKeyboardConfigObjectForLanguage(configToSave, currentLanguage);
+      await KeyboardPreferences.setProfile(newProfileId, `active_profile_${currentLanguage}`);
+      console.log(`✅ Set "${newName}" as active profile for ${currentLanguage}`);
+
       // Mark as saved (not dirty) since we just saved
       dispatch({ type: 'MARK_SAVED' });
 
@@ -734,7 +809,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       setShowSaveAsModal(false);
 
       // Show success message
-      showToast(`✓ Saved as "${newName}"`);
+      showToast(`✓ Saved as "${newName}" and set as active`);
 
       return true;
     } catch (error) {
@@ -1450,17 +1525,32 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
           savedLanguage = propInitialLanguage;
           console.log(`📱 Using propInitialLanguage: ${propInitialLanguage}`);
         } else {
-          // Try to load from saved preference
+          // Check if launched from keyboard extension (launch_keyboard is set by AppDelegate)
           try {
-            const langPref = await KeyboardPreferences.getProfile('current_language');
-            if (langPref && ['he', 'en', 'ar'].includes(langPref)) {
-              savedLanguage = langPref as LanguageId;
-              console.log(`📱 Using saved current_language: ${savedLanguage}`);
+            const launchKeyboard = await KeyboardPreferences.getProfile('launch_keyboard');
+            console.log(`📱 Checking launch_keyboard preference: "${launchKeyboard}" (type: ${typeof launchKeyboard})`);
+
+            // Handle various falsy values including the string "null"
+            if (launchKeyboard && launchKeyboard !== 'null' && launchKeyboard !== '' && ['he', 'en', 'ar'].includes(launchKeyboard)) {
+              savedLanguage = launchKeyboard as LanguageId;
+              console.log(`📱 ✅ Launched from ${launchKeyboard} keyboard, switching to that language`);
+              // Clear the launch preference after reading it (one-time use)
+              await KeyboardPreferences.setProfile('', 'launch_keyboard');
+              console.log(`📱 Cleared launch_keyboard preference`);
             } else {
-              console.log(`📱 No saved language, using default: ${savedLanguage}`);
+              console.log(`📱 launch_keyboard not set or invalid (value: "${launchKeyboard}"), checking current_language...`);
+              // Try to load from saved preference
+              const langPref = await KeyboardPreferences.getProfile('current_language');
+              if (langPref && ['he', 'en', 'ar'].includes(langPref)) {
+                savedLanguage = langPref as LanguageId;
+                console.log(`📱 Using saved current_language: ${savedLanguage}`);
+              } else {
+                console.log(`📱 No saved language, using default: ${savedLanguage}`);
+              }
             }
-          } catch {
-            console.log(`📱 Error loading saved language, using default: ${savedLanguage}`);
+          } catch (error) {
+            console.log(`📱 Error loading saved language:`, error);
+            console.log(`📱 Using default: ${savedLanguage}`);
           }
         }
 
@@ -1778,21 +1868,57 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
     let config: KeyboardConfig;
 
     if (!loaded) {
-      // Check if this is a default profile that hasn't been saved yet
-      const defaultProfileId = getDefaultProfileId(currentLanguage);
-      if (profileIdToActivate === defaultProfileId) {
-        console.log(`📱 Default profile not saved yet, creating factory defaults for ${profileIdToActivate}`);
+      // Check if this is a built-in profile that hasn't been saved yet
+      const templateId = extractTemplateId(profileIdToActivate);
+      if (templateId) {
+        console.log(`📱 Built-in profile ${profileIdToActivate} not saved yet, loading from template: ${templateId}`);
         // Get the first keyboard for this language
         const langDef = LANGUAGES.find(l => l.id === currentLanguage);
         const firstKeyboardId = langDef?.keyboards[0]?.id || currentLanguage;
 
-        const profileDef = createFactoryDefaultProfile(
-          defaultProfileId,
-          'Default',
-          currentLanguage,
-          firstKeyboardId
-        );
-        config = buildConfiguration(profileDef);
+        const template = getBuiltInProfileTemplate(templateId);
+        if (template) {
+          const profileDef: SavedProfileDefinition = {
+            id: profileIdToActivate,
+            name: template.name,
+            version: '1.0.0',
+            language: currentLanguage,
+            keyboardId: firstKeyboardId,
+            ...template.config,
+            groups: [],
+          };
+
+          // Build style groups from template
+          const createdAt = new Date().toISOString();
+          const styleGroups = template.styleGroups.map((sg, index) => ({
+            ...sg,
+            id: `builtin_${templateId}_${index}`,
+            createdAt,
+          }));
+
+          // Merge style groups into profileDef.groups
+          // Convert from React Native format (members/style) to native format (items/template)
+          profileDef.groups = styleGroups.map(sg => ({
+            items: sg.members,  // Native expects 'items', not 'members'
+            template: {
+              color: sg.style?.color,
+              bgColor: sg.style?.bgColor,
+              fontSize: sg.style?.fontSize,
+              visibilityMode: sg.style?.visibilityMode,
+            },
+          }));
+
+          config = buildConfiguration(profileDef);
+        } else {
+          // Template not found - fallback to factory defaults
+          const profileDef = createFactoryDefaultProfile(
+            profileIdToActivate,
+            'Default',
+            currentLanguage,
+            firstKeyboardId
+          );
+          config = buildConfiguration(profileDef);
+        }
       } else {
         console.error(`❌ Cannot set active: profile ${profileIdToActivate} not found`);
         throw new Error(`Profile ${profileIdToActivate} not found`);

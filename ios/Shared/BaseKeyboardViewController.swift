@@ -463,20 +463,77 @@ class BaseKeyboardViewController: UIInputViewController {
     }
     
     // MARK: - Settings
-    
+
     private func openSettings() {
-        guard self.hasFullAccess else { return }
-        
+        guard self.hasFullAccess else {
+            // Show a banner message explaining Full Access is required
+            showFullAccessRequiredBanner()
+            return
+        }
+
         preferences.setString(keyboardLanguage, forKey: "launch_keyboard")
-        
+
         guard let url = URL(string: "issieboard://settings?keyboard=\(keyboardLanguage)") else {
             return
         }
-        
+
         openURL(url)
-        
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
             self?.dismissKeyboard()
+        }
+    }
+
+    private func showFullAccessRequiredBanner() {
+        // Create a semi-transparent banner overlay
+        let bannerView = UIView()
+        bannerView.backgroundColor = UIColor.black.withAlphaComponent(0.9)
+        bannerView.layer.cornerRadius = 8
+        view.addSubview(bannerView)
+
+        bannerView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            bannerView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            bannerView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            bannerView.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 20),
+            bannerView.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -20),
+            bannerView.widthAnchor.constraint(lessThanOrEqualToConstant: 400)
+        ])
+
+        // Create message label
+        let messageLabel = UILabel()
+        messageLabel.text = "Full Access Required\n\nTo open settings, enable Full Access in:\nSettings → General → Keyboard → Keyboards → IssieBoard"
+        messageLabel.textColor = .white
+        messageLabel.font = UIFont.systemFont(ofSize: 16, weight: .medium)
+        messageLabel.numberOfLines = 0
+        messageLabel.textAlignment = .center
+        bannerView.addSubview(messageLabel)
+
+        messageLabel.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            messageLabel.topAnchor.constraint(equalTo: bannerView.topAnchor, constant: 20),
+            messageLabel.leadingAnchor.constraint(equalTo: bannerView.leadingAnchor, constant: 20),
+            messageLabel.trailingAnchor.constraint(equalTo: bannerView.trailingAnchor, constant: -20),
+            messageLabel.bottomAnchor.constraint(equalTo: bannerView.bottomAnchor, constant: -20)
+        ])
+
+        // Animate in
+        bannerView.alpha = 0
+        bannerView.transform = CGAffineTransform(scaleX: 0.8, y: 0.8)
+
+        UIView.animate(withDuration: 0.3, animations: {
+            bannerView.alpha = 1
+            bannerView.transform = .identity
+        }) { _ in
+            // Auto-dismiss after 4 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+                UIView.animate(withDuration: 0.3, animations: {
+                    bannerView.alpha = 0
+                    bannerView.transform = CGAffineTransform(scaleX: 0.8, y: 0.8)
+                }) { _ in
+                    bannerView.removeFromSuperview()
+                }
+            }
         }
     }
     

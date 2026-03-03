@@ -1056,7 +1056,45 @@ class KeyboardRenderer {
         } else {
             textColor = key.textColor
         }
-        
+
+        // Font size - check for custom fontSize first, then global config fontSize, then use defaults
+        let isLargeKey = ["shift", "backspace", "enter"].contains(key.type.lowercased())
+        let isMultiChar = finalText.count > 1
+
+        var finalFontSize: CGFloat
+        if let customFontSize = key.fontSize {
+            // Use custom font size if specified on the key
+            finalFontSize = CGFloat(customFontSize)
+        } else {
+            // Use global config fontSize, or fall back to default sizing logic
+            let defaultFontSize: CGFloat = fontSize
+            let defaultLargeFontSize: CGFloat = largeFontSize
+
+            // Check for global fontSize in config
+            let globalFontSize: CGFloat = config?.fontSize.map { CGFloat($0) } ?? defaultFontSize
+            let globalLargeFontSize: CGFloat = config?.fontSize.map { CGFloat($0) * (defaultLargeFontSize / defaultFontSize) } ?? defaultLargeFontSize
+
+            let baseFontSize: CGFloat = isLargeKey ? globalLargeFontSize : globalFontSize
+
+            // For multi-character keys, scale down proportionally but still respect global fontSize
+            if isMultiChar {
+                // If global fontSize is set, use it as base and scale down proportionally
+                if config?.fontSize != nil {
+                    finalFontSize = baseFontSize * 0.7
+                } else {
+                    // No global fontSize, use old logic with 14px cap
+                    finalFontSize = min(baseFontSize * 0.7, 14)
+                }
+            } else {
+                finalFontSize = baseFontSize
+            }
+
+            // Make nikkud diacritic mark larger for visibility
+            if isNikkudKey {
+                finalFontSize = 36
+            }
+        }
+
         // For settings key, use SF Symbol image
         if key.type.lowercased() == "settings" {
             if let gearImage = UIImage(systemName: "gearshape.fill") {
@@ -1066,11 +1104,16 @@ class KeyboardRenderer {
                 imageView.isUserInteractionEnabled = false
                 visualKeyView.addSubview(imageView)
                 imageView.translatesAutoresizingMaskIntoConstraints = false
+
+                // Scale icon size based on fontSize (default 24pt at 48pt fontSize)
+                let iconSize = (finalFontSize / 48.0) * 24.0
+                print("⚙️ Settings icon: finalFontSize=\(finalFontSize), iconSize=\(iconSize)")
+
                 NSLayoutConstraint.activate([
                     imageView.centerXAnchor.constraint(equalTo: visualKeyView.centerXAnchor),
                     imageView.centerYAnchor.constraint(equalTo: visualKeyView.centerYAnchor),
-                    imageView.widthAnchor.constraint(equalToConstant: 24),
-                    imageView.heightAnchor.constraint(equalToConstant: 24)
+                    imageView.widthAnchor.constraint(equalToConstant: iconSize),
+                    imageView.heightAnchor.constraint(equalToConstant: iconSize)
                 ])
             } else {
                 label.text = finalText
@@ -1113,45 +1156,7 @@ class KeyboardRenderer {
         } else {
             label.text = finalText
         }
-        
-        // Font size - check for custom fontSize first, then global config fontSize, then use defaults
-        let isLargeKey = ["shift", "backspace", "enter"].contains(key.type.lowercased())
-        let isMultiChar = finalText.count > 1
 
-        var finalFontSize: CGFloat
-        if let customFontSize = key.fontSize {
-            // Use custom font size if specified on the key
-            finalFontSize = CGFloat(customFontSize)
-        } else {
-            // Use global config fontSize, or fall back to default sizing logic
-            let defaultFontSize: CGFloat = fontSize
-            let defaultLargeFontSize: CGFloat = largeFontSize
-
-            // Check for global fontSize in config
-            let globalFontSize: CGFloat = config?.fontSize.map { CGFloat($0) } ?? defaultFontSize
-            let globalLargeFontSize: CGFloat = config?.fontSize.map { CGFloat($0) * (defaultLargeFontSize / defaultFontSize) } ?? defaultLargeFontSize
-
-            let baseFontSize: CGFloat = isLargeKey ? globalLargeFontSize : globalFontSize
-
-            // For multi-character keys, scale down proportionally but still respect global fontSize
-            if isMultiChar {
-                // If global fontSize is set, use it as base and scale down proportionally
-                if config?.fontSize != nil {
-                    finalFontSize = baseFontSize * 0.7
-                } else {
-                    // No global fontSize, use old logic with 14px cap
-                    finalFontSize = min(baseFontSize * 0.7, 14)
-                }
-            } else {
-                finalFontSize = baseFontSize
-            }
-
-            // Make nikkud diacritic mark larger for visibility
-            if isNikkudKey {
-                finalFontSize = 36
-            }
-        }
-        
         let fontWeight: UIFont.Weight = .regular
         
         // Apply custom font if configured

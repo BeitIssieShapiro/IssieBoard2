@@ -46,7 +46,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     options: [UIApplication.OpenURLOptionsKey: Any] = [:]
   ) -> Bool {
     print("📱 App opened via URL scheme: \(url)")
-    
+
+    // Verify this is IssieBoard, not IssieVoice
+    let bundleId = Bundle.main.bundleIdentifier ?? ""
+    guard !bundleId.contains("IssieVoice") else {
+      print("⚠️ IssieVoice ignoring issieboard:// URL - wrong app")
+      return false
+    }
+
     // Handle the issieboard:// URL scheme
     if url.scheme == "issieboard" {
       // The app is now open - keyboard extension successfully triggered this
@@ -54,10 +61,41 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
       if url.host == "settings" {
         // Navigate to settings screen if needed
         print("📱 Opening settings from keyboard extension")
+
+        // Extract the keyboard language parameter
+        if let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+           let queryItems = components.queryItems,
+           let keyboardParam = queryItems.first(where: { $0.name == "keyboard" })?.value {
+          print("📱 Keyboard language parameter: \(keyboardParam)")
+
+          // Save it to preferences so React Native can read it
+          let preferences = KeyboardPreferences()
+          preferences.setString(keyboardParam, forKey: "launch_keyboard")
+          print("📱 Saved launch_keyboard preference: \(keyboardParam)")
+
+          // Verify it was saved correctly
+          if let readBack = preferences.getString(forKey: "launch_keyboard") {
+            print("📱 ✅ Verified launch_keyboard was saved: \(readBack)")
+          } else {
+            print("📱 ❌ ERROR: launch_keyboard is nil after saving!")
+          }
+
+          // Post a Darwin notification to wake up React Native
+          CFNotificationCenterPostNotification(
+            CFNotificationCenterGetDarwinNotifyCenter(),
+            CFNotificationName("com.issieboard.launchKeyboard" as CFString),
+            nil,
+            nil,
+            true
+          )
+          print("📱 Posted Darwin notification for language switch")
+        } else {
+          print("📱 ⚠️ No keyboard parameter found in URL")
+        }
       }
       return true
     }
-    
+
     return false
   }
 }

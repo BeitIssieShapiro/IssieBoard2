@@ -302,6 +302,29 @@ class KeyboardPreferences {
 
     return subscription;
   }
+
+  /**
+   * Add listener for launch keyboard language changes
+   * Triggered when app is opened from keyboard extension with a language parameter
+   * Returns a subscription object with a remove() method
+   */
+  addLaunchKeyboardListener(callback: (language: string) => void): { remove: () => void } {
+    if (!keyboardPreferencesEmitter) {
+      return { remove: () => {} };
+    }
+
+    const subscription = keyboardPreferencesEmitter.addListener(
+      'onLaunchKeyboard',
+      (event: any) => {
+        console.log('📱 [KeyboardPreferences] Received onLaunchKeyboard event:', event);
+        if (event && event.language) {
+          callback(event.language);
+        }
+      }
+    );
+
+    return subscription;
+  }
 }
 
 export default new KeyboardPreferences();
