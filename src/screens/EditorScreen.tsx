@@ -1408,6 +1408,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
             keyboardVariants={currentLanguageDef.keyboards}
             currentKeyboardId={currentKeyboardId}
             onKeyboardVariantChange={handleKeyboardChange}
+            profileName={currentProfileName}
           />
         </View>
       </KeyboardAvoidingView>

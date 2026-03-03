@@ -1,31 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   TouchableOpacity,
   StyleSheet,
   Text,
   Modal,
-  TextInput,
   Pressable,
+  ScrollView,
 } from 'react-native';
+import WheelColorPicker from 'react-native-wheel-color-picker';
+import { customColorsManager } from '../../utils/customColorsManager';
 
 // Special value for system default
 export const SYSTEM_DEFAULT_COLOR = '';
 
-// Accessibility-friendly color presets
+// Basic vibrant colors (no pastels)
 const DEFAULT_PRESETS = [
   '#FFFFFF', // White
-  '#F44336', // Red
-  '#E91E63', // Pink
-  '#9C27B0', // Purple
-  '#3F51B5', // Indigo
-  '#2196F3', // Blue
-  '#4CAF50', // Green
-  '#FFEB3B', // Yellow
-  '#FF9800', // Orange
-  '#795548', // Brown
-  '#607D8B', // Blue Grey
   '#000000', // Black
+  '#808080', // Gray
+  '#C0C0C0', // Light Gray
+  '#404040', // Dark Gray
+  '#FF0000', // Red (pure)
+  '#00FF00', // Green (pure)
+  '#0000FF', // Blue (pure)
+  '#FFFF00', // Yellow (pure)
+  '#FF00FF', // Magenta (pure)
+  '#00FFFF', // Cyan (pure)
+  '#FF8000', // Orange
+  '#8000FF', // Purple
+  '#0080FF', // Sky Blue
+  '#FF0080', // Hot Pink
 ];
 
 interface ColorPickerProps {
@@ -49,6 +54,17 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
 }) => {
   const [showCustomModal, setShowCustomModal] = useState(false);
   const [customColor, setCustomColor] = useState(value);
+  const [customColors, setCustomColors] = useState<string[]>([]);
+
+  // Load custom colors on mount
+  useEffect(() => {
+    loadCustomColors();
+  }, []);
+
+  const loadCustomColors = async () => {
+    const colors = await customColorsManager.getCustomColors();
+    setCustomColors(colors);
+  };
 
   const handlePresetSelect = (color: string) => {
     onChange(color);
@@ -58,11 +74,17 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
     onChange(SYSTEM_DEFAULT_COLOR);
   };
 
-  const handleCustomSubmit = () => {
+  const handleCustomSubmit = async () => {
     // Validate hex color
     const isValidHex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(customColor);
     if (isValidHex) {
-      onChange(customColor.toUpperCase());
+      const normalizedColor = customColor.toUpperCase();
+      onChange(normalizedColor);
+
+      // Add to custom colors
+      await customColorsManager.addCustomColor(normalizedColor);
+      await loadCustomColors(); // Reload to show new color
+
       setShowCustomModal(false);
     }
   };
@@ -75,7 +97,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
   return (
     <View style={styles.container}>
       {label && <Text allowFontScaling={false} style={styles.label}>{label}</Text>}
-      
+
       <View style={styles.presetsRow}>
         {/* System Default Button */}
         {showSystemDefault && (
@@ -96,7 +118,8 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
             </Text>
           </TouchableOpacity>
         )}
-        
+
+        {/* Preset Colors */}
         {presets.map((color) => (
           <TouchableOpacity
             key={color}
@@ -118,23 +141,46 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
             )}
           </TouchableOpacity>
         ))}
-        
+
+        {/* Custom Colors (FIFO - most recent shown) - appear after presets */}
+        {customColors.map((color) => (
+          <TouchableOpacity
+            key={`custom-${color}`}
+            style={[
+              styles.colorCircle,
+              { backgroundColor: color },
+              isSelected(color) && styles.selectedCircle,
+              color === '#FFFFFF' && styles.whiteBorder,
+            ]}
+            onPress={() => handlePresetSelect(color)}
+            accessibilityLabel={`Select custom color ${color}`}
+            accessibilityRole="button"
+          >
+            {isSelected(color) && (
+              <View style={[
+                styles.checkmark,
+                { borderColor: color === '#FFFFFF' || color === '#FFEB3B' ? '#000' : '#FFF' }
+              ]} />
+            )}
+          </TouchableOpacity>
+        ))}
+
         {allowCustom && (
           <TouchableOpacity
             style={[styles.colorCircle, styles.customButton]}
             onPress={() => {
-              setCustomColor(value);
+              setCustomColor(value || '#FF5733');
               setShowCustomModal(true);
             }}
-            accessibilityLabel="Select custom color"
+            accessibilityLabel="Select custom color with color wheel"
             accessibilityRole="button"
           >
-            <Text allowFontScaling={false} style={styles.customButtonText}>...</Text>
+            <Text allowFontScaling={false} style={styles.customButtonText}>+</Text>
           </TouchableOpacity>
         )}
       </View>
 
-      {/* Custom Color Modal */}
+      {/* Color Wheel Modal */}
       <Modal
         visible={showCustomModal}
         transparent
@@ -142,28 +188,36 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
         supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']}
         onRequestClose={() => setShowCustomModal(false)}
       >
-        <Pressable 
+        <Pressable
           style={styles.modalOverlay}
           onPress={() => setShowCustomModal(false)}
         >
           <Pressable style={styles.modalContent} onPress={e => e.stopPropagation()}>
-            <Text allowFontScaling={false} style={styles.modalTitle}>Custom Color</Text>
-            
-            <View style={styles.customInputRow}>
-              <TextInput
-                style={styles.customInput}
-                value={customColor}
-                onChangeText={setCustomColor}
-                placeholder="#RRGGBB"
-                autoCapitalize="characters"
-                autoCorrect={false}
-                maxLength={7}
-              />
-              <View style={[styles.previewSwatch, { backgroundColor: customColor }]} />
-            </View>
-            
-            <Text allowFontScaling={false} style={styles.hint}>Enter a hex color code (e.g., #FF5733)</Text>
-            
+            <Text allowFontScaling={false} style={styles.modalTitle}>Pick a Color</Text>
+
+            <ScrollView contentContainerStyle={styles.scrollContent}>
+              <View style={styles.colorWheelContainer}>
+                <WheelColorPicker
+                  color={customColor}
+                  onColorChange={(color: string) => setCustomColor(color)}
+                  onColorChangeComplete={(color: string) => setCustomColor(color)}
+                  thumbSize={30}
+                  sliderSize={30}
+                  noSnap={true}
+                  row={false}
+                  swatchesLast={false}
+                  swatches={false}
+                  discrete={false}
+                />
+              </View>
+
+              <View style={styles.previewRow}>
+                <Text allowFontScaling={false} style={styles.previewLabel}>Selected Color:</Text>
+                <View style={[styles.previewSwatch, { backgroundColor: customColor }]} />
+                <Text allowFontScaling={false} style={styles.hexText}>{customColor.toUpperCase()}</Text>
+              </View>
+            </ScrollView>
+
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={[styles.modalButton, styles.cancelButton]}
@@ -231,7 +285,7 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
   },
   customButtonText: {
-    fontSize: 16,
+    fontSize: 20,
     color: '#666',
     fontWeight: 'bold',
   },
@@ -245,8 +299,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     borderRadius: 12,
     padding: 20,
-    width: '80%',
-    maxWidth: 300,
+    width: '85%',
+    maxWidth: 400,
+    maxHeight: '80%',
   },
   modalTitle: {
     fontSize: 18,
@@ -255,19 +310,29 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textAlign: 'center',
   },
-  customInputRow: {
+  scrollContent: {
+    alignItems: 'center',
+  },
+  colorWheelContainer: {
+    width: '100%',
+    aspectRatio: 1,
+    maxWidth: 300,
+    marginBottom: 20,
+  },
+  colorWheel: {
+    width: '100%',
+    height: '100%',
+  },
+  previewRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    marginBottom: 20,
   },
-  customInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    fontFamily: 'monospace',
+  previewLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
   },
   previewSwatch: {
     width: 48,
@@ -276,11 +341,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#DDD',
   },
-  hint: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 8,
-    marginBottom: 16,
+  hexText: {
+    fontSize: 14,
+    fontFamily: 'monospace',
+    color: '#666',
   },
   modalButtons: {
     flexDirection: 'row',

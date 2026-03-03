@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   Modal,
   TextInput,
   ScrollView,
+  Animated,
 } from 'react-native';
 import { useEditor } from '../../context/EditorContext';
 import { StyleGroup, KeyStyleOverride, KeyboardConfig, VisibilityMode } from '../../../types';
@@ -18,10 +19,12 @@ interface AddStyleRuleModalProps {
   visible: boolean;
   editingGroup: StyleGroup | null;
   initialSelectedKeys?: string[]; // Pre-selected key values when creating new rule
-  initialName?: string; // Pre-filled name when creating from template
-  initialBgColor?: string; // Pre-filled background color when creating from template
-  initialTextColor?: string; // Pre-filled text color when creating from template
-  initialVisibilityMode?: VisibilityMode; // Pre-filled visibility mode when creating from template
+  initialName?: string; // Pre-filled name when creating from preset
+  initialBgColor?: string; // Pre-filled background color when creating from preset
+  initialTextColor?: string; // Pre-filled text color when creating from preset
+  initialVisibilityMode?: VisibilityMode; // Pre-filled visibility mode when creating from preset
+  isPreset?: boolean; // If true, keys are locked (only colors can be edited)
+  profileName?: string; // Current profile name for breadcrumb
   onClose: () => void;
 }
 
@@ -33,6 +36,8 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
   initialBgColor,
   initialTextColor,
   initialVisibilityMode,
+  isPreset = false,
+  profileName,
   onClose,
 }) => {
   const { 
@@ -48,10 +53,9 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
   const [textColor, setTextColor] = useState('');
   const [visibilityMode, setVisibilityMode] = useState<VisibilityMode>('default');
 
-  // Get current keyboard language
-  const currentLanguage = useMemo(() => {
-    return state.config.defaultKeyboard || state.config.keyboards[0] || 'en';
-  }, [state.config]);
+  // Local toast display for this modal
+  const [localToastMessage, setLocalToastMessage] = useState<string | null>(null);
+  const localToastOpacity = useRef(new Animated.Value(0)).current;
 
   // Generate a unique name for new rules
   const generateRuleName = useCallback((): string => {
@@ -62,6 +66,27 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
     }
     return `rule-${counter}`;
   }, [state.styleGroups]);
+
+  // Show local toast within the modal
+  const showLocalToast = useCallback((message: string, duration: number = 2000) => {
+    setLocalToastMessage(message);
+
+    Animated.sequence([
+      Animated.timing(localToastOpacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.delay(duration),
+      Animated.timing(localToastOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setLocalToastMessage(null);
+    });
+  }, [localToastOpacity]);
 
   // Initialize state when modal opens (only on initial open, not on every editingGroup change)
   useEffect(() => {
@@ -95,21 +120,27 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
 
   // Handle key tap - toggle selection
   const handleKeyPress = useCallback((event: KeyPressEvent) => {
+    // If in preset mode, keys are locked - show toast in modal
+    if (isPreset && !editingGroup) {
+      showLocalToast('🔒 Keys locked. Only colors can be changed.', 2000);
+      return;
+    }
+
     const { type, value } = event.nativeEvent;
-    
+
     console.log(`[AddStyleRuleModal] handleKeyPress: type='${type}', value='${value}'`);
-    
+
     // Skip navigation/system keys that aren't selectable via tap
     if (type === 'keyset-changed' || type === 'next-keyboard' || type === 'language') {
       return;
     }
-    
+
     // Handle long-press on keyset/nikkud keys - the value contains the key type
     // This allows selecting keyset/nikkud keys for styling while they still function on tap
     if (type === 'longpress') {
       const keyType = value; // value is the key type (e.g., "keyset", "nikkud")
       if (!keyType) return;
-      
+
       setSelectedKeyValues(prev => {
         if (prev.includes(keyType)) {
           return prev.filter(k => k !== keyType);
@@ -119,21 +150,21 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
       });
       return;
     }
-    
+
     // Skip keyset and nikkud keys on regular tap - they should only be selectable via long-press
     if (type === 'keyset' || type === 'nikkud') {
       return;
     }
-    
+
     // For special keys (enter, shift, backspace, space), use the type as the value for storage
     // This ensures they can be selected and styled consistently
     const specialKeyTypes = ['enter', 'shift', 'backspace', 'space', 'settings', 'close'];
     const keyValue = specialKeyTypes.includes(type) ? type : (value || type);
-    
+
     if (!keyValue) return;
-    
+
     console.log(`[AddStyleRuleModal] Toggling key selection: '${keyValue}'`);
-    
+
     setSelectedKeyValues(prev => {
       if (prev.includes(keyValue)) {
         return prev.filter(k => k !== keyValue);
@@ -141,7 +172,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
         return [...prev, keyValue];
       }
     });
-  }, []);
+  }, [isPreset, editingGroup, showLocalToast]);
 
   const handleCancel = () => {
     onClose();
@@ -180,7 +211,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
   // DO NOT include other style groups - only show general settings + current group
   // IMPORTANT: In the modal preview, we DON'T apply visibility modes (hide/showOnly)
   // because we need all keys visible for selection/deselection.
-  // Use smaller key height for modal to fit without scaling
+  // Use smaller key height for modal to fit without scaling, and scale fontSize proportionally
   const previewConfig = useMemo((): KeyboardConfig => {
     const groups: any[] = [];
 
@@ -200,11 +231,18 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
       });
     }
 
+    // Scale fontSize proportionally to keyHeight reduction
+    const modalKeyHeight = 48;
+    const originalKeyHeight = state.config.keyHeight || 90;
+    const scaleFactor = modalKeyHeight / originalKeyHeight;
+    const scaledFontSize = Math.round((state.config.fontSize || 48) * scaleFactor);
+
     return {
       ...state.config,
       groups, // Only the current group being edited, not other groups
       wordSuggestionsEnabled: false, // Disable word suggestions in modal preview
-      keyHeight: 48, // Smaller key height for modal preview to fit without scaling
+      keyHeight: modalKeyHeight, // Smaller key height for modal preview to fit without scaling
+      fontSize: scaledFontSize, // Scale fontSize proportionally (e.g., 48 * (48/90) ≈ 26)
     };
   }, [state.config, selectedKeyValues, bgColor, textColor, visibilityMode]);
 
@@ -253,9 +291,16 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
         <View style={styles.modalContainer}>
           {/* Header with title and action buttons */}
           <View style={styles.header}>
-            <Text allowFontScaling={false} style={styles.headerTitle}>
-              {editingGroup ? 'Edit Keys Group' : 'New Keys Group'}
-            </Text>
+            <View style={styles.headerTitleContainer}>
+              {profileName && (
+                <Text allowFontScaling={false} style={styles.breadcrumb}>
+                  {profileName} →{' '}
+                </Text>
+              )}
+              <Text allowFontScaling={false} style={styles.headerTitle}>
+                {editingGroup ? editingGroup.name : (ruleName || (isPreset ? initialName : 'New Keys Group'))}
+              </Text>
+            </View>
             <View style={styles.headerActions}>
               <ActionButton
                 label="Cancel"
@@ -263,7 +308,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
                 onPress={handleCancel}
               />
               <ActionButton
-                label={editingGroup ? 'Save' : 'Create'}
+                label={editingGroup ? 'Save' : (isPreset ? 'Apply' : 'Create')}
                 color="green"
                 onPress={handleOk}
                 disabled={selectedKeyValues.length === 0}
@@ -271,22 +316,26 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
             </View>
           </View>
 
-          {/* Name input row */}
-          <View style={styles.nameRow}>
-            <Text allowFontScaling={false} style={styles.nameLabel}>Name:</Text>
-            <TextInput
-              style={styles.nameInput}
-              value={ruleName}
-              onChangeText={setRuleName}
-              placeholder="Enter group name..."
-            />
-          </View>
+          {/* Name input row - hidden for presets */}
+          {!isPreset && (
+            <View style={styles.nameRow}>
+              <Text allowFontScaling={false} style={styles.nameLabel}>Name:</Text>
+              <TextInput
+                style={styles.nameInput}
+                value={ruleName}
+                onChangeText={setRuleName}
+                placeholder="Enter group name..."
+              />
+            </View>
+          )}
 
           <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
             {/* Keyboard Preview */}
             <View style={styles.section}>
               <Text allowFontScaling={false} style={styles.sectionTitle}>
-                Tap keys to select/deselect ({selectedKeyValues.length} selected)
+                {isPreset && !editingGroup
+                  ? `Preset keys (${selectedKeyValues.length} keys locked)`
+                  : `Tap keys to select/deselect (${selectedKeyValues.length} selected)`}
               </Text>
               <View style={styles.previewContainer}>
                 <KeyboardPreview
@@ -340,16 +389,19 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
                 title="Text Color"
                 value={textColor}
                 onChange={setTextColor}
-                presets={[
-                  '#000000', '#FFFFFF', '#F44336', '#2196F3', 
-                  '#4CAF50', '#FF9800', '#9C27B0', '#607D8B',
-                ]}
                 showSystemDefault
                 systemDefaultLabel="Default"
               />
             )}
           </ScrollView>
         </View>
+
+        {/* Toast notification for locked keys (displayed inside modal) */}
+        {localToastMessage && (
+          <Animated.View style={[styles.toast, { opacity: localToastOpacity }]}>
+            <Text allowFontScaling={false} style={styles.toastText}>{localToastMessage}</Text>
+          </Animated.View>
+        )}
       </View>
     </Modal>
   );
@@ -384,10 +436,22 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
   },
+  headerTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 12,
+  },
+  breadcrumb: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#999',
+  },
   headerTitle: {
     fontSize: 17,
     fontWeight: 'bold',
     color: '#333',
+    flexShrink: 1,
   },
   headerActions: {
     flexDirection: 'row',
@@ -622,6 +686,23 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#999',
     fontFamily: 'monospace',
+  },
+  toast: {
+    position: 'absolute',
+    bottom: 40,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toastText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 

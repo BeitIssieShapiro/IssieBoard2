@@ -12,19 +12,6 @@ import { useEditor } from '../../context/EditorContext';
 import { ColorPickerRow } from '../shared/ColorPickerRow';
 import { ButtonGroupRow } from '../shared/ButtonGroupRow';
 
-// Text color presets
-const TEXT_COLOR_PRESETS = [
-  '#000000', '#FFFFFF', '#333333', '#666666',
-  '#1976D2', '#388E3C', '#D32F2F', '#7B1FA2',
-];
-
-// Background color presets
-const BACKGROUND_PRESETS = [
-  '#E0E0E0', '#FFFFFF', '#F5F5F5', '#263238',
-  '#1A237E', '#1B5E20', '#B71C1C', '#F3E5F5',
-  '#E8F5E9', '#FFF3E0', '#E3F2FD', '#FFEBEE',
-];
-
 export interface KeyboardVariantOption {
   id: string;
   name: string;
@@ -211,7 +198,6 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
         title="Keyboard Background"
         value={state.config.backgroundColor || ''}
         onChange={updateBackgroundColor}
-        presets={BACKGROUND_PRESETS}
         showSystemDefault
         systemDefaultLabel="Default"
       />
@@ -221,7 +207,6 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
         title="Keys Background"
         value={keysBgColor}
         onChange={updateKeysBgColor}
-        presets={BACKGROUND_PRESETS}
         showSystemDefault
         systemDefaultLabel="Default"
       />
@@ -231,7 +216,6 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
         title="Keys Text Color"
         value={textColor}
         onChange={updateTextColor}
-        presets={TEXT_COLOR_PRESETS}
         showSystemDefault
         systemDefaultLabel="Default"
       />

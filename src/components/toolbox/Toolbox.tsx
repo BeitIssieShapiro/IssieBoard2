@@ -47,14 +47,17 @@ export interface ToolboxProps {
   currentKeyboardId?: string;
   /** Callback when keyboard variant changes */
   onKeyboardVariantChange?: (keyboardId: string) => void;
+  /** Current profile name for breadcrumb display */
+  profileName?: string;
 }
 
 export const Toolbox: React.FC<ToolboxProps> = ({
   keyboardVariants,
   currentKeyboardId,
   onKeyboardVariantChange,
+  profileName,
 }) => {
-  const { state, clearSelection, createGroupFromValues } = useEditor();
+  const { state, clearSelection } = useEditor();
   const [showStyleRuleModal, setShowStyleRuleModal] = useState(false);
   const [showTemplatesModal, setShowTemplatesModal] = useState(false);
   const [editingGroup, setEditingGroup] = useState<StyleGroup | null>(null);
@@ -94,10 +97,10 @@ export const Toolbox: React.FC<ToolboxProps> = ({
   }, [clearSelection]);
 
   const handleTemplateSelect = useCallback((template: GroupTemplate) => {
-    // Close templates modal
+    // Close presets modal
     setShowTemplatesModal(false);
-    
-    // Store template data and open AddStyleRuleModal in CREATE mode
+
+    // Store template data and open AddStyleRuleModal in CREATE mode with preset flag
     setTemplateData(template);
     setEditingGroup(null); // Ensure we're in create mode
     setShowStyleRuleModal(true);
@@ -185,7 +188,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
         actionButton={
           <View onStartShouldSetResponder={() => true} style={{ flexDirection: 'row', gap: 8 }}>
             <ActionButton
-              label="Templates"
+              label="Presets"
               color="blue"
               icon="📋"
               onPress={() => setShowTemplatesModal(true)}
@@ -211,7 +214,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
         </AccordionSection>
       )}
 
-      {/* Templates Browser Modal */}
+      {/* Presets Browser Modal */}
       <Modal
         visible={showTemplatesModal}
         transparent
@@ -226,7 +229,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
         >
           <View style={styles.templatesModal} onStartShouldSetResponder={() => true}>
             <View style={styles.templatesHeader}>
-              <Text allowFontScaling={false} style={styles.templatesTitle}>📋 Keys Group Templates</Text>
+              <Text allowFontScaling={false} style={styles.templatesTitle}>📋 Keys Group Presets</Text>
               <TouchableOpacity onPress={() => setShowTemplatesModal(false)}>
                 <Text allowFontScaling={false} style={styles.templatesCloseButton}>✕</Text>
               </TouchableOpacity>
@@ -264,6 +267,8 @@ export const Toolbox: React.FC<ToolboxProps> = ({
         initialBgColor={templateData?.style.bgColor}
         initialTextColor={templateData?.style.color}
         initialVisibilityMode={templateData?.style.visibilityMode}
+        isPreset={!!templateData && !editingGroup} // Preset mode only when using template data and not editing
+        profileName={profileName}
         onClose={handleCloseModal}
       />
     </ScrollView>

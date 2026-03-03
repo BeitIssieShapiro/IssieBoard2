@@ -5,11 +5,11 @@ V- make height percent from screen
 V- yad-font (larger)
 V- remove "space" word
 V- wide gap between keys option
-- Default kb is read-only, when saving then it is a save-as
+V- Default kb is read-only, when saving then it is a save-as
 V- when changing the keyboard abc/qwerty.
 V- font of the keys: make it bolder
 V- in keygroup modal - remove keys:preview
-- key group from template: read-only, simplified, has also the profile-name at title+apply button
+V- key group from template: read-only, simplified, has also the profile-name at title+apply button
 
 
 Bugs:
