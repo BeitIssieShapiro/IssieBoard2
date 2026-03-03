@@ -241,7 +241,7 @@ const buildConfiguration = (profile: SavedProfileDefinition): KeyboardConfig => 
     fontSize: profile.fontSize,
     fontWeight: profile.fontWeight,
     keyGap: profile.keyGap,
-    keyHeight: profile.keyHeight,
+    keyHeight: profile.keyHeight && profile.keyHeight > 0 ? profile.keyHeight : undefined, // Ensure valid keyHeight or undefined for auto
     settingsButtonEnabled: profile.settingsButtonEnabled,
   } as KeyboardConfig;
 
