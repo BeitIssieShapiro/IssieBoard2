@@ -400,6 +400,17 @@ class KeyboardRenderer {
         self.config = config
         self.editorContext = editorContext
 
+        // CRITICAL: Remove all old keyboard subviews and their constraints before re-rendering
+        // Don't remove nikkud picker (tag 999) if it's showing
+        container.subviews.forEach { subview in
+            if subview.tag != 999 { // Preserve nikkud picker
+                subview.removeFromSuperview()
+            }
+        }
+
+        // Remove all constraints from container to start fresh
+        container.removeConstraints(container.constraints)
+
         // Apply configuration settings (gaps, font sizes, font weight)
         applyConfigurationSettings(config)
 
@@ -496,7 +507,8 @@ class KeyboardRenderer {
             rowsContainer.topAnchor.constraint(equalTo: container.topAnchor, constant: topOffset),
             rowsContainer.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -4)
         ])
-        
+
+        print("📐 Rows container constraints: topOffset=\(topOffset), container.bounds.height=\(container.bounds.height)")
         // Render each row
         var currentY: CGFloat = 0
         let availableWidth = container.bounds.width - 8

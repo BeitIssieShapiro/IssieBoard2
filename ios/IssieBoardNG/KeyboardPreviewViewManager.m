@@ -18,7 +18,7 @@ RCT_EXPORT_VIEW_PROPERTY(onKeyPress, RCTBubblingEventBlock)
 // Export the onSuggestionsChange event
 RCT_EXPORT_VIEW_PROPERTY(onSuggestionsChange, RCTBubblingEventBlock)
 
-// Export the disableDimensionStorage property
-RCT_EXPORT_VIEW_PROPERTY(disableDimensionStorage, BOOL)
+// Export the onHeightChange event
+RCT_EXPORT_VIEW_PROPERTY(onHeightChange, RCTBubblingEventBlock)
 
 @end

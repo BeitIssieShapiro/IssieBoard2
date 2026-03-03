@@ -6,17 +6,13 @@ import {
   Modal,
   TextInput,
   ScrollView,
-  Switch,
-  useWindowDimensions,
 } from 'react-native';
-import { useEditor, getKeyValueFromPositionId } from '../../context/EditorContext';
-import { StyleGroup, KeyStyleOverride, KeyboardConfig, VisibilityMode, PredefinedStyleRule } from '../../../types';
+import { useEditor } from '../../context/EditorContext';
+import { StyleGroup, KeyStyleOverride, KeyboardConfig, VisibilityMode } from '../../../types';
 import { ColorPickerRow } from '../shared/ColorPickerRow';
 import { ButtonGroupRow } from '../shared/ButtonGroupRow';
 import { KeyboardPreview, KeyPressEvent } from '../KeyboardPreview';
-import { getPredefinedRules, getAvailableLanguages } from '../../utils/predefinedRules';
 import { ActionButton } from '../shared/ActionButton';
-import KeyboardPreferences, { KeyboardDimensions } from '../../native/KeyboardPreferences';
 
 interface AddStyleRuleModalProps {
   visible: boolean;
@@ -51,30 +47,11 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
   const [bgColor, setBgColor] = useState('');
   const [textColor, setTextColor] = useState('');
   const [visibilityMode, setVisibilityMode] = useState<VisibilityMode>('default');
-  const [isActive, setIsActive] = useState(true);
-
-  // Predefined rules browsing state
-  const [showPredefinedRules, setShowPredefinedRules] = useState(false);
 
   // Get current keyboard language
   const currentLanguage = useMemo(() => {
     return state.config.defaultKeyboard || state.config.keyboards[0] || 'en';
   }, [state.config]);
-
-  // Get current language's predefined rules
-  const currentPredefinedRules = useMemo(() => {
-    return getPredefinedRules(currentLanguage);
-  }, [currentLanguage]);
-
-  // Handle applying a predefined rule
-  const handleApplyPredefinedRule = useCallback((rule: PredefinedStyleRule) => {
-    setRuleName(rule.name);
-    setSelectedKeyValues([...rule.members]);
-    setBgColor(rule.style.bgColor || '');
-    setTextColor(rule.style.color || '');
-    setVisibilityMode(rule.style.visibilityMode || 'default');
-    setShowPredefinedRules(false);
-  }, []);
 
   // Generate a unique name for new rules
   const generateRuleName = useCallback((): string => {
@@ -103,7 +80,6 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
         } else {
           setVisibilityMode('default');
         }
-        setIsActive(editingGroup.active !== false);
       } else {
         // New rule - use initial values if provided (from template)
         setRuleName(initialName || generateRuleName());
@@ -111,13 +87,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
         setBgColor(initialBgColor || '');
         setTextColor(initialTextColor || '');
         setVisibilityMode(initialVisibilityMode || 'default');
-        setIsActive(true);
       }
-      // Reset predefined rules browser state when opening
-      setShowPredefinedRules(false);
-    } else {
-      // Reset predefined rules browser state when closing
-      setShowPredefinedRules(false);
     }
     // Only run when modal visibility changes, not when editingGroup changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -196,11 +166,10 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
         name: ruleName.trim() || editingGroup.name,
         members: selectedKeyValues,
         style,
-        active: isActive,
       });
     } else {
       const name = ruleName.trim() || generateRuleName();
-      createGroupFromValues(name, selectedKeyValues, style, isActive);
+      createGroupFromValues(name, selectedKeyValues, style);
     }
 
     onClose();
@@ -211,13 +180,12 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
   // DO NOT include other style groups - only show general settings + current group
   // IMPORTANT: In the modal preview, we DON'T apply visibility modes (hide/showOnly)
   // because we need all keys visible for selection/deselection.
-  // Also respect the local isActive state (not applied to main editor until save)
+  // Use smaller key height for modal to fit without scaling
   const previewConfig = useMemo((): KeyboardConfig => {
     const groups: any[] = [];
 
-    // Only add current rule's style for selected keys if isActive is true
-    // This shows the preview effect of toggling active without affecting the main editor
-    if (selectedKeyValues.length > 0 && isActive) {
+    // Only add current rule's style for selected keys
+    if (selectedKeyValues.length > 0) {
       groups.push({
         name: '_current_rule_',
         items: selectedKeyValues,
@@ -236,24 +204,14 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
       ...state.config,
       groups, // Only the current group being edited, not other groups
       wordSuggestionsEnabled: false, // Disable word suggestions in modal preview
+      keyHeight: 48, // Smaller key height for modal preview to fit without scaling
     };
-  }, [state.config, selectedKeyValues, bgColor, textColor, visibilityMode, isActive]);
+  }, [state.config, selectedKeyValues, bgColor, textColor, visibilityMode]);
 
   const previewConfigJson = useMemo(() => JSON.stringify(previewConfig), [previewConfig]);
 
-  // Calculate dynamic height for modal preview based on number of rows
-  const modalPreviewHeight = useMemo(() => {
-    const activeKeyset = state.config.keysets.find(ks => ks.id === state.activeKeyset);
-    const numRows = activeKeyset?.rows?.length || 4;
-
-    // Height calculation (no suggestions bar in preview):
-    // - Each row: ~50px
-    // - Row spacing: ~10px between rows
-    const rowHeight = 50;
-    const rowSpacing = 10;
-
-    return (numRows * rowHeight) + ((numRows - 1) * rowSpacing);
-  }, [state.config.keysets, state.activeKeyset]);
+  // Simple fixed height for modal preview
+  const modalPreviewHeight = 200;
 
   // Build selected keys JSON for highlighting in the preview
   const selectedKeysJson = useMemo(() => {
@@ -280,21 +238,6 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
     }
     return JSON.stringify(positionIds);
   }, [selectedKeyValues, state.config.keysets]);
-
-  // Get display for a key value
-  const getKeyDisplay = (keyValue: string): string => {
-    const specialKeys: Record<string, string> = {
-      'backspace': '⌫',
-      'enter': '⏎',
-      'shift': '⇧',
-      'space': '␣',
-      'settings': '⚙️',
-      'close': '✕',
-      'keyset': '123',
-      'nikkud': 'ניקוד',
-    };
-    return specialKeys[keyValue] || keyValue;
-  };
 
   if (!visible) return null;
 
@@ -340,29 +283,17 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
           </View>
 
           <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-            {/* Keys with inline badges and Preview */}
+            {/* Keyboard Preview */}
             <View style={styles.section}>
-              <View style={styles.keysRow}>
-                <Text allowFontScaling={false} style={styles.sectionTitle}>Keys:</Text>
-                <View style={styles.inlineKeysList}>
-                  {selectedKeyValues.slice(0, 7).map((keyValue, index) => (
-                    <View key={index} style={styles.keyBadge}>
-                      <Text allowFontScaling={false} style={styles.keyBadgeText}>{getKeyDisplay(keyValue)}</Text>
-                    </View>
-                  ))}
-                  {selectedKeyValues.length > 7 && (
-                    <Text allowFontScaling={false} style={styles.ellipsisText}>...</Text>
-                  )}
-                </View>
-              </View>
-              {/* Keyboard Preview */}
+              <Text allowFontScaling={false} style={styles.sectionTitle}>
+                Tap keys to select/deselect ({selectedKeyValues.length} selected)
+              </Text>
               <View style={styles.previewContainer}>
                 <KeyboardPreview
                   key="modal-preview"
-                  style={[styles.keyboardPreview, { height: modalPreviewHeight }]}
+                  style={{ height: modalPreviewHeight }}
                   configJson={previewConfigJson}
                   selectedKeys={selectedKeysJson}
-                  disableDimensionStorage={true}
                   onKeyPress={handleKeyPress}
                 />
               </View>
@@ -417,20 +348,6 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
                 systemDefaultLabel="Default"
               />
             )}
-
-            {/* Active Toggle - at the end */}
-            <View style={styles.optionRow}>
-              <View style={styles.optionInfo}>
-                <Text allowFontScaling={false} style={styles.optionLabel}>Active</Text>
-                <Text allowFontScaling={false} style={styles.optionDescription}>Apply this rule to the keyboard</Text>
-              </View>
-              <Switch
-                value={isActive}
-                onValueChange={setIsActive}
-                trackColor={{ false: '#ccc', true: '#81C784' }}
-                thumbColor={isActive ? '#4CAF50' : '#f4f3f4'}
-              />
-            </View>
           </ScrollView>
         </View>
       </View>
@@ -555,27 +472,9 @@ const styles = StyleSheet.create({
   selectedKeysHeader: {
     marginBottom: 12,
   },
-  keysRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 12,
-  },
-  inlineKeysList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    flex: 1,
-  },
-  ellipsisText: {
-    fontSize: 13,
-    color: '#666',
-    fontWeight: '600',
-  },
   previewContainer: {
-    backgroundColor: '#FFF',
+    backgroundColor: '#CBCFD8',
     borderRadius: 12,
-    padding: 12,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -588,19 +487,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 6,
     marginTop: 8,
-  },
-  keyBadge: {
-    backgroundColor: '#E3F2FD',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: '#90CAF9',
-  },
-  keyBadgeText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#1976D2',
   },
   moreKeysText: {
     fontSize: 11,

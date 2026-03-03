@@ -651,6 +651,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     setCurrentKeyboardId(newKeyboardId);
 
     // Build new config with the new keyboard, keeping current profile ID
+    // IMPORTANT: Preserve ALL config properties including unsaved runtime changes
     const profileDef: SavedProfileDefinition = {
       id: currentProfileId,
       name: currentProfileName,
@@ -661,6 +662,15 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       groups: state.config.groups, // Keep groups - they use key values which work across layouts
       diacritics: state.config.diacriticsSettings,
       wordSuggestionsEnabled: state.config.wordSuggestionsEnabled,
+      autoCorrectEnabled: state.config.autoCorrectEnabled,
+      fontName: state.config.fontName,
+      fontSize: state.config.fontSize,
+      fontWeight: state.config.fontWeight,
+      keyGap: state.config.keyGap,
+      keyHeight: state.config.keyHeight,
+      keysBgColor: (state.config as any).keysBgColor,
+      textColor: (state.config as any).textColor,
+      settingsButtonEnabled: state.config.settingsButtonEnabled,
     };
     const newConfig = buildConfiguration(profileDef);
     // Keep style groups when switching keyboard variant
@@ -1185,8 +1195,8 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         style={styles.content}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={styles.canvasContainer}>
-          <InteractiveCanvas onTestInput={handleTestInput} height={windowHeight * .30} />
+        <View style={[styles.canvasContainer, { height: windowHeight * .38 }]}>
+          <InteractiveCanvas onTestInput={handleTestInput} height={windowHeight * .28 } />
         </View>
 
         <View style={styles.toolboxContainer}>

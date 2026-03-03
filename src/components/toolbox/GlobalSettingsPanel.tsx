@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   Switch,
+  TouchableOpacity,
+  TextInput,
 } from 'react-native';
 import { useEditor } from '../../context/EditorContext';
 import { ColorPickerRow } from '../shared/ColorPickerRow';
@@ -61,17 +63,42 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
     dispatch,
   } = useEditor();
 
-  // Get current settings
+  // Expandable advanced settings state
+  const [advancedExpanded, setAdvancedExpanded] = useState(false);
+
+  // Get current settings (moved before local state initialization)
   const textColor = (state.config as any).textColor || '';
   const keysBgColor = (state.config as any).keysBgColor || '';
   const wordSuggestionsEnabled = state.config.wordSuggestionsEnabled !== false;
   const autoCorrectEnabled = state.config.autoCorrectEnabled === true;
   const currentFontName = state.config.fontName;
+  const currentFontSize = state.config.fontSize;
+  const currentKeyHeight = state.config.keyHeight;
   const currentKeyGap = state.config.keyGap || 3;
   const settingsButtonEnabled = state.config.settingsButtonEnabled !== false;
 
-  // Check if current keyboard is Hebrew
-  const isHebrewKeyboard = currentKeyboardId === 'he';
+  // Local state for advanced settings (before committing)
+  const [localKeyHeight, setLocalKeyHeight] = useState<string>('');
+  const [localFontSize, setLocalFontSize] = useState<string>('');
+
+  // Debounce timers
+  const keyHeightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fontSizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Track if we've initialized (to prevent resetting while user is typing)
+  const initializedRef = useRef(false);
+
+  // Initialize local state from config only once
+  useEffect(() => {
+    if (!initializedRef.current) {
+      setLocalKeyHeight(currentKeyHeight?.toString() || '');
+      setLocalFontSize(currentFontSize?.toString() || '');
+      initializedRef.current = true;
+    }
+  }, [currentKeyHeight, currentFontSize]);
+
+  // Check if current keyboard is Hebrew (matches 'he', 'he_ordered', etc.)
+  const isHebrewKeyboard = currentKeyboardId?.startsWith('he') || false;
 
   // Font options for Hebrew keyboard
   const hebrewFontOptions: FontOption[] = [
@@ -103,6 +130,67 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
     });
     dispatch({ type: 'MARK_DIRTY' });
   };
+
+  const updateKeyHeight = (height: number | undefined) => {
+    const updatedConfig = { ...state.config, keyHeight: height };
+    dispatch({
+      type: 'SET_CONFIG',
+      payload: { config: updatedConfig, styleGroups: state.styleGroups },
+    });
+    dispatch({ type: 'MARK_DIRTY' });
+  };
+
+  // Debounced key height update
+  const handleKeyHeightChange = (text: string) => {
+    setLocalKeyHeight(text);
+
+    // Clear existing timer
+    if (keyHeightTimerRef.current) {
+      clearTimeout(keyHeightTimerRef.current);
+    }
+
+    // Set new timer to commit after 1 second
+    keyHeightTimerRef.current = setTimeout(() => {
+      const num = parseInt(text, 10);
+      if (text === '' || text === '0') {
+        updateKeyHeight(undefined);
+      } else if (!isNaN(num) && num >= 10 && num <= 180) {
+        updateKeyHeight(num);
+      }
+    }, 1000);
+  };
+
+  // Debounced font size update
+  const handleFontSizeChange = (text: string) => {
+    setLocalFontSize(text);
+
+    // Clear existing timer
+    if (fontSizeTimerRef.current) {
+      clearTimeout(fontSizeTimerRef.current);
+    }
+
+    // Set new timer to commit after 1 second
+    fontSizeTimerRef.current = setTimeout(() => {
+      const num = parseInt(text, 10);
+      if (text === '' || text === '0') {
+        updateFontSize(undefined);
+      } else if (!isNaN(num) && num >= 10 && num <= 100) {
+        updateFontSize(num);
+      }
+    }, 1000);
+  };
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (keyHeightTimerRef.current) {
+        clearTimeout(keyHeightTimerRef.current);
+      }
+      if (fontSizeTimerRef.current) {
+        clearTimeout(fontSizeTimerRef.current);
+      }
+    };
+  }, []);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -238,6 +326,62 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
           />
         </View>
       </View>
+
+      {/* 8. Advanced Settings (Expandable) */}
+      <View style={styles.section}>
+        <TouchableOpacity
+          style={styles.advancedHeader}
+          onPress={() => setAdvancedExpanded(!advancedExpanded)}
+          activeOpacity={0.7}
+        >
+          <Text allowFontScaling={false} style={styles.advancedTitle}>
+            Advanced Settings
+          </Text>
+          <Text allowFontScaling={false} style={styles.advancedArrow}>
+            {advancedExpanded ? '▼' : '▶'}
+          </Text>
+        </TouchableOpacity>
+
+        {advancedExpanded && (
+          <View style={styles.advancedContent}>
+            {/* Key Height */}
+            <View style={styles.advancedRow}>
+              <View style={styles.advancedInfo}>
+                <Text allowFontScaling={false} style={styles.advancedLabel}>Key Height</Text>
+                <Text allowFontScaling={false} style={styles.advancedDescription}>
+                  Height of keys in points (10-180, default: auto)
+                </Text>
+              </View>
+              <TextInput
+                style={styles.numberInput}
+                value={localKeyHeight}
+                placeholder="Auto"
+                placeholderTextColor="#999"
+                keyboardType="numeric"
+                onChangeText={handleKeyHeightChange}
+              />
+            </View>
+
+            {/* Font Size */}
+            <View style={styles.advancedRow}>
+              <View style={styles.advancedInfo}>
+                <Text allowFontScaling={false} style={styles.advancedLabel}>Font Size</Text>
+                <Text allowFontScaling={false} style={styles.advancedDescription}>
+                  Text size in points (10-100, default: auto)
+                </Text>
+              </View>
+              <TextInput
+                style={styles.numberInput}
+                value={localFontSize}
+                placeholder="Auto"
+                placeholderTextColor="#999"
+                keyboardType="numeric"
+                onChangeText={handleFontSizeChange}
+              />
+            </View>
+          </View>
+        )}
+      </View>
     </ScrollView>
   );
 };
@@ -277,10 +421,67 @@ const styles = StyleSheet.create({
     fontWeight: '500', 
     color: '#333',
   },
-  featureDescription: { 
-    fontSize: 12, 
-    color: '#666', 
+  featureDescription: {
+    fontSize: 12,
+    color: '#666',
     marginTop: 4,
+  },
+  advancedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#E3F2FD',
+    padding: 14,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  advancedTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1976D2',
+  },
+  advancedArrow: {
+    fontSize: 12,
+    color: '#1976D2',
+  },
+  advancedContent: {
+    marginTop: -10,
+    marginBottom: 10,
+  },
+  advancedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F5F5F5',
+    padding: 14,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  advancedInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  advancedLabel: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#333',
+  },
+  advancedDescription: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+  },
+  numberInput: {
+    width: 80,
+    height: 40,
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 8,
+    backgroundColor: '#FFF',
+    paddingHorizontal: 12,
+    fontSize: 15,
+    textAlign: 'center',
+    color: '#333',
   },
 });
 

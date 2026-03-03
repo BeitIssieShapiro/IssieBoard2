@@ -2,7 +2,6 @@ import React, { useMemo, useCallback, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
 import { KeyboardPreview, KeyPressEvent } from '../KeyboardPreview';
 import { useEditor } from '../../context/EditorContext';
-import KeyboardPreferences, { KeyboardDimensions } from '../../native/KeyboardPreferences';
 
 // Helper to cycle to next keyset of the same type across keyboards
 const getNextKeysetId = (
@@ -55,41 +54,19 @@ const LANGUAGE_NAMES: Record<string, string> = {
 
 export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInput, height }) => {
   const { state, dispatch } = useEditor();
-  const [keyboardDimensions, setKeyboardDimensions] = useState<KeyboardDimensions | null>(null);
-  const { width } = useWindowDimensions();
+  const [keyboardHeight, setKeyboardHeight] = useState<number>(height);
+  const [scale, setScale] = useState<number>(1);
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
 
-  // Listen for keyboard dimensions changes from native
+  // Recalculate scale when container height changes
   useEffect(() => {
-    // Get initial dimensions
-    const fetchInitialDimensions = async () => {
-      try {
-        const dims = await KeyboardPreferences.getKeyboardDimensions();
-        console.log("📐 Initial keyboard dimensions fetch result:", dims);
-        if (dims) {
-          console.log("📐 Setting dimensions:", dims);
-          setKeyboardDimensions(dims);
-        } else {
-          console.log("📐 No dimensions available yet - keyboard hasn't been opened");
-        }
-      } catch (error) {
-        console.error("📐 Error fetching dimensions:", error);
-      }
-    };
-
-    fetchInitialDimensions();
-
-    // Subscribe to dimension changes
-    console.log("📐 Subscribing to dimension changes...");
-    const subscription = KeyboardPreferences.addKeyboardDimensionsListener((dims) => {
-      console.log('📐 Keyboard dimensions changed event received:', dims);
-      setKeyboardDimensions(dims);
-    });
-
-    return () => {
-      console.log("📐 Unsubscribing from dimension changes");
-      subscription.remove();
-    };
-  }, []);
+    if (keyboardHeight > 0) {
+      const s = height / (keyboardHeight - 60);
+      const newScale = Math.min(s, 1);
+      console.log('📐 [InteractiveCanvas] Container height changed, recalculating scale:', { height, keyboardHeight, newScale });
+      setScale(newScale);
+    }
+  }, [height, keyboardHeight]);
 
   // Get language display name from keyboard ID
   const languageDisplayName = useMemo(() => {
@@ -98,6 +75,12 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
     const baseLanguage = keyboardId.split('_')[0];
     return LANGUAGE_NAMES[baseLanguage] || LANGUAGE_NAMES['en'] || 'English';
   }, [state.config.keyboards]);
+
+  const handleHeightChange = useCallback((event: any) => {
+    const { height: calculatedHeight } = event.nativeEvent;
+    console.log('📐 [InteractiveCanvas] Keyboard height changed from native:', calculatedHeight);
+    setKeyboardHeight(calculatedHeight);
+  }, []);
 
   const handleKeyPress = useCallback((event: KeyPressEvent) => {
     const { type, value, label } = event.nativeEvent;
@@ -186,42 +169,28 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
 
     // Return the base config with the current groups and filtered keysets
     // Disable word suggestions for preview
-    return {
+    // IMPORTANT: Preserve all config properties (keyHeight, fontSize, colors, etc.)
+    // Only scale fontSize if we're scaling down
+    const scaledConfig: KeyboardConfig = {
       ...state.config,
       keysets: filteredKeysets,
       groups: groupConfigs,
       wordSuggestionsEnabled: false,
     };
-  }, [state.config, state.styleGroups]);
+
+    // Only modify fontSize if we're actually scaling down and fontSize exists
+    if (scale < 1 && scaledConfig.fontSize) {
+      scaledConfig.fontSize = Math.round(scaledConfig.fontSize * scale);
+    }
+
+    return scaledConfig;
+  }, [state.config, state.styleGroups, scale]);
 
   const configJson = useMemo(() => {
     return JSON.stringify(configWithGroups);
   }, [configWithGroups]);
 
-  // Calculate the scale to fit keyboard in the available height and width
-  const scale = useMemo(() => {
-    if (!keyboardDimensions) return 1;
-
-    // Calculate scale for both dimensions
-    const heightScale = height / (keyboardDimensions.height-60);
-
-    // Use the smaller scale to fit both dimensions
-    const finalScale = Math.min(heightScale, 1); // Never scale up
-
-    console.log("📐 Scale calculation:", {
-      availableWidth: width,
-      availableHeight: height,
-      nativeWidth: keyboardDimensions.width,
-      nativeHeight: keyboardDimensions.height,
-      
-      heightScale,
-      finalScale
-    });
-
-    return finalScale;
-  }, [keyboardDimensions, height, width]);
-
-  console.log("kb scale", scale)
+  console.log("📐 [InteractiveCanvas] Render - keyboardHeight:", keyboardHeight, "containerHeight:", height, "scale:", scale, "windowWidth:", windowWidth);
 
   return (
     <>
@@ -233,27 +202,33 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
             {languageDisplayName}
           </Text>
         </View>
-        {keyboardDimensions && (
-          <Text allowFontScaling={false} style={styles.dimensionsText}>
-            {Math.round(keyboardDimensions.width)}×{Math.round(keyboardDimensions.height)}pt{scale < 1 && ` (${Math.round(scale * 100)}%)`}
-          </Text>
-        )}
+        <Text allowFontScaling={false} style={styles.dimensionsText}>
+          {Math.round(keyboardHeight)}pt
+        </Text>
       </View>
 
-      {/* Keyboard Preview with dynamic scaling */}
-      <View style={[styles.previewWrapper, {height}]}>
+      {/* Keyboard Preview */}
+      <View style={{
+        position: "absolute",
+        top: windowWidth < windowHeight ? 50 : 0,
+        left: 5,
+        transform: [
+          { scale },
+          { translateY: -keyboardHeight * (1 - scale) / 2 }
+        ]
+      }}>
         <KeyboardPreview
-          key="editor-preview"
+          key={`editor-preview-${windowWidth}`}
           style={[
             styles.preview,
             {
-              height: keyboardDimensions?.height || height,
-              width: keyboardDimensions?.width || width,
-              transform: [{ scale }],
+              height: keyboardHeight,
+              width: windowWidth - 60,
             }
           ]}
           configJson={configJson}
           onKeyPress={handleKeyPress}
+          onHeightChange={handleHeightChange}
         />
       </View>
     </>
@@ -261,20 +236,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
 };
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: 'transparent',
-  },
-  previewCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
 
-  },
   previewHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -307,7 +269,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    width:"100%",
+    width: "100%",
   },
   preview: {
     overflow: 'hidden',
