@@ -41,7 +41,7 @@ import { buildKeyboardConfig, SourceKeyboard, mergeCommonKeysets, getCommonKeyse
 // This value is used when creating new profiles or loading factory defaults
 const FACTORY_DEFAULT_KEY_HEIGHT: number | null = 90;  // Change this to test different heights
 // Default font size for factory-default profiles (set to null to use system default)
-const FACTORY_DEFAULT_FONT_SIZE: number | null = 34;  // Change this to test different font sizes
+const FACTORY_DEFAULT_FONT_SIZE: number | null = 48;  // Change this to test different font sizes
 // ============================================
 
 // Language definitions
@@ -1465,6 +1465,8 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
       keyboardId: currentKeyboardId,
       backgroundColor: 'default',
       groups: [],
+      fontWeight: 'heavy', // Default to heavy font weight
+      // fontSize not set - will use native default (48)
     };
 
     // Save the new profile

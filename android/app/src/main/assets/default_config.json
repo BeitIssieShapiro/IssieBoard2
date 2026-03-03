@@ -3,7 +3,7 @@
   "defaultKeyset": "he_abc",
   "wordSuggestionsEnabled": true,
   "autoCorrectEnabled": false,
-  "fontWeight": "bold",
+  "fontWeight": "heavy",
   "keyGap": 3,
   "keyboards": [
     "he",
@@ -1927,6 +1927,5 @@
       "simpleMode": true
     }
   },
-  "keyHeight": 90,
-  "fontSize": 24
+  "keyHeight": 90
 }

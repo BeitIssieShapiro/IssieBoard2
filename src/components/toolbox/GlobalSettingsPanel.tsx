@@ -58,12 +58,13 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
     updateAutoCorrect,
     updateFontName,
     updateFontSize,
+    updateFontWeight,
     updateKeyGap,
     updateSettingsButton,
     dispatch,
   } = useEditor();
 
-  // Expandable advanced settings state
+  // Expandable advanced settings state (default to expanded)
   const [advancedExpanded, setAdvancedExpanded] = useState(false);
 
   // Get current settings (moved before local state initialization)
@@ -73,6 +74,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
   const autoCorrectEnabled = state.config.autoCorrectEnabled === true;
   const currentFontName = state.config.fontName;
   const currentFontSize = state.config.fontSize;
+  const currentFontWeight = state.config.fontWeight || 'heavy'; // Default to heavy
   const currentKeyHeight = state.config.keyHeight;
   const currentKeyGap = state.config.keyGap || 3;
   const settingsButtonEnabled = state.config.settingsButtonEnabled !== false;
@@ -111,6 +113,16 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
     { id: 'regular', label: 'Regular', value: 3 },
     { id: 'medium', label: 'Medium', value: 8 },
     { id: 'large', label: 'Large', value: 16 },
+  ];
+
+  // Font weight options
+  const fontWeightOptions = [
+    { id: 'light', label: 'Light', value: 'light' as const },
+    { id: 'regular', label: 'Regular', value: 'regular' as const },
+    { id: 'medium', label: 'Medium', value: 'medium' as const },
+    { id: 'semibold', label: 'Semibold', value: 'semibold' as const },
+    { id: 'bold', label: 'Bold', value: 'bold' as const },
+    { id: 'heavy', label: 'Heavy', value: 'heavy' as const },
   ];
 
   const updateTextColor = (color: string) => {
@@ -377,6 +389,24 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
                 placeholderTextColor="#999"
                 keyboardType="numeric"
                 onChangeText={handleFontSizeChange}
+              />
+            </View>
+
+            {/* Font Weight */}
+            <View style={styles.section}>
+              <ButtonGroupRow
+                title="Font Weight"
+                options={fontWeightOptions.map(opt => ({
+                  id: opt.id,
+                  label: opt.label,
+                }))}
+                selectedId={fontWeightOptions.find(opt => opt.value === currentFontWeight)?.id || 'bold'}
+                onSelect={(id) => {
+                  const option = fontWeightOptions.find(o => o.id === id);
+                  if (option) {
+                    updateFontWeight(option.value);
+                  }
+                }}
               />
             </View>
           </View>

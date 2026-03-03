@@ -35,10 +35,10 @@ const DEFAULT_KEY_HEIGHT = 90;  // Change this to test different heights (e.g., 
 const DEFAULT_KEY_GAP = 3;
 
 // Default font weight for all keyboards
-const DEFAULT_FONT_WEIGHT = 'bold';
+const DEFAULT_FONT_WEIGHT = 'heavy';
 
-// Default font size in points (set to null to use system default)
-const DEFAULT_FONT_SIZE = 24;  // Change this to test different font sizes (e.g., 24)
+// Default font size in points (set to null to use native default of 48)
+const DEFAULT_FONT_SIZE = null;  // null means use native default (48pt)
 
 // ============================================
 

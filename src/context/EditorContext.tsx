@@ -84,6 +84,7 @@ type EditorAction =
   | { type: 'UPDATE_AUTO_CORRECT'; payload: boolean }
   | { type: 'UPDATE_FONT_NAME'; payload: string | undefined }
   | { type: 'UPDATE_FONT_SIZE'; payload: number | undefined }
+  | { type: 'UPDATE_FONT_WEIGHT'; payload: 'ultraLight' | 'thin' | 'light' | 'regular' | 'medium' | 'semibold' | 'bold' | 'heavy' | 'black' | undefined }
   | { type: 'UPDATE_KEY_GAP'; payload: number | undefined }
   | { type: 'UPDATE_SETTINGS_BUTTON'; payload: boolean }
   | { type: 'MARK_SAVED' }
@@ -438,6 +439,14 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       };
     }
 
+    case 'UPDATE_FONT_WEIGHT': {
+      return {
+        ...state,
+        config: { ...state.config, fontWeight: action.payload },
+        isDirty: true,
+      };
+    }
+
     case 'UPDATE_KEY_GAP': {
       return {
         ...state,
@@ -483,6 +492,9 @@ const createInitialState = (
     groups: [],
     keyboards: [],
     defaultKeyboard: 'en',
+    fontWeight: 'heavy', // Default to heavy font weight
+    fontSize: 48,
+    // fontSize not set - will use native default (48)
   },
   styleGroups: styleGroups || [],
   isDirty: false,
@@ -550,6 +562,7 @@ interface EditorContextValue {
   updateAutoCorrect: (enabled: boolean) => void;
   updateFontName: (fontName: string | undefined) => void;
   updateFontSize: (fontSize: number | undefined) => void;
+  updateFontWeight: (fontWeight: 'ultraLight' | 'thin' | 'light' | 'regular' | 'medium' | 'semibold' | 'bold' | 'heavy' | 'black' | undefined) => void;
   updateKeyGap: (keyGap: number | undefined) => void;
   updateSettingsButton: (enabled: boolean) => void;
   markDirty: () => void;
@@ -674,6 +687,10 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
     dispatch({ type: 'UPDATE_FONT_SIZE', payload: fontSize });
   }, []);
 
+  const updateFontWeight = useCallback((fontWeight: 'ultraLight' | 'thin' | 'light' | 'regular' | 'medium' | 'semibold' | 'bold' | 'heavy' | 'black' | undefined) => {
+    dispatch({ type: 'UPDATE_FONT_WEIGHT', payload: fontWeight });
+  }, []);
+
   const updateKeyGap = useCallback((keyGap: number | undefined) => {
     dispatch({ type: 'UPDATE_KEY_GAP', payload: keyGap });
   }, []);
@@ -713,6 +730,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
     updateAutoCorrect,
     updateFontName,
     updateFontSize,
+    updateFontWeight,
     updateKeyGap,
     updateSettingsButton,
     markDirty,

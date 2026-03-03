@@ -128,8 +128,8 @@ class KeyboardRenderer {
     private let rowSpacing: CGFloat = 0       // No spacing between row tap areas (visual gap from keyInternalPadding)
     private let keyVerticalPadding: CGFloat = 5  // Vertical padding for visual gap between rows (2px more than horizontal)
     private let keyCornerRadius: CGFloat = 5
-    private let defaultFontSize: CGFloat = 24  // Default font size - configurable via fontSize
-    private var fontWeight: UIFont.Weight = .regular  // Font weight - configurable
+    private let defaultFontSize: CGFloat = 34  // Default font size - configurable via fontSize
+    private var fontWeight: UIFont.Weight = .heavy  // Font weight - configurable (default: heavy)
     private let suggestionsBarHeight: CGFloat = 40
     private let suggestionsFontSize: CGFloat = 26  // Larger than key font (24) for better readability
     

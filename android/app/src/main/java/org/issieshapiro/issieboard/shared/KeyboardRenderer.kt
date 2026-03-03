@@ -151,8 +151,8 @@ class KeyboardRenderer(private val context: Context) {
     private val keyInternalPadding: Int = dpToPx(3)
     private val rowSpacing: Int = 0
     private val keyCornerRadius: Float = dpToPx(5).toFloat()
-    private val fontSize: Float = 24f
-    private val largeFontSize: Float = 28f
+    private val fontSize: Float = 34f
+    private val largeFontSize: Float = 38f
     private val suggestionsBarHeight: Int = dpToPx(40)
     
     // Suggestions bar view reference for updates
@@ -1128,7 +1128,7 @@ class KeyboardRenderer(private val context: Context) {
                     if (fontName != null) {
                         // Load font from assets/fonts/
                         val typeface = Typeface.createFromAsset(context.assets, "fonts/$fontName")
-                        setTypeface(typeface, Typeface.NORMAL)
+                        setTypeface(typeface, Typeface.BOLD)  // Default to bold (heavy not available in Android Typeface)
                         // Add spacing for single character labels when using custom font to prevent glyph cutoff
                         if (finalText.length == 1) {
                             text = " $finalText "
@@ -1136,10 +1136,10 @@ class KeyboardRenderer(private val context: Context) {
                     }
                 } catch (e: Exception) {
                     debugLog("⚠️ Failed to load custom font: ${e.message}")
-                    setTypeface(typeface, Typeface.NORMAL)
+                    setTypeface(typeface, Typeface.BOLD)  // Default to bold (heavy not available in Android Typeface)
                 }
             } else {
-                setTypeface(typeface, Typeface.NORMAL)
+                setTypeface(typeface, Typeface.BOLD)  // Default to bold (heavy not available in Android Typeface)
             }
         }
         
