@@ -246,9 +246,13 @@ class KeyboardEngine(
     }
 
     private fun handleBackspace() {
-        // Check if text is already empty before deleting
+        // Check if there's any text or selection to delete
+        // Check both if there's text before cursor OR if there's a text selection
         val beforeText = textProxy.documentContextBeforeInput ?: ""
-        if (beforeText.isEmpty()) {
+        val selectedText = textProxy.getSelectedText(0)
+        val hasText = beforeText.isNotEmpty() || !selectedText.isNullOrEmpty()
+
+        if (!hasText) {
             return
         }
 

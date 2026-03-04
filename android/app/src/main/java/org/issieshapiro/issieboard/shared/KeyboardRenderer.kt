@@ -148,13 +148,17 @@ class KeyboardRenderer(private val context: Context) {
             return dpToPx(54)
         }
     private val keySpacing: Int = 0
-    private val keyInternalPadding: Int = dpToPx(3)
     private val rowSpacing: Int = 0
     private val keyCornerRadius: Float = dpToPx(5).toFloat()
     private val fontSize: Float = 34f
     private val largeFontSize: Float = 38f
     private val suggestionsBarHeight: Int = dpToPx(40)
-    
+
+    // Get key gap from config or use default
+    private fun getKeyGap(): Int {
+        return config?.keyGap?.let { dpToPx(it) } ?: dpToPx(3)
+    }
+
     // Suggestions bar view reference for updates
     private var suggestionsBar: ViewGroup? = null
     
@@ -170,7 +174,20 @@ class KeyboardRenderer(private val context: Context) {
     private val nikkudPickerController = NikkudPickerController(context)
     
     // MARK: - Helper Methods for Default Colors
-    
+
+    /** Get font weight from config string, fallback to BOLD for heavy */
+    private fun getFontWeight(): Int {
+        return when (config?.fontWeight?.lowercase()) {
+            "ultralight", "thin" -> Typeface.NORMAL  // Android doesn't have ultra-light
+            "light" -> Typeface.NORMAL
+            "regular" -> Typeface.NORMAL
+            "medium" -> Typeface.NORMAL
+            "semibold", "bold" -> Typeface.BOLD
+            "heavy", "black" -> Typeface.BOLD  // Android BOLD is closest to heavy
+            else -> Typeface.BOLD  // Default to BOLD (matches iOS heavy)
+        }
+    }
+
     /** Get default text color from config, fallback to black */
     private fun getDefaultTextColor(): Int {
         val config = config ?: return Color.BLACK
@@ -819,12 +836,17 @@ class KeyboardRenderer(private val context: Context) {
             // Generate key identifier for selection checking
             val keyId = "$keysetId:$rowIndex:$keyIndex"
             val isSelected = selectedKeyIds.contains(keyId)
-            
+
             // Check if key is hidden based on visibility rules (hide/showOnly)
             val keyValue = key.value ?: key.type ?: ""
             val isKeyHidden = isKeyHiddenByVisibility(parsedKey, keyValue, showOnlyKeys, groups)
-            
-            if (isKeyHidden) {
+
+            // In preview mode, render hidden keys with opacity instead of fully hiding them
+            // This allows users to see and select keys that will be hidden
+            val shouldRenderWithOpacity = isKeyHidden && isPreviewMode
+
+            if (isKeyHidden && !isPreviewMode) {
+                // Fully hidden - skip rendering (only when NOT in preview mode)
                 // Hidden key by showOnly/hide rules - ADD SPACER to preserve key positions
                 // These keys ARE counted in the baseline, so we need to create the gap
                 val hiddenWidth = ((parsedKey.width / baselineWidth) * availableWidth).toInt()
@@ -860,6 +882,16 @@ class KeyboardRenderer(private val context: Context) {
                     debugLog("📐 First key: width=$keyWidth, height=$rowHeight, caption='${parsedKey.caption}', value='${parsedKey.value}'")
                 }
                 val button = createKeyButton(parsedKey, keyWidth, rowHeight, editorContext, isSelected)
+
+                // Apply opacity to the button
+                // Priority: 1. If key would be hidden in preview mode (showOnly/hide), use 0.3
+                //           2. Otherwise use parsedKey.opacity (from explicit opacity property)
+                if (shouldRenderWithOpacity) {
+                    button.alpha = 0.3f
+                } else if (parsedKey.opacity < 1.0) {
+                    button.alpha = parsedKey.opacity.toFloat()
+                }
+
                 rowContainer.addView(button)
                 
                 // Track first visible key (using intended X position that includes hidden spacers)
@@ -1121,14 +1153,16 @@ class KeyboardRenderer(private val context: Context) {
             val isAbcKeyset = currentKeysetId.endsWith("_abc") || currentKeysetId == "abc"
             
             val shouldUseCustomFont = isCharacterKey && isAbcKeyset && config?.fontName != null
-            
+
+            val fontWeight = getFontWeight()
+
             if (shouldUseCustomFont) {
                 try {
                     val fontName = config?.fontName
                     if (fontName != null) {
                         // Load font from assets/fonts/
                         val typeface = Typeface.createFromAsset(context.assets, "fonts/$fontName")
-                        setTypeface(typeface, Typeface.BOLD)  // Default to bold (heavy not available in Android Typeface)
+                        setTypeface(typeface, fontWeight)
                         // Add spacing for single character labels when using custom font to prevent glyph cutoff
                         if (finalText.length == 1) {
                             text = " $finalText "
@@ -1136,10 +1170,10 @@ class KeyboardRenderer(private val context: Context) {
                     }
                 } catch (e: Exception) {
                     debugLog("⚠️ Failed to load custom font: ${e.message}")
-                    setTypeface(typeface, Typeface.BOLD)  // Default to bold (heavy not available in Android Typeface)
+                    setTypeface(typeface, fontWeight)
                 }
             } else {
-                setTypeface(typeface, Typeface.BOLD)  // Default to bold (heavy not available in Android Typeface)
+                setTypeface(typeface, fontWeight)
             }
         }
         
@@ -1184,15 +1218,19 @@ class KeyboardRenderer(private val context: Context) {
                 FrameLayout.LayoutParams.MATCH_PARENT
             ))
         }
-        
+
+        // Get key gap from config or use defaults (matching iOS logic)
+        val horizontalGap = getKeyGap()
+        val verticalGap = horizontalGap + dpToPx(2)  // Vertical padding is slightly larger (2dp more than horizontal)
+
         // Add visual key view with padding
         buttonContainer.addView(visualKeyView, FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.MATCH_PARENT,
             FrameLayout.LayoutParams.MATCH_PARENT
         ).apply {
-            setMargins(keyInternalPadding, keyInternalPadding, keyInternalPadding, keyInternalPadding)
+            setMargins(horizontalGap, verticalGap, horizontalGap, verticalGap)
         })
-        
+
         // Check if we're in selection/preview mode (edit mode in modal)
         val isSelectionMode = onKeyLongPress != null
         

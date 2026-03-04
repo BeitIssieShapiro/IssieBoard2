@@ -25,7 +25,9 @@ data class KeyboardConfig(
     val autoCorrectEnabled: Boolean? = null,  // Enable/disable auto-correct on space (default: false)
     val fontName: String? = null,  // Custom font name to use for character keys (e.g., 'DanaYadAlefAlefAlef-Normal.otf')
     val keyHeight: Int? = null,  // Custom key height in dp (overrides default 54dp)
-    val fontSize: Int? = null  // Global font size for all keys (overrides defaults)
+    val keyGap: Int? = null,  // Gap between keys in dp (default: 3dp)
+    val fontSize: Int? = null,  // Global font size for all keys (overrides defaults)
+    val fontWeight: String? = null  // Font weight: "ultraLight", "thin", "light", "regular", "medium", "semibold", "bold", "heavy", "black" (default: "heavy")
 ) {
     /** Check if word suggestions are enabled (defaults to true if not specified) */
     val isWordSuggestionsEnabled: Boolean
@@ -62,6 +64,7 @@ data class Key(
     val width: Double? = null,
     val offset: Double? = null,
     val hidden: Boolean? = null,
+    val opacity: Double? = null,  // Key opacity (0.0 = fully transparent, 1.0 = fully opaque). Useful for preview mode to show semi-hidden keys.
     val color: String? = null,
     val bgColor: String? = null,
     val fontSize: Double? = null,  // Custom font size for this key (overrides default)
@@ -240,8 +243,10 @@ data class GroupTemplate(
     val offset: Double? = null,
     val hidden: Boolean? = null,  // Backward compatibility
     val visibilityMode: String? = null,  // New tri-state visibility ("default", "hide", "showOnly")
+    val opacity: Double? = null,  // Key opacity (0.0 = fully transparent, 1.0 = fully opaque). Useful for preview mode to show semi-hidden keys.
     val color: String? = null,
-    val bgColor: String? = null
+    val bgColor: String? = null,
+    val fontSize: Double? = null  // Font size for keys in this group
 ) {
     /** Get effective visibility mode (handles backward compatibility with hidden boolean) */
     val effectiveVisibilityMode: VisibilityMode
@@ -293,6 +298,7 @@ data class ParsedKey(
     val width: Double,
     val offset: Double,
     val hidden: Boolean,
+    val opacity: Double,  // Key opacity (0.0-1.0), defaults to 1.0
     val textColor: Int,
     val backgroundColor: Int,
     val fontSize: Double?,  // Custom font size (null = use default)
@@ -328,10 +334,13 @@ data class ParsedKey(
             
             // Resolve offset
             val offset = key.offset ?: groupTemplate?.offset ?: 0.0
-            
+
             // Resolve hidden
             val hidden = key.hidden ?: groupTemplate?.hidden ?: false
-            
+
+            // Resolve opacity (defaults to 1.0 for fully opaque)
+            val opacity = key.opacity ?: groupTemplate?.opacity ?: 1.0
+
             // Resolve colors
             val textColorString = key.color ?: groupTemplate?.color
             val textColor = if (!textColorString.isNullOrEmpty()) {
@@ -339,14 +348,14 @@ data class ParsedKey(
             } else {
                 defaultTextColor
             }
-            
+
             val bgColorString = key.bgColor ?: groupTemplate?.bgColor
             val backgroundColor = if (!bgColorString.isNullOrEmpty()) {
                 parseColor(bgColorString) ?: defaultBgColor
             } else {
                 defaultBgColor
             }
-            
+
             return ParsedKey(
                 value = value,
                 sValue = sValue,
@@ -356,6 +365,7 @@ data class ParsedKey(
                 width = width,
                 offset = offset,
                 hidden = hidden,
+                opacity = opacity,
                 textColor = textColor,
                 backgroundColor = backgroundColor,
                 fontSize = key.fontSize,  // Pass through custom font size

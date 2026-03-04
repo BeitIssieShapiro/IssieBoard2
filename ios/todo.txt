@@ -62,3 +62,11 @@ Future Enhancements:
 
 - Suggestions/Completion:
   - newline after punk or space?
+
+
+IssieVoice:
+- Row for personal toolbar
+- Auto-detect rtl/ltr
+- emoji?
+- reuse issieboard settings
+- avoid system kb from showing
