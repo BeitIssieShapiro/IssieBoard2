@@ -101,6 +101,11 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
             }
             emitKeyPressEvent(eventData)
         }
+
+        r.onOpenSettings = {
+            // Emit open-settings event to React Native
+            emitOpenSettingsEvent()
+        }
         
         r.onKeyLongPress = { key ->
             // Emit long-press event for keyset/nikkud key selection in edit mode
@@ -334,16 +339,28 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
     
     private fun emitKeyPressEvent(eventData: WritableMap) {
         val reactContext = context as? ReactContext ?: return
-        
+
         // Use new architecture event dispatcher
         val surfaceId = UIManagerHelper.getSurfaceId(reactContext)
         val eventDispatcher = UIManagerHelper.getEventDispatcherForReactTag(reactContext, id)
-        
+
         eventDispatcher?.dispatchEvent(
             KeyPressEvent(surfaceId, id, eventData)
         )
     }
-    
+
+    private fun emitOpenSettingsEvent() {
+        val reactContext = context as? ReactContext ?: return
+
+        // Use new architecture event dispatcher
+        val surfaceId = UIManagerHelper.getSurfaceId(reactContext)
+        val eventDispatcher = UIManagerHelper.getEventDispatcherForReactTag(reactContext, id)
+
+        eventDispatcher?.dispatchEvent(
+            OpenSettingsEvent(surfaceId, id)
+        )
+    }
+
     // MARK: - Key Press Handling
     
     private fun handleKeyPress(key: ParsedKey) {
@@ -508,8 +525,22 @@ class KeyPressEvent(
     viewTag: Int,
     private val eventData: WritableMap
 ) : Event<KeyPressEvent>(surfaceId, viewTag) {
-    
+
     override fun getEventName(): String = "onKeyPress"
-    
+
     override fun getEventData(): WritableMap = eventData
+}
+
+/**
+ * Custom event class for open settings events
+ * Used with the new React Native architecture event system
+ */
+class OpenSettingsEvent(
+    surfaceId: Int,
+    viewTag: Int
+) : Event<OpenSettingsEvent>(surfaceId, viewTag) {
+
+    override fun getEventName(): String = "onOpenSettings"
+
+    override fun getEventData(): WritableMap = Arguments.createMap()
 }

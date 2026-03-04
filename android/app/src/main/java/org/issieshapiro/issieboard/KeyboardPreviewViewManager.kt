@@ -49,6 +49,7 @@ class KeyboardPreviewViewManager(
     override fun getExportedCustomDirectEventTypeConstants(): Map<String, Any>? {
         return MapBuilder.builder<String, Any>()
             .put("onKeyPress", MapBuilder.of("registrationName", "onKeyPress"))
+            .put("onOpenSettings", MapBuilder.of("registrationName", "onOpenSettings"))
             .build()
     }
 }
