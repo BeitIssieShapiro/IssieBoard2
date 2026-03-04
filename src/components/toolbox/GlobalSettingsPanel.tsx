@@ -8,7 +8,7 @@ import {
   TextInput,
 } from 'react-native';
 import { useEditor } from '../../context/EditorContext';
-import { ColorPickerRow } from '../shared/ColorPickerRow';
+import { CompactColorPicker } from '../shared/CompactColorPicker';
 import { ButtonGroupRow } from '../shared/ButtonGroupRow';
 import { ToggleSwitch } from '../shared/ToggleSwitch';
 
@@ -35,6 +35,10 @@ export interface GlobalSettingsPanelProps {
   advancedExpanded: boolean;
   /** Callback to toggle advanced settings */
   setAdvancedExpanded: (expanded: boolean) => void;
+  /** Features expanded state (controlled by parent) */
+  featuresExpanded: boolean;
+  /** Callback to toggle features */
+  setFeaturesExpanded: (expanded: boolean) => void;
 }
 
 export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
@@ -43,6 +47,8 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
   onKeyboardVariantChange,
   advancedExpanded,
   setAdvancedExpanded,
+  featuresExpanded,
+  setFeaturesExpanded,
 }) => {
   const {
     state,
@@ -196,32 +202,52 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* 1. Keyboard Background Color */}
-      <ColorPickerRow
-        title="Keyboard Background"
-        value={state.config.backgroundColor || ''}
-        onChange={updateBackgroundColor}
-        showSystemDefault
-        systemDefaultLabel="Default"
-      />
+      {/* Colors Section */}
+      <View style={styles.settingSection}>
+        <Text allowFontScaling={false} style={styles.settingTitle}>Colors</Text>
 
-      {/* 2. Keys Background Color */}
-      <ColorPickerRow
-        title="Keys Background"
-        value={keysBgColor}
-        onChange={updateKeysBgColor}
-        showSystemDefault
-        systemDefaultLabel="Default"
-      />
+        <View style={styles.colorsTable}>
+          {/* Header Row */}
+          <View style={styles.colorsHeaderRow}>
+            <Text allowFontScaling={false} style={styles.colorColumnHeader}>Background</Text>
+            <Text allowFontScaling={false} style={styles.colorColumnHeader}>Keys Background</Text>
+            <Text allowFontScaling={false} style={styles.colorColumnHeader}>Keys Text</Text>
+          </View>
 
-      {/* 3. Keys Text Color */}
-      <ColorPickerRow
-        title="Keys Text Color"
-        value={textColor}
-        onChange={updateTextColor}
-        showSystemDefault
-        systemDefaultLabel="Default"
-      />
+          {/* Color Buttons Row */}
+          <View style={styles.colorsButtonRow}>
+            <View style={styles.colorColumn}>
+              <CompactColorPicker
+                title=""
+                value={state.config.backgroundColor || ''}
+                onChange={updateBackgroundColor}
+                showSystemDefault
+                systemDefaultLabel="Default"
+              />
+            </View>
+
+            <View style={styles.colorColumn}>
+              <CompactColorPicker
+                title=""
+                value={keysBgColor}
+                onChange={updateKeysBgColor}
+                showSystemDefault
+                systemDefaultLabel="Default"
+              />
+            </View>
+
+            <View style={styles.colorColumn}>
+              <CompactColorPicker
+                title=""
+                value={textColor}
+                onChange={updateTextColor}
+                showSystemDefault
+                systemDefaultLabel="Default"
+              />
+            </View>
+          </View>
+        </View>
+      </View>
 
       {/* 4. Font (only for Hebrew) */}
       {isHebrewKeyboard && (
@@ -278,55 +304,71 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
         />
       )}
 
-      {/* 7. Features */}
+      {/* 7. Features (Collapsible) */}
       <View style={styles.section}>
-        <Text allowFontScaling={false} style={styles.settingTitle}>Features</Text>
-        <View style={styles.featureRow}>
-          <View style={styles.featureInfo}>
-            <Text allowFontScaling={false} style={styles.featureLabel}>Word Suggestions</Text>
-            <Text allowFontScaling={false} style={styles.featureDescription}>
-              Show word completion suggestions above keyboard
-            </Text>
+        <TouchableOpacity
+          style={styles.advancedHeader}
+          onPress={() => setFeaturesExpanded(!featuresExpanded)}
+          activeOpacity={0.7}
+        >
+          <Text allowFontScaling={false} style={styles.advancedTitle}>
+            Features
+          </Text>
+          <Text allowFontScaling={false} style={styles.advancedArrow}>
+            {featuresExpanded ? '▼' : '▶'}
+          </Text>
+        </TouchableOpacity>
+
+        {featuresExpanded && (
+          <View style={styles.advancedContent}>
+            <View style={styles.featureRow}>
+              <View style={styles.featureInfo}>
+                <Text allowFontScaling={false} style={styles.featureLabel}>Word Suggestions</Text>
+                <Text allowFontScaling={false} style={styles.featureDescription}>
+                  Show word completion suggestions above keyboard
+                </Text>
+              </View>
+              <ToggleSwitch
+                value={wordSuggestionsEnabled}
+                onChange={updateWordSuggestions}
+                labelOn=""
+                labelOff=""
+                size="medium"
+              />
+            </View>
+            <View style={styles.featureRow}>
+              <View style={styles.featureInfo}>
+                <Text allowFontScaling={false} style={styles.featureLabel}>Auto-Correct</Text>
+                <Text allowFontScaling={false} style={styles.featureDescription}>
+                  Replace typed word with suggestion when pressing space
+                </Text>
+              </View>
+              <ToggleSwitch
+                value={autoCorrectEnabled}
+                onChange={updateAutoCorrect}
+                labelOn=""
+                labelOff=""
+                size="medium"
+                disabled={!wordSuggestionsEnabled}
+              />
+            </View>
+            <View style={styles.featureRow}>
+              <View style={styles.featureInfo}>
+                <Text allowFontScaling={false} style={styles.featureLabel}>Settings Button</Text>
+                <Text allowFontScaling={false} style={styles.featureDescription}>
+                  Show settings button on keyboard
+                </Text>
+              </View>
+              <ToggleSwitch
+                value={settingsButtonEnabled}
+                onChange={updateSettingsButton}
+                labelOn=""
+                labelOff=""
+                size="medium"
+              />
+            </View>
           </View>
-          <ToggleSwitch
-            value={wordSuggestionsEnabled}
-            onChange={updateWordSuggestions}
-            labelOn=""
-            labelOff=""
-            size="medium"
-          />
-        </View>
-        <View style={styles.featureRow}>
-          <View style={styles.featureInfo}>
-            <Text allowFontScaling={false} style={styles.featureLabel}>Auto-Correct</Text>
-            <Text allowFontScaling={false} style={styles.featureDescription}>
-              Replace typed word with suggestion when pressing space
-            </Text>
-          </View>
-          <ToggleSwitch
-            value={autoCorrectEnabled}
-            onChange={updateAutoCorrect}
-            labelOn=""
-            labelOff=""
-            size="medium"
-            disabled={!wordSuggestionsEnabled}
-          />
-        </View>
-        <View style={styles.featureRow}>
-          <View style={styles.featureInfo}>
-            <Text allowFontScaling={false} style={styles.featureLabel}>Settings Button</Text>
-            <Text allowFontScaling={false} style={styles.featureDescription}>
-              Show settings button on keyboard
-            </Text>
-          </View>
-          <ToggleSwitch
-            value={settingsButtonEnabled}
-            onChange={updateSettingsButton}
-            labelOn=""
-            labelOff=""
-            size="medium"
-          />
-        </View>
+        )}
       </View>
 
       {/* 8. Advanced Settings (Expandable) */}
@@ -407,21 +449,49 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
+  container: {
+    flex: 1,
     backgroundColor: 'transparent',
   },
-  content: { 
+  content: {
+    padding: 16,
     paddingBottom: 0,
   },
-  section: { 
-    marginBottom: 0,
+  colorsTable: {
+    marginBottom: 16,
   },
-  settingTitle: { 
-    fontSize: 14, 
-    fontWeight: '600', 
-    color: '#333', 
+  colorsHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 8,
+  },
+  colorColumnHeader: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#666',
+    textAlign: 'center',
+  },
+  colorsButtonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+  colorColumn: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  settingSection: {
+    marginBottom: 16,
+  },
+  settingTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
     marginBottom: 12,
+  },
+  section: {
+    marginBottom: 0,
   },
   featureRow: {
     flexDirection: 'row',

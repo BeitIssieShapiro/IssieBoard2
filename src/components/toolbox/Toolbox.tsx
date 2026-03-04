@@ -63,13 +63,14 @@ export const Toolbox: React.FC<ToolboxProps> = ({
   const [editingGroup, setEditingGroup] = useState<StyleGroup | null>(null);
   const [templateData, setTemplateData] = useState<GroupTemplate | null>(null);
 
-  // All accordions open by default
+  // All accordions open by default except diacritics
   const [openSections, setOpenSections] = useState<Set<SectionId>>(
-    new Set(['settings', 'styleRules', 'diacritics'])
+    new Set(['settings', 'styleRules'])
   );
 
   // Advanced settings panel state (persists across re-renders)
   const [advancedExpanded, setAdvancedExpanded] = useState(false);
+  const [featuresExpanded, setFeaturesExpanded] = useState(false);
 
   // Convert currently selected position IDs to key values
   const getSelectedKeyValues = useCallback((): string[] => {
@@ -183,6 +184,8 @@ export const Toolbox: React.FC<ToolboxProps> = ({
           onKeyboardVariantChange={onKeyboardVariantChange}
           advancedExpanded={advancedExpanded}
           setAdvancedExpanded={setAdvancedExpanded}
+          featuresExpanded={featuresExpanded}
+          setFeaturesExpanded={setFeaturesExpanded}
         />
       </AccordionSection>
 
@@ -301,10 +304,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
+    paddingVertical: 0,
+    paddingHorizontal: 16,
     backgroundColor: '#FFF',
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
+    borderRadius: 12,
   },
   accordionHeaderContent: {
     flexDirection: 'row',
@@ -312,27 +315,27 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   accordionHeaderText: {
-    fontSize: 16,
+    fontSize: 19,
     fontWeight: '600',
     color: '#111827',
   },
   accordionBadge: {
     marginLeft: 8,
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
     color: '#FF9800',
   },
   accordionHeaderActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 25,
   },
   accordionIcon: {
     fontSize: 60,
     color: '#6B7280',
   },
   accordionContent: {
-    padding: 16,
+    padding: 6,
     paddingTop: 0,
     backgroundColor: '#FFF',
     borderBottomLeftRadius: 12,

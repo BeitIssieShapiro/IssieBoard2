@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useEditor } from '../../context/EditorContext';
 import { StyleGroup, KeyStyleOverride, KeyboardConfig, VisibilityMode } from '../../../types';
-import { ColorPickerRow } from '../shared/ColorPickerRow';
+import { CompactColorPicker } from '../shared/CompactColorPicker';
 import { ButtonGroupRow } from '../shared/ButtonGroupRow';
 import { KeyboardPreview, KeyPressEvent } from '../KeyboardPreview';
 import { ActionButton } from '../shared/ActionButton';
@@ -128,8 +128,6 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
 
     const { type, value } = event.nativeEvent;
 
-    console.log(`[AddStyleRuleModal] handleKeyPress: type='${type}', value='${value}'`);
-
     // Skip navigation/system keys that aren't selectable via tap
     if (type === 'keyset-changed' || type === 'next-keyboard' || type === 'language') {
       return;
@@ -162,8 +160,6 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
     const keyValue = specialKeyTypes.includes(type) ? type : (value || type);
 
     if (!keyValue) return;
-
-    console.log(`[AddStyleRuleModal] Toggling key selection: '${keyValue}'`);
 
     setSelectedKeyValues(prev => {
       if (prev.includes(keyValue)) {
@@ -437,7 +433,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
 
             {/* Background Color - only show if not in "hide" mode */}
             {visibilityMode !== 'hide' && (
-              <ColorPickerRow
+              <CompactColorPicker
                 title="Background Color"
                 value={bgColor}
                 onChange={setBgColor}
@@ -448,7 +444,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
 
             {/* Text Color - only show if not in "hide" mode */}
             {visibilityMode !== 'hide' && (
-              <ColorPickerRow
+              <CompactColorPicker
                 title="Text Color"
                 value={textColor}
                 onChange={setTextColor}
@@ -587,6 +583,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
     marginBottom: 8,
+    paddingBottom: 4,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#DDD',
   },
   nameInput: {
     flex: 1,

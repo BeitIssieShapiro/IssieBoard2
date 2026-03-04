@@ -289,6 +289,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
     marginBottom: 12,
+    paddingBottom: 4,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#DDD',
   },
   nikkudGrid: {
     flexDirection: 'row',
