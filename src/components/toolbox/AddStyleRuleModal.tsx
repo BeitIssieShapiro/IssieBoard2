@@ -190,6 +190,12 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
     // Set visibility mode (only if not default)
     if (visibilityMode !== 'default') {
       style.visibilityMode = visibilityMode;
+      // For "hide" mode: apply opacity 0.3 to selected keys (they will be hidden)
+      // For "showOnly" mode: don't set opacity on selected keys (they will be shown)
+      // The opacity will be applied to non-selected keys by the renderer
+      if (visibilityMode === 'hide') {
+        style.opacity = 0.3;
+      }
     }
 
     if (editingGroup) {
@@ -209,26 +215,82 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
   // Build config with:
   // ONLY the current rule being edited/created
   // DO NOT include other style groups - only show general settings + current group
-  // IMPORTANT: In the modal preview, we DON'T apply visibility modes (hide/showOnly)
-  // because we need all keys visible for selection/deselection.
+  // IMPORTANT: In the modal preview, we show opacity effect (0.3) to preview semi-hidden keys,
+  // but we don't fully hide keys (visibility modes) because we need all keys visible for selection.
   // Use smaller key height for modal to fit without scaling, and scale fontSize proportionally
   const previewConfig = useMemo((): KeyboardConfig => {
     const groups: any[] = [];
 
-    // Only add current rule's style for selected keys
     if (selectedKeyValues.length > 0) {
-      groups.push({
-        name: '_current_rule_',
-        items: selectedKeyValues,
-        template: {
-          // Only apply colors if not in "hide" mode (hidden keys don't need colors)
-          color: visibilityMode !== 'hide' ? (textColor || '') : '',
-          bgColor: visibilityMode !== 'hide' ? (bgColor || '') : '',
-          // Don't apply visibility in modal preview - keep all keys visible for selection
-          hidden: false,
-          visibilityMode: 'default' as VisibilityMode,
-        },
-      });
+      if (visibilityMode === 'hide') {
+        // For "hide" mode: apply opacity to selected keys (they will be hidden)
+        groups.push({
+          name: '_current_rule_',
+          items: selectedKeyValues,
+          template: {
+            color: '',
+            bgColor: '',
+            opacity: 0.3,
+            hidden: false,
+            visibilityMode: 'default' as VisibilityMode,
+          },
+        });
+      } else if (visibilityMode === 'showOnly') {
+        // For "showOnly" mode: apply opacity to NON-selected keys (they will be hidden)
+        // First, collect all key values from the keyboard
+        const allKeyValues = new Set<string>();
+        for (const keyset of state.config.keysets) {
+          for (const row of keyset.rows) {
+            for (const key of row.keys) {
+              const keyValue = key.value || key.caption || key.label || key.type;
+              if (keyValue) allKeyValues.add(keyValue);
+            }
+          }
+        }
+        // Find keys that are NOT selected
+        const nonSelectedKeys = Array.from(allKeyValues).filter(k => !selectedKeyValues.includes(k));
+
+        // Add group for selected keys with colors (they will be shown)
+        groups.push({
+          name: '_current_rule_selected_',
+          items: selectedKeyValues,
+          template: {
+            color: textColor || '',
+            bgColor: bgColor || '',
+            opacity: 1.0,
+            hidden: false,
+            visibilityMode: 'default' as VisibilityMode,
+          },
+        });
+
+        // Add group for non-selected keys with opacity (they will be hidden)
+        if (nonSelectedKeys.length > 0) {
+          groups.push({
+            name: '_current_rule_others_',
+            items: nonSelectedKeys,
+            template: {
+              color: '',
+              bgColor: '',
+              opacity: 0.3,
+              hidden: false,
+              visibilityMode: 'default' as VisibilityMode,
+            },
+          });
+        }
+      } else {
+        // Default mode: just apply colors to selected keys
+        groups.push({
+          name: '_current_rule_',
+          items: selectedKeyValues,
+          template: {
+            color: textColor || '',
+            bgColor: bgColor || '',
+            opacity: 1.0,
+            hidden: false,
+            visibilityMode: 'default' as VisibilityMode,
+          },
+        });
+      }
     }
 
     // Scale fontSize proportionally to keyHeight reduction
@@ -243,6 +305,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
       wordSuggestionsEnabled: false, // Disable word suggestions in modal preview
       keyHeight: modalKeyHeight, // Smaller key height for modal preview to fit without scaling
       fontSize: scaledFontSize, // Scale fontSize proportionally (e.g., 48 * (48/90) ≈ 26)
+      keyGap: 0, // Remove gaps between keys in modal preview to prevent overflow
     };
   }, [state.config, selectedKeyValues, bgColor, textColor, visibilityMode]);
 
@@ -362,12 +425,12 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
               />
               {visibilityMode === 'showOnly' && (
                 <Text allowFontScaling={false} style={styles.visibilityHint}>
-                  ⓘ All keys except these will be hidden
+                  ⓘ Other keys shown semi-transparent in preview mode
                 </Text>
               )}
               {visibilityMode === 'hide' && (
                 <Text allowFontScaling={false} style={styles.visibilityHint}>
-                  ⓘ Colors are not applicable for hidden keys
+                  ⓘ Hidden keys shown semi-transparent in preview mode
                 </Text>
               )}
             </View>

@@ -87,6 +87,7 @@ struct Key: Codable {
     let width: Double?
     let offset: Double?
     let hidden: Bool?
+    let opacity: Double?  // Key opacity (0.0 = fully transparent, 1.0 = fully opaque). Useful for preview mode to show semi-hidden keys.
     let color: String?
     let bgColor: String?
     let fontSize: Double?  // Custom font size for this key (overrides default)
@@ -108,6 +109,7 @@ struct Key: Codable {
         case width
         case offset
         case hidden
+        case opacity
         case color
         case bgColor
         case fontSize
@@ -295,12 +297,13 @@ struct GroupTemplate: Codable {
     let offset: Double?
     let hidden: Bool?            // Backward compatibility
     let visibilityMode: VisibilityMode?  // New tri-state visibility
+    let opacity: Double?         // Key opacity (0.0 = fully transparent, 1.0 = fully opaque). Useful for preview mode to show semi-hidden keys.
     let color: String?
     let bgColor: String?
     let fontSize: Double?        // Font size for keys in this group
 
     enum CodingKeys: String, CodingKey {
-        case width, offset, hidden, visibilityMode, color, bgColor, fontSize
+        case width, offset, hidden, visibilityMode, opacity, color, bgColor, fontSize
     }
     
     /// Get effective visibility mode (handles backward compatibility with hidden boolean)
@@ -352,6 +355,7 @@ struct ParsedKey {
     let width: Double
     let offset: Double
     let hidden: Bool
+    let opacity: Double  // Key opacity (0.0-1.0), defaults to 1.0
     let textColor: UIColor
     let backgroundColor: UIColor
     let fontSize: Double?  // Custom font size (nil = use default)
@@ -360,7 +364,7 @@ struct ParsedKey {
     let returnKeysetValue: String
     let returnKeysetLabel: String
     let nikkud: [NikkudOption]
-    
+
     init(from key: Key, groups: [String: GroupTemplate], defaultTextColor: UIColor, defaultBgColor: UIColor) {
         let value = key.value ?? ""
         let keyType = key.type ?? ""
@@ -375,31 +379,38 @@ struct ParsedKey {
         self.returnKeysetValue = key.returnKeysetValue ?? ""
         self.returnKeysetLabel = key.returnKeysetLabel ?? ""
         self.nikkud = key.nikkud ?? []
-        
+
         // Get group template if exists - check by value first, then by type for special keys
         let groupTemplate = groups[value] ?? (value.isEmpty ? groups[keyType] : nil)
-        
+
         // Resolve width
         if let keyWidth = key.width {
             self.width = keyWidth
         } else {
             self.width = groupTemplate?.width ?? 1.0
         }
-        
+
         // Resolve offset
         if let keyOffset = key.offset {
             self.offset = keyOffset
         } else {
             self.offset = groupTemplate?.offset ?? 0.0
         }
-        
+
         // Resolve hidden
         if let keyHidden = key.hidden {
             self.hidden = keyHidden
         } else {
             self.hidden = groupTemplate?.hidden ?? false
         }
-        
+
+        // Resolve opacity (defaults to 1.0 for fully opaque)
+        if let keyOpacity = key.opacity {
+            self.opacity = keyOpacity
+        } else {
+            self.opacity = groupTemplate?.opacity ?? 1.0
+        }
+
         // Resolve colors
         let textColorString = key.color ?? groupTemplate?.color
         if let colorStr = textColorString, !colorStr.isEmpty {
@@ -407,7 +418,7 @@ struct ParsedKey {
         } else {
             self.textColor = defaultTextColor
         }
-        
+
         let bgColorString = key.bgColor ?? groupTemplate?.bgColor
         if let colorStr = bgColorString, !colorStr.isEmpty {
             self.backgroundColor = UIColor(hexString: colorStr) ?? defaultBgColor

@@ -194,6 +194,7 @@ class KeyboardRenderer {
                 width: nil,
                 offset: nil,
                 hidden: nil,
+                opacity: nil,
                 color: nil,
                 bgColor: nil,
                 fontSize: nil,
@@ -774,12 +775,17 @@ class KeyboardRenderer {
             // Generate key identifier for selection checking
             let keyId = "\(keysetId):\(rowIndex):\(keyIndex)"
             let isSelected = selectedKeyIds.contains(keyId)
-            
+
             // Check if key is hidden based on visibility rules
             let keyValue = key.value ?? key.type ?? ""
             let isKeyHidden = isKeyHiddenByVisibility(parsedKey: parsedKey, keyValue: keyValue, showOnlyKeys: showOnlyKeys, groups: groups)
-            
-            if isKeyHidden {
+
+            // In preview mode, render hidden keys with opacity instead of fully hiding them
+            // This allows users to see and select keys that will be hidden
+            let shouldRenderWithOpacity = isKeyHidden && isPreviewMode
+
+            if isKeyHidden && !isPreviewMode {
+                // Fully hidden - skip rendering (only when NOT in preview mode)
                 let hiddenWidth = (CGFloat(parsedKey.width) / baselineWidth) * availableWidth
                 currentX += hiddenWidth
             } else {
@@ -788,23 +794,33 @@ class KeyboardRenderer {
                 if key.flex == true {
                     effectiveWidth += extraWidthPerFlexKey
                 }
-                
+
                 // Calculate pixel width - the keySpacing of 0 means we don't need to subtract anything
                 let keyWidth = (CGFloat(effectiveWidth) / baselineWidth) * availableWidth
-                let button = createKeyButton(parsedKey, width: keyWidth, height: rowHeight, 
+                let button = createKeyButton(parsedKey, width: keyWidth, height: rowHeight,
                                             editorContext: editorContext,
                                             isSelected: isSelected)
+
+                // Apply opacity to the button
+                // Priority: 1. If key would be hidden in preview mode (showOnly/hide), use 0.3
+                //           2. Otherwise use parsedKey.opacity (from explicit opacity property)
+                if shouldRenderWithOpacity {
+                    button.alpha = 0.3
+                } else if parsedKey.opacity < 1.0 {
+                    button.alpha = CGFloat(parsedKey.opacity)
+                }
+
                 rowContainer.addSubview(button)
-                
+
                 button.frame = CGRect(x: currentX, y: 0, width: keyWidth, height: rowHeight)
-                
+
                 // Track first visible key
                 if firstVisibleKey == nil {
                     firstVisibleKey = (parsedKey, button, currentX, keyWidth)
                 }
                 // Always update last visible key
                 lastVisibleKey = (parsedKey, button, currentX, keyWidth)
-                
+
                 currentX += keyWidth + keySpacing
             }
             
@@ -1970,6 +1986,7 @@ class KeyboardRenderer {
             width: 1.0,
             offset: 0.0,
             hidden: false,
+            opacity: nil,
             color: nil,
             bgColor: nil,
             fontSize: nil,
@@ -2028,6 +2045,7 @@ class KeyboardRenderer {
                 width: nil,
                 offset: nil,
                 hidden: nil,
+                opacity: nil,
                 color: nil,
                 bgColor: nil,
                 fontSize: nil,

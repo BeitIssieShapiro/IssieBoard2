@@ -10,6 +10,7 @@ export type VisibilityMode = 'default' | 'hide' | 'showOnly';
 export interface KeyStyleOverride {
     visibilityMode?: VisibilityMode;  // 'default' = no effect, 'hide' = hide selected, 'showOnly' = show only selected
     hidden?: boolean;  // Backward compatibility - will be converted to visibilityMode: 'hide'
+    opacity?: number;  // Key opacity (0.0 = fully transparent, 1.0 = fully opaque). Useful for preview mode to show semi-hidden keys.
     bgColor?: string;
     color?: string;
     label?: string;
@@ -54,6 +55,7 @@ export interface KeyConfig {
     keysetValue?: string;
     width?: number;
     hidden?: boolean;
+    opacity?: number;  // Key opacity (0.0 = fully transparent, 1.0 = fully opaque). Useful for preview mode to show semi-hidden keys.
     color?: string;
     bgColor?: string;
     nikkud?: NikkudOption[];  // Explicit nikkud options (backward compatibility)
@@ -131,6 +133,7 @@ export interface GroupTemplate {
     bgColor: string;
     hidden?: boolean;  // Backward compatibility
     visibilityMode?: VisibilityMode;  // New tri-state visibility
+    opacity?: number;  // Key opacity (0.0 = fully transparent, 1.0 = fully opaque). Useful for preview mode to show semi-hidden keys.
     fontSize?: number;  // Font size for keys in this group
 }
 

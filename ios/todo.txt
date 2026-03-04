@@ -15,7 +15,7 @@ V- key group from template: read-only, simplified, has also the profile-name at 
 Bugs:
 - not offer suggestion for certain input type? then ommit the header row?
 
-- when selecting text (all text) backspace does not delete it
+V- when selecting text (all text) backspace does not delete it
 X- long press on globus - show list [not possible in ios]
 V- gaps don't work
 V- in landscape: badge of "english" is hidden
