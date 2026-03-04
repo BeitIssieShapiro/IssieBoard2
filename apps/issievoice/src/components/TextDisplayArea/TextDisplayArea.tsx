@@ -1,4 +1,4 @@
-import React, {useRef, useEffect} from 'react';
+import React, {useRef, useEffect, useMemo} from 'react';
 import {
   View,
   TextInput,
@@ -9,20 +9,31 @@ import {
 import {useText} from '../../context/TextContext';
 import {colors, sizes} from '../../constants';
 import {useLocalization} from '../../context/LocalizationContext';
+import {detectTextDirection} from '../../utils/textDirection';
 
 interface TextDisplayAreaProps {
   text: string;
+  height?: number; // Optional responsive height
 }
 
-const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({text}) => {
+const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({text, height = sizes.textDisplay}) => {
   const {setText} = useText();
-  const {strings, isRTL} = useLocalization();
+  const {strings} = useLocalization();
   const textInputRef = useRef<TextInput>(null);
+
+  // Dynamically detect text direction based on content
+  const textDirection = useMemo(() => detectTextDirection(text), [text]);
+  const isTextRTL = textDirection === 'rtl';
+
+  // Calculate font size based on container height (scale proportionally)
+  const scaleFactor = height / sizes.textDisplay;
+  const fontSize = Math.max(18, sizes.fontSize.large * scaleFactor);
+  const lineHeight = fontSize * 1.5;
 
   // Log whenever text prop changes
   useEffect(() => {
-    console.log('📺 TextDisplayArea received text:', text, 'length:', text.length);
-  }, [text]);
+    console.log('📺 TextDisplayArea received text:', text, 'length:', text.length, 'direction:', textDirection);
+  }, [text, textDirection]);
 
   // Keep TextInput focused to show cursor
   // useEffect(() => {
@@ -32,7 +43,7 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({text}) => {
   // }, []);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, {height}]}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -43,7 +54,8 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({text}) => {
           ref={textInputRef}
           style={[
             styles.textInput,
-            isRTL && styles.textInputRTL,
+            {fontSize, lineHeight, minHeight: height - (sizes.spacing.md * 2)},
+            isTextRTL && styles.textInputRTL,
           ]}
           value={text}
           onChangeText={(newText) => {
@@ -58,7 +70,7 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({text}) => {
           inputAccessoryViewID="customKeyboard"
           showSoftInputOnFocus={false}
           caretHidden={false}
-          writingDirection={isRTL ? 'rtl' : 'ltr'}
+          writingDirection={textDirection}
         />
       </ScrollView>
     </View>
@@ -67,7 +79,6 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({text}) => {
 
 const styles = StyleSheet.create({
   container: {
-    height: sizes.textDisplay,
     backgroundColor: colors.surface,
     borderBottomWidth: 2,
     borderBottomColor: colors.border,
@@ -80,10 +91,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   textInput: {
-    fontSize: sizes.fontSize.large,
     color: colors.text,
-    lineHeight: sizes.fontSize.large * 1.5,
-    minHeight: sizes.textDisplay - (sizes.spacing.md * 2),
     textAlignVertical: 'top',
     textAlign: 'left',
   },

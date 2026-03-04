@@ -32,6 +32,10 @@ interface HeightChangeEvent {
   };
 }
 
+interface OpenSettingsEvent {
+  nativeEvent: {};
+}
+
 interface KeyboardPreviewProps {
   style?: StyleProp<ViewStyle>;
   configJson?: string;
@@ -44,6 +48,7 @@ interface KeyboardPreviewProps {
   onSuggestionsChange?: (event: SuggestionsChangeEvent) => void;
   onLanguageChange?: (event: LanguageChangeEvent) => void;
   onHeightChange?: (event: HeightChangeEvent) => void;
+  onOpenSettings?: (event: OpenSettingsEvent) => void;
 }
 
 const NativeKeyboardPreview = requireNativeComponent<KeyboardPreviewProps>('KeyboardPreviewView');
@@ -110,4 +115,4 @@ export const KeyboardPreview: React.FC<KeyboardPreviewProps> = (props) => {
   return <NativeKeyboardPreview {...props} configJson={configJson} />;
 };
 
-export type { KeyboardPreviewProps, KeyPressEvent, SuggestionsChangeEvent, LanguageChangeEvent, HeightChangeEvent };
+export type { KeyboardPreviewProps, KeyPressEvent, SuggestionsChangeEvent, LanguageChangeEvent, HeightChangeEvent, OpenSettingsEvent };

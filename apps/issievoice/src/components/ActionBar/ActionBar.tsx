@@ -11,6 +11,7 @@ interface ActionBarProps {
   isSpeaking: boolean;
   hasText: boolean;
   currentLanguage?: 'en' | 'he';
+  buttonHeight?: number; // Optional responsive height
 }
 
 const ActionBar: React.FC<ActionBarProps> = ({
@@ -21,8 +22,14 @@ const ActionBar: React.FC<ActionBarProps> = ({
   isSpeaking,
   hasText,
   currentLanguage = 'en',
+  buttonHeight = sizes.actionButton, // Default to constant if not provided
 }) => {
   const {strings, isRTL} = useLocalization();
+
+  // Calculate font size based on button height (scale proportionally)
+  const scaleFactor = buttonHeight / sizes.actionButton;
+  const speakFontSize = Math.max(18, sizes.fontSize.large * scaleFactor);
+  const buttonFontSize = Math.max(16, sizes.fontSize.medium * scaleFactor);
 
   // Render buttons in order, then reverse container for LTR
   return (
@@ -32,12 +39,13 @@ const ActionBar: React.FC<ActionBarProps> = ({
         style={[
           styles.button,
           styles.speakButton,
+          {height: buttonHeight},
           (!hasText || isSpeaking) && styles.buttonDisabled,
         ]}
         onPress={onSpeak}
         disabled={!hasText || isSpeaking}
         activeOpacity={0.7}>
-        <Text style={styles.speakButtonText}>
+        <Text style={[styles.speakButtonText, {fontSize: speakFontSize}]}>
           {isSpeaking ? strings.speaking : strings.speak}
         </Text>
       </TouchableOpacity>
@@ -47,12 +55,13 @@ const ActionBar: React.FC<ActionBarProps> = ({
         style={[
           styles.button,
           styles.clearButton,
+          {height: buttonHeight},
           !hasText && styles.buttonDisabled,
         ]}
         onPress={onClear}
         disabled={!hasText}
         activeOpacity={0.7}>
-        <Text style={styles.buttonText}>{strings.clear}</Text>
+        <Text style={[styles.buttonText, {fontSize: buttonFontSize}]}>{strings.clear}</Text>
       </TouchableOpacity>
 
       {/* Save Button - Amber */}
@@ -60,20 +69,21 @@ const ActionBar: React.FC<ActionBarProps> = ({
         style={[
           styles.button,
           styles.saveButton,
+          {height: buttonHeight},
           !hasText && styles.buttonDisabled,
         ]}
         onPress={onSave}
         disabled={!hasText}
         activeOpacity={0.7}>
-        <Text style={styles.buttonText}>{strings.save}</Text>
+        <Text style={[styles.buttonText, {fontSize: buttonFontSize}]}>{strings.save}</Text>
       </TouchableOpacity>
 
       {/* Browse Button - Purple */}
       <TouchableOpacity
-        style={[styles.button, styles.browseButton]}
+        style={[styles.button, styles.browseButton, {height: buttonHeight}]}
         onPress={onBrowse}
         activeOpacity={0.7}>
-        <Text style={styles.buttonText}>{strings.browse}</Text>
+        <Text style={[styles.buttonText, {fontSize: buttonFontSize}]}>{strings.browse}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -94,7 +104,6 @@ const styles = StyleSheet.create({
   },
   button: {
     flex: 1,
-    height: sizes.actionButton,
     borderRadius: sizes.borderRadius.medium,
     justifyContent: 'center',
     alignItems: 'center',
@@ -115,7 +124,6 @@ const styles = StyleSheet.create({
   },
   speakButtonText: {
     color: '#FFFFFF',
-    fontSize: sizes.fontSize.large,  // Larger font
     fontWeight: 'bold',
     textAlign: 'center',
   },
@@ -133,7 +141,6 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#FFFFFF',
-    fontSize: sizes.fontSize.medium,
     fontWeight: '600',
     textAlign: 'center',
   },

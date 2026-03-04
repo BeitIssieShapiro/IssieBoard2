@@ -5,11 +5,13 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Text,
+  Dimensions,
 } from 'react-native';
 import {useText} from '../context/TextContext';
 import {useTTS} from '../context/TTSContext';
 import {useLocalization} from '../context/LocalizationContext';
 import {useNotification} from '../context/NotificationContext';
+import {useFocusEffect} from '@react-navigation/native';
 import TextDisplayArea from '../components/TextDisplayArea/TextDisplayArea';
 import ActionBar from '../components/ActionBar/ActionBar';
 import SuggestionsBar from '../components/SuggestionsBar/SuggestionsBar';
@@ -32,11 +34,48 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
   const [kbSuggestions, setKbSuggestions] = useState<string[]>([]);
   const [keyboardHeight, setKeyboardHeight] = useState(350);
   const [currentLanguage, setCurrentLanguage] = useState<'en' | 'he'>(deviceLanguage);
-  const [settingsVisible, setSettingsVisible] = useState(false);
   const [languageMode, setLanguageMode] = useState<'en-only' | 'he-only' | 'detect'>('detect');
   const [englishVoice, setEnglishVoice] = useState<string | undefined>(undefined);
   const [hebrewVoice, setHebrewVoice] = useState<string | undefined>(undefined);
+  const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const keyboardConfigRef = useRef<any>(null);
+
+  // Calculate responsive sizes based on keyboard height
+  // Layout: no title, flexible text, fixed 50px suggestions, remaining for buttons
+  const responsiveSizes = React.useMemo(() => {
+    const screenHeight = Dimensions.get('window').height;
+    const bottomPadding = 20; // Extra space below keyboard
+    const availableHeight = screenHeight - keyboardHeight - bottomPadding;
+
+    // Fixed sizes
+    const suggestionBarHeight = 50; // Fixed size as requested
+    const minTextDisplayHeight = 80;
+    const minActionButtonHeight = 50;
+
+    // All available height minus suggestions
+    const remainingHeight = availableHeight - suggestionBarHeight;
+
+    // Split remaining height: ~65% for text, ~35% for buttons
+    const textDisplayHeight = Math.max(remainingHeight * 0.65, minTextDisplayHeight);
+    const actionButtonHeight = Math.max(remainingHeight * 0.35, minActionButtonHeight);
+
+    console.log('📐 Layout calculation:', {
+      screenHeight,
+      keyboardHeight,
+      bottomPadding,
+      availableHeight,
+      textDisplayHeight,
+      suggestionBarHeight,
+      actionButtonHeight,
+      totalContent: textDisplayHeight + suggestionBarHeight + actionButtonHeight,
+    });
+
+    return {
+      textDisplayHeight,
+      suggestionBarHeight,
+      actionButtonHeight,
+    };
+  }, [keyboardHeight]);
 
   // Calculate appropriate keyboard height based on configuration
   const calculateKeyboardHeight = (config: any) => {
@@ -80,9 +119,107 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
   };
   
   // Function to load keyboard configuration for a specific language
-  const loadKeyboardConfig = (language: string) => {
+  const loadKeyboardConfig = async (language: string) => {
     console.log('🔄 Loading keyboard config for language:', language);
     try {
+      // First, try to load the active profile for IssieVoice from preferences
+      const activeProfileKey = `active_profile_issievoice_${language}`;
+      const activeProfile = await KeyboardPreferences.getProfile(activeProfileKey);
+
+      if (activeProfile) {
+        // Load saved configuration from the active profile using app-specific key
+        console.log(`📋 Loading saved config for IssieVoice from active profile: ${activeProfile}`);
+        const configKey = `keyboardConfig_issievoice_${language}`;
+        // Use getString instead of getProfile to avoid the profile_ prefix
+        const savedConfigJson = await KeyboardPreferences.getString(configKey);
+
+        if (savedConfigJson) {
+          try {
+            const savedConfig = JSON.parse(savedConfigJson);
+            console.log(`✅ Loaded saved keyboard config from ${configKey}`);
+            console.log('📋 Saved config has groups:', !!savedConfig.groups, 'count:', savedConfig.groups?.length || 0);
+
+            // Ensure settings button is enabled for IssieVoice
+            savedConfig.settingsButtonEnabled = true;
+
+            // Set the language in config to ensure proper rendering
+            savedConfig.language = language;
+
+            // Add language switch key to saved config
+            const languageKey = {
+              type: 'language',
+              label: language === 'en' ? 'עב' : 'En',
+              caption: language === 'en' ? 'עב' : 'En',
+              value: '',
+              width: 1,
+              bgColor: '#2196F3',
+            };
+
+            console.log(`🔑 Creating language key for ${language} keyboard:`, languageKey);
+
+            // Update all keysets to include language switch key and remove close/next-keyboard
+            savedConfig.keysets = savedConfig.keysets.map((keyset: any) => ({
+              ...keyset,
+              rows: keyset.rows.map((row: any, rowIndex: number) => {
+                // Check if this is the bottom row by looking for space key or if it's the last row with control keys
+                const hasSpaceKey = row.keys.some((k: any) => k.type === 'space' || k.value === ' ');
+                const hasControlKeys = row.keys.some((k: any) =>
+                  k.type === 'keyset' || k.type === 'next-keyboard' || k.type === 'close'
+                );
+                const isBottomRow = row.alwaysInclude || hasSpaceKey || (hasControlKeys && rowIndex === keyset.rows.length - 1);
+
+                if (isBottomRow) {
+                  // Check if language key already exists
+                  const hasLanguageKey = row.keys.some((k: any) => k.type === 'language');
+
+                  // Always filter out unwanted keys
+                  const filteredKeys = row.keys.filter((key: any) =>
+                    key.type !== 'next-keyboard' && key.type !== 'close'
+                  );
+
+                  if (!hasLanguageKey) {
+                    // Add language key after first key (usually 123 button)
+                    const newKeys = filteredKeys.reduce((acc: any[], key: any, index: number) => {
+                      acc.push(key);
+                      if (index === 0) {
+                        acc.push(languageKey);
+                      }
+                      return acc;
+                    }, []);
+                    return { ...row, keys: newKeys };
+                  } else {
+                    // Language key exists, just use filtered keys
+                    return { ...row, keys: filteredKeys };
+                  }
+                }
+                return row;
+              }),
+            }));
+
+            // Store the config object for height calculations
+            keyboardConfigRef.current = savedConfig;
+            calculateKeyboardHeight(savedConfig);
+
+            console.log('📋 Final config before sending to KeyboardPreview:', {
+              hasGroups: !!savedConfig.groups,
+              groupCount: savedConfig.groups?.length || 0,
+              groups: savedConfig.groups,
+              keysetCount: savedConfig.keysets?.length || 0,
+            });
+
+            const configString = JSON.stringify(savedConfig);
+            console.log('📤 Setting keyboard config from saved profile, length:', configString.length);
+            setKeyboardConfig(configString);
+            return;
+          } catch (parseError) {
+            console.warn('⚠️ Failed to parse saved config, falling back to default:', parseError);
+          }
+        }
+      }
+
+      // Fallback: Load default configuration from JSON files
+      console.log('📋 No saved config found, loading default keyboard config');
+
       // Load configuration based on language
       const config = language === 'en'
         ? require('../../../../keyboards/en.json')
@@ -129,11 +266,11 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
       console.log('🔑 Language key:', languageKey);
       console.log('📋 Original bottom row keys:', bottomRow.keys.length);
 
-      // Remove next-keyboard and insert language key after the first key (123 button)
+      // Remove next-keyboard and close keys, insert language key after the first key (123 button)
       const modifiedBottomRow = {
         ...bottomRow,
         keys: bottomRow.keys
-          .filter((key: any) => key.type !== 'next-keyboard')  // Remove globe button
+          .filter((key: any) => key.type !== 'next-keyboard' && key.type !== 'close')  // Remove globe and close buttons
           .reduce((acc: any[], key: any, index: number) => {
             acc.push(key);
             // Insert language button after first key (123 button)
@@ -158,11 +295,11 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
         ...keyset,
         rows: keyset.rows.map((row: any) => {
           if (row.alwaysInclude) {
-            // This is the bottom row - remove next-keyboard and insert language key after first key
+            // This is the bottom row - remove next-keyboard and close, insert language key after first key
             return {
               ...row,
               keys: row.keys
-                .filter((key: any) => key.type !== 'next-keyboard')
+                .filter((key: any) => key.type !== 'next-keyboard' && key.type !== 'close')
                 .reduce((acc: any[], key: any, index: number) => {
                   acc.push(key);
                   if (index === 0) {
@@ -187,17 +324,9 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
         keyHeight: 74, // Use iPad-sized keys for better visibility
         fontSize: 32, // Larger font size for better readability
         language: language, // Set the language for suggestions
-        groups: [
-          ...(config.groups || []),
-          {
-            items: ['settings', 'close'],
-            template: {
-              visibilityMode: 'hide',
-            },
-          },
-        ],
+        settingsButtonEnabled: true, // Enable settings button
       };
-      
+
       console.log('📋 Final config keysets:', issieVoiceConfig.keysets.map((k: any) => k.id));
 
       // Log the bottom row of the first keyset to verify language key is there
@@ -253,8 +382,11 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
 
   // Effect for loading keyboard config when language changes
   useEffect(() => {
-    console.log(`🔄 Language change effect triggered: ${currentLanguage}`);
-    loadKeyboardConfig(currentLanguage);
+    const loadConfig = async () => {
+      console.log(`🔄 Language change effect triggered: ${currentLanguage}`);
+      await loadKeyboardConfig(currentLanguage);
+    };
+    loadConfig();
   }, [currentLanguage]);
   
   // Separate effect for TTS language to avoid circular dependencies
@@ -267,7 +399,18 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
 
     return () => clearTimeout(timer);
   }, [currentLanguage, setTTSLanguage]);
-  
+
+  // Reload keyboard config when screen comes into focus (e.g., returning from settings)
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('📱 MainScreen focused - reloading keyboard config');
+      const reloadConfig = async () => {
+        await loadKeyboardConfig(currentLanguage);
+      };
+      reloadConfig();
+    }, [currentLanguage])
+  );
+
   // No need for a separate initial load effect as the above effect will run on mount
 
   const handleKeyPress = (event: KeyPressEvent) => {
@@ -448,42 +591,71 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
     }
   };
 
+  // Handle settings button press from keyboard
+  const handleOpenSettings = () => {
+    console.log('⚙️ Settings button pressed from keyboard - opening keyboard settings');
+    navigation.navigate('KeyboardSettings', { initialLanguage: currentLanguage });
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        {/* Title Bar */}
-        <View style={styles.titleBar}>
-          <Text style={styles.titleText}>{strings.appTitle}</Text>
-          <TouchableOpacity
-            style={styles.settingsButton}
-            onPress={() => setSettingsVisible(true)}
-            activeOpacity={0.7}>
-            <Text style={styles.settingsButtonText}>⚙️</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Settings Button - Absolute Position Top Right */}
+        <TouchableOpacity
+          style={styles.settingsButton}
+          onPress={() => setSettingsModalVisible(true)}
+          activeOpacity={0.7}>
+          <Text style={styles.settingsButtonText}>☰</Text>
+        </TouchableOpacity>
 
-        {/* Text Display Area - Top */}
-        <TextDisplayArea text={currentText} />
-
-        {/* Suggestions Bar - Above Action Buttons */}
-        <SuggestionsBar 
-          currentText={currentText} 
-          kbSuggestions={kbSuggestions} 
-          language={currentLanguage}
-          onSuggestionPress={handleSuggestionFromBar}
+        {/* Settings Modal */}
+        <SettingsModal
+          visible={settingsModalVisible}
+          onClose={() => setSettingsModalVisible(false)}
+          languageMode={languageMode}
+          onLanguageModeChange={handleLanguageModeChange}
+          englishVoice={englishVoice}
+          hebrewVoice={hebrewVoice}
+          onVoiceChange={handleVoiceChange}
         />
 
-        {/* Action Buttons - Below Text Display */}
-        <View style={styles.actionsContainer}>
-          <ActionBar
-            onSpeak={handleSpeak}
-            onClear={handleClear}
-            onSave={handleSave}
-            onBrowse={handleBrowse}
-            isSpeaking={isSpeaking}
-            hasText={currentText.length > 0}
-            currentLanguage={currentLanguage}
+        {/* Scrollable content area that shrinks when keyboard grows */}
+        <View style={[
+          styles.scrollableContent,
+          {
+            height: responsiveSizes.textDisplayHeight +
+                    responsiveSizes.suggestionBarHeight +
+                    responsiveSizes.actionButtonHeight
+          }
+        ]}>
+          {/* Text Display Area - Top */}
+          <TextDisplayArea
+            text={currentText}
+            height={responsiveSizes.textDisplayHeight}
           />
+
+          {/* Suggestions Bar - Above Action Buttons */}
+          <SuggestionsBar
+            currentText={currentText}
+            kbSuggestions={kbSuggestions}
+            language={currentLanguage}
+            onSuggestionPress={handleSuggestionFromBar}
+            height={responsiveSizes.suggestionBarHeight}
+          />
+
+          {/* Action Buttons - Below Text Display */}
+          <View style={styles.actionsContainer}>
+            <ActionBar
+              onSpeak={handleSpeak}
+              onClear={handleClear}
+              onSave={handleSave}
+              onBrowse={handleBrowse}
+              isSpeaking={isSpeaking}
+              hasText={currentText.length > 0}
+              currentLanguage={currentLanguage}
+              buttonHeight={responsiveSizes.actionButtonHeight}
+            />
+          </View>
         </View>
 
         {/* IssieBoard Custom Keyboard - Bottom */}
@@ -495,19 +667,9 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
             text={currentText}
             onKeyPress={handleKeyPress}
             onSuggestionsChange={handleSuggestionsChange}
+            onOpenSettings={handleOpenSettings}
           />
         </View>
-
-        {/* Settings Modal */}
-        <SettingsModal
-          visible={settingsVisible}
-          onClose={() => setSettingsVisible(false)}
-          languageMode={languageMode}
-          onLanguageModeChange={handleLanguageModeChange}
-          englishVoice={englishVoice}
-          hebrewVoice={hebrewVoice}
-          onVoiceChange={handleVoiceChange}
-        />
       </View>
     </SafeAreaView>
   );
@@ -521,33 +683,23 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  titleBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: sizes.spacing.md,
-    paddingVertical: sizes.spacing.md,
-    backgroundColor: colors.primary,
-    borderBottomWidth: 2,
-    borderBottomColor: colors.border,
-  },
-  titleText: {
-    fontSize: sizes.fontSize.xlarge,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    flex: 1,
-    textAlign: 'center',
-  },
   settingsButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
     width: 50,
     height: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
     borderRadius: sizes.borderRadius.medium,
+    zIndex: 1000,
   },
   settingsButtonText: {
-    fontSize: sizes.fontSize.large,
+    fontSize: 28,
+  },
+  scrollableContent: {
+    // Remove flex, use fixed height instead
   },
   keyboardContainer: {
     backgroundColor: colors.surface,

@@ -66,7 +66,7 @@ Future Enhancements:
 
 IssieVoice:
 - Row for personal toolbar
-- Auto-detect rtl/ltr
+V- Auto-detect rtl/ltr
 - emoji?
-- reuse issieboard settings
+V- reuse issieboard settings
 - avoid system kb from showing

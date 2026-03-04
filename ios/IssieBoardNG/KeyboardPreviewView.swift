@@ -32,6 +32,7 @@ class KeyboardPreviewView: UIView {
     @objc var onSuggestionSelect: RCTBubblingEventBlock?
     @objc var onSuggestionsChange: RCTBubblingEventBlock?
     @objc var onLanguageChange: RCTDirectEventBlock?
+    @objc var onOpenSettings: RCTBubblingEventBlock?
 
     // Selected keys for edit mode visualization (config mode only)
     private var selectedKeyIds: Set<String> = []
@@ -213,6 +214,12 @@ class KeyboardPreviewView: UIView {
         engine.onLanguageSwitch = { [weak self] in
             self?.sendLanguageSwitchToReactNative()
         }
+
+        // Set up settings button callback
+        engine.renderer.onOpenSettings = { [weak self] in
+            print("⚙️ KeyboardPreviewView: Settings button pressed")
+            self?.onOpenSettings?([:])
+        }
     }
 
     private func notifyReactNativeOfTextChange(_ newText: String) {
@@ -361,6 +368,12 @@ class KeyboardPreviewView: UIView {
 
             configModeRenderer?.onKeyLongPress = { [weak self] key in
                 self?.handleKeyLongPress(key)
+            }
+
+            // Set up settings button callback for config mode
+            configModeRenderer?.onOpenSettings = { [weak self] in
+                print("⚙️ KeyboardPreviewView (config mode): Settings button pressed")
+                self?.onOpenSettings?([:])
             }
         }
 

@@ -292,11 +292,72 @@ const loadProfileById = async (profileId: string): Promise<{
   }
 };
 
+type AppContext = 'issieboard' | 'issievoice';
+
+/**
+ * Get the active profile key for a given language and app context
+ * Separate current profiles for each app: active_profile_issieboard_<lang> and active_profile_issievoice_<lang>
+ */
+const getActiveProfileKey = (language: LanguageId, appContext: AppContext = 'issieboard'): string => {
+  return `active_profile_${appContext}_${language}`;
+};
+
+/**
+ * Get the keyboard config key for a given language and app context
+ * IssieBoard saves to keyboardConfig_<lang> (used by native keyboard extensions)
+ * IssieVoice saves to keyboardConfig_issievoice_<lang> (used by in-app KeyboardPreview)
+ */
+const getKeyboardConfigKey = (language: LanguageId, appContext: AppContext = 'issieboard'): string => {
+  if (appContext === 'issieboard') {
+    // IssieBoard uses language-only keys that native keyboards read
+    return `keyboardConfig_${language}`;
+  } else {
+    // IssieVoice uses app-specific keys for in-app preview
+    return `keyboardConfig_issievoice_${language}`;
+  }
+};
+
+/**
+ * Save keyboard config for the app context
+ * For IssieBoard: saves to keyboardConfig_<lang> (for native keyboards)
+ * For IssieVoice: saves to keyboardConfig_issievoice_<lang> (for KeyboardPreview)
+ */
+const saveKeyboardConfig = async (config: any, language: LanguageId, appContext: AppContext = 'issieboard'): Promise<void> => {
+  const configJSON = JSON.stringify(config);
+  const configKey = getKeyboardConfigKey(language, appContext);
+
+  console.log(`📱 saveKeyboardConfig: key=${configKey}`);
+  console.log(`📱 Config properties:`, {
+    fontSize: config.fontSize,
+    fontWeight: config.fontWeight,
+    backgroundColor: config.backgroundColor,
+    keysBgColor: config.keysBgColor,
+    textColor: config.textColor,
+    hasGroups: !!config.groups,
+    groupCount: config.groups?.length || 0,
+    groups: config.groups,
+  });
+
+  // Use setKeyboardConfigForLanguage which calls setString (no profile_ prefix)
+  // This ensures the keyboard extension can read it from keyboardConfig_<lang>
+  const { NativeModules } = require('react-native');
+  const { KeyboardPreferencesModule } = NativeModules;
+
+  if (KeyboardPreferencesModule?.setString) {
+    await KeyboardPreferencesModule.setString(configJSON, configKey);
+    console.log(`✅ Saved keyboard config to ${configKey} using setString, length: ${configJSON.length}`);
+  } else {
+    console.error(`❌ KeyboardPreferencesModule.setString not available`);
+  }
+};
+
 interface EditorScreenInnerProps {
   profileName: string;
   profileId: string;
   language: LanguageId;
   keyboardId: string;
+  appContext?: AppContext;  // Which app is using the settings
+  onClose?: () => void;      // Close callback for IssieVoice
   isActiveProfile: boolean;
   onSave: (config: KeyboardConfig, styleGroups: any[]) => Promise<void>;
   onSetActive: () => Promise<void>;
@@ -345,6 +406,8 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   profileId,
   language,
   keyboardId,
+  appContext = 'issieboard',  // Default to IssieBoard if not specified
+  onClose,
   isActiveProfile,
   onSave,
   onSetActive,
@@ -594,7 +657,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
 
   // Handle language change - try to load the ACTIVE profile for that language
   const handleLanguageChange = useCallback(async (newLanguage: LanguageId) => {
-    console.log(`📱 handleLanguageChange: switching to ${newLanguage}`);
+    console.log(`📱 handleLanguageChange: switching to ${newLanguage} (appContext: ${appContext})`);
     setCurrentLanguage(newLanguage);
 
     // Get first keyboard for this language
@@ -602,10 +665,11 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     const firstKeyboardId = langDef?.keyboards[0]?.id || newLanguage;
     const defaultProfileId = getDefaultProfileId(newLanguage);
 
-    // Check what's the active profile for this language
-    const activeProfileId = await KeyboardPreferences.getProfile(`active_profile_${newLanguage}`);
+    // Check what's the active profile for this language and app context
+    const activeProfileKey = getActiveProfileKey(newLanguage, appContext);
+    const activeProfileId = await KeyboardPreferences.getProfile(activeProfileKey);
     const effectiveActiveProfile = activeProfileId || defaultProfileId;
-    console.log(`📱 Active profile for ${newLanguage}: ${effectiveActiveProfile}`);
+    console.log(`📱 Active profile for ${newLanguage} (${appContext}): ${effectiveActiveProfile}`);
 
     // Try to load the active profile
     const loaded = await loadProfileById(effectiveActiveProfile);
@@ -681,7 +745,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     }
 
     onLanguageChange(newLanguage);
-  }, [setConfig, onLanguageChange, onProfileChange]);
+  }, [setConfig, onLanguageChange, onProfileChange, appContext]);
 
   // Listen for launch keyboard events from native (Darwin notification)
   useEffect(() => {
@@ -709,42 +773,44 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
 
   // Handle keyboard variant change (within same language) - update current profile's keyboard
   const handleSave = useCallback(async () => {
-    // Check if current profile is built-in (read-only)
+    // Check if this is a built-in (read-only) profile
     const currentProfile = profiles.find(p => p.id === currentProfileId);
+    const isBuiltInProfile = currentProfile?.isBuiltIn || false;
 
-    if (currentProfile?.isBuiltIn) {
-      // Built-in profile - show "Save As" modal
+    if (isBuiltInProfile) {
+      // For built-in profiles, open Save As modal instead
       setShowSaveAsModal(true);
       return;
     }
 
-    // Custom profile - save normally
+    // For custom profiles, save directly
     setSaving(true);
     try {
-      const groupConfigs = convertStyleGroupsToGroupConfig(state.styleGroups);
-
-      const configToSave: KeyboardConfig = {
-        ...state.config,
-        groups: groupConfigs,
-      };
-
-      await onSave(configToSave, state.styleGroups);
-      dispatch({ type: 'MARK_SAVED' }); // Mark as not dirty after successful save
+      await onSave(state.config, state.styleGroups);
       showToast('✓ Saved successfully');
+      // Mark as saved (not dirty) since we just saved
+      dispatch({ type: 'MARK_SAVED' });
     } catch (error) {
-      showToast('✗ Failed to save configuration');
+      console.error('Save failed:', error);
+      showToast('✗ Save failed');
     } finally {
       setSaving(false);
     }
-  }, [currentProfileId, profiles, state.config, state.styleGroups, onSave, dispatch, showToast]);
+  }, [state.config, state.styleGroups, onSave, showToast, currentProfileId, profiles, dispatch]);
 
   const handleSaveAs = useCallback(async (newName: string): Promise<boolean> => {
     try {
       const newProfileId = `custom_${Date.now()}`;
 
+      console.log('💾 handleSaveAs - state.styleGroups:', state.styleGroups);
+      console.log('💾 handleSaveAs - styleGroups count:', state.styleGroups.length);
+
       // Extract current editor config and convert to profile definition
       // This captures ALL the user's changes including colors, fonts, layout
       const groupConfigs = convertStyleGroupsToGroupConfig(state.styleGroups);
+      console.log('💾 handleSaveAs - groupConfigs after conversion:', groupConfigs);
+      console.log('💾 handleSaveAs - groupConfigs count:', groupConfigs.length);
+
       const configToSave: KeyboardConfig = {
         ...state.config,
         groups: groupConfigs,
@@ -794,10 +860,13 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       setCurrentProfileId(newProfileId);
       onProfileChange(newProfileId, newName, currentLanguage, currentKeyboardId);
 
-      // Save as the active profile for this language
-      await KeyboardPreferences.setKeyboardConfigObjectForLanguage(configToSave, currentLanguage);
-      await KeyboardPreferences.setProfile(newProfileId, `active_profile_${currentLanguage}`);
-      console.log(`✅ Set "${newName}" as active profile for ${currentLanguage}`);
+      // Save as the active profile for this language and app context
+      // Use app-specific keyboard config key
+      await saveKeyboardConfig(configToSave, currentLanguage, appContext);
+
+      const activeProfileKey = getActiveProfileKey(currentLanguage, appContext);
+      await KeyboardPreferences.setProfile(newProfileId, activeProfileKey);
+      console.log(`✅ Set "${newName}" as active profile for ${currentLanguage} (${appContext})`);
 
       // Mark as saved (not dirty) since we just saved
       dispatch({ type: 'MARK_SAVED' });
@@ -810,6 +879,13 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
 
       // Show success message
       showToast(`✓ Saved as "${newName}" and set as active`);
+
+      // For IssieVoice, close the settings screen after saving
+      if (appContext === 'issievoice' && onClose) {
+        setTimeout(() => {
+          onClose();
+        }, 1000); // Give user time to see the success message
+      }
 
       return true;
     } catch (error) {
@@ -1287,7 +1363,9 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
           <View style={styles.profilePickerContainer}>
             <View style={styles.profilePickerHeader}>
               <Text allowFontScaling={false} style={styles.profilePickerTitle}>
-                My {currentLanguageDef.name} IssieBoards
+                {appContext === 'issievoice'
+                  ? `My ${currentLanguageDef.name} Keyboards`
+                  : `My ${currentLanguageDef.name} IssieBoards`}
               </Text>
               <View style={styles.profilePickerHeaderActions}>
                 {/* Add New Profile Button */}
@@ -1386,7 +1464,11 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         <View style={styles.languageBarTitle}>
           <Text style={styles.languageBarIcon}>⌨️</Text>
           <Text allowFontScaling={false} style={styles.languageBarTitleText}>
-            {windowWidth < 700 ? 'Settings' : 'IssieBoard Settings'}
+            {windowWidth < 700
+              ? 'Settings'
+              : appContext === 'issievoice'
+                ? 'IssieVoice Keyboard Settings'
+                : 'IssieBoard Settings'}
           </Text>
         </View>
         <View style={styles.languageTabs}>
@@ -1408,6 +1490,16 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
             </TouchableOpacity>
           ))}
         </View>
+        {/* Close button for IssieVoice */}
+        {appContext === 'issievoice' && onClose && (
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={onClose}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.closeButtonText}>✕</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Profile Selection Row */}
@@ -1420,7 +1512,9 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
           <View style={styles.profileIconSection}>
             <Text allowFontScaling={false} style={styles.profileIcon}>⌨️</Text>
             <View style={{ flexDirection: "row" }}>
-              <Text allowFontScaling={false} style={styles.profileSectionLabel}>Active IssieBoard:</Text>
+              <Text allowFontScaling={false} style={styles.profileSectionLabel}>
+                {appContext === 'issievoice' ? 'Active Keyboard:' : 'Active IssieBoard:'}
+              </Text>
               <TouchableOpacity onPress={handleTitleTap} activeOpacity={1}>
                 <Text allowFontScaling={false} style={styles.profileName}>{currentProfileName}</Text>
               </TouchableOpacity>
@@ -1435,7 +1529,9 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
               onPress={() => setShowProfilePicker(true)}
             >
               <Text allowFontScaling={false} style={styles.exploreButtonIcon}>📋</Text>
-              <Text allowFontScaling={false} style={styles.exploreButtonText}>My IssieBoards</Text>
+              <Text allowFontScaling={false} style={styles.exploreButtonText}>
+                {appContext === 'issievoice' ? 'My Keyboards' : 'My IssieBoards'}
+              </Text>
             </TouchableOpacity>
 
             {/* Save Button */}
@@ -1494,13 +1590,17 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
 interface EditorScreenProps {
   profileId?: string;
   initialLanguage?: LanguageId;
-  onBack: () => void;
+  appContext?: AppContext;  // Which app is using the settings
+  onBack?: () => void;       // Made optional for IssieVoice
+  onClose?: () => void;      // Close callback for IssieVoice
 }
 
 export const EditorScreen: React.FC<EditorScreenProps> = ({
   profileId: propProfileId,
   initialLanguage: propInitialLanguage,
+  appContext = 'issieboard',
   onBack,
+  onClose,
 }) => {
   const [loading, setLoading] = useState(true);
   const [initialConfig, setInitialConfig] = useState<KeyboardConfig | null>(null);
@@ -1561,15 +1661,17 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
         const langDef = LANGUAGES.find(l => l.id === savedLanguage) || LANGUAGES[0];
         const defaultKeyboardId = langDef.keyboards[0].id;
 
-        // Get active profile for this language
-        const activeProfileKey = `active_profile_${savedLanguage}`;
-        console.log(`📱 Looking for active profile: key=${activeProfileKey}`);
+        // Get active profile for this language and app context
+        const activeProfileKey = getActiveProfileKey(savedLanguage, appContext);
+        console.log(`📱 ========== LOADING PROFILE ==========`);
+        console.log(`📱 Looking for active profile with key: ${activeProfileKey}`);
         const activeProfile = await KeyboardPreferences.getProfile(activeProfileKey);
-        console.log(`📱 Active profile read: ${activeProfile || 'null'}`);
+        console.log(`📱 Active profile value: ${activeProfile || 'NULL'}`);
 
         // If no active profile is set, the default profile is considered active
         const defaultProfileId = getDefaultProfileId(savedLanguage);
         const effectiveActiveProfile = activeProfile || defaultProfileId;
+        console.log(`📱 Default profile ID: ${defaultProfileId}`);
         console.log(`📱 Effective active profile: ${effectiveActiveProfile}`);
         setActiveKeyboardProfileId(effectiveActiveProfile);
 
@@ -1626,30 +1728,52 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
     };
 
     loadInitial();
-  }, [propProfileId, propInitialLanguage]);
+  }, [propProfileId, propInitialLanguage, appContext]);
 
   const handleSave = useCallback(async (config: KeyboardConfig, styleGroups: any[]) => {
     // Always use the current profile ID (which should always be set)
     const saveProfileId = currentProfileId;
     const saveProfileName = profileName;
 
-    console.log(`📱 handleSave: saving to ${saveProfileId}`);
+    console.log(`📱 ========== handleSave START ==========`);
+    console.log(`📱 Saving profile: ${saveProfileId} (${saveProfileName})`);
+    console.log(`📱 Language: ${currentLanguage}, Keyboard: ${currentKeyboardId}`);
+    console.log(`📱 AppContext: ${appContext}`);
+    console.log(`📱 styleGroups count: ${styleGroups.length}`);
+
+    // Convert styleGroups to group configs and merge into config
+    const groupConfigs = convertStyleGroupsToGroupConfig(styleGroups);
+    console.log(`📱 groupConfigs count after conversion: ${groupConfigs.length}`);
+
+    const configWithGroups: KeyboardConfig = {
+      ...config,
+      groups: groupConfigs,
+    };
 
     const profileDef = extractProfileDefinition(
-      config, saveProfileId, saveProfileName, currentLanguage, currentKeyboardId
+      configWithGroups, saveProfileId, saveProfileName, currentLanguage, currentKeyboardId
     );
+
+    console.log(`📱 Profile definition created:`, {
+      id: profileDef.id,
+      name: profileDef.name,
+      language: profileDef.language,
+      keyboardId: profileDef.keyboardId,
+    });
 
     // Save profile definition
     await KeyboardPreferences.setProfile(
       JSON.stringify(profileDef),
       `profile_def_${saveProfileId}`
     );
+    console.log(`📱 ✅ Saved profile_def_${saveProfileId}`);
 
     // Save style groups
     await KeyboardPreferences.setProfile(
       JSON.stringify(styleGroups),
       `${saveProfileId}_styleGroups`
     );
+    console.log(`📱 ✅ Saved ${saveProfileId}_styleGroups`);
 
     // Add to saved list if not already there
     let savedList: { name: string; key: string; language: string; keyboardId: string }[] = [];
@@ -1680,35 +1804,25 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
       await KeyboardPreferences.setProfile(JSON.stringify(savedList), 'saved_list');
     }
 
-    // If this is the active profile for this language, update the keyboard config
-    // Check the language-specific active profile key
-    const activeForThisLang = await KeyboardPreferences.getProfile(`active_profile_${currentLanguage}`);
-    // If no active profile is explicitly set, the default profile is implicitly active
-    const defaultProfileId = getDefaultProfileId(currentLanguage);
-    const effectiveActiveProfile = activeForThisLang || defaultProfileId;
+    // When saving a profile, automatically make it active
+    // Save the keyboard config and mark this profile as active
+    console.log(`📱 Saving keyboard config with ${groupConfigs.length} groups...`);
+    await saveKeyboardConfig(configWithGroups, currentLanguage, appContext);
+    console.log(`📱 ✅ Saved keyboard config for ${currentLanguage} (${appContext})`);
 
-    if (saveProfileId === effectiveActiveProfile) {
-      // Save to the language-specific key (e.g., keyboardConfig_he)
-      // The iOS keyboard reads from keyboardConfig_{keyboardLanguage} where keyboardLanguage is he/en/ar
-      await KeyboardPreferences.setKeyboardConfigObjectForLanguage(config, currentLanguage);
-      console.log(`📱 Updated active keyboard config for ${currentLanguage}`);
+    const activeProfileKey = getActiveProfileKey(currentLanguage, appContext);
+    console.log(`📱 Setting active profile with key: ${activeProfileKey}`);
+    await KeyboardPreferences.setProfile(saveProfileId, activeProfileKey);
+    console.log(`📱 ✅ Set ${saveProfileId} as active profile`);
 
-      // If no active profile was set before, set it now
-      if (!activeForThisLang && saveProfileId === defaultProfileId) {
-        await KeyboardPreferences.setProfile(saveProfileId, `active_profile_${currentLanguage}`);
-        console.log(`📱 Set ${saveProfileId} as active profile for ${currentLanguage}`);
-      }
-    }
-
+    console.log(`📱 ========== handleSave END - Success ==========`);
     console.log(`✅ Saved profile "${saveProfileName}"`);
-  }, [currentProfileId, activeKeyboardProfileId, profileName, currentLanguage, currentKeyboardId]);
+  }, [currentProfileId, profileName, currentLanguage, currentKeyboardId, appContext]);
 
   const handleSetActive = useCallback(async () => {
-    console.log(`📱 handleSetActive: setting ${currentProfileId} as active for language ${currentLanguage}, keyboard ${currentKeyboardId}`);
+    console.log(`📱 handleSetActive: setting ${currentProfileId} as active for language ${currentLanguage}, keyboard ${currentKeyboardId}, appContext ${appContext}`);
 
     // Get the current config and save it to the KEYBOARD-SPECIFIC key
-    // The iOS keyboard extension reads from keyboardConfig_{keyboardLanguage} 
-    // where keyboardLanguage is he, he_ordered, en, ar, etc.
     let config: KeyboardConfig | null = null;
 
     // Try to load saved profile first
@@ -1737,16 +1851,16 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
     }
 
     if (config) {
-      // Save to language-specific key (keyboardConfig_he, keyboardConfig_en, keyboardConfig_ar)
-      // The iOS keyboard reads from keyboardConfig_{keyboardLanguage} where keyboardLanguage is he/en/ar
-      await KeyboardPreferences.setKeyboardConfigObjectForLanguage(config, currentLanguage);
-      console.log(`✅ Saved config to keyboardConfig_${currentLanguage}`);
+      // Save to app-specific key (keyboardConfig_he or keyboardConfig_issievoice_he)
+      await saveKeyboardConfig(config, currentLanguage, appContext);
     }
 
-    // Also save which profile is active for this language (not keyboard variant)
-    await KeyboardPreferences.setProfile(currentProfileId, `active_profile_${currentLanguage}`);
+    // Also save which profile is active for this language and app context
+    const activeProfileKey = getActiveProfileKey(currentLanguage, appContext);
+    await KeyboardPreferences.setProfile(currentProfileId, activeProfileKey);
     setActiveKeyboardProfileId(currentProfileId);
-  }, [currentProfileId, currentLanguage, currentKeyboardId]);
+    console.log(`✅ Set ${currentProfileId} as active profile with key ${activeProfileKey}`);
+  }, [currentProfileId, currentLanguage, currentKeyboardId, appContext]);
 
   const handleDuplicate = useCallback(async (newName: string): Promise<{ newProfileId: string; newConfig: KeyboardConfig; styleGroups: any[] }> => {
     const newProfileId = `custom_${Date.now()}`;
@@ -1908,6 +2022,20 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
             },
           }));
 
+          // Save the profile definition so it persists
+          console.log(`📱 Saving built-in profile definition: profile_def_${profileIdToActivate}`);
+          await KeyboardPreferences.setProfile(
+            JSON.stringify(profileDef),
+            `profile_def_${profileIdToActivate}`
+          );
+
+          // Save style groups
+          await KeyboardPreferences.setProfile(
+            JSON.stringify(styleGroups),
+            `${profileIdToActivate}_styleGroups`
+          );
+          console.log(`📱 ✅ Saved profile definition and style groups`);
+
           config = buildConfiguration(profileDef);
         } else {
           // Template not found - fallback to factory defaults
@@ -1927,14 +2055,15 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
       config = buildConfiguration(loaded.profileDef);
     }
 
-    // Save to language-specific key (keyboardConfig_he, keyboardConfig_en, keyboardConfig_ar)
-    await KeyboardPreferences.setKeyboardConfigObjectForLanguage(config, currentLanguage);
-    console.log(`✅ Saved config to keyboardConfig_${currentLanguage}`);
+    // Save to app-specific key (keyboardConfig_he or keyboardConfig_issievoice_he)
+    await saveKeyboardConfig(config, currentLanguage, appContext);
 
-    // Save which profile is active for this language
-    await KeyboardPreferences.setProfile(profileIdToActivate, `active_profile_${currentLanguage}`);
+    // Save which profile is active for this language and app context
+    const activeProfileKey = getActiveProfileKey(currentLanguage, appContext);
+    await KeyboardPreferences.setProfile(profileIdToActivate, activeProfileKey);
     setActiveKeyboardProfileId(profileIdToActivate);
-  }, [currentLanguage]);
+    console.log(`✅ Set ${profileIdToActivate} as active profile for ${currentLanguage} (${appContext})`);
+  }, [currentLanguage, appContext]);
 
   const handleCreateNew = useCallback(async (name: string, language: LanguageId, keyboardId: string) => {
     const newProfileId = `custom_${Date.now()}`;
@@ -1964,10 +2093,12 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
 
     const config = buildConfiguration(profileDef);
 
-    // Set as active profile for this language
-    await KeyboardPreferences.setKeyboardConfigObjectForLanguage(config, language);
-    await KeyboardPreferences.setProfile(newProfileId, `active_profile_${language}`);
-    console.log(`✅ Set ${newProfileId} as active profile for ${language}`);
+    // Set as active profile for this language and app context
+    await saveKeyboardConfig(config, language, appContext);
+
+    const activeProfileKey = getActiveProfileKey(language, appContext);
+    await KeyboardPreferences.setProfile(newProfileId, activeProfileKey);
+    console.log(`✅ Set ${newProfileId} as active profile for ${language} (${appContext})`);
 
     setCurrentProfileId(newProfileId);
     setProfileName(name);
@@ -1976,7 +2107,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
     setInitialConfig(config);
     setInitialStyleGroups([]);
     setActiveKeyboardProfileId(newProfileId);
-  }, []);
+  }, [appContext]);
 
   if (loading || !initialConfig) {
     return (
@@ -1994,6 +2125,8 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
         profileId={currentProfileId}
         language={currentLanguage}
         keyboardId={currentKeyboardId}
+        appContext={appContext}
+        onClose={onClose}
         isActiveProfile={currentProfileId === activeKeyboardProfileId}
         onSave={handleSave}
         onSetActive={handleSetActive}
@@ -2089,6 +2222,20 @@ const styles = StyleSheet.create({
   languageTabTextActive: {
     color: '#FFF',
     fontWeight: '700',
+  },
+  closeButton: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 18,
+    marginLeft: 12,
+  },
+  closeButtonText: {
+    fontSize: 20,
+    color: '#6B7280',
+    fontWeight: '600',
   },
   // Keyboard bar (secondary selector)
   keyboardBar: {

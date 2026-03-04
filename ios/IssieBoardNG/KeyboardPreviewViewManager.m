@@ -21,4 +21,7 @@ RCT_EXPORT_VIEW_PROPERTY(onSuggestionsChange, RCTBubblingEventBlock)
 // Export the onHeightChange event
 RCT_EXPORT_VIEW_PROPERTY(onHeightChange, RCTBubblingEventBlock)
 
+// Export the onOpenSettings event
+RCT_EXPORT_VIEW_PROPERTY(onOpenSettings, RCTBubblingEventBlock)
+
 @end

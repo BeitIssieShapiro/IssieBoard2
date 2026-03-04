@@ -14,6 +14,7 @@ interface SuggestionsBarProps {
   kbSuggestions?: string[];
   language?: 'en' | 'he';
   onSuggestionPress?: (suggestion: string) => void;
+  height?: number; // Optional responsive height
 }
 
 // Helper function to find the last word boundary, handling Hebrew and other scripts
@@ -36,14 +37,19 @@ const findLastWordBoundary = (text: string): number => {
 };
 
 const SuggestionsBar: React.FC<SuggestionsBarProps> = ({
-  currentText, 
+  currentText,
   kbSuggestions = [],
   language = 'en',
-  onSuggestionPress
+  onSuggestionPress,
+  height = 70, // Default height
 }) => {
   // Determine text direction based on language
   const isRTL = language === 'he';
   const {setText} = useText();
+
+  // Calculate responsive button height and font size
+  const buttonHeight = Math.max(30, height - 10); // Leave 10px for padding
+  const fontSize = Math.max(20, buttonHeight * 0.5); // Font size ~50% of button height (increased from 35%)
 
   const handleSuggestionPress = (suggestion: string) => {
     // Strip quotes if the suggestion is wrapped in quotes (literal word)
@@ -77,14 +83,14 @@ const SuggestionsBar: React.FC<SuggestionsBarProps> = ({
 
   if (kbSuggestions.length === 0) {
     // Instead of returning null, return an empty bar with the same height
-    return <View style={styles.container} />;
+    return <View style={[styles.container, {height}]} />;
   }
 
   // For RTL, reverse the suggestions order so first suggestion appears on the right
   const displaySuggestions = isRTL ? [...kbSuggestions].reverse() : kbSuggestions;
 
   return (
-    <View style={[styles.container, isRTL && styles.containerRTL]}>
+    <View style={[styles.container, {height}, isRTL && styles.containerRTL]}>
       <ScrollView
         horizontal={true}
         showsHorizontalScrollIndicator={false}
@@ -96,10 +102,10 @@ const SuggestionsBar: React.FC<SuggestionsBarProps> = ({
         {displaySuggestions.map((suggestion, index) => (
           <TouchableOpacity
             key={`${suggestion}-${index}`}
-            style={styles.suggestionButton}
+            style={[styles.suggestionButton, {height: buttonHeight}]}
             onPress={() => handleSuggestionPress(suggestion)}
             activeOpacity={0.7}>
-            <Text style={styles.suggestionText} numberOfLines={1}>
+            <Text style={[styles.suggestionText, {fontSize}]} numberOfLines={1}>
               {suggestion}
             </Text>
           </TouchableOpacity>
@@ -111,7 +117,6 @@ const SuggestionsBar: React.FC<SuggestionsBarProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    height: 70,
     backgroundColor: colors.surfaceDark,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
@@ -132,7 +137,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   suggestionButton: {
-    height: 60,
     minWidth: 100,
     paddingHorizontal: sizes.spacing.lg,
     backgroundColor: colors.primary,
@@ -147,7 +151,6 @@ const styles = StyleSheet.create({
   },
   suggestionText: {
     color: '#FFFFFF',
-    fontSize: sizes.fontSize.medium,
     fontWeight: '600',
     textAlign: 'center',
   },

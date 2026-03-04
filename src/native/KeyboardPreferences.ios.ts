@@ -199,6 +199,17 @@ class KeyboardPreferences {
   }
 
   /**
+   * Get a string value without the profile_ prefix
+   * Use this for reading keyboard configs that were saved with setString
+   */
+  async getString(key: string): Promise<string | null> {
+    if (!KeyboardPreferencesModule) {
+      return null;
+    }
+    return KeyboardPreferencesModule.getString(key);
+  }
+
+  /**
    * Print all preferences to console (for debugging)
    */
   async printAllPreferences(): Promise<PreferenceInfo> {
