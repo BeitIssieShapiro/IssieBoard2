@@ -44,6 +44,9 @@ class KeyboardEngine {
     /// Called when next keyboard button is pressed (for system keyboard only)
     var onNextKeyboard: (() -> Void)?
 
+    /// Called when globe button is long-pressed to show keyboard list
+    var onShowKeyboardList: ((UIView, UILongPressGestureRecognizer) -> Void)?
+
     /// Called when dismiss keyboard button is pressed
     var onDismissKeyboard: (() -> Void)?
 
@@ -111,6 +114,10 @@ class KeyboardEngine {
 
         renderer.onNextKeyboard = { [weak self] in
             self?.onNextKeyboard?()
+        }
+
+        renderer.onShowKeyboardList = { [weak self] button, gesture in
+            self?.onShowKeyboardList?(button, gesture)
         }
 
         renderer.onDismissKeyboard = { [weak self] in
@@ -263,9 +270,9 @@ class KeyboardEngine {
     }
 
     private func handleBackspace() {
-        // Check if text is already empty before deleting
-        let beforeText = textProxy.documentContextBeforeInput ?? ""
-        if beforeText.isEmpty {
+        // Check if there's any text or selection to delete
+        // hasText returns true if there's text in the document OR a text selection
+        if !textProxy.hasText {
             return
         }
 

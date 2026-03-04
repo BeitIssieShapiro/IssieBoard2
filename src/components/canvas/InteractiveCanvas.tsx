@@ -192,16 +192,32 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
 
   console.log("📐 [InteractiveCanvas] Render - keyboardHeight:", keyboardHeight, "containerHeight:", height, "scale:", scale, "windowWidth:", windowWidth);
 
+  const isLandscape = windowWidth > windowHeight;
+
   return (
     <>
       {/* Preview Header */}
-      <View style={styles.previewHeader}>
-        <Text allowFontScaling={false} style={styles.previewLabel}>Preview</Text>
-        <View style={styles.languageBadge}>
-          <Text allowFontScaling={false} style={styles.languageBadgeText}>
-            {languageDisplayName}
-          </Text>
+      <View style={[
+        styles.previewHeader,
+        isLandscape && styles.previewHeaderLandscape
+      ]}>
+        <View style={isLandscape ? styles.previewLabelColumn : styles.previewLabelRow}>
+          <Text allowFontScaling={false} style={styles.previewLabel}>Preview</Text>
+          {isLandscape && (
+            <View style={[styles.languageBadge, styles.languageBadgeLandscape]}>
+              <Text allowFontScaling={false} style={styles.languageBadgeText}>
+                {languageDisplayName}
+              </Text>
+            </View>
+          )}
         </View>
+        {!isLandscape && (
+          <View style={styles.languageBadge}>
+            <Text allowFontScaling={false} style={styles.languageBadgeText}>
+              {languageDisplayName}
+            </Text>
+          </View>
+        )}
         <Text allowFontScaling={false} style={styles.dimensionsText}>
           {Math.round(keyboardHeight)}pt
         </Text>
@@ -244,6 +260,18 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     height: 20,
   },
+  previewHeaderLandscape: {
+    height: 40, // Taller to accommodate vertical layout
+  },
+  previewLabelRow: {
+    // Portrait: label only
+  },
+  previewLabelColumn: {
+    // Landscape: label + badge stacked vertically
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 4,
+  },
   previewLabel: {
     fontSize: 16,
     fontWeight: '600',
@@ -254,6 +282,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 16,
+  },
+  languageBadgeLandscape: {
+    marginTop: 2,
   },
   languageBadgeText: {
     fontSize: 12,

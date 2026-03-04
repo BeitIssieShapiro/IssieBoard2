@@ -62,11 +62,14 @@ export const Toolbox: React.FC<ToolboxProps> = ({
   const [showTemplatesModal, setShowTemplatesModal] = useState(false);
   const [editingGroup, setEditingGroup] = useState<StyleGroup | null>(null);
   const [templateData, setTemplateData] = useState<GroupTemplate | null>(null);
-  
+
   // All accordions open by default
   const [openSections, setOpenSections] = useState<Set<SectionId>>(
     new Set(['settings', 'styleRules', 'diacritics'])
   );
+
+  // Advanced settings panel state (persists across re-renders)
+  const [advancedExpanded, setAdvancedExpanded] = useState(false);
 
   // Convert currently selected position IDs to key values
   const getSelectedKeyValues = useCallback((): string[] => {
@@ -178,6 +181,8 @@ export const Toolbox: React.FC<ToolboxProps> = ({
           keyboardVariants={keyboardVariants}
           currentKeyboardId={currentKeyboardId}
           onKeyboardVariantChange={onKeyboardVariantChange}
+          advancedExpanded={advancedExpanded}
+          setAdvancedExpanded={setAdvancedExpanded}
         />
       </AccordionSection>
 

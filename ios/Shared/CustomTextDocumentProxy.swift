@@ -47,6 +47,11 @@ class CustomTextDocumentProxy: TextDocumentProxyProtocol {
         return nil
     }
 
+    var hasText: Bool {
+        guard let text = getCurrentText?() else { return false }
+        return !text.isEmpty
+    }
+
     func insertText(_ textToInsert: String) {
         print("📝 CustomTextDocumentProxy.insertText: '\(textToInsert)'")
         onInsertText?(textToInsert)

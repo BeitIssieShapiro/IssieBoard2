@@ -157,6 +157,10 @@ class BaseKeyboardViewController: UIInputViewController {
             self?.advanceToNextInputMode()
         }
 
+        keyboardEngine.onShowKeyboardList = { [weak self] button, gesture in
+            self?.showKeyboardList(from: button, with: gesture)
+        }
+
         keyboardEngine.onDismissKeyboard = { [weak self] in
             self?.dismissKeyboard()
         }
@@ -245,9 +249,13 @@ class BaseKeyboardViewController: UIInputViewController {
             renderFallbackKeyboard()
             return
         }
-        
+
         do {
             parsedConfig = try JSONDecoder().decode(KeyboardConfig.self, from: jsonData)
+            print("⚙️ [ConfigLoad] Successfully decoded config")
+            print("⚙️ [ConfigLoad] fontSize: \(parsedConfig?.fontSize ?? nil)")
+            print("⚙️ [ConfigLoad] fontName: \(parsedConfig?.fontName ?? "nil")")
+            print("⚙️ [ConfigLoad] fontWeight: \(parsedConfig?.fontWeight ?? "nil")")
             renderKeyboard()
         } catch {
             errorLog("Failed to parse config: \(error)")
@@ -461,7 +469,19 @@ class BaseKeyboardViewController: UIInputViewController {
             keyboardEngine.renderer.setShowGlobeButton(shouldShowGlobe)
         }
     }
-    
+
+    /// Show the system keyboard picker list
+    /// Called when the globe button is long-pressed
+    private func showKeyboardList(from button: UIView, with gesture: UILongPressGestureRecognizer) {
+        // iOS doesn't provide a direct public API to show the keyboard picker programmatically
+        // As a workaround, we advance to the next keyboard (same as a tap)
+        // In the future, we could implement a custom keyboard picker UI
+        self.advanceToNextInputMode()
+
+        // Alternative: You could implement a custom keyboard picker here
+        // showing all available keyboards from UserDefaults "AppleKeyboards"
+    }
+
     // MARK: - Settings
 
     private func openSettings() {

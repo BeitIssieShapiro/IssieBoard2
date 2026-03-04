@@ -4,13 +4,13 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  Switch,
   TouchableOpacity,
   TextInput,
 } from 'react-native';
 import { useEditor } from '../../context/EditorContext';
 import { ColorPickerRow } from '../shared/ColorPickerRow';
 import { ButtonGroupRow } from '../shared/ButtonGroupRow';
+import { ToggleSwitch } from '../shared/ToggleSwitch';
 
 export interface KeyboardVariantOption {
   id: string;
@@ -31,12 +31,18 @@ export interface GlobalSettingsPanelProps {
   currentKeyboardId?: string;
   /** Callback when keyboard variant changes */
   onKeyboardVariantChange?: (keyboardId: string) => void;
+  /** Advanced settings expanded state (controlled by parent) */
+  advancedExpanded: boolean;
+  /** Callback to toggle advanced settings */
+  setAdvancedExpanded: (expanded: boolean) => void;
 }
 
 export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
   keyboardVariants,
   currentKeyboardId,
   onKeyboardVariantChange,
+  advancedExpanded,
+  setAdvancedExpanded,
 }) => {
   const {
     state,
@@ -50,9 +56,6 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
     updateSettingsButton,
     dispatch,
   } = useEditor();
-
-  // Expandable advanced settings state (default to expanded)
-  const [advancedExpanded, setAdvancedExpanded] = useState(false);
 
   // Get current settings (moved before local state initialization)
   const textColor = (state.config as any).textColor || '';
@@ -285,11 +288,12 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
               Show word completion suggestions above keyboard
             </Text>
           </View>
-          <Switch
+          <ToggleSwitch
             value={wordSuggestionsEnabled}
-            onValueChange={updateWordSuggestions}
-            trackColor={{ false: '#9E9E9E', true: '#81C784' }}
-            thumbColor={wordSuggestionsEnabled ? '#4CAF50' : '#FFFFFF'}
+            onChange={updateWordSuggestions}
+            labelOn=""
+            labelOff=""
+            size="medium"
           />
         </View>
         <View style={styles.featureRow}>
@@ -299,11 +303,12 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
               Replace typed word with suggestion when pressing space
             </Text>
           </View>
-          <Switch
+          <ToggleSwitch
             value={autoCorrectEnabled}
-            onValueChange={updateAutoCorrect}
-            trackColor={{ false: '#9E9E9E', true: '#81C784' }}
-            thumbColor={autoCorrectEnabled ? '#4CAF50' : '#FFFFFF'}
+            onChange={updateAutoCorrect}
+            labelOn=""
+            labelOff=""
+            size="medium"
             disabled={!wordSuggestionsEnabled}
           />
         </View>
@@ -314,11 +319,12 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
               Show settings button on keyboard
             </Text>
           </View>
-          <Switch
+          <ToggleSwitch
             value={settingsButtonEnabled}
-            onValueChange={updateSettingsButton}
-            trackColor={{ false: '#9E9E9E', true: '#81C784' }}
-            thumbColor={settingsButtonEnabled ? '#4CAF50' : '#FFFFFF'}
+            onChange={updateSettingsButton}
+            labelOn=""
+            labelOff=""
+            size="medium"
           />
         </View>
       </View>

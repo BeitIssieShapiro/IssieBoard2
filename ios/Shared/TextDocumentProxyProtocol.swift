@@ -16,6 +16,9 @@ protocol TextDocumentProxyProtocol: AnyObject {
     /// Text after the cursor/insertion point
     var documentContextAfterInput: String? { get }
 
+    /// Whether there is text in the document or a text selection
+    var hasText: Bool { get }
+
     /// Insert text at cursor position
     func insertText(_ text: String)
 

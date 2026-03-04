@@ -29,3 +29,7 @@ Live Synchronization: Both platforms implement reactive listeners (OnSharedPrefe
 System Integration: The architecture respects platform-specific UI paradigms, automatically handling Edge-to-Edge content and safe area insets (like the Home Indicator on iOS and Gesture Bar on Android) to ensure a seamless fit on modern devices.
 
 Summary: By isolating the configuration logic in React Native and keeping the runtime engines pure native, the app achieves a "Write Once, Configure Everywhere" developer experience while delivering the raw performance and stability required by the operating systems.
+
+
+### SVG Editing
+https://www.svgviewer.dev/s/487964/star

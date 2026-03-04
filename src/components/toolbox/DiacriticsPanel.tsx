@@ -4,11 +4,11 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Switch,
 } from 'react-native';
 import { useEditor } from '../../context/EditorContext';
 import { DiacriticItem, DiacriticModifier } from '../../../types';
 import { ButtonGroupRow } from '../shared/ButtonGroupRow';
+import { ToggleSwitch } from '../shared/ToggleSwitch';
 
 type NikkudMode = 'basic' | 'full' | 'custom' | 'none';
 
@@ -254,11 +254,12 @@ export const DiacriticsPanel: React.FC = () => {
                   </Text>
                 )}
               </View>
-              <Switch
+              <ToggleSwitch
                 value={!disabledModifiers.includes(modifier.id)}
-                onValueChange={() => handleToggleModifier(modifier.id)}
-                trackColor={{ false: '#ccc', true: '#81C784' }}
-                thumbColor={!disabledModifiers.includes(modifier.id) ? '#4CAF50' : '#f4f3f4'}
+                onChange={() => handleToggleModifier(modifier.id)}
+                labelOn=""
+                labelOff=""
+                size="medium"
               />
             </View>
           ))}

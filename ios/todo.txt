@@ -1,7 +1,7 @@
 2-March
 ------
 V- make height percent from screen
-- primary colors + wheel saves new colors
+V- primary colors + wheel saves new colors
 V- yad-font (larger)
 V- remove "space" word
 V- wide gap between keys option
@@ -14,6 +14,14 @@ V- key group from template: read-only, simplified, has also the profile-name at 
 
 Bugs:
 - not offer suggestion for certain input type? then ommit the header row?
+
+- when selecting text (all text) backspace does not delete it
+X- long press on globus - show list [not possible in ios]
+V- gaps don't work
+V- in landscape: badge of "english" is hidden
+V- "settings" fontSize
+V- font-weight: light?
+
 
 Features
 ---

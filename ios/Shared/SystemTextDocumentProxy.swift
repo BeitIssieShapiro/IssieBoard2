@@ -29,6 +29,10 @@ class SystemTextDocumentProxy: TextDocumentProxyProtocol {
         return proxy.documentContextAfterInput
     }
 
+    var hasText: Bool {
+        return proxy.hasText
+    }
+
     func insertText(_ text: String) {
         proxy.insertText(text)
     }

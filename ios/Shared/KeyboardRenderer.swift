@@ -25,6 +25,7 @@ class KeyboardRenderer {
     
     // Callbacks for system keyboard actions (only used by actual keyboard)
     var onNextKeyboard: (() -> Void)?
+    var onShowKeyboardList: ((UIView, UILongPressGestureRecognizer) -> Void)?  // Pass button and gesture for positioning
     var onDismissKeyboard: (() -> Void)?
     var onOpenSettings: (() -> Void)?
     var onLanguageSwitch: (() -> Void)?
@@ -353,6 +354,9 @@ class KeyboardRenderer {
         let currentWidth = container.bounds.width
         print("📐 RENDER START =================")
         print("📐 RENDER: container.bounds.width = \(currentWidth), lastRenderedWidth = \(lastRenderedWidth)")
+        print("⚙️ [Config] fontSize from config: \(config.fontSize ?? nil)")
+        print("⚙️ [Config] fontName from config: \(config.fontName ?? "nil")")
+        print("⚙️ [Config] fontWeight from config: \(config.fontWeight ?? "nil")")
         print("📐 RENDER CALL STACK:")
         Thread.callStackSymbols.prefix(10).forEach { print("  \($0)") }
         
@@ -943,6 +947,14 @@ class KeyboardRenderer {
             // Settings and close: no touch handlers (to avoid popup)
             // Settings and close: always tap-selectable
             button.addTarget(self, action: #selector(keyTapped(_:)), for: .touchUpInside)
+        } else if keyType == "next-keyboard" {
+            // Next-keyboard (globe): tap to advance, long-press to show keyboard list
+            button.addTarget(self, action: #selector(keyTapped(_:)), for: .touchUpInside)
+
+            // Add long-press gesture to show keyboard picker
+            let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(nextKeyboardLongPressed(_:)))
+            longPressGesture.minimumPressDuration = 0.5
+            button.addGestureRecognizer(longPressGesture)
         } else if keyType == "shift" {
             // Shift: normal tap for toggle, long-press for selection in edit mode
             button.addTarget(self, action: #selector(keyTapped(_:)), for: .touchUpInside)
@@ -1060,11 +1072,15 @@ class KeyboardRenderer {
         // Font size - check for custom fontSize first, then global config fontSize, then use defaults
         let isLargeKey = ["shift", "backspace", "enter"].contains(key.type.lowercased())
         let isMultiChar = finalText.count > 1
+        let isSettingsKey = key.type.lowercased() == "settings"
 
         var finalFontSize: CGFloat
         if let customFontSize = key.fontSize {
             // Use custom font size if specified on the key
             finalFontSize = CGFloat(customFontSize)
+            if isSettingsKey {
+                print("⚙️ [Settings] Using custom fontSize: \(customFontSize)")
+            }
         } else {
             // Use global config fontSize, or fall back to default sizing logic
             let defaultFontSize: CGFloat = fontSize
@@ -1073,6 +1089,12 @@ class KeyboardRenderer {
             // Check for global fontSize in config
             let globalFontSize: CGFloat = config?.fontSize.map { CGFloat($0) } ?? defaultFontSize
             let globalLargeFontSize: CGFloat = config?.fontSize.map { CGFloat($0) * (defaultLargeFontSize / defaultFontSize) } ?? defaultLargeFontSize
+
+            if isSettingsKey {
+                print("⚙️ [Settings] Config fontSize: \(config?.fontSize ?? nil)")
+                print("⚙️ [Settings] Default fontSize: \(defaultFontSize), Large: \(defaultLargeFontSize)")
+                print("⚙️ [Settings] Global fontSize: \(globalFontSize), Global large: \(globalLargeFontSize)")
+            }
 
             let baseFontSize: CGFloat = isLargeKey ? globalLargeFontSize : globalFontSize
 
@@ -1093,6 +1115,10 @@ class KeyboardRenderer {
             if isNikkudKey {
                 finalFontSize = 36
             }
+
+            if isSettingsKey {
+                print("⚙️ [Settings] BaseFontSize: \(baseFontSize), FinalFontSize: \(finalFontSize)")
+            }
         }
 
         // For settings key, use SF Symbol image
@@ -1105,8 +1131,10 @@ class KeyboardRenderer {
                 visualKeyView.addSubview(imageView)
                 imageView.translatesAutoresizingMaskIntoConstraints = false
 
-                // Scale icon size based on fontSize (default 24pt at 48pt fontSize)
-                let iconSize = (finalFontSize / 48.0) * 24.0
+                // Scale icon size based on fontSize - make icon same size as font (100%)
+                // At fontSize 48: icon = 48pt
+                // At fontSize 37: icon = 37pt
+                let iconSize = finalFontSize
                 print("⚙️ Settings icon: finalFontSize=\(finalFontSize), iconSize=\(iconSize)")
 
                 NSLayoutConstraint.activate([
@@ -1157,7 +1185,24 @@ class KeyboardRenderer {
             label.text = finalText
         }
 
-        let fontWeight: UIFont.Weight = .regular
+        // Get font weight from config or use default
+        let fontWeight: UIFont.Weight = {
+            guard let weightString = config?.fontWeight else {
+                return .heavy  // Default to heavy
+            }
+            switch weightString.lowercased() {
+            case "ultralight": return .ultraLight
+            case "thin": return .thin
+            case "light": return .light
+            case "regular": return .regular
+            case "medium": return .medium
+            case "semibold": return .semibold
+            case "bold": return .bold
+            case "heavy": return .heavy
+            case "black": return .black
+            default: return .heavy  // Default to heavy for unknown values
+            }
+        }()
         
         // Apply custom font if configured
         // Font applies to character keys in "abc" keysets (not special keys like shift, backspace, etc.)
@@ -1204,15 +1249,19 @@ class KeyboardRenderer {
                 label.trailingAnchor.constraint(lessThanOrEqualTo: visualKeyView.trailingAnchor, constant: -2)
             ])
         }
-        
+
+        // Get key gap from config or use defaults
+        let horizontalGap = CGFloat(config?.keyGap ?? 3)
+        let verticalGap = horizontalGap + 2  // Vertical padding is slightly larger (2px more than horizontal)
+
         // Add visual key view to button (with padding for visual gap)
         button.addSubview(visualKeyView)
         visualKeyView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            visualKeyView.topAnchor.constraint(equalTo: button.topAnchor, constant: keyVerticalPadding),
-            visualKeyView.leadingAnchor.constraint(equalTo: button.leadingAnchor, constant: keyInternalPadding),
-            visualKeyView.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -keyInternalPadding),
-            visualKeyView.bottomAnchor.constraint(equalTo: button.bottomAnchor, constant: -keyVerticalPadding)
+            visualKeyView.topAnchor.constraint(equalTo: button.topAnchor, constant: verticalGap),
+            visualKeyView.leadingAnchor.constraint(equalTo: button.leadingAnchor, constant: horizontalGap),
+            visualKeyView.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -horizontalGap),
+            visualKeyView.bottomAnchor.constraint(equalTo: button.bottomAnchor, constant: -verticalGap)
         ])
         
         return button
@@ -1435,9 +1484,22 @@ class KeyboardRenderer {
             dimSubviews(of: subview, alpha: alpha)
         }
     }
-    
+
+    /// Handle long-press on next-keyboard (globe) button to show keyboard list
+    @objc private func nextKeyboardLongPressed(_ gesture: UILongPressGestureRecognizer) {
+        // Only trigger on initial recognition, not continued updates
+        guard gesture.state == .began else { return }
+
+        guard let button = gesture.view as? UIButton else {
+            return
+        }
+
+        print("🌐 Globe button long-pressed - showing keyboard list")
+        onShowKeyboardList?(button, gesture)
+    }
+
     // MARK: - Key Press Popup Bubble
-    
+
     /// Show popup bubble above the key when touched down
     @objc private func keyTouchDown(_ sender: UIButton) {
         guard let keyInfo = decodeKeyInfo(sender.accessibilityIdentifier),
