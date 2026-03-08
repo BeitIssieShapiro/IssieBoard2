@@ -1,12 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  Animated,
 } from 'react-native';
-import DraggableFlatList, { RenderItemParams, ScaleDecorator } from 'react-native-draggable-flatlist';
 import { colors, sizes } from '../../constants';
 import FavoritesManager, { Favorite } from '../../services/FavoritesManager';
 import SavedSentencesManager, { SavedSentence } from '../../services/SavedSentencesManager';
@@ -16,20 +14,17 @@ interface FavoritesBarProps {
   height: number;
   navigation: any;
   onEditModeChange?: (isEditMode: boolean) => void;
-  reloadTrigger?: number; // Change this to trigger reload
+  reloadTrigger?: number;
 }
 
 const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, navigation, onEditModeChange, reloadTrigger }) => {
   const [favorites, setFavorites] = useState<{ favorite: Favorite; sentence: SavedSentence }[]>([]);
-  const [isEditMode, setIsEditMode] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // Animation values for each favorite
-  const [wiggleAnims] = useState<{ [key: string]: Animated.Value }>({});
-
-  // Notify parent of edit mode changes
+  // Notify parent when selection state changes
   useEffect(() => {
-    onEditModeChange?.(isEditMode);
-  }, [isEditMode, onEditModeChange]);
+    onEditModeChange?.(selectedId !== null);
+  }, [selectedId, onEditModeChange]);
 
   useEffect(() => {
     loadFavorites();
@@ -59,227 +54,155 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
     matched.sort((a, b) => a.favorite.order - b.favorite.order);
 
     setFavorites(matched);
-
-    // Initialize animations
-    matched.forEach(item => {
-      if (!wiggleAnims[item.favorite.id]) {
-        wiggleAnims[item.favorite.id] = new Animated.Value(0);
-      }
-    });
   };
 
   const handleAddPress = async () => {
-    // Exit edit mode if currently in it
-    if (isEditMode) {
-      setIsEditMode(false);
-      // Stop wiggling
-      favorites.forEach(item => {
-        const anim = wiggleAnims[item.favorite.id];
-        if (anim) {
-          anim.stopAnimation();
-          anim.setValue(0);
-        }
-      });
+    // Clear selection if active
+    if (selectedId) {
+      setSelectedId(null);
     }
 
     // Navigate to BrowseScreen in select mode
     navigation.navigate('Browse', { mode: 'select' });
   };
 
-  const handleRemoveFavorite = async (sentenceId: string) => {
-    await FavoritesManager.removeFavorite(sentenceId);
+  const handleFavoritePress = (item: { favorite: Favorite; sentence: SavedSentence }) => {
+    if (selectedId === item.favorite.id) {
+      // Deselect if already selected
+      setSelectedId(null);
+    } else if (selectedId) {
+      // Switch selection to this item
+      setSelectedId(item.favorite.id);
+    } else {
+      // Normal press - speak the sentence
+      onFavoritePress(item.sentence.text);
+    }
+  };
+
+  const handleFavoriteLongPress = (item: { favorite: Favorite; sentence: SavedSentence }) => {
+    // Select the item
+    setSelectedId(item.favorite.id);
+  };
+
+  const handleDelete = async () => {
+    if (!selectedId) return;
+
+    await FavoritesManager.removeFavorite(selectedId);
+    setSelectedId(null);
     await loadFavorites();
   };
 
-  const handleReorder = async (data: { favorite: Favorite; sentence: SavedSentence }[]) => {
-    console.log('🔄 Reordering favorites');
+  const handleMoveLeft = async () => {
+    if (!selectedId) return;
 
-    // Update state immediately for responsive UI
-    setFavorites(data);
+    const currentIndex = favorites.findIndex(f => f.favorite.id === selectedId);
+    if (currentIndex <= 0) return; // Already at the start
 
-    // Save the new order
-    const orderedIds = data.map(item => item.favorite.id);
+    // Swap with previous item
+    const newOrder = [...favorites];
+    [newOrder[currentIndex - 1], newOrder[currentIndex]] = [newOrder[currentIndex], newOrder[currentIndex - 1]];
+
+    const orderedIds = newOrder.map(f => f.favorite.id);
     await FavoritesManager.reorderFavorites(orderedIds);
+    await loadFavorites();
   };
 
-  const handleLongPress = () => {
-    if (favorites.length === 0) return;
+  const handleMoveRight = async () => {
+    if (!selectedId) return;
 
-    const newEditMode = !isEditMode;
-    setIsEditMode(newEditMode);
+    const currentIndex = favorites.findIndex(f => f.favorite.id === selectedId);
+    if (currentIndex === -1 || currentIndex >= favorites.length - 1) return; // Already at the end
 
-    if (newEditMode) {
-      // Start wiggling animation for all favorites
-      console.log('🎭 Starting wiggle animations for', favorites.length, 'favorites');
-      favorites.forEach(item => {
-        // Ensure animation exists
-        if (!wiggleAnims[item.favorite.id]) {
-          console.log('⚠️ Creating missing animation for', item.favorite.id);
-          wiggleAnims[item.favorite.id] = new Animated.Value(0);
-        }
+    // Swap with next item
+    const newOrder = [...favorites];
+    [newOrder[currentIndex], newOrder[currentIndex + 1]] = [newOrder[currentIndex + 1], newOrder[currentIndex]];
 
-        const anim = wiggleAnims[item.favorite.id];
-        console.log('▶️ Starting animation for', item.favorite.id);
-        Animated.loop(
-          Animated.sequence([
-            Animated.timing(anim, {
-              toValue: 1,
-              duration: 100,
-              useNativeDriver: true,
-            }),
-            Animated.timing(anim, {
-              toValue: -1,
-              duration: 100,
-              useNativeDriver: true,
-            }),
-            Animated.timing(anim, {
-              toValue: 0,
-              duration: 100,
-              useNativeDriver: true,
-            }),
-          ])
-        ).start();
-      });
-    } else {
-      // Stop wiggling
-      console.log('⏸️ Stopping wiggle animations');
-      favorites.forEach(item => {
-        const anim = wiggleAnims[item.favorite.id];
-        if (anim) {
-          anim.stopAnimation();
-          anim.setValue(0);
-        }
-      });
-    }
+    const orderedIds = newOrder.map(f => f.favorite.id);
+    await FavoritesManager.reorderFavorites(orderedIds);
+    await loadFavorites();
   };
 
   const getFirstWord = (text: string): string => {
     return text.trim().split(/\s+/)[0] || text.substring(0, 15);
   };
 
-  const wiggleInterpolate = (animValue: Animated.Value) => {
-    return animValue.interpolate({
-      inputRange: [-1, 1],
-      outputRange: ['-2deg', '2deg'],
-    });
-  };
-
-  // Render individual favorite item
-  const renderFavoriteItem = ({ item, drag, isActive }: RenderItemParams<{ favorite: Favorite; sentence: SavedSentence }>) => {
-    const anim = wiggleAnims[item.favorite.id];
-    const caption = item.favorite.caption || getFirstWord(item.sentence.text);
-    const icon = item.favorite.icon;
-
-    if (!anim) {
-      console.warn('⚠️ No animation for', item.favorite.id, 'in renderFavoriteItem');
-    }
-
-    const rotation = anim ? wiggleInterpolate(anim) : '0deg';
-
-    // Combine transforms: wiggle + drag scale
-    const transforms: any[] = [];
-    if (isEditMode && !isActive) {
-      transforms.push({ rotate: rotation });
-    }
-    if (isActive) {
-      transforms.push({ scale: 1.05 });
-    }
-
-    return (
-      <ScaleDecorator>
-        <Animated.View
-          style={[
-            styles.favoriteWrapper,
-            transforms.length > 0 && { transform: transforms },
-            isActive && { opacity: 0.7 },
-          ]}>
-          <TouchableOpacity
-            style={[
-              styles.favoriteButton,
-              {height: height/2},
-              icon && styles.favoriteButtonWithIcon
-            ]}
-            onPress={() => !isEditMode && onFavoritePress(item.sentence.text)}
-            onLongPress={() => {
-              if (isEditMode) {
-                drag();
-              } else {
-                handleLongPress();
-              }
-            }}
-            activeOpacity={0.7}
-            delayLongPress={isEditMode ? 0 : 500}>
-            {icon ? (
-              <>
-                <Text style={styles.favoriteIcon}>{icon}</Text>
-                <Text style={styles.favoriteCaptionWithIcon} numberOfLines={1}>
-                  {caption}
-                </Text>
-              </>
-            ) : (
-              <Text style={styles.favoriteText} numberOfLines={1}>
-                {caption}
-              </Text>
-            )}
-          </TouchableOpacity>
-
-          {isEditMode && (
-            <TouchableOpacity
-              style={styles.deleteButton}
-              onPress={() => handleRemoveFavorite(item.favorite.id)}
-              activeOpacity={0.7}>
-              <Text style={styles.deleteButtonText}>✕</Text>
-            </TouchableOpacity>
-          )}
-        </Animated.View>
-      </ScaleDecorator>
-    );
-  };
-
   return (
     <>
-      {/* Overlay to exit edit mode when clicking outside */}
-      {isEditMode && (
+      {/* Overlay to clear selection when clicking outside */}
+      {selectedId && (
         <TouchableOpacity
           style={styles.overlay}
           activeOpacity={1}
-          onPress={() => {
-            console.log('👆 Clicked outside - exiting edit mode');
-            setIsEditMode(false);
-            // Stop wiggling
-            favorites.forEach(item => {
-              const anim = wiggleAnims[item.favorite.id];
-              if (anim) {
-                anim.stopAnimation();
-                anim.setValue(0);
-              }
-            });
-          }}
+          onPress={() => setSelectedId(null)}
         />
       )}
 
       <View style={[styles.container, { height }]}>
-        <View style={styles.innerContainer}>
-          {/* Draggable Favorites List */}
-          <DraggableFlatList
-            style={{ width: "100%", height: "100%" }}
-            data={favorites}
-            horizontal
-            onDragEnd={({ data }) => handleReorder(data)}
-            keyExtractor={(item) => item.favorite.id}
-            renderItem={renderFavoriteItem}
-            contentContainerStyle={styles.listContent}
-            showsHorizontalScrollIndicator={false}
-            activationDistance={isEditMode ? 10 : 1000} // Easy drag in edit mode, disabled otherwise
-          />
-          {/* Add button */}
+        {/* Toolbar when item is selected */}
+        {selectedId && (
+          <View style={styles.toolbar}>
+            <TouchableOpacity style={styles.toolbarButton} onPress={handleMoveLeft}>
+              <Text style={styles.toolbarButtonText}>← Move Left</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.toolbarButton} onPress={handleDelete}>
+              <Text style={[styles.toolbarButtonText, styles.deleteText]}>Delete</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.toolbarButton} onPress={handleMoveRight}>
+              <Text style={styles.toolbarButtonText}>Move Right →</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.closeButton} onPress={() => setSelectedId(null)}>
+              <Text style={styles.closeButtonText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
-          <TouchableOpacity
-            style={[styles.addButton, {height: height/2, margin: styles.listContent.paddingVertical}]}
-            onPress={handleAddPress}
-            activeOpacity={0.7}>
-            <Text style={styles.addButtonText}>+</Text>
-          </TouchableOpacity>
+        <View style={styles.innerContainer}>
+          <View style={styles.favoritesGrid}>
+            {favorites.map((item) => {
+              const caption = item.favorite.caption || getFirstWord(item.sentence.text);
+              const icon = item.favorite.icon;
+              const isSelected = selectedId === item.favorite.id;
+
+              return (
+                <View key={item.favorite.id} style={styles.favoriteWrapper}>
+                  <TouchableOpacity
+                    style={[
+                      styles.favoriteButton,
+                      { height: height / 2 },
+                      icon && styles.favoriteButtonWithIcon,
+                      isSelected && styles.selectedButton,
+                    ]}
+                    onPress={() => handleFavoritePress(item)}
+                    onLongPress={() => handleFavoriteLongPress(item)}
+                    activeOpacity={0.7}
+                    delayLongPress={500}>
+                    {icon ? (
+                      <>
+                        <Text style={styles.favoriteIcon}>{icon}</Text>
+                        <Text style={styles.favoriteCaptionWithIcon} numberOfLines={1}>
+                          {caption}
+                        </Text>
+                      </>
+                    ) : (
+                      <Text style={styles.favoriteText} numberOfLines={1}>
+                        {caption}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
+
+            {/* Add button */}
+            <View style={styles.favoriteWrapper}>
+              <TouchableOpacity
+                style={[styles.addButton, { height: height / 2 }]}
+                onPress={handleAddPress}
+                activeOpacity={0.7}>
+                <Text style={styles.addButtonText}>+</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       </View>
     </>
@@ -298,28 +221,68 @@ const styles = StyleSheet.create({
   },
   container: {
     margin: 8,
+    marginLeft: 0,
     width: "100%",
     zIndex: 1000,
   },
   innerContainer: {
-    flexDirection: 'row',
+    flex: 1,
     paddingHorizontal: sizes.spacing.md,
-    //paddingVertical: sizes.spacing.md,
+    height: '100%',
   },
-  listContent: {
-    //alignItems: 'center',
-    // justifyContent: "flex-start",
-    //paddingRight: sizes.spacing.md,
-    // /width: "100%"
-    paddingVertical: 8
+  favoritesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignContent: 'flex-start',
+    paddingVertical: 8,
+    gap: sizes.spacing.sm,
+  },
+  favoriteWrapper: {
+    position: 'relative',
+    marginRight: sizes.spacing.sm,
+  },
+  favoriteButton: {
+    minWidth: 80,
+    maxWidth: 200,
+    height: 60,
+    paddingHorizontal: sizes.spacing.sm,
+    borderRadius: sizes.borderRadius.large,
+    backgroundColor: colors.secondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.3)',
+  },
+  selectedButton: {
+    borderWidth: 4,
+    borderColor: colors.primary,
+  },
+  favoriteButtonWithIcon: {
+    flexDirection: 'column',
+    paddingVertical: sizes.spacing.xs,
+    paddingHorizontal: sizes.spacing.md,
+  },
+  favoriteIcon: {
+    fontSize: 32,
+    marginBottom: 2,
+  },
+  favoriteCaptionWithIcon: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  favoriteText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
   },
   addButton: {
     width: 80,
     height: 60,
     borderRadius: sizes.borderRadius.large,
     backgroundColor: colors.background,
-    borderStyle:"dashed",
-    borderWidth:2,
+    borderStyle: "dashed",
+    borderWidth: 2,
     borderColor: colors.border,
     justifyContent: 'center',
     alignItems: 'center',
@@ -330,56 +293,51 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
   },
-  favoriteWrapper: {
-    position: 'relative',
-    marginRight: sizes.spacing.sm,
-  },
-  favoriteButton: {
-    minWidth: 80,
-    maxWidth: 200, // Increased to allow longer text
-    height: 60,
-    paddingHorizontal: sizes.spacing.sm,
-    borderRadius: sizes.borderRadius.large,
-    backgroundColor: colors.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.3)',
-  },
-  favoriteButtonWithIcon: {
-    flexDirection: 'column',
-    paddingVertical: sizes.spacing.xs,
-    paddingHorizontal: sizes.spacing.md,
-  },
-  favoriteIcon: {
-    fontSize: 32, 
-    marginBottom: 2,
-  },
-  favoriteCaptionWithIcon: {
-    color: '#FFFFFF',
-    fontSize: 18, 
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  favoriteText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  deleteButton: {
+  toolbar: {
     position: 'absolute',
-    top: -8,
-    right: -8,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#f44336',
+    bottom: '100%',
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    backgroundColor: colors.surfaceDark,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    padding: sizes.spacing.md,
+    height: 80,
+    zIndex: 1001,
+  },
+  toolbarButton: {
+    paddingVertical: sizes.spacing.sm,
+    paddingHorizontal: sizes.spacing.md,
+    backgroundColor: colors.primary,
+    borderRadius: sizes.borderRadius.medium,
+    minWidth: 100,
+    alignItems: 'center',
+  },
+  toolbarButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  deleteText: {
+    color: '#FF6B6B',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: sizes.spacing.sm,
+    right: sizes.spacing.sm,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.border,
     justifyContent: 'center',
     alignItems: 'center',
-    boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.3)',
   },
-  deleteButtonText: {
+  closeButtonText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 20,
     fontWeight: 'bold',
   },
 });

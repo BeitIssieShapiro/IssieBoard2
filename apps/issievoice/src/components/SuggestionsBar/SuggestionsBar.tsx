@@ -15,6 +15,7 @@ interface SuggestionsBarProps {
   language?: 'en' | 'he';
   onSuggestionPress?: (suggestion: string) => void;
   height?: number; // Optional responsive height
+  screenWidth?: number; // Optional screen width for responsive scaling
 }
 
 // Helper function to find the last word boundary, handling Hebrew and other scripts
@@ -42,6 +43,7 @@ const SuggestionsBar: React.FC<SuggestionsBarProps> = ({
   language = 'en',
   onSuggestionPress,
   height = 70, // Default height
+  screenWidth = 1000, // Default screen width
 }) => {
   // Determine text direction based on language
   const isRTL = language === 'he';
@@ -49,7 +51,13 @@ const SuggestionsBar: React.FC<SuggestionsBarProps> = ({
 
   // Calculate responsive button height and font size
   const buttonHeight = Math.max(30, height - 10); // Leave 10px for padding
-  const fontSize = Math.max(20, buttonHeight * 0.5); // Font size ~50% of button height (increased from 35%)
+
+  // Scale font size based on both height and screen width
+  // At 1000px width: use full height-based sizing
+  // At smaller widths: reduce font size proportionally
+  const baseHeightFontSize = buttonHeight * 0.5; // Base size from height
+  const widthScaleFactor = Math.min(1, screenWidth / 1000); // Scale down on smaller screens
+  const fontSize = Math.max(16, baseHeightFontSize * widthScaleFactor); // Minimum 16px
 
   const handleSuggestionPress = (suggestion: string) => {
     // Strip quotes if the suggestion is wrapped in quotes (literal word)
@@ -133,7 +141,9 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   suggestionButton: {
-    minWidth: 100,
+    minWidth: 60,
+    paddingHorizontal: sizes.spacing.md,
+    paddingVertical: sizes.spacing.sm,
     marginHorizontal: sizes.spacing.xs,
     backgroundColor: colors.primary,
     borderRadius: sizes.borderRadius.medium,

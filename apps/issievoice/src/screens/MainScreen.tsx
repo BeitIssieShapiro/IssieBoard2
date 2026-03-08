@@ -66,6 +66,9 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
 
   const availableHeight = frame.height - insets.top - insets.bottom - keyboardHeight;
 
+  // Determine if landscape or portrait
+  const isLandscape = frame.width > frame.height;
+
   // Function to load keyboard configuration for a specific language
   const loadKeyboardConfig = async (language: string) => {
     console.log('🔄 Loading keyboard config for language:', language);
@@ -366,6 +369,41 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
     loadConfig();
   }, [currentLanguage]);
 
+  // Effect to adjust keyboard config when screen dimensions change
+  useEffect(() => {
+    if (!keyboardConfigRef.current) return;
+
+    const config = keyboardConfigRef.current;
+
+    // Determine the desired keyHeight based on screen size
+    const desiredKeyHeight = 74; // Default iPad-sized keys
+
+    // Calculate what the keyboard height would be with desired keyHeight
+    // Estimate: 5 rows * keyHeight + padding/spacing (~60px)
+    const estimatedKeyboardHeight = desiredKeyHeight * 5 + 60;
+    const maxAllowedHeight = frame.height * 0.5; // 50% of screen height
+
+    let finalKeyHeight = desiredKeyHeight;
+
+    if (estimatedKeyboardHeight > maxAllowedHeight) {
+      // Calculate reduced keyHeight to fit within 50% of screen
+      finalKeyHeight = Math.floor((maxAllowedHeight - 60) / 5);
+      console.log(`⚙️ Reducing keyHeight from ${desiredKeyHeight} to ${finalKeyHeight} (screen: ${frame.height}px, max: ${maxAllowedHeight}px)`);
+    } else if (config.keyHeight !== desiredKeyHeight) {
+      // Screen is large enough, restore to desired size
+      console.log(`⚙️ Restoring keyHeight to ${desiredKeyHeight} (screen: ${frame.height}px)`);
+    }
+
+    // Only update if keyHeight actually changed
+    if (config.keyHeight !== finalKeyHeight) {
+      config.keyHeight = finalKeyHeight;
+      config.fontSize = Math.max(18, Math.floor(finalKeyHeight * 0.43)); // Scale font proportionally
+
+      // Update the config string to trigger re-render
+      setKeyboardConfig(JSON.stringify(config));
+    }
+  }, [frame.height, frame.width]); // Re-run when dimensions change
+
   // Separate effect for TTS language to avoid circular dependencies
   useEffect(() => {
     console.log(`🗣️ Updating TTS language: ${currentLanguage}`);
@@ -624,26 +662,33 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
         />
 
         <View>
-          <View style={{ flexDirection: "row", width: "100%", height: availableHeight * .45 }}>
-            <IVButton onPress={handleSpeak} width={200} caption='Speak' icon='🗣️' style={{ backgroundColor: "#35C759" }} />
+          <View style={{ flexDirection: "row", width: "100%", height: Math.min(availableHeight * .45, frame.height * 0.25) }}>
+            <IVButton
+              onPress={handleSpeak}
+              width={Math.min(200, frame.width * 0.25)}
+              caption='Speak'
+              icon='🗣️'
+              style={{ backgroundColor: "#35C759" }}
+            />
 
             {/* Text Display Area - Center */}
             <View style={{ flex: 1 }}>
               <TextDisplayArea
                 text={currentText}
+                screenWidth={frame.width}
               />
             </View>
 
             {/* Save/Load Buttons - Right Side */}
-            <View style={{ flexDirection: "column", padding: 4, width: availableHeight * .225, height: availableHeight * .45 }}>
+            <View style={{ flexDirection: "column", padding: 4, width: availableHeight * .225, height: Math.min(availableHeight * .45, frame.height * 0.25) }}>
               <TouchableOpacity
-                style={[styles.topButton, { height: availableHeight * .225, backgroundColor: colors.save }]}
+                style={[styles.topButton, { height: Math.min(availableHeight * .225, frame.height * 0.125), backgroundColor: colors.save }]}
                 onPress={handleSave}
                 activeOpacity={0.7}>
                 <Text style={styles.topButtonText}>💾</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.topButton, { height: availableHeight * .225, backgroundColor: colors.browse }]}
+                style={[styles.topButton, { height: Math.min(availableHeight * .225, frame.height * 0.125), backgroundColor: colors.browse }]}
                 onPress={handleBrowse}
                 activeOpacity={0.7}>
                 <Text style={styles.topButtonText}>📂</Text>
@@ -657,7 +702,8 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
             kbSuggestions={kbSuggestions}
             language={currentLanguage}
             onSuggestionPress={handleSuggestionFromBar}
-            height={availableHeight*.15}
+            height={isLandscape ? availableHeight * 0.15 : availableHeight * 0.1}
+            screenWidth={frame.width}
           />
 
 
@@ -666,7 +712,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
         {/* Favorites Bar - Below Suggestions, Above Keyboard */}
         <FavoritesBar
           onFavoritePress={handleFavoritePress}
-          height={availableHeight *.4}
+          height={Math.min(availableHeight * 0.4, isLandscape ? availableHeight * 0.4 : 150)}
           navigation={navigation}
           reloadTrigger={favoritesReloadTrigger}
         />

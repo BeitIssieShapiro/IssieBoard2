@@ -13,9 +13,10 @@ import { detectTextDirection } from '../../utils/textDirection';
 
 interface TextDisplayAreaProps {
   text: string;
+  screenWidth?: number; // Optional screen width for responsive scaling
 }
 
-const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text }) => {
+const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1000 }) => {
   const { setText } = useText();
   const { strings, isRTL } = useLocalization();
   const textInputRef = useRef<TextInput>(null);
@@ -24,8 +25,12 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text }) => {
   const textDirection = useMemo(() => detectTextDirection(text), [text]);
   const isTextRTL = textDirection === 'rtl';
 
-  // Calculate font size based on container height (scale proportionally)
-  const fontSize = Math.max(20, sizes.fontSize.xxlarge * 1);
+  // Calculate font size based on screen width (scales from 1000px reference)
+  // At 1000px: fontSize = 36 (sizes.fontSize.xxlarge)
+  // Scales proportionally but never below 20px
+  const baseFontSize = sizes.fontSize.xxlarge; // ~36
+  const scaleFactor = screenWidth / 1000;
+  const fontSize = Math.max(20, baseFontSize * scaleFactor);
   const lineHeight = fontSize * 1.5;
 
   // Log whenever text prop changes
