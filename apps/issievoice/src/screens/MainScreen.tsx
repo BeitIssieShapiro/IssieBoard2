@@ -4,14 +4,13 @@ import {
   StyleSheet,
   TouchableOpacity,
   Text,
-  Dimensions,
-  useWindowDimensions,
 } from 'react-native';
 import { useText } from '../context/TextContext';
 import { useTTS } from '../context/TTSContext';
 import { useLocalization } from '../context/LocalizationContext';
 import { useNotification } from '../context/NotificationContext';
 import { useFocusEffect } from '@react-navigation/native';
+import { SafeAreaView, useSafeAreaInsets, useSafeAreaFrame } from 'react-native-safe-area-context';
 import TextDisplayArea from '../components/TextDisplayArea/TextDisplayArea';
 import SuggestionsBar from '../components/SuggestionsBar/SuggestionsBar';
 import FavoritesBar from '../components/FavoritesBar/FavoritesBar';
@@ -19,7 +18,6 @@ import SettingsModal from '../components/SettingsModal/SettingsModal';
 import { KeyboardPreview, KeyPressEvent } from '../../../../src/components/KeyboardPreview';
 import { colors, sizes } from '../constants';
 import KeyboardPreferences from '../../../../src/native/KeyboardPreferences';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IVButton } from '../components/ActionBar/SpeakButton';
 
 interface MainScreenProps {
@@ -62,47 +60,11 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
   const [favoritesReloadTrigger, setFavoritesReloadTrigger] = useState(0);
   const keyboardConfigRef = useRef<any>(null);
 
-  // Calculate responsive sizes based on keyboard height
-  // Layout: no title, flexible text, fixed 50px suggestions, remaining for buttons
-  const responsiveSizes = React.useMemo(() => {
-    const screenHeight = Dimensions.get('window').height;
-    const bottomPadding = 20; // Extra space below keyboard
-    const availableHeight = screenHeight - keyboardHeight - bottomPadding;
-
-    // Fixed sizes
-    const suggestionBarHeight = 50; // Fixed size as requested
-    const minTextDisplayHeight = 80;
-    const minActionButtonHeight = 50;
-
-    // All available height minus suggestions
-    const remainingHeight = availableHeight - suggestionBarHeight;
-
-    // Split remaining height: ~65% for text, ~35% for buttons
-    const textDisplayHeight = Math.max(remainingHeight * 0.65, minTextDisplayHeight);
-    const actionButtonHeight = Math.max(remainingHeight * 0.35, minActionButtonHeight);
-
-    console.log('📐 Layout calculation:', {
-      screenHeight,
-      keyboardHeight,
-      bottomPadding,
-      availableHeight,
-      textDisplayHeight,
-      suggestionBarHeight,
-      actionButtonHeight,
-      totalContent: textDisplayHeight + suggestionBarHeight + actionButtonHeight,
-    });
-
-    return {
-      textDisplayHeight,
-      suggestionBarHeight,
-      actionButtonHeight,
-    };
-  }, [keyboardHeight]);
-
-  const { height: screenHeight } = useWindowDimensions();
+  // Get window dimensions using useSafeAreaFrame (works with ScreenSizer)
+  const frame = useSafeAreaFrame();
   const insets = useSafeAreaInsets();
 
-  const availableHeight = screenHeight - insets.top - insets.bottom - keyboardHeight;
+  const availableHeight = frame.height - insets.top - insets.bottom - keyboardHeight;
 
   // Function to load keyboard configuration for a specific language
   const loadKeyboardConfig = async (language: string) => {
