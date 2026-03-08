@@ -92,7 +92,7 @@ const SuggestionsBar: React.FC<SuggestionsBarProps> = ({
   return (
     <View style={[{ height }, isRTL && styles.containerRTL]}>
       <View
-        style={[{ flexDirection: "row", height: 60, padding:5, borderBottomWidth:1, borderBottomColor:"lightgrey" },
+        style={[{ flexDirection: "row", height, padding:5, borderBottomWidth:1, borderBottomColor:"lightgrey" },
         isRTL && styles.rtlScrollContent
         ]}>
         {displaySuggestions.map((suggestion, index) => (

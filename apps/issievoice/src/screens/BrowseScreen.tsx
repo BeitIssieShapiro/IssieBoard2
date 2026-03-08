@@ -16,18 +16,26 @@ import {useNotification} from '../context/NotificationContext';
 import SavedSentencesManager, {
   SavedSentence,
 } from '../services/SavedSentencesManager';
+import FavoritesManager from '../services/FavoritesManager';
 import {colors, sizes} from '../constants';
 
 interface BrowseScreenProps {
   navigation: any;
+  route?: {
+    params?: {
+      mode?: 'browse' | 'select';
+    };
+  };
 }
 
-const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation}) => {
+const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation, route}) => {
+  const mode = route?.params?.mode || 'browse';
   const [sentences, setSentences] = useState<SavedSentence[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredSentences, setFilteredSentences] = useState<SavedSentence[]>(
     [],
   );
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const {setText, currentText} = useText();
   const {speak} = useTTS();
   const {strings} = useLocalization();
@@ -35,6 +43,9 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation}) => {
 
   useEffect(() => {
     loadSentences();
+    if (mode === 'select') {
+      loadFavorites();
+    }
   }, []);
 
   useEffect(() => {
@@ -55,6 +66,17 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation}) => {
     const saved = await SavedSentencesManager.getSavedSentences();
     setSentences(saved);
     setFilteredSentences(saved);
+  };
+
+  const loadFavorites = async () => {
+    const favs = await FavoritesManager.getFavorites();
+    setFavoriteIds(new Set(favs.map(f => f.id)));
+  };
+
+  const handleSelectForFavorite = async (sentence: SavedSentence) => {
+    await FavoritesManager.addFavorite(sentence.id);
+    showNotification('Added to favorites', 'success');
+    navigation.goBack();
   };
 
   const handleReplaceText = (sentence: SavedSentence) => {
@@ -94,44 +116,66 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation}) => {
     );
   };
 
-  const renderSentenceItem = ({item}: {item: SavedSentence}) => (
-    <View style={styles.sentenceItem}>
-      <TouchableOpacity
-        style={styles.sentenceTextContainer}
-        onPress={() => handleReplaceText(item)}
-        activeOpacity={0.7}>
-        <Text style={styles.sentenceText} numberOfLines={2}>
-          {item.text}
-        </Text>
-        {item.category && (
-          <Text style={styles.categoryText}>{item.category}</Text>
-        )}
-      </TouchableOpacity>
+  const renderSentenceItem = ({item}: {item: SavedSentence}) => {
+    const isAlreadyFavorite = favoriteIds.has(item.id);
 
-      <View style={styles.actionButtons}>
+    return (
+      <View style={styles.sentenceItem}>
         <TouchableOpacity
-          style={[styles.actionButton, styles.insertButton]}
-          onPress={() => handleInsertText(item)}
-          activeOpacity={0.7}>
-          <Text style={styles.actionButtonText}>➕</Text>
+          style={styles.sentenceTextContainer}
+          onPress={() => mode === 'select' ? handleSelectForFavorite(item) : handleReplaceText(item)}
+          activeOpacity={0.7}
+          disabled={mode === 'select' && isAlreadyFavorite}>
+          <Text style={[
+            styles.sentenceText,
+            mode === 'select' && isAlreadyFavorite && styles.sentenceTextDisabled
+          ]} numberOfLines={2}>
+            {item.text}
+          </Text>
+          {item.category && (
+            <Text style={styles.categoryText}>{item.category}</Text>
+          )}
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.actionButton, styles.speakButton]}
-          onPress={() => handleSpeakPress(item)}
-          activeOpacity={0.7}>
-          <Text style={styles.actionButtonText}>🗣️</Text>
-        </TouchableOpacity>
+        <View style={styles.actionButtons}>
+          {mode === 'select' ? (
+            <TouchableOpacity
+              style={[styles.actionButton, styles.selectButton, isAlreadyFavorite && styles.selectButtonDisabled]}
+              onPress={() => handleSelectForFavorite(item)}
+              activeOpacity={0.7}
+              disabled={isAlreadyFavorite}>
+              <Text style={styles.actionButtonText}>
+                {isAlreadyFavorite ? '✓' : '⭐'}
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.insertButton]}
+                onPress={() => handleInsertText(item)}
+                activeOpacity={0.7}>
+                <Text style={styles.actionButtonText}>➕</Text>
+              </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.actionButton, styles.deleteButton]}
-          onPress={() => handleDeletePress(item)}
-          activeOpacity={0.7}>
-          <Text style={styles.actionButtonText}>🗑️</Text>
-        </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.speakButton]}
+                onPress={() => handleSpeakPress(item)}
+                activeOpacity={0.7}>
+                <Text style={styles.actionButtonText}>🗣️</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.actionButton, styles.deleteButton]}
+                onPress={() => handleDeletePress(item)}
+                activeOpacity={0.7}>
+                <Text style={styles.actionButtonText}>🗑️</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   const handleClearAll = () => {
     if (sentences.length === 0) return;
@@ -164,20 +208,24 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation}) => {
           activeOpacity={0.7}>
           <Text style={styles.backButtonText}>{strings.back}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{strings.savedSentences}</Text>
-        <TouchableOpacity
-          style={styles.clearAllButton}
-          onPress={handleClearAll}
-          disabled={sentences.length === 0}
-          activeOpacity={0.7}>
-          <Text
-            style={[
-              styles.clearAllButtonText,
-              sentences.length === 0 && styles.clearAllButtonTextDisabled,
-            ]}>
-            {strings.clearAll}
-          </Text>
-        </TouchableOpacity>
+        <Text style={styles.headerTitle}>
+          {mode === 'select' ? 'Select Favorite' : strings.savedSentences}
+        </Text>
+        {mode === 'browse' && (
+          <TouchableOpacity
+            style={styles.clearAllButton}
+            onPress={handleClearAll}
+            disabled={sentences.length === 0}
+            activeOpacity={0.7}>
+            <Text
+              style={[
+                styles.clearAllButtonText,
+                sentences.length === 0 && styles.clearAllButtonTextDisabled,
+              ]}>
+              {strings.clearAll}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Search Bar */}
@@ -298,6 +346,10 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: sizes.spacing.xs,
   },
+  sentenceTextDisabled: {
+    color: colors.textLight,
+    opacity: 0.5,
+  },
   categoryText: {
     fontSize: sizes.fontSize.small,
     color: colors.textSecondary,
@@ -322,6 +374,14 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     backgroundColor: colors.clear,
+  },
+  selectButton: {
+    backgroundColor: '#FFB300', // Amber for select/favorite
+    width: sizes.touchTarget.medium,
+  },
+  selectButtonDisabled: {
+    backgroundColor: colors.success,
+    opacity: 0.6,
   },
   actionButtonText: {
     fontSize: sizes.fontSize.large,

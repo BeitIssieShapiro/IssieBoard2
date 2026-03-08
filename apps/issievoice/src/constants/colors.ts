@@ -3,7 +3,8 @@ export const colors = {
   // Primary actions
   primary: '#2563EB', // Blue for primary actions
   primaryDark: '#1E40AF',
-  
+  secondary: '#6366F1', // Indigo for secondary actions
+
   // Action buttons
   speak: '#10B981', // Green for speak button (positive action)
   speakDark: '#059669',

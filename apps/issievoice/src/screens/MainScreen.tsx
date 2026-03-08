@@ -14,6 +14,7 @@ import { useNotification } from '../context/NotificationContext';
 import { useFocusEffect } from '@react-navigation/native';
 import TextDisplayArea from '../components/TextDisplayArea/TextDisplayArea';
 import SuggestionsBar from '../components/SuggestionsBar/SuggestionsBar';
+import FavoritesBar from '../components/FavoritesBar/FavoritesBar';
 import SettingsModal from '../components/SettingsModal/SettingsModal';
 import { KeyboardPreview, KeyPressEvent } from '../../../../src/components/KeyboardPreview';
 import { colors, sizes } from '../constants';
@@ -58,6 +59,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
   const [englishVoice, setEnglishVoice] = useState<string | undefined>(undefined);
   const [hebrewVoice, setHebrewVoice] = useState<string | undefined>(undefined);
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
+  const [favoritesReloadTrigger, setFavoritesReloadTrigger] = useState(0);
   const keyboardConfigRef = useRef<any>(null);
 
   // Calculate responsive sizes based on keyboard height
@@ -100,7 +102,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
   const { height: screenHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
 
-  const availableHeight = screenHeight - insets.top - insets.bottom;
+  const availableHeight = screenHeight - insets.top - insets.bottom - keyboardHeight;
 
   // Function to load keyboard configuration for a specific language
   const loadKeyboardConfig = async (language: string) => {
@@ -416,11 +418,13 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
   // Reload keyboard config when screen comes into focus (e.g., returning from settings)
   useFocusEffect(
     React.useCallback(() => {
-      console.log('📱 MainScreen focused - reloading keyboard config');
+      console.log('📱 MainScreen focused - reloading keyboard config and favorites');
       const reloadConfig = async () => {
         await loadKeyboardConfig(currentLanguage);
       };
       reloadConfig();
+      // Trigger favorites reload
+      setFavoritesReloadTrigger(prev => prev + 1);
     }, [currentLanguage])
   );
 
@@ -589,6 +593,12 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
     }
   };
 
+  // Handle favorite press - speak the text
+  const handleFavoritePress = async (text: string) => {
+    console.log('⭐ Favorite selected:', text);
+    await speak(text, languageMode, englishVoice, hebrewVoice);
+  };
+
   // Function to toggle between languages
   const toggleLanguage = () => {
     const newLanguage = currentLanguage === 'en' ? 'he' : 'en';
@@ -652,7 +662,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
         />
 
         <View>
-          <View style={{ flexDirection: "row", width: "100%", height: availableHeight * .2 }}>
+          <View style={{ flexDirection: "row", width: "100%", height: availableHeight * .4 }}>
             <IVButton onPress={handleSpeak} width={200} caption='Speak' icon='' style={{ backgroundColor: "green" }} />
 
             {/* Text Display Area - Center */}
@@ -663,15 +673,15 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
             </View>
 
             {/* Save/Load Buttons - Right Side */}
-            <View style={{ flexDirection: "column", width: availableHeight * .1, height: availableHeight * .2 }}>
+            <View style={{ flexDirection: "column", padding: 4, width: availableHeight * .2, height: availableHeight * .4 }}>
               <TouchableOpacity
-                style={[styles.topButton, { height: availableHeight * .1, backgroundColor: colors.save }]}
+                style={[styles.topButton, { height: availableHeight * .2, backgroundColor: colors.save }]}
                 onPress={handleSave}
                 activeOpacity={0.7}>
                 <Text style={styles.topButtonText}>💾</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.topButton, { height: availableHeight * .1, backgroundColor: colors.browse }]}
+                style={[styles.topButton, { height: availableHeight * .2, backgroundColor: colors.browse }]}
                 onPress={handleBrowse}
                 activeOpacity={0.7}>
                 <Text style={styles.topButtonText}>📂</Text>
@@ -679,17 +689,25 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
             </View>
           </View>
 
-          {/* Suggestions Bar - Above Action Buttons */}
+          {/* Suggestions Bar */}
           <SuggestionsBar
             currentText={currentText}
             kbSuggestions={kbSuggestions}
             language={currentLanguage}
             onSuggestionPress={handleSuggestionFromBar}
-            height={responsiveSizes.suggestionBarHeight}
+            height={availableHeight*.15}
           />
 
 
         </View>
+
+        {/* Favorites Bar - Below Suggestions, Above Keyboard */}
+        <FavoritesBar
+          onFavoritePress={handleFavoritePress}
+          height={100}
+          navigation={navigation}
+          reloadTrigger={favoritesReloadTrigger}
+        />
 
         {/* IssieBoard Custom Keyboard - Bottom */}
         <View style={[styles.keyboardContainer, { bottom: 0, height: keyboardHeight }]}>
