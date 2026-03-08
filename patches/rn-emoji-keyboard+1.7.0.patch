@@ -1,0 +1,306 @@
+diff --git a/node_modules/rn-emoji-keyboard/src/EmojiPicker.tsx b/node_modules/rn-emoji-keyboard/src/EmojiPicker.tsx
+index 1d83bc5..fc30ad8 100644
+--- a/node_modules/rn-emoji-keyboard/src/EmojiPicker.tsx
++++ b/node_modules/rn-emoji-keyboard/src/EmojiPicker.tsx
+@@ -29,7 +29,7 @@ export const EmojiPicker = ({
+ 
+   React.useEffect(() => {
+     const shouldExpandHeight = keyboardVisible && !isExpanded
+-    const newAdditionalHeightValue = shouldExpandHeight ? keyboardHeight : 0
++    const newAdditionalHeightValue = shouldExpandHeight ? keyboardHeight * 0.2 : 0
+     Animated.timing(additionalHeight, {
+       toValue: newAdditionalHeightValue,
+       useNativeDriver: false,
+diff --git a/node_modules/rn-emoji-keyboard/src/components/Categories.tsx b/node_modules/rn-emoji-keyboard/src/components/Categories.tsx
+index f6f5df8..4d4c5a7 100644
+--- a/node_modules/rn-emoji-keyboard/src/components/Categories.tsx
++++ b/node_modules/rn-emoji-keyboard/src/components/Categories.tsx
+@@ -25,8 +25,11 @@ export const Categories = (p: Props) => {
+     styles: themeStyles,
+     enableCategoryChangeAnimation,
+     setShouldAnimateScroll,
++    translation,
+   } = React.useContext(KeyboardContext)
+ 
++  const isRTL = (translation as any)?.isRTL || false
++
+   const scrollNav = React.useRef(new Animated.Value(0)).current
+   const handleScrollToCategory = React.useCallback(
+     (index: number) => {
+@@ -115,6 +118,7 @@ export const Categories = (p: Props) => {
+           ListHeaderComponent={activeIndicator}
+           ListHeaderComponentStyle={styles.activeIndicatorContainer}
+           extraData={activeCategoryIndex}
++          inverted={isRTL}
+         />
+       </View>
+     </View>
+diff --git a/node_modules/rn-emoji-keyboard/src/components/EmojiCategory.tsx b/node_modules/rn-emoji-keyboard/src/components/EmojiCategory.tsx
+index 6869a04..18a9d34 100644
+--- a/node_modules/rn-emoji-keyboard/src/components/EmojiCategory.tsx
++++ b/node_modules/rn-emoji-keyboard/src/components/EmojiCategory.tsx
+@@ -169,10 +169,16 @@ export const EmojiCategory = React.memo(
+ 
+     const flatListData = data.slice(0, maxIndex)
+ 
++    const isRTL = (translation as any)?.isRTL || false
++
+     return (
+       <View style={[styles.container, { width }]}>
+         {!hideHeader && (
+-          <Text style={[styles.sectionTitle, themeStyles.header, { color: theme.header }]}>
++          <Text style={[
++            styles.sectionTitle,
++            themeStyles.header,
++            { color: theme.header, textAlign: isRTL ? 'right' : 'left', writingDirection: isRTL ? 'rtl' : 'ltr' }
++          ]}>
+             {translation[title]}
+           </Text>
+         )}
+@@ -183,6 +189,8 @@ export const EmojiCategory = React.memo(
+             onEndReachedThreshold={0.3}
+             keyExtractor={keyExtractor}
+             numColumns={numberOfColumns}
++            key={`flatlist-${numberOfColumns}-${isRTL ? 'rtl' : 'ltr'}`}
++            columnWrapperStyle={isRTL ? { flexDirection: 'row-reverse', paddingHorizontal: 4 } : { paddingHorizontal: 4 }}
+             renderItem={renderItem}
+             onScroll={handleOnScroll}
+             ListFooterComponent={<ListFooterComponent categoryPosition={categoryPosition} />}
+diff --git a/node_modules/rn-emoji-keyboard/src/components/SearchBar.tsx b/node_modules/rn-emoji-keyboard/src/components/SearchBar.tsx
+index 4a62562..cd67b6c 100644
+--- a/node_modules/rn-emoji-keyboard/src/components/SearchBar.tsx
++++ b/node_modules/rn-emoji-keyboard/src/components/SearchBar.tsx
+@@ -1,5 +1,5 @@
+ import * as React from 'react'
+-import { View, StyleSheet, TextInput, TouchableOpacity } from 'react-native'
++import { View, StyleSheet, TextInput, TouchableOpacity, I18nManager } from 'react-native'
+ import { KeyboardContext } from '../contexts/KeyboardContext'
+ import { Icon } from './Icon'
+ 
+@@ -23,6 +23,19 @@ export const SearchBar = ({ scrollEmojiCategoryListToIndex }: SearchBarProps) =>
+     enableCategoryChangeAnimation,
+   } = React.useContext(KeyboardContext)
+   const inputRef = React.useRef<TextInput>(null)
++  const lastBlurTime = React.useRef(0)
++
++  const handleBlur = () => {
++    lastBlurTime.current = Date.now()
++  }
++
++  const handleFocus = () => {
++    const timeSinceBlur = Date.now() - lastBlurTime.current
++    if (timeSinceBlur < 1000 && timeSinceBlur > 0) {
++      inputRef.current?.blur()
++      return
++    }
++  }
+ 
+   const handleSearch = (text: string) => {
+     setSearchPhrase(text)
+@@ -53,22 +66,30 @@ export const SearchBar = ({ scrollEmojiCategoryListToIndex }: SearchBarProps) =>
+     scrollEmojiCategoryListToIndex(0)
+   }
+ 
++  const isRTL = (translation as any)?.isRTL || false
++
+   return (
+     <View
+       style={[
+         styles.container,
+         themeStyles.searchBar.container,
+-        { backgroundColor: theme.search.background },
++        { backgroundColor: theme.search.background, flexDirection: isRTL ? 'row-reverse' : 'row' },
+       ]}
+     >
+       <TextInput
+-        style={[styles.input, themeStyles.searchBar.text, { color: theme.search.text }]}
++        style={[
++          styles.input,
++          themeStyles.searchBar.text,
++          { color: theme.search.text, textAlign: isRTL ? 'right' : 'left', writingDirection: isRTL ? 'rtl' : 'ltr' }
++        ]}
+         value={searchPhrase}
+         onChangeText={handleSearch}
+         placeholder={translation.search}
+         ref={inputRef}
+         onTouchEndCapture={clearEmojiTonesData}
+         placeholderTextColor={theme.search.placeholder}
++        onBlur={handleBlur}
++        onFocus={handleFocus}
+       />
+       {!hideSearchBarClearIcon && !!searchPhrase && (
+         <TouchableOpacity onPress={clearPhrase} style={styles.button}>
+diff --git a/node_modules/rn-emoji-keyboard/src/components/SingleEmoji.tsx b/node_modules/rn-emoji-keyboard/src/components/SingleEmoji.tsx
+index c878fc2..58a6c36 100644
+--- a/node_modules/rn-emoji-keyboard/src/components/SingleEmoji.tsx
++++ b/node_modules/rn-emoji-keyboard/src/components/SingleEmoji.tsx
+@@ -48,12 +48,12 @@ export const SingleEmoji = React.memo(
+ const styles = StyleSheet.create({
+   container: {
+     flex: 1,
+-    padding: 4,
++    margin: 4,
+     justifyContent: 'center',
+     alignItems: 'center',
+   },
+   emojiWrapper: {
+-    padding: 4,
++    padding: 0,
+   },
+   emoji: { color: '#000' },
+ })
+diff --git a/node_modules/rn-emoji-keyboard/src/contexts/KeyboardContext.ts b/node_modules/rn-emoji-keyboard/src/contexts/KeyboardContext.ts
+index e6bdb9e..ea87363 100644
+--- a/node_modules/rn-emoji-keyboard/src/contexts/KeyboardContext.ts
++++ b/node_modules/rn-emoji-keyboard/src/contexts/KeyboardContext.ts
+@@ -95,6 +95,7 @@ export type KeyboardProps = {
+   selectedEmojis?: string[] | false
+   enableCategoryChangeGesture?: boolean
+   emojisByCategory?: EmojisByCategory[]
++  customKeywords?: Record<string, string[]>
+ }
+ export type ContextValues = {
+   activeCategoryIndex: number
+@@ -159,9 +160,10 @@ export const defaultTheme: Theme = {
+   },
+ }
+ 
+-export const defaultKeyboardContext: Required<KeyboardProps> & {
++export const defaultKeyboardContext: Omit<Required<KeyboardProps>, 'customKeywords'> & {
+   theme: Theme
+   styles: Styles
++  customKeywords?: Record<string, string[]>
+ } = {
+   open: false,
+   onClose: () => {},
+@@ -218,7 +220,7 @@ export const defaultKeyboardValues: ContextValues = {
+ }
+ 
+ export const KeyboardContext = React.createContext<
+-  Required<KeyboardProps> & ContextValues & { theme: Theme; styles: Styles }
++  Omit<Required<KeyboardProps>, 'customKeywords'> & ContextValues & { theme: Theme; styles: Styles; customKeywords?: Record<string, string[]> }
+ >({
+   ...defaultKeyboardContext,
+   ...defaultKeyboardValues,
+diff --git a/node_modules/rn-emoji-keyboard/src/contexts/KeyboardProvider.tsx b/node_modules/rn-emoji-keyboard/src/contexts/KeyboardProvider.tsx
+index d3e8c49..bce62a7 100644
+--- a/node_modules/rn-emoji-keyboard/src/contexts/KeyboardProvider.tsx
++++ b/node_modules/rn-emoji-keyboard/src/contexts/KeyboardProvider.tsx
+@@ -161,17 +161,27 @@ export const KeyboardProvider: React.FC<ProviderProps> = React.memo((props) => {
+           .filter((emoji) => {
+             if (searchPhrase.length < 2) return false
+ 
++            const searchLower = searchPhrase.toLowerCase()
++
+             const isInKeywords =
+               emoji?.keywords &&
+               emoji.keywords.length > 0 &&
+               emoji.keywords.some((keyword) =>
+-                keyword.toLowerCase().includes(searchPhrase.toLowerCase()),
++                keyword.toLowerCase().includes(searchLower),
++              )
++
++            const isInCustomKeywords =
++              props.customKeywords &&
++              props.customKeywords[emoji.emoji] &&
++              props.customKeywords[emoji.emoji].some((keyword: string) =>
++                keyword.includes(searchPhrase),
+               )
+ 
+             return (
+-              emoji.name.toLowerCase().includes(searchPhrase.toLowerCase()) ||
++              emoji.name.toLowerCase().includes(searchLower) ||
+               emoji.emoji.toLowerCase().includes(searchPhrase) ||
+-              isInKeywords
++              isInKeywords ||
++              isInCustomKeywords
+             )
+           }),
+       })
+diff --git a/node_modules/rn-emoji-keyboard/src/index.tsx b/node_modules/rn-emoji-keyboard/src/index.tsx
+index 1e49cd4..fe44fc6 100644
+--- a/node_modules/rn-emoji-keyboard/src/index.tsx
++++ b/node_modules/rn-emoji-keyboard/src/index.tsx
+@@ -20,12 +20,14 @@ import no from './translation/no'
+ import ro from './translation/ro'
+ import np from './translation/np'
+ import se from './translation/se'
++import he from './translation/he'
++import ar from './translation/ar'
+ import EmojisData from './assets/emojis.json'
+ import type { EmojisByCategory } from './types'
+ 
+ export { EmojiKeyboard }
+ export { useRecentPicksPersistence }
+-export { en, pl, ko, it, fr, id, es, de, pt, ru, ua, vi, cs, ja, tr, no, ro, np, se }
++export { en, pl, ko, it, fr, id, es, de, pt, ru, ua, vi, cs, ja, tr, no, ro, np, se, he, ar }
+ export type { EmojisByCategory, EmojiType } from './types'
+ export const emojisByCategory = EmojisData as EmojisByCategory[]
+ 
+diff --git a/node_modules/rn-emoji-keyboard/src/translation/ar.ts b/node_modules/rn-emoji-keyboard/src/translation/ar.ts
+new file mode 100644
+index 0000000..59f8896
+--- /dev/null
++++ b/node_modules/rn-emoji-keyboard/src/translation/ar.ts
+@@ -0,0 +1,18 @@
++import type { CategoryTranslation } from '../types'
++
++const ar: CategoryTranslation & { isRTL?: boolean } = {
++  recently_used: 'المستخدمة مؤخراً',
++  smileys_emotion: 'وجوه وعواطف',
++  people_body: 'أشخاص وجسم',
++  animals_nature: 'حيوانات وطبيعة',
++  food_drink: 'طعام وشراب',
++  travel_places: 'سفر وأماكن',
++  activities: 'أنشطة',
++  objects: 'أشياء',
++  symbols: 'رموز',
++  flags: 'أعلام',
++  search: 'بحث',
++  isRTL: true,
++}
++
++export default ar
+diff --git a/node_modules/rn-emoji-keyboard/src/translation/he.ts b/node_modules/rn-emoji-keyboard/src/translation/he.ts
+new file mode 100644
+index 0000000..fe4ed95
+--- /dev/null
++++ b/node_modules/rn-emoji-keyboard/src/translation/he.ts
+@@ -0,0 +1,18 @@
++import type { CategoryTranslation } from '../types'
++
++const he: CategoryTranslation & { isRTL?: boolean } = {
++  recently_used: 'בשימוש לאחרונה',
++  smileys_emotion: 'סמיילים ורגשות',
++  people_body: 'אנשים וגוף',
++  animals_nature: 'חיות וטבע',
++  food_drink: 'אוכל ושתייה',
++  travel_places: 'טיול ומקומות',
++  activities: 'פעילויות',
++  objects: 'חפצים',
++  symbols: 'סמלים',
++  flags: 'דגלים',
++  search: 'חיפוש',
++  isRTL: true,
++}
++
++export default he
+diff --git a/node_modules/rn-emoji-keyboard/src/components/ModalWithBackdrop.tsx b/node_modules/rn-emoji-keyboard/src/components/ModalWithBackdrop.tsx
+index a1b2c3d..e4f5g6h 100644
+--- a/node_modules/rn-emoji-keyboard/src/components/ModalWithBackdrop.tsx
++++ b/node_modules/rn-emoji-keyboard/src/components/ModalWithBackdrop.tsx
+@@ -45,7 +45,13 @@ export const ModalWithBackdrop = ({
+   }
+ 
+   return (
+-    <Modal visible={isOpen} animationType="fade" transparent={true} {...rest}>
++    <Modal
++      visible={isOpen}
++      animationType="fade"
++      transparent={true}
++      supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']}
++      {...rest}
++    >
+       <TouchableOpacity
+         style={[styles.modalContainer, { backgroundColor: theme.backdrop }]}
+         activeOpacity={1}

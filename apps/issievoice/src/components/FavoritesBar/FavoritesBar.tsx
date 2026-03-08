@@ -167,6 +167,8 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
   // Render individual favorite item
   const renderFavoriteItem = ({ item, drag, isActive }: RenderItemParams<{ favorite: Favorite; sentence: SavedSentence }>) => {
     const anim = wiggleAnims[item.favorite.id];
+    const caption = item.favorite.caption || getFirstWord(item.sentence.text);
+    const icon = item.favorite.icon;
 
     if (!anim) {
       console.warn('⚠️ No animation for', item.favorite.id, 'in renderFavoriteItem');
@@ -192,7 +194,11 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
             isActive && { opacity: 0.7 },
           ]}>
           <TouchableOpacity
-            style={[styles.favoriteButton, {height: height/2}]}
+            style={[
+              styles.favoriteButton,
+              {height: height/2},
+              icon && styles.favoriteButtonWithIcon
+            ]}
             onPress={() => !isEditMode && onFavoritePress(item.sentence.text)}
             onLongPress={() => {
               if (isEditMode) {
@@ -203,9 +209,18 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
             }}
             activeOpacity={0.7}
             delayLongPress={isEditMode ? 0 : 500}>
-            <Text style={styles.favoriteText} numberOfLines={1}>
-              {getFirstWord(item.sentence.text)}
-            </Text>
+            {icon ? (
+              <>
+                <Text style={styles.favoriteIcon}>{icon}</Text>
+                <Text style={styles.favoriteCaptionWithIcon} numberOfLines={1}>
+                  {caption}
+                </Text>
+              </>
+            ) : (
+              <Text style={styles.favoriteText} numberOfLines={1}>
+                {caption}
+              </Text>
+            )}
           </TouchableOpacity>
 
           {isEditMode && (
@@ -299,16 +314,19 @@ const styles = StyleSheet.create({
     paddingVertical: 8
   },
   addButton: {
-    width: 60,
+    width: 80,
     height: 60,
     borderRadius: sizes.borderRadius.large,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.background,
+    borderStyle:"dashed",
+    borderWidth:2,
+    borderColor: colors.border,
     justifyContent: 'center',
     alignItems: 'center',
     boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.3)',
   },
   addButtonText: {
-    color: '#FFFFFF',
+    color: 'gray',
     fontSize: 32,
     fontWeight: 'bold',
   },
@@ -318,7 +336,7 @@ const styles = StyleSheet.create({
   },
   favoriteButton: {
     minWidth: 80,
-    maxWidth: 150,
+    maxWidth: 200, // Increased to allow longer text
     height: 60,
     paddingHorizontal: sizes.spacing.sm,
     borderRadius: sizes.borderRadius.large,
@@ -326,6 +344,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.3)',
+  },
+  favoriteButtonWithIcon: {
+    flexDirection: 'column',
+    paddingVertical: sizes.spacing.xs,
+    paddingHorizontal: sizes.spacing.md,
+  },
+  favoriteIcon: {
+    fontSize: 32, 
+    marginBottom: 2,
+  },
+  favoriteCaptionWithIcon: {
+    color: '#FFFFFF',
+    fontSize: 18, 
+    fontWeight: '600',
+    textAlign: 'center',
   },
   favoriteText: {
     color: '#FFFFFF',

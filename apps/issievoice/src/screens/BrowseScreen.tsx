@@ -6,9 +6,14 @@ import {
   FlatList,
   TouchableOpacity,
   TextInput,
-  SafeAreaView,
+  
   Alert,
+  Modal,
+  KeyboardAvoidingView,
+  ScrollView,
+  Platform,
 } from 'react-native';
+
 import {useText} from '../context/TextContext';
 import {useTTS} from '../context/TTSContext';
 import {useLocalization} from '../context/LocalizationContext';
@@ -18,6 +23,10 @@ import SavedSentencesManager, {
 } from '../services/SavedSentencesManager';
 import FavoritesManager from '../services/FavoritesManager';
 import {colors, sizes} from '../constants';
+import emojiKeywordsHe from '../assets/emoji-keywords-he.json';
+import emojiKeywordsAr from '../assets/emoji-keywords-ar.json';
+import EmojiPicker, { en, he } from 'rn-emoji-keyboard';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface BrowseScreenProps {
   navigation: any;
@@ -36,16 +45,18 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation, route}) => {
     [],
   );
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+  const [editingFavorite, setEditingFavorite] = useState<SavedSentence | null>(null);
+  const [favoriteCaption, setFavoriteCaption] = useState('');
+  const [favoriteIcon, setFavoriteIcon] = useState('');
+  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const {setText, currentText} = useText();
   const {speak} = useTTS();
-  const {strings} = useLocalization();
+  const {strings, language} = useLocalization();
   const {showNotification} = useNotification();
 
   useEffect(() => {
     loadSentences();
-    if (mode === 'select') {
-      loadFavorites();
-    }
+    loadFavorites(); // Load favorites in both modes
   }, []);
 
   useEffect(() => {
@@ -75,8 +86,59 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation, route}) => {
 
   const handleSelectForFavorite = async (sentence: SavedSentence) => {
     await FavoritesManager.addFavorite(sentence.id);
+    await loadFavorites();
     showNotification('Added to favorites', 'success');
     navigation.goBack();
+  };
+
+  const handleEditFavorite = async (sentence: SavedSentence) => {
+    const favorite = await FavoritesManager.getFavorite(sentence.id);
+    setEditingFavorite(sentence);
+    setFavoriteCaption(favorite?.caption || '');
+    setFavoriteIcon(favorite?.icon || '');
+  };
+
+  const handleSaveFavorite = async () => {
+    if (!editingFavorite) return;
+
+    const isAlreadyFavorite = favoriteIds.has(editingFavorite.id);
+
+    if (isAlreadyFavorite) {
+      await FavoritesManager.updateFavorite(
+        editingFavorite.id,
+        favoriteCaption.trim() || undefined,
+        favoriteIcon.trim() || undefined
+      );
+      showNotification('Favorite updated', 'success');
+    } else {
+      await FavoritesManager.addFavorite(
+        editingFavorite.id,
+        favoriteCaption.trim() || undefined,
+        favoriteIcon.trim() || undefined
+      );
+      await loadFavorites();
+      showNotification('Added to favorites', 'success');
+    }
+
+    setEditingFavorite(null);
+    setFavoriteCaption('');
+    setFavoriteIcon('');
+
+    // Go back to main screen after saving
+    navigation.goBack();
+  };
+
+  const handleCancelEdit = () => {
+    setEditingFavorite(null);
+    setFavoriteCaption('');
+    setFavoriteIcon('');
+  };
+
+  const handleEmojiPick = (emoji: any) => {
+    console.log('🎯 Emoji picked:', emoji.emoji);
+    setFavoriteIcon(emoji.emoji);
+    setIsEmojiPickerOpen(false);
+    // Don't need to do anything else - edit modal will reappear
   };
 
   const handleReplaceText = (sentence: SavedSentence) => {
@@ -123,12 +185,10 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation, route}) => {
       <View style={styles.sentenceItem}>
         <TouchableOpacity
           style={styles.sentenceTextContainer}
-          onPress={() => mode === 'select' ? handleSelectForFavorite(item) : handleReplaceText(item)}
-          activeOpacity={0.7}
-          disabled={mode === 'select' && isAlreadyFavorite}>
+          onPress={() => mode === 'select' ? handleEditFavorite(item) : handleReplaceText(item)}
+          activeOpacity={0.7}>
           <Text style={[
             styles.sentenceText,
-            mode === 'select' && isAlreadyFavorite && styles.sentenceTextDisabled
           ]} numberOfLines={2}>
             {item.text}
           </Text>
@@ -139,15 +199,23 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation, route}) => {
 
         <View style={styles.actionButtons}>
           {mode === 'select' ? (
-            <TouchableOpacity
-              style={[styles.actionButton, styles.selectButton, isAlreadyFavorite && styles.selectButtonDisabled]}
-              onPress={() => handleSelectForFavorite(item)}
-              activeOpacity={0.7}
-              disabled={isAlreadyFavorite}>
-              <Text style={styles.actionButtonText}>
-                {isAlreadyFavorite ? '✓' : '⭐'}
-              </Text>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.addFavoriteButton, isAlreadyFavorite && styles.addFavoriteButtonDisabled]}
+                onPress={() => handleSelectForFavorite(item)}
+                activeOpacity={0.7}
+                disabled={isAlreadyFavorite}>
+                <Text style={styles.actionButtonText}>
+                  {isAlreadyFavorite ? '✓' : '⭐'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.editFavoriteButton]}
+                onPress={() => handleEditFavorite(item)}
+                activeOpacity={0.7}>
+                <Text style={styles.actionButtonText}>✏️⭐</Text>
+              </TouchableOpacity>
+            </>
           ) : (
             <>
               <TouchableOpacity
@@ -162,6 +230,15 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation, route}) => {
                 onPress={() => handleSpeakPress(item)}
                 activeOpacity={0.7}>
                 <Text style={styles.actionButtonText}>🗣️</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.actionButton, styles.addFavoriteButton, isAlreadyFavorite && styles.addFavoriteButtonDisabled]}
+                onPress={() => handleEditFavorite(item)}
+                activeOpacity={0.7}>
+                <Text style={styles.actionButtonText}>
+                  {isAlreadyFavorite ? '⭐' : '⭐'}
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -263,6 +340,118 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation, route}) => {
           </Text>
         </View>
       )}
+
+      {/* Edit Favorite Modal */}
+      <Modal
+        visible={editingFavorite !== null && !isEmojiPickerOpen}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleCancelEdit}
+        supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']}>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={handleCancelEdit}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.modalKeyboardView}>
+            <ScrollView
+              contentContainerStyle={styles.modalScrollContent}
+              keyboardShouldPersistTaps="handled"
+              bounces={false}>
+              <TouchableOpacity
+                activeOpacity={1}
+                onPress={(e) => e.stopPropagation()}>
+                <View style={styles.editModalContent}>
+                  <Text style={styles.editModalTitle}>
+                    Customize Favorite
+                  </Text>
+
+                  {/* Caption Input */}
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Caption</Text>
+                    <TextInput
+                      style={styles.textInputField}
+                      value={favoriteCaption}
+                      onChangeText={setFavoriteCaption}
+                      placeholder="Leave empty for first word"
+                      placeholderTextColor={colors.textLight}
+                      maxLength={20}
+                    />
+                    <Text style={styles.inputHint}>
+                      Short text shown on button
+                    </Text>
+                  </View>
+
+                  {/* Icon Input */}
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Icon</Text>
+                    <TouchableOpacity
+                      style={styles.iconPreviewButton}
+                      onPress={() => {
+                        console.log('🎯 Icon preview button pressed');
+                        setIsEmojiPickerOpen(true);
+                        console.log('🎯 Emoji picker state set to true');
+                      }}
+                      activeOpacity={0.7}>
+                      <Text style={styles.iconPreviewText}>
+                        {favoriteIcon || '+'}
+                      </Text>
+                    </TouchableOpacity>
+                    <Text style={styles.inputHint}>
+                      Tap to select emoji
+                    </Text>
+                  </View>
+
+                  {/* Buttons */}
+                  <View style={styles.editModalButtons}>
+                    <TouchableOpacity
+                      style={[styles.editModalButton, styles.cancelButton]}
+                      onPress={handleCancelEdit}
+                      activeOpacity={0.7}>
+                      <Text style={styles.editModalButtonText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.editModalButton, styles.saveButton]}
+                      onPress={handleSaveFavorite}
+                      activeOpacity={0.7}>
+                      <Text style={styles.editModalButtonText}>Save</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Emoji Picker */}
+      <EmojiPicker
+        onEmojiSelected={handleEmojiPick}
+        open={isEmojiPickerOpen}
+        onClose={() => {
+          console.log('🎯 Emoji picker closing');
+          setIsEmojiPickerOpen(false);
+        }}
+        allowMultipleSelections={false}
+        emojiSize={48}
+        defaultHeight="50%"
+        enableSearchBar={true}
+        enableSearchAnimation={true}
+        enableRecentlyUsed
+        categoryPosition="top"
+        translation={language === 'he' ? he : en}
+        styles={{
+          category: {
+            icon: { width: 50 },
+            container: {
+              padding: 10,
+              minWidth: "50%",
+              minHeight: 25,
+            },
+          },
+        }}
+      />
     </SafeAreaView>
   );
 };
@@ -375,6 +564,18 @@ const styles = StyleSheet.create({
   deleteButton: {
     backgroundColor: colors.clear,
   },
+  addFavoriteButton: {
+    backgroundColor: '#FFB300', // Amber for add to favorites
+    width: sizes.touchTarget.medium,
+  },
+  addFavoriteButtonDisabled: {
+    backgroundColor: colors.success,
+    opacity: 0.6,
+  },
+  editFavoriteButton: {
+    backgroundColor: '#9C27B0', // Purple for edit
+    width: sizes.touchTarget.medium,
+  },
   selectButton: {
     backgroundColor: '#FFB300', // Amber for select/favorite
     width: sizes.touchTarget.medium,
@@ -385,6 +586,105 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: sizes.fontSize.large,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalKeyboardView: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalScrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: sizes.spacing.xl,
+    paddingHorizontal: sizes.spacing.lg,
+    minHeight: '100%',
+  },
+  editModalContent: {
+    width: '100%',
+    maxWidth: 500,
+    minWidth: 300,
+    backgroundColor: colors.surface,
+    borderRadius: sizes.borderRadius.large,
+    padding: sizes.spacing.xl,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    alignSelf: 'center',
+  },
+  editModalTitle: {
+    fontSize: sizes.fontSize.xlarge,
+    fontWeight: 'bold',
+    marginBottom: sizes.spacing.lg,
+    textAlign: 'center',
+    color: colors.text,
+  },
+  inputGroup: {
+    marginBottom: sizes.spacing.lg,
+  },
+  inputLabel: {
+    fontSize: sizes.fontSize.medium,
+    fontWeight: '600',
+    marginBottom: sizes.spacing.xs,
+    color: colors.text,
+  },
+  textInputField: {
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: sizes.borderRadius.medium,
+    padding: sizes.spacing.md,
+    fontSize: sizes.fontSize.medium,
+    color: colors.text,
+  },
+  iconPreviewButton: {
+    backgroundColor: colors.background,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    borderRadius: sizes.borderRadius.medium,
+    width: 80,
+    height: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'center',
+  },
+  iconPreviewText: {
+    fontSize: 48,
+    color: colors.primary,
+  },
+  inputHint: {
+    fontSize: sizes.fontSize.small,
+    color: colors.textLight,
+    marginTop: sizes.spacing.xs,
+    textAlign: 'center',
+  },
+  editModalButtons: {
+    flexDirection: 'row',
+    gap: sizes.spacing.md,
+    marginTop: sizes.spacing.md,
+  },
+  editModalButton: {
+    flex: 1,
+    padding: sizes.spacing.md,
+    borderRadius: sizes.borderRadius.medium,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: colors.textLight,
+  },
+  saveButton: {
+    backgroundColor: colors.primary,
+  },
+  editModalButtonText: {
+    color: '#FFFFFF',
+    fontSize: sizes.fontSize.medium,
+    fontWeight: '600',
   },
   emptyContainer: {
     flex: 1,

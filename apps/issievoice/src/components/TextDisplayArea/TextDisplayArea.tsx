@@ -43,7 +43,7 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text }) => {
         ref={textInputRef}
         style={[
           styles.textInput,
-          { fontSize, lineHeight },
+          { fontSize, lineHeight, height: '100%' },
           isTextRTL && styles.textInputRTL,
         ]}
         value={text}
@@ -82,6 +82,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     position: 'relative',
+    justifyContent: 'flex-start',
   },
 
   scrollContent: {
@@ -92,12 +93,14 @@ const styles = StyleSheet.create({
     color: colors.text,
     textAlignVertical: 'top',
     textAlign: 'left',
+    paddingTop: 8,
+    paddingLeft: 8,
     paddingRight: 40, // Space for clear button
   },
   textInputRTL: {
     textAlign: 'right',
     paddingLeft: 40, // Space for clear button on left
-    paddingRight: 0,
+    paddingRight: 8,
   },
   clearButton: {
     position: 'absolute',

@@ -662,8 +662,8 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
         />
 
         <View>
-          <View style={{ flexDirection: "row", width: "100%", height: availableHeight * .4 }}>
-            <IVButton onPress={handleSpeak} width={200} caption='Speak' icon='' style={{ backgroundColor: "green" }} />
+          <View style={{ flexDirection: "row", width: "100%", height: availableHeight * .45 }}>
+            <IVButton onPress={handleSpeak} width={200} caption='Speak' icon='🗣️' style={{ backgroundColor: "#35C759" }} />
 
             {/* Text Display Area - Center */}
             <View style={{ flex: 1 }}>
@@ -673,15 +673,15 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
             </View>
 
             {/* Save/Load Buttons - Right Side */}
-            <View style={{ flexDirection: "column", padding: 4, width: availableHeight * .2, height: availableHeight * .4 }}>
+            <View style={{ flexDirection: "column", padding: 4, width: availableHeight * .225, height: availableHeight * .45 }}>
               <TouchableOpacity
-                style={[styles.topButton, { height: availableHeight * .2, backgroundColor: colors.save }]}
+                style={[styles.topButton, { height: availableHeight * .225, backgroundColor: colors.save }]}
                 onPress={handleSave}
                 activeOpacity={0.7}>
                 <Text style={styles.topButtonText}>💾</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.topButton, { height: availableHeight * .2, backgroundColor: colors.browse }]}
+                style={[styles.topButton, { height: availableHeight * .225, backgroundColor: colors.browse }]}
                 onPress={handleBrowse}
                 activeOpacity={0.7}>
                 <Text style={styles.topButtonText}>📂</Text>
@@ -704,7 +704,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
         {/* Favorites Bar - Below Suggestions, Above Keyboard */}
         <FavoritesBar
           onFavoritePress={handleFavoritePress}
-          height={100}
+          height={availableHeight *.4}
           navigation={navigation}
           reloadTrigger={favoritesReloadTrigger}
         />

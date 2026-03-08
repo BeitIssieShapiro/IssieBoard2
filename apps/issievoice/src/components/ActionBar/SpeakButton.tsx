@@ -31,8 +31,10 @@ export const IVButton: React.FC<IVButtonProps> = ({
       onPress={onPress}
       disabled={false}
       activeOpacity={0.7}>
-      {/* <MyIcon /> */}
-      <Text style={[styles.speakButtonText, { fontSize: 45 }]}>
+      {icon && (
+        <Text style={styles.iconText}>{icon}</Text>
+      )}
+      <Text style={[styles.speakButtonText, icon && { fontSize: 24 }]}>
         {caption}
       </Text>
     </TouchableOpacity>
@@ -52,11 +54,16 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
     marginHorizontal: 8,
   },
-
+  iconText: {
+    fontSize: 70,
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
   speakButtonText: {
     color: '#FFFFFF',
     fontWeight: 'bold',
     textAlign: 'center',
+    fontSize: 55,
   },
   buttonDisabled: {
     opacity: 0.4,
