@@ -28,27 +28,18 @@ const ActionBar: React.FC<ActionBarProps> = ({
 
   // Calculate font size based on button height (scale proportionally)
   const scaleFactor = buttonHeight / sizes.actionButton;
-  const speakFontSize = Math.max(18, sizes.fontSize.large * scaleFactor);
   const buttonFontSize = Math.max(16, sizes.fontSize.medium * scaleFactor);
 
   // Render buttons in order, then reverse container for LTR
   return (
     <View style={[styles.container, !isRTL && styles.containerReversed]}>
       {/* Speak Button - Green, More Prominent */}
-      <TouchableOpacity
-        style={[
-          styles.button,
-          styles.speakButton,
-          {height: buttonHeight},
-          (!hasText || isSpeaking) && styles.buttonDisabled,
-        ]}
-        onPress={onSpeak}
-        disabled={!hasText || isSpeaking}
-        activeOpacity={0.7}>
-        <Text style={[styles.speakButtonText, {fontSize: speakFontSize}]}>
-          {isSpeaking ? strings.speaking : strings.speak}
-        </Text>
-      </TouchableOpacity>
+      <SpeakButton
+        onSpeak={onSpeak}
+        isSpeaking={isSpeaking}
+        hasText={hasText}
+        buttonHeight={buttonHeight}
+      />
 
       {/* Clear Button - Red */}
       <TouchableOpacity
@@ -112,20 +103,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-  },
-  speakButton: {
-    flex: 2,  // Double width of other buttons
-    backgroundColor: colors.speak,
-    shadowColor: colors.speak,
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 6,
-  },
-  speakButtonText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    textAlign: 'center',
   },
   clearButton: {
     backgroundColor: colors.clear,

@@ -365,6 +365,11 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
     
     private fun handleKeyPress(key: ParsedKey) {
         when (key.type.lowercase()) {
+            "event" -> {
+                // Event-only keys - just emit to React Native, don't modify text
+                debugLog("📢 Event key: ${key.value}")
+                emitKeyPress(key)
+            }
             "backspace" -> {
                 handleBackspace()
             }

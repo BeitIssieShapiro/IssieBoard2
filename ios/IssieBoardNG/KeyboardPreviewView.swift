@@ -114,11 +114,23 @@ class KeyboardPreviewView: UIView {
         // Update synced text to match React Native
         if syncedText != newText {
             print("📝 KeyboardPreviewView: setText syncing '\(newText.suffix(20))', fromKeyboard: \(isProcessingKeyboardOperation)")
+            let oldText = syncedText
             syncedText = newText
 
+            // If text was cleared (became empty or much shorter), force update even during keyboard operation
+            let wasCleared = newText.isEmpty && !oldText.isEmpty
+            let wasShortenedSignificantly = newText.count < oldText.count - 5
+
+            if wasCleared || wasShortenedSignificantly {
+                print("📝 Text cleared or shortened significantly - forcing handleTextChanged()")
+                keyboardEngine?.handleTextChanged()
+                return
+            }
+
             // If this came from keyboard, skip re-processing (keyboard already updated suggestions)
+            // But we still update syncedText above so queries return the right value
             if isProcessingKeyboardOperation {
-                print("📝 Skipping suggestion update (keyboard already handled it)")
+                print("📝 Skipping handleTextChanged (keyboard already handled it)")
                 return
             }
 
@@ -195,6 +207,26 @@ class KeyboardPreviewView: UIView {
     }
 
     private func setupEngineCallbacks(_ engine: KeyboardEngine) {
+        // Store the original onKeyPress from engine (set by KeyboardEngine.init)
+        let engineOnKeyPress = engine.renderer.onKeyPress
+
+        // Chain our callback with the engine's callback
+        engine.renderer.onKeyPress = { [weak self] key in
+            // First, let the engine handle it
+            engineOnKeyPress?(key)
+
+            // Then, forward event-type keys to React Native
+            if key.type == "event" {
+                print("📢 KeyboardPreviewView: Forwarding event key to React Native: \(key.value)")
+                self?.onKeyPress?([
+                    "type": key.type,
+                    "value": key.value,
+                    "label": key.label,
+                    "hasNikkud": false
+                ])
+            }
+        }
+
         // Set up suggestion updates callback
         engine.renderer.onSuggestionsUpdated = { [weak self] suggestions in
             self?.sendSuggestionsToReactNative(suggestions)

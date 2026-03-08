@@ -1,35 +1,55 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   Text,
   Dimensions,
+  useWindowDimensions,
 } from 'react-native';
-import {useText} from '../context/TextContext';
-import {useTTS} from '../context/TTSContext';
-import {useLocalization} from '../context/LocalizationContext';
-import {useNotification} from '../context/NotificationContext';
-import {useFocusEffect} from '@react-navigation/native';
+import { useText } from '../context/TextContext';
+import { useTTS } from '../context/TTSContext';
+import { useLocalization } from '../context/LocalizationContext';
+import { useNotification } from '../context/NotificationContext';
+import { useFocusEffect } from '@react-navigation/native';
 import TextDisplayArea from '../components/TextDisplayArea/TextDisplayArea';
-import ActionBar from '../components/ActionBar/ActionBar';
 import SuggestionsBar from '../components/SuggestionsBar/SuggestionsBar';
 import SettingsModal from '../components/SettingsModal/SettingsModal';
-import {KeyboardPreview, KeyPressEvent} from '../../../../src/components/KeyboardPreview';
-import {colors, sizes} from '../constants';
-import SavedSentencesManager from '../services/SavedSentencesManager';
+import { KeyboardPreview, KeyPressEvent } from '../../../../src/components/KeyboardPreview';
+import { colors, sizes } from '../constants';
 import KeyboardPreferences from '../../../../src/native/KeyboardPreferences';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { IVButton } from '../components/ActionBar/SpeakButton';
 
 interface MainScreenProps {
   navigation: any;
 }
 
-const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
-  const {currentText, setText, clearText} = useText();
-  const {speak, isSpeaking, setLanguage: setTTSLanguage} = useTTS();
-  const {strings, language: deviceLanguage} = useLocalization();
-  const {showNotification} = useNotification();
+const settingsKey = {
+  type: 'event',  // Event-only key
+  label: '☰',
+  caption: '☰',
+  value: 'SETTINGS',  // Event identifier
+  width: 1,
+  bgColor: '#888888',
+  fontSize: 32,
+};
+
+const clearAllKey = {
+  type: 'event',  // Event-only key - doesn't modify text
+  label: '🗑️',
+  caption: '🗑️',
+  value: 'CLEAR_ALL',  // Event identifier
+  width: 1,
+  bgColor: '#f44336',
+  fontSize: 32,
+};
+
+const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
+  const { currentText, setText, clearText } = useText();
+  const { speak, setLanguage: setTTSLanguage } = useTTS();
+  const { language: deviceLanguage, strings } = useLocalization();
+  const { showNotification } = useNotification();
   const [keyboardConfig, setKeyboardConfig] = useState<string>('');
   const [kbSuggestions, setKbSuggestions] = useState<string[]>([]);
   const [keyboardHeight, setKeyboardHeight] = useState(350);
@@ -77,47 +97,11 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
     };
   }, [keyboardHeight]);
 
-  // Calculate appropriate keyboard height based on configuration
-  const calculateKeyboardHeight = (config: any) => {
-    if (!config) return;
-    
-    // Base height per row (using config.keyHeight if available, or default to 74)
-    const keyHeight = config.keyHeight || 74;
-    
-    // Count the maximum number of rows across all keysets
-    let maxRows = 0;
-    config.keysets.forEach((keyset: any) => {
-      const rowCount = keyset.rows.length;
-      if (rowCount > maxRows) maxRows = rowCount;
-    });
-    
-    // Calculate total height (rows + spacing + padding)
-    // Each row is keyHeight tall, plus some spacing between rows,
-    // plus padding at top and bottom
-    const rowSpacing = 0; // Same as in KeyboardRenderer.swift
-    const topPadding = 4; 
-    const bottomPadding = 4;
-    
-    // Note: We don't add height for suggestions bar because it's a separate component
-    // outside of the keyboard container. The SuggestionsBar component maintains its
-    // own consistent height of 50px even when empty.
-    const additionalSpacing = 12; // Extra buffer to ensure nothing is cut off
-    
-    const totalHeight = (maxRows * keyHeight) + 
-                       ((maxRows - 1) * rowSpacing) + 
-                       topPadding + 
-                       bottomPadding +
-                       additionalSpacing;
-    
-    console.log(`📏 Calculated keyboard height: ${totalHeight}px (${maxRows} rows of ${keyHeight}px)`);
-    
-    // Set minimum height to avoid issues with very small keyboard layouts
-    const minHeight = 300;
-    const finalHeight = Math.max(totalHeight, minHeight);
-    
-    setKeyboardHeight(finalHeight);
-  };
-  
+  const { height: screenHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+
+  const availableHeight = screenHeight - insets.top - insets.bottom;
+
   // Function to load keyboard configuration for a specific language
   const loadKeyboardConfig = async (language: string) => {
     console.log('🔄 Loading keyboard config for language:', language);
@@ -155,6 +139,9 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
               bgColor: '#2196F3',
             };
 
+            // Add clear-all key (trash icon)
+
+
             console.log(`🔑 Creating language key for ${language} keyboard:`, languageKey);
 
             // Update all keysets to include language switch key and remove close/next-keyboard
@@ -171,24 +158,39 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
                 if (isBottomRow) {
                   // Check if language key already exists
                   const hasLanguageKey = row.keys.some((k: any) => k.type === 'language');
+                  const hasClearAllKey = row.keys.some((k: any) => k.value === clearAllKey.value);
+                  const hasSettingsKey = row.keys.some((k: any) => k.value === settingsKey.value);
 
                   // Always filter out unwanted keys
                   const filteredKeys = row.keys.filter((key: any) =>
                     key.type !== 'next-keyboard' && key.type !== 'close'
                   );
 
-                  if (!hasLanguageKey) {
-                    // Add language key after first key (usually 123 button)
+                  if (!hasLanguageKey || !hasClearAllKey || !hasSettingsKey) {
+                    // Add language key after first key, settings + clear-all at the end
                     const newKeys = filteredKeys.reduce((acc: any[], key: any, index: number) => {
                       acc.push(key);
-                      if (index === 0) {
+                      if (index === 0 && !hasLanguageKey) {
                         acc.push(languageKey);
                       }
                       return acc;
                     }, []);
+
+                    // Add gap + clear-all + gap + settings at the end (settings rightmost)
+                    if (!hasClearAllKey || !hasSettingsKey) {
+                      newKeys.push({ hidden: true, width: 0.5 });
+                      if (!hasClearAllKey) {
+                        newKeys.push(clearAllKey);
+                      }
+                      newKeys.push({ hidden: true, width: 0.5 });
+                      if (!hasSettingsKey) {
+                        newKeys.push(settingsKey);
+                      }
+                    }
+
                     return { ...row, keys: newKeys };
                   } else {
-                    // Language key exists, just use filtered keys
+                    // Both keys exist, just use filtered keys
                     return { ...row, keys: filteredKeys };
                   }
                 }
@@ -198,7 +200,6 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
 
             // Store the config object for height calculations
             keyboardConfigRef.current = savedConfig;
-            calculateKeyboardHeight(savedConfig);
 
             console.log('📋 Final config before sending to KeyboardPreview:', {
               hasGroups: !!savedConfig.groups,
@@ -225,10 +226,10 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
         ? require('../../../../keyboards/en.json')
         : require('../../../../keyboards/he.json');
       const common = require('../../../../keyboards/common.js');
-        
+
       console.log('📋 Original config keysets:', config.keysets?.map((k: any) => k.id));
       console.log('📋 Common keysets:', common.keysets?.map((k: any) => k.id));
-      
+
       // Merge common keysets with language-specific config
       // Filter common keysets to include only those for the current language
       const commonKeysets = common.keysets.map((keyset: any) => ({
@@ -241,9 +242,9 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
           }),
         })),
       }));
-      
+
       console.log('📋 Filtered common keysets:', commonKeysets.map((k: any) => k.id));
-      
+
       // Append "alwaysInclude" rows from the language config to common keysets
       const bottomRow = config.keysets[0].rows.find((row: any) => row.alwaysInclude);
       console.log('📋 Bottom row found:', !!bottomRow);
@@ -262,6 +263,7 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
         width: 1,
         bgColor: '#2196F3',  // Blue background
       };
+
 
       console.log('🔑 Language key:', languageKey);
       console.log('📋 Original bottom row keys:', bottomRow.keys.length);
@@ -282,6 +284,12 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
           }, []),
       };
 
+      // Add gap + clear-all + gap + settings at the end (settings rightmost)
+      modifiedBottomRow.keys.push({ hidden: true, width: 0.5 });
+      modifiedBottomRow.keys.push(clearAllKey);
+      modifiedBottomRow.keys.push({ hidden: true, width: 0.5 });
+      modifiedBottomRow.keys.push(settingsKey);
+
       console.log('📋 Modified bottom row keys:', modifiedBottomRow.keys.length);
       console.log('📋 Modified bottom row keys types:', modifiedBottomRow.keys.map((k: any) => k.type || k.value));
 
@@ -296,17 +304,25 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
         rows: keyset.rows.map((row: any) => {
           if (row.alwaysInclude) {
             // This is the bottom row - remove next-keyboard and close, insert language key after first key
+            const filteredKeys = row.keys
+              .filter((key: any) => key.type !== 'next-keyboard' && key.type !== 'close')
+              .reduce((acc: any[], key: any, index: number) => {
+                acc.push(key);
+                if (index === 0) {
+                  acc.push(languageKey);
+                }
+                return acc;
+              }, []);
+
+            // Add gap + clear-all + gap + settings at the end (settings rightmost)
+            filteredKeys.push({ hidden: true, width: 0.5 });
+            filteredKeys.push(clearAllKey);
+            filteredKeys.push({ hidden: true, width: 0.5 });
+            filteredKeys.push(settingsKey);
+
             return {
               ...row,
-              keys: row.keys
-                .filter((key: any) => key.type !== 'next-keyboard' && key.type !== 'close')
-                .reduce((acc: any[], key: any, index: number) => {
-                  acc.push(key);
-                  if (index === 0) {
-                    acc.push(languageKey);
-                  }
-                  return acc;
-                }, []),
+              keys: filteredKeys,
             };
           }
           return row;
@@ -316,7 +332,7 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
       // Combine language-specific keysets with merged common keysets
       const allKeysets = [...modifiedLanguageKeysets, ...mergedCommonKeysets];
       console.log('📋 All keysets:', allKeysets.map((k: any) => k.id));
-      
+
       // Add IssieVoice-specific settings to the config
       const issieVoiceConfig = {
         ...config,
@@ -342,9 +358,6 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
 
       // Store the config object for height calculations
       keyboardConfigRef.current = issieVoiceConfig;
-      
-      // Calculate appropriate keyboard height
-      calculateKeyboardHeight(issieVoiceConfig);
 
       const configString = JSON.stringify(issieVoiceConfig);
       console.log('📤 Setting keyboard config, length:', configString.length);
@@ -354,7 +367,7 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
       console.error('❌ Failed to load keyboard config:', error);
     }
   };
-  
+
   // Load settings from storage on mount
   useEffect(() => {
     const loadSettings = async () => {
@@ -388,7 +401,7 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
     };
     loadConfig();
   }, [currentLanguage]);
-  
+
   // Separate effect for TTS language to avoid circular dependencies
   useEffect(() => {
     console.log(`🗣️ Updating TTS language: ${currentLanguage}`);
@@ -414,8 +427,29 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
   // No need for a separate initial load effect as the above effect will run on mount
 
   const handleKeyPress = (event: KeyPressEvent) => {
-    const {type, value, label} = event.nativeEvent;
-    console.log('🎹 Key pressed:', {type, value, label, keysetValue: event.nativeEvent.keysetValue, currentLength: currentText.length});
+    const { type, value, label } = event.nativeEvent;
+    console.log('🎹 Key pressed:', { type, value, label, keysetValue: event.nativeEvent.keysetValue, currentLength: currentText.length });
+
+    // Handle event-type keys (custom actions that don't modify text)
+    if (type === 'event') {
+      console.log('📢 Event key pressed:', value);
+
+      if (value === clearAllKey.value) {
+        console.log('🗑️ Clear-all event');
+        setText('');
+        return;
+      }
+
+      if (value === settingsKey.value) {
+        console.log('⚙️ Settings event');
+        setSettingsModalVisible(true);
+        return;
+      }
+
+      // Unknown event
+      console.warn('⚠️ Unknown event value:', value);
+      return;
+    }
 
     // Handle text_changed event from KeyboardEngine (new architecture)
     if (type === 'text_changed') {
@@ -467,7 +501,7 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
       console.log('📝 Adding character, new text:', newText);
       setText(newText);
     } else {
-      console.log('❓ Unhandled key:', {type, value, label});
+      console.log('❓ Unhandled key:', { type, value, label });
     }
   };
 
@@ -477,21 +511,27 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
     }
   };
 
-  const handleClear = () => {
-    clearText();
-  };
-
   const handleSave = async () => {
     if (!currentText.trim()) {
       return;
     }
 
     try {
-      await SavedSentencesManager.saveSentence(currentText);
-      showNotification(strings.savedSuccessMessage, 'success');
-    } catch (error) {
-      showNotification(strings.failedToSave, 'error');
-      console.error('Save error:', error);
+      const SavedSentencesManager = require('../services/SavedSentencesManager').default;
+      const result = await SavedSentencesManager.saveSentence(currentText);
+
+      if (result === null) {
+        // Duplicate detected
+        console.log('⚠️ Sentence already exists');
+        showNotification(strings.alreadyExists || 'This sentence is already saved', 'error');
+      } else {
+        // Success
+        console.log('💾 Sentence saved successfully');
+        showNotification(strings.savedSuccessMessage || 'Saved successfully', 'success');
+      }
+    } catch (error: any) {
+      console.error('❌ Save error:', error);
+      showNotification(strings.failedToSave || 'Failed to save', 'error');
     }
   };
 
@@ -504,7 +544,7 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
     console.log('🔮 KB Suggestions received:', suggestions);
     setKbSuggestions(suggestions);
   };
-  
+
   // Handle suggestion press from the SuggestionsBar
   // This simulates typing to keep the keyboard in sync
   const handleSuggestionFromBar = (suggestion: string) => {
@@ -548,7 +588,7 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
       setText(newText);
     }
   };
-  
+
   // Function to toggle between languages
   const toggleLanguage = () => {
     const newLanguage = currentLanguage === 'en' ? 'he' : 'en';
@@ -600,14 +640,6 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        {/* Settings Button - Absolute Position Top Right */}
-        <TouchableOpacity
-          style={styles.settingsButton}
-          onPress={() => setSettingsModalVisible(true)}
-          activeOpacity={0.7}>
-          <Text style={styles.settingsButtonText}>☰</Text>
-        </TouchableOpacity>
-
         {/* Settings Modal */}
         <SettingsModal
           visible={settingsModalVisible}
@@ -619,20 +651,33 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
           onVoiceChange={handleVoiceChange}
         />
 
-        {/* Scrollable content area that shrinks when keyboard grows */}
-        <View style={[
-          styles.scrollableContent,
-          {
-            height: responsiveSizes.textDisplayHeight +
-                    responsiveSizes.suggestionBarHeight +
-                    responsiveSizes.actionButtonHeight
-          }
-        ]}>
-          {/* Text Display Area - Top */}
-          <TextDisplayArea
-            text={currentText}
-            height={responsiveSizes.textDisplayHeight}
-          />
+        <View>
+          <View style={{ flexDirection: "row", width: "100%", height: availableHeight * .2 }}>
+            <IVButton onPress={handleSpeak} width={200} caption='Speak' icon='' style={{ backgroundColor: "green" }} />
+
+            {/* Text Display Area - Center */}
+            <View style={{ flex: 1 }}>
+              <TextDisplayArea
+                text={currentText}
+              />
+            </View>
+
+            {/* Save/Load Buttons - Right Side */}
+            <View style={{ flexDirection: "column", width: availableHeight * .1, height: availableHeight * .2 }}>
+              <TouchableOpacity
+                style={[styles.topButton, { height: availableHeight * .1, backgroundColor: colors.save }]}
+                onPress={handleSave}
+                activeOpacity={0.7}>
+                <Text style={styles.topButtonText}>💾</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.topButton, { height: availableHeight * .1, backgroundColor: colors.browse }]}
+                onPress={handleBrowse}
+                activeOpacity={0.7}>
+                <Text style={styles.topButtonText}>📂</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
 
           {/* Suggestions Bar - Above Action Buttons */}
           <SuggestionsBar
@@ -643,23 +688,11 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
             height={responsiveSizes.suggestionBarHeight}
           />
 
-          {/* Action Buttons - Below Text Display */}
-          <View style={styles.actionsContainer}>
-            <ActionBar
-              onSpeak={handleSpeak}
-              onClear={handleClear}
-              onSave={handleSave}
-              onBrowse={handleBrowse}
-              isSpeaking={isSpeaking}
-              hasText={currentText.length > 0}
-              currentLanguage={currentLanguage}
-              buttonHeight={responsiveSizes.actionButtonHeight}
-            />
-          </View>
+
         </View>
 
         {/* IssieBoard Custom Keyboard - Bottom */}
-        <View style={[styles.keyboardContainer, { height: keyboardHeight }]}>
+        <View style={[styles.keyboardContainer, { bottom: 0, height: keyboardHeight }]}>
           <KeyboardPreview
             style={[styles.keyboard, { height: keyboardHeight }]}
             configJson={keyboardConfig}
@@ -668,6 +701,7 @@ const MainScreen: React.FC<MainScreenProps> = ({navigation}) => {
             onKeyPress={handleKeyPress}
             onSuggestionsChange={handleSuggestionsChange}
             onOpenSettings={handleOpenSettings}
+            onHeightChange={(e) => setKeyboardHeight(e.nativeEvent.height - 40)}
           />
         </View>
       </View>
@@ -683,25 +717,21 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  settingsButton: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    width: 50,
-    height: 50,
+  topButton: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
-    borderRadius: sizes.borderRadius.medium,
-    zIndex: 1000,
+    borderRadius: sizes.borderRadius.small,
+    margin: 2,
   },
-  settingsButtonText: {
-    fontSize: 28,
+  topButtonText: {
+    fontSize: 32,
   },
   scrollableContent: {
     // Remove flex, use fixed height instead
   },
   keyboardContainer: {
+    position: "absolute", width: "100%",
     backgroundColor: colors.surface,
   },
   keyboard: {

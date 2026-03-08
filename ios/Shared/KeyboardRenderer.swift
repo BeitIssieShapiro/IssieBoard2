@@ -1848,7 +1848,13 @@ class KeyboardRenderer {
             } else {
                 onLanguageSwitch?()
             }
-            
+
+        case "event":
+            print("   → Handling EVENT key: \(key.value)")
+            // Event-only keys - just emit the key press to container
+            // Container (React Native) will handle the action
+            onKeyPress?(key)
+
         default:
             // For regular keys, check if nikkud popup should be shown
             print("   → Handling DEFAULT key")

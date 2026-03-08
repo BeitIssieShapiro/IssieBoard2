@@ -69,4 +69,4 @@ IssieVoice:
 V- Auto-detect rtl/ltr
 - emoji?
 V- reuse issieboard settings
-- avoid system kb from showing
+?- avoid system kb from showing

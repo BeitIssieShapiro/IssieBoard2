@@ -1630,6 +1630,13 @@ class KeyboardRenderer(private val context: Context) {
                 onLanguageSwitch?.invoke()
             }
 
+            "event" -> {
+                debugLog("   → Handling EVENT key: ${key.value}")
+                // Event-only keys - just emit the key press to container
+                // Container (React Native) will handle the action
+                onKeyPress?.invoke(key)
+            }
+
             else -> {
                 debugLog("   → Handling DEFAULT key")
                 

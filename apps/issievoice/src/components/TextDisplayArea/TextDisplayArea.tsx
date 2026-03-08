@@ -1,24 +1,23 @@
-import React, {useRef, useEffect, useMemo} from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import {
   View,
   TextInput,
   StyleSheet,
-  ScrollView,
-  Dimensions,
+  TouchableOpacity,
+  Text,
 } from 'react-native';
-import {useText} from '../../context/TextContext';
-import {colors, sizes} from '../../constants';
-import {useLocalization} from '../../context/LocalizationContext';
-import {detectTextDirection} from '../../utils/textDirection';
+import { useText } from '../../context/TextContext';
+import { colors, sizes } from '../../constants';
+import { useLocalization } from '../../context/LocalizationContext';
+import { detectTextDirection } from '../../utils/textDirection';
 
 interface TextDisplayAreaProps {
   text: string;
-  height?: number; // Optional responsive height
 }
 
-const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({text, height = sizes.textDisplay}) => {
-  const {setText} = useText();
-  const {strings} = useLocalization();
+const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text }) => {
+  const { setText } = useText();
+  const { strings, isRTL } = useLocalization();
   const textInputRef = useRef<TextInput>(null);
 
   // Dynamically detect text direction based on content
@@ -26,8 +25,7 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({text, height = sizes.t
   const isTextRTL = textDirection === 'rtl';
 
   // Calculate font size based on container height (scale proportionally)
-  const scaleFactor = height / sizes.textDisplay;
-  const fontSize = Math.max(18, sizes.fontSize.large * scaleFactor);
+  const fontSize = Math.max(20, sizes.fontSize.xxlarge * 1);
   const lineHeight = fontSize * 1.5;
 
   // Log whenever text prop changes
@@ -35,57 +33,57 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({text, height = sizes.t
     console.log('📺 TextDisplayArea received text:', text, 'length:', text.length, 'direction:', textDirection);
   }, [text, textDirection]);
 
-  // Keep TextInput focused to show cursor
-  // useEffect(() => {
-  //   if (textInputRef.current) {
-  //     textInputRef.current.focus();
-  //   }
-  // }, []);
+  const handleClear = () => {
+    setText('');
+  };
 
   return (
-    <View style={[styles.container, {height}]}>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={true}
-        bounces={true}
-        keyboardShouldPersistTaps="handled">
-        <TextInput
-          ref={textInputRef}
-          style={[
-            styles.textInput,
-            {fontSize, lineHeight, minHeight: height - (sizes.spacing.md * 2)},
-            isTextRTL && styles.textInputRTL,
-          ]}
-          value={text}
-          onChangeText={(newText) => {
-            console.log('⌨️ External keyboard input detected:', newText);
-            setText(newText);
-          }}
-          multiline={true}
-          editable={true}
-          autoFocus
-          placeholder={strings.textPlaceholder}
-          placeholderTextColor={colors.textLight}
-          inputAccessoryViewID="customKeyboard"
-          showSoftInputOnFocus={false}
-          caretHidden={false}
-          writingDirection={textDirection}
-        />
-      </ScrollView>
+    <View style={[styles.container, { height:"100%" }]}>
+      <TextInput
+        ref={textInputRef}
+        style={[
+          styles.textInput,
+          { fontSize, lineHeight },
+          isTextRTL && styles.textInputRTL,
+        ]}
+        value={text}
+        onChangeText={(newText) => {
+          console.log('⌨️ External keyboard input detected:', newText);
+          setText(newText);
+        }}
+        multiline={true}
+        editable={true}
+        autoFocus
+        placeholder={strings.textPlaceholder}
+        placeholderTextColor={colors.textLight}
+        inputAccessoryViewID="customKeyboard"
+        showSoftInputOnFocus={false}
+        caretHidden={false}
+        // @ts-ignore - writingDirection exists but not in types
+        writingDirection={textDirection}
+      />
+      {text.length > 0 && (
+        <TouchableOpacity
+          style={[styles.clearButton, isRTL ? styles.clearButtonLeft : styles.clearButtonRight]}
+          onPress={handleClear}
+          activeOpacity={0.7}>
+          <Text style={styles.clearButtonText}>✕</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    paddingBottom: 4,
+    width: "100%",
     backgroundColor: colors.surface,
-    borderBottomWidth: 2,
+    borderBottomWidth: 1,
     borderBottomColor: colors.border,
+    position: 'relative',
   },
-  scrollView: {
-    flex: 1,
-  },
+
   scrollContent: {
     padding: sizes.spacing.md,
     flexGrow: 1,
@@ -94,9 +92,33 @@ const styles = StyleSheet.create({
     color: colors.text,
     textAlignVertical: 'top',
     textAlign: 'left',
+    paddingRight: 40, // Space for clear button
   },
   textInputRTL: {
     textAlign: 'right',
+    paddingLeft: 40, // Space for clear button on left
+    paddingRight: 0,
+  },
+  clearButton: {
+    position: 'absolute',
+    top: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  clearButtonRight: {
+    right: 8,
+  },
+  clearButtonLeft: {
+    left: 8,
+  },
+  clearButtonText: {
+    color: colors.textLight,
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });
 

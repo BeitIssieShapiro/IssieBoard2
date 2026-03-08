@@ -6,8 +6,8 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
-import {useText} from '../../context/TextContext';
-import {colors, sizes} from '../../constants';
+import { useText } from '../../context/TextContext';
+import { colors, sizes } from '../../constants';
 
 interface SuggestionsBarProps {
   currentText: string;
@@ -22,7 +22,7 @@ const findLastWordBoundary = (text: string): number => {
   // Regex to match word boundaries - handles Hebrew, Arabic, and Latin scripts
   // Look for whitespace characters (space, newline, etc.)
   const trimmed = text.trimEnd();
-  
+
   // Search backwards for a whitespace character
   for (let i = trimmed.length - 1; i >= 0; i--) {
     const char = trimmed[i];
@@ -31,7 +31,7 @@ const findLastWordBoundary = (text: string): number => {
       return i;
     }
   }
-  
+
   // No whitespace found
   return -1;
 };
@@ -45,7 +45,7 @@ const SuggestionsBar: React.FC<SuggestionsBarProps> = ({
 }) => {
   // Determine text direction based on language
   const isRTL = language === 'he';
-  const {setText} = useText();
+  const { setText } = useText();
 
   // Calculate responsive button height and font size
   const buttonHeight = Math.max(30, height - 10); // Leave 10px for padding
@@ -57,18 +57,18 @@ const SuggestionsBar: React.FC<SuggestionsBarProps> = ({
     if (suggestion.startsWith('"') && suggestion.endsWith('"')) {
       cleanSuggestion = suggestion.slice(1, -1);
     }
-    
+
     // If a callback is provided, let the parent handle it (to notify keyboard)
     if (onSuggestionPress) {
       onSuggestionPress(cleanSuggestion);
       return;
     }
-    
+
     // Fallback: Replace the partial word with the full suggestion + space
     // Find the last word boundary in currentText
     const trimmed = currentText.trimEnd();
     const lastSpaceIndex = findLastWordBoundary(trimmed);
-    
+
     let newText: string;
     if (lastSpaceIndex === -1) {
       // No whitespace found, replace entire text with suggestion
@@ -77,40 +77,36 @@ const SuggestionsBar: React.FC<SuggestionsBarProps> = ({
       // Keep everything up to and including the last whitespace, then add suggestion
       newText = trimmed.substring(0, lastSpaceIndex + 1) + cleanSuggestion + ' ';
     }
-    
+
     setText(newText);
   };
 
   if (kbSuggestions.length === 0) {
     // Instead of returning null, return an empty bar with the same height
-    return <View style={[styles.container, {height}]} />;
+    return <View style={[styles.container, { height }]} />;
   }
 
   // For RTL, reverse the suggestions order so first suggestion appears on the right
   const displaySuggestions = isRTL ? [...kbSuggestions].reverse() : kbSuggestions;
 
   return (
-    <View style={[styles.container, {height}, isRTL && styles.containerRTL]}>
-      <ScrollView
-        horizontal={true}
-        showsHorizontalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={[
-          styles.scrollContent,
-          isRTL && styles.rtlScrollContent
+    <View style={[{ height }, isRTL && styles.containerRTL]}>
+      <View
+        style={[{ flexDirection: "row", height: 60, padding:5, borderBottomWidth:1, borderBottomColor:"lightgrey" },
+        isRTL && styles.rtlScrollContent
         ]}>
         {displaySuggestions.map((suggestion, index) => (
           <TouchableOpacity
             key={`${suggestion}-${index}`}
-            style={[styles.suggestionButton, {height: buttonHeight}]}
+            style={[styles.suggestionButton]}
             onPress={() => handleSuggestionPress(suggestion)}
             activeOpacity={0.7}>
-            <Text style={[styles.suggestionText, {fontSize}]} numberOfLines={1}>
+            <Text style={[styles.suggestionText, { fontSize }]} numberOfLines={1}>
               {suggestion}
             </Text>
           </TouchableOpacity>
         ))}
-      </ScrollView>
+      </View>
     </View>
   );
 };
@@ -138,16 +134,12 @@ const styles = StyleSheet.create({
   },
   suggestionButton: {
     minWidth: 100,
-    paddingHorizontal: sizes.spacing.lg,
+    marginHorizontal: sizes.spacing.xs,
     backgroundColor: colors.primary,
-    borderRadius: sizes.borderRadius.large,
+    borderRadius: sizes.borderRadius.medium,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.3)',
   },
   suggestionText: {
     color: '#FFFFFF',

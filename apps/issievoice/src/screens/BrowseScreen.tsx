@@ -63,8 +63,10 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation}) => {
   };
 
   const handleInsertText = (sentence: SavedSentence) => {
-    // Insert at the end of current text
-    const newText = currentText + (currentText && !currentText.endsWith(' ') ? ' ' : '') + sentence.text;
+    // Insert at the end of current text with space before and after
+    const spaceBefore = currentText && !currentText.endsWith(' ') ? ' ' : '';
+    const spaceAfter = ' ';
+    const newText = currentText + spaceBefore + sentence.text + spaceAfter;
     setText(newText);
     navigation.goBack();
   };

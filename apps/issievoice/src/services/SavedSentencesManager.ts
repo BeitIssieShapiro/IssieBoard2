@@ -20,19 +20,28 @@ class SavedSentencesManager {
     }
   }
 
-  async saveSentence(text: string, category?: string): Promise<SavedSentence> {
+  async saveSentence(text: string, category?: string): Promise<SavedSentence | null> {
     try {
       const sentences = await this.getSavedSentences();
+
+      // Check if text already exists (case-insensitive, trimmed comparison)
+      const normalizedText = text.trim().toLowerCase();
+      const exists = sentences.some(s => s.text.trim().toLowerCase() === normalizedText);
+
+      if (exists) {
+        return null; // Return null to indicate duplicate
+      }
+
       const newSentence: SavedSentence = {
         id: Date.now().toString(),
         text,
         createdAt: Date.now(),
         category,
       };
-      
+
       sentences.unshift(newSentence); // Add to beginning
       await KeyboardPreferences.setProfile(JSON.stringify(sentences), STORAGE_KEY);
-      
+
       return newSentence;
     } catch (error) {
       console.error('Failed to save sentence:', error);

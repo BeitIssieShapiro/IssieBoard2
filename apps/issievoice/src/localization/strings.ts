@@ -34,6 +34,7 @@ export interface Strings {
   savedSuccessMessage: string;
   error: string;
   failedToSave: string;
+  alreadyExists: string;
   deleted: string;
   allDeleted: string;
 
@@ -78,6 +79,7 @@ export const en: Strings = {
   savedSuccessMessage: 'Your text has been saved successfully.',
   error: 'Error',
   failedToSave: 'Failed to save text. Please try again.',
+  alreadyExists: 'This sentence is already saved.',
   deleted: 'Deleted successfully',
   allDeleted: 'All texts deleted',
 
@@ -122,6 +124,7 @@ export const he: Strings = {
   savedSuccessMessage: 'הטקסט שלך נשמר בהצלחה.',
   error: 'שגיאה',
   failedToSave: 'שמירת הטקסט נכשלה. אנא נסה שוב.',
+  alreadyExists: 'המשפט הזה כבר שמור.',
   deleted: 'נמחק בהצלחה',
   allDeleted: 'כל הטקסטים נמחקו',
 

@@ -214,6 +214,12 @@ class KeyboardEngine(
 
             "language" -> onLanguageSwitch?.invoke()
 
+            "event" -> {
+                // Event-only key - just emit the key press, don't modify text
+                // Used for custom actions like clear-all, save, load, etc.
+                // The container (React Native) will handle the action
+            }
+
             "next-keyboard" -> onNextKeyboard?.invoke()
 
             else -> {
