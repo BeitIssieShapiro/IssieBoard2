@@ -647,6 +647,9 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
     navigation.navigate('KeyboardSettings', { initialLanguage: currentLanguage });
   };
 
+  const isMobile = frame.width < 600;
+  const buttonColumnWidth = isMobile ? availableHeight * .175  : availableHeight * .225;
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
@@ -680,7 +683,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
             </View>
 
             {/* Save/Load Buttons - Right Side */}
-            <View style={{ flexDirection: "column", padding: 4, width: availableHeight * .225, height: Math.min(availableHeight * .45, frame.height * 0.25) }}>
+            <View style={{ flexDirection: "column", padding: 4, width: buttonColumnWidth, height: Math.min(availableHeight * .45, frame.height * 0.25) }}>
               <TouchableOpacity
                 style={[styles.topButton, { height: Math.min(availableHeight * .225, frame.height * 0.125), backgroundColor: colors.save }]}
                 onPress={handleSave}
@@ -715,6 +718,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
           height={Math.min(availableHeight * 0.4, isLandscape ? availableHeight * 0.4 : 150)}
           navigation={navigation}
           reloadTrigger={favoritesReloadTrigger}
+          screenWidth={frame.width}
         />
 
         {/* IssieBoard Custom Keyboard - Bottom */}

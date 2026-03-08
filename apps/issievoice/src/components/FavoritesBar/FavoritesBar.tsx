@@ -15,11 +15,15 @@ interface FavoritesBarProps {
   navigation: any;
   onEditModeChange?: (isEditMode: boolean) => void;
   reloadTrigger?: number;
+  screenWidth?: number;
 }
 
-const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, navigation, onEditModeChange, reloadTrigger }) => {
+const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, navigation, onEditModeChange, reloadTrigger, screenWidth = 1000 }) => {
   const [favorites, setFavorites] = useState<{ favorite: Favorite; sentence: SavedSentence }[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Determine if we're on mobile (portrait mode with small width)
+  const isMobile = screenWidth < 600;
 
   // Notify parent when selection state changes
   useEffect(() => {
@@ -126,6 +130,8 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
     return text.trim().split(/\s+/)[0] || text.substring(0, 15);
   };
 
+  const addButtonHeight = isMobile ? height / 4 : height / 2;
+
   return (
     <>
       {/* Overlay to clear selection when clicking outside */}
@@ -162,32 +168,26 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
               const caption = item.favorite.caption || getFirstWord(item.sentence.text);
               const icon = item.favorite.icon;
               const isSelected = selectedId === item.favorite.id;
+              const itemHeight = isMobile ? height / 4 : height / 2; // Subtract padding for non-mobile
 
               return (
                 <View key={item.favorite.id} style={styles.favoriteWrapper}>
                   <TouchableOpacity
                     style={[
                       styles.favoriteButton,
-                      { height: height / 2 },
-                      icon && styles.favoriteButtonWithIcon,
+                      { height: itemHeight },
+                      isMobile && styles.favoriteButtonMobile,
+                      !isMobile && icon && styles.favoriteButtonWithIcon,
                       isSelected && styles.selectedButton,
                     ]}
                     onPress={() => handleFavoritePress(item)}
                     onLongPress={() => handleFavoriteLongPress(item)}
                     activeOpacity={0.7}
                     delayLongPress={500}>
-                    {icon ? (
-                      <>
-                        <Text style={styles.favoriteIcon}>{icon}</Text>
-                        <Text style={styles.favoriteCaptionWithIcon} numberOfLines={1}>
-                          {caption}
-                        </Text>
-                      </>
-                    ) : (
-                      <Text style={styles.favoriteText} numberOfLines={1}>
-                        {caption}
-                      </Text>
-                    )}
+                    {icon && <Text style={isMobile ? styles.favoriteIconMobile : styles.favoriteIcon}>{icon}</Text>}
+                    <Text style={icon ? styles.favoriteCaptionWithIcon : styles.favoriteText} numberOfLines={1}>
+                      {caption}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               );
@@ -196,7 +196,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
             {/* Add button */}
             <View style={styles.favoriteWrapper}>
               <TouchableOpacity
-                style={[styles.addButton, { height: height / 2 }]}
+                style={[styles.addButton, { height: addButtonHeight }]}
                 onPress={handleAddPress}
                 activeOpacity={0.7}>
                 <Text style={styles.addButtonText}>+</Text>
@@ -246,34 +246,42 @@ const styles = StyleSheet.create({
     maxWidth: 200,
     height: 60,
     paddingHorizontal: sizes.spacing.sm,
+    paddingVertical: sizes.spacing.xs,
     borderRadius: sizes.borderRadius.large,
     backgroundColor: colors.secondary,
+    flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
     boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.3)',
+  },
+  favoriteButtonMobile: {
+    flexDirection: 'row',
+    gap: sizes.spacing.xs,
+  },
+  favoriteButtonWithIcon: {
+    paddingVertical: sizes.spacing.xs,
+    paddingHorizontal: sizes.spacing.md,
   },
   selectedButton: {
     borderWidth: 4,
     borderColor: colors.primary,
   },
-  favoriteButtonWithIcon: {
-    flexDirection: 'column',
-    paddingVertical: sizes.spacing.xs,
-    paddingHorizontal: sizes.spacing.md,
-  },
   favoriteIcon: {
     fontSize: 32,
     marginBottom: 2,
   },
+  favoriteIconMobile: {
+    fontSize: 20,
+  },
   favoriteCaptionWithIcon: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
   },
   favoriteText: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
   },
   addButton: {

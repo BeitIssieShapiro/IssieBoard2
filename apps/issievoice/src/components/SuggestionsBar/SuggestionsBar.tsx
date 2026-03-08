@@ -49,6 +49,8 @@ const SuggestionsBar: React.FC<SuggestionsBarProps> = ({
   const isRTL = language === 'he';
   const { setText } = useText();
 
+  const isMobile = screenWidth < 600;
+
   // Calculate responsive button height and font size
   const buttonHeight = Math.max(30, height - 10); // Leave 10px for padding
 
@@ -57,7 +59,7 @@ const SuggestionsBar: React.FC<SuggestionsBarProps> = ({
   // At smaller widths: reduce font size proportionally
   const baseHeightFontSize = buttonHeight * 0.5; // Base size from height
   const widthScaleFactor = Math.min(1, screenWidth / 1000); // Scale down on smaller screens
-  const fontSize = Math.max(16, baseHeightFontSize * widthScaleFactor); // Minimum 16px
+  const fontSize = Math.max(18, baseHeightFontSize * widthScaleFactor); // Minimum 16px
 
   const handleSuggestionPress = (suggestion: string) => {
     // Strip quotes if the suggestion is wrapped in quotes (literal word)
@@ -109,7 +111,7 @@ const SuggestionsBar: React.FC<SuggestionsBarProps> = ({
             style={[styles.suggestionButton]}
             onPress={() => handleSuggestionPress(suggestion)}
             activeOpacity={0.7}>
-            <Text style={[styles.suggestionText, { fontSize }]} numberOfLines={1}>
+            <Text style={[styles.suggestionText, { fontSize:fontSize }, isMobile && {fontSize:fontSize*.8, lineHeight:12}]} numberOfLines={1}>
               {suggestion}
             </Text>
           </TouchableOpacity>
