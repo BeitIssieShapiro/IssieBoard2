@@ -18,11 +18,17 @@ interface TextDisplayAreaProps {
 
 const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1000 }) => {
   const { setText } = useText();
-  const { strings, isRTL } = useLocalization();
+  const { strings, isRTL, language } = useLocalization();
   const textInputRef = useRef<TextInput>(null);
 
   // Dynamically detect text direction based on content
-  const textDirection = useMemo(() => detectTextDirection(text), [text]);
+  // If text is empty, use the current language direction
+  const textDirection = useMemo(() => {
+    if (text.length === 0) {
+      return language === 'he' ? 'rtl' : 'ltr';
+    }
+    return detectTextDirection(text);
+  }, [text, language]);
   const isTextRTL = textDirection === 'rtl';
 
   // Calculate font size based on screen width (scales from 1000px reference)

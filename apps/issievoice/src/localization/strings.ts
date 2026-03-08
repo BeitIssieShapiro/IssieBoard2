@@ -41,6 +41,10 @@ export interface Strings {
   // General
   yes: string;
   no: string;
+
+  // Favorites toolbar
+  moveLeft: string;
+  moveRight: string;
 }
 
 export const en: Strings = {
@@ -48,7 +52,7 @@ export const en: Strings = {
   appTitle: 'IssieVoice',
 
   // Action Bar
-  speak: '🗣️ Speak',
+  speak: ' Speak',
   speaking: '🔊 Speaking...',
   clear: '🗑️ Clear',
   save: '💾 Save',
@@ -57,7 +61,7 @@ export const en: Strings = {
   switchToEnglish: '🔄 English',
 
   // Text Display Area
-  textPlaceholder: 'Start typing to compose your message...',
+  textPlaceholder: 'Type a message to speak...',
 
   // Browse Screen
   savedSentences: 'Saved Sentences',
@@ -86,6 +90,10 @@ export const en: Strings = {
   // General
   yes: 'Yes',
   no: 'No',
+
+  // Favorites toolbar
+  moveLeft: '← Move Left',
+  moveRight: 'Move Right →',
 };
 
 export const he: Strings = {
@@ -93,7 +101,7 @@ export const he: Strings = {
   appTitle: 'IssieVoice',
 
   // Action Bar
-  speak: '🗣️ הקראה',
+  speak: 'הקראה',
   speaking: '🔊 מקריא...',
   clear: '🗑️ נקה',
   save: '💾 שמור',
@@ -102,7 +110,7 @@ export const he: Strings = {
   switchToEnglish: '🔄 English',
 
   // Text Display Area
-  textPlaceholder: 'התחל להקליד כדי לכתוב את ההודעה שלך...',
+  textPlaceholder: 'הקלד הודעה להקראה...',
 
   // Browse Screen
   savedSentences: 'משפטים שמורים',
@@ -131,4 +139,8 @@ export const he: Strings = {
   // General
   yes: 'כן',
   no: 'לא',
+
+  // Favorites toolbar
+  moveLeft: 'הזז שמאלה ←',
+  moveRight: '→ הזז ימינה',
 };

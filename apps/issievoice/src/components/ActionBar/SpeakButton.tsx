@@ -32,7 +32,7 @@ export const IVButton: React.FC<IVButtonProps> = ({
       disabled={false}
       activeOpacity={0.7}>
       {icon && (
-        <Text style={styles.iconText}>{icon}</Text>
+        <Text style={[styles.iconText]}>{icon}</Text>
       )}
       <Text style={[styles.speakButtonText, icon && { fontSize: 24 }]}>
         {caption}
@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: 'bold',
     textAlign: 'center',
-    fontSize: 55,
+    fontSize: 60,
   },
   buttonDisabled: {
     opacity: 0.4,

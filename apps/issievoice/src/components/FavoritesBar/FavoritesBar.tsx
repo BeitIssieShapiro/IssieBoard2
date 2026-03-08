@@ -8,6 +8,7 @@ import {
 import { colors, sizes } from '../../constants';
 import FavoritesManager, { Favorite } from '../../services/FavoritesManager';
 import SavedSentencesManager, { SavedSentence } from '../../services/SavedSentencesManager';
+import { useLocalization } from '../../context/LocalizationContext';
 
 interface FavoritesBarProps {
   onFavoritePress: (text: string) => void;
@@ -21,6 +22,7 @@ interface FavoritesBarProps {
 const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, navigation, onEditModeChange, reloadTrigger, screenWidth = 1000 }) => {
   const [favorites, setFavorites] = useState<{ favorite: Favorite; sentence: SavedSentence }[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const { strings } = useLocalization();
 
   // Determine if we're on mobile (portrait mode with small width)
   const isMobile = screenWidth < 600;
@@ -148,13 +150,13 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
         {selectedId && (
           <View style={styles.toolbar}>
             <TouchableOpacity style={styles.toolbarButton} onPress={handleMoveLeft}>
-              <Text style={styles.toolbarButtonText}>← Move Left</Text>
+              <Text style={styles.toolbarButtonText}>{strings.moveLeft}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.toolbarButton} onPress={handleDelete}>
-              <Text style={[styles.toolbarButtonText, styles.deleteText]}>Delete</Text>
+              <Text style={[styles.toolbarButtonText, styles.deleteText]}>{strings.delete}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.toolbarButton} onPress={handleMoveRight}>
-              <Text style={styles.toolbarButtonText}>Move Right →</Text>
+              <Text style={styles.toolbarButtonText}>{strings.moveRight}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.closeButton} onPress={() => setSelectedId(null)}>
               <Text style={styles.closeButtonText}>✕</Text>
