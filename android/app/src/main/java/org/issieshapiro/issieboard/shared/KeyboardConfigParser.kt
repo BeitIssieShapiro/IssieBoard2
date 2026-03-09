@@ -19,9 +19,15 @@ object KeyboardConfigParser {
      */
     fun parse(jsonString: String): KeyboardConfig {
         val json = JSONObject(jsonString)
-        
+
+        // Debug: check if groups exist in JSON
+        val groupsArray = json.optJSONArray("groups")
+        android.util.Log.d("IssieBoard", "📦 ConfigParser: JSON has 'groups' key=${json.has("groups")}, array length=${groupsArray?.length() ?: 0}")
+
         return KeyboardConfig(
             backgroundColor = json.optString("backgroundColor", null),
+            keysBgColor = json.optString("keysBgColor", null),
+            textColor = json.optString("textColor", null),
             defaultKeyset = json.optString("defaultKeyset", null),
             keysets = parseKeysets(json.optJSONArray("keysets")),
             groups = parseGroups(json.optJSONArray("groups")),
@@ -31,7 +37,12 @@ object KeyboardConfigParser {
             allDiacritics = parseAllDiacritics(json.optJSONObject("allDiacritics")),
             diacriticsSettings = parseDiacriticsSettingsMap(json.optJSONObject("diacriticsSettings")),
             wordSuggestionsEnabled = if (json.has("wordSuggestionsEnabled")) json.optBoolean("wordSuggestionsEnabled") else null,
-            autoCorrectEnabled = if (json.has("autoCorrectEnabled")) json.optBoolean("autoCorrectEnabled") else null
+            autoCorrectEnabled = if (json.has("autoCorrectEnabled")) json.optBoolean("autoCorrectEnabled") else null,
+            fontName = json.optString("fontName", null),
+            keyHeight = if (json.has("keyHeight")) json.optInt("keyHeight") else null,
+            keyGap = if (json.has("keyGap")) json.optInt("keyGap") else null,
+            fontSize = if (json.has("fontSize")) json.optInt("fontSize") else null,
+            fontWeight = json.optString("fontWeight", null)
         )
     }
     
@@ -118,12 +129,25 @@ object KeyboardConfigParser {
     // MARK: - Groups Parsing
     
     private fun parseGroups(array: JSONArray?): List<Group>? {
-        if (array == null) return null
-        if (array.length() == 0) return emptyList()
-        
-        return (0 until array.length()).map { i ->
-            parseGroup(array.getJSONObject(i))
+        if (array == null) {
+            android.util.Log.d("IssieBoard", "📦 parseGroups: array is null")
+            return null
         }
+        if (array.length() == 0) {
+            android.util.Log.d("IssieBoard", "📦 parseGroups: array is empty")
+            return emptyList()
+        }
+
+        android.util.Log.d("IssieBoard", "📦 parseGroups: parsing ${array.length()} groups")
+
+        val groups = (0 until array.length()).map { i ->
+            val groupJson = array.getJSONObject(i)
+            android.util.Log.d("IssieBoard", "📦 parseGroups: group $i keys: ${groupJson.keys().asSequence().toList()}")
+            parseGroup(groupJson)
+        }
+
+        android.util.Log.d("IssieBoard", "📦 parseGroups: successfully parsed ${groups.size} groups")
+        return groups
     }
     
     private fun parseGroup(json: JSONObject): Group {

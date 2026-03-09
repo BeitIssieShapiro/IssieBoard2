@@ -32,6 +32,15 @@ class SystemTextDocumentProxy(
             return textAfter?.toString()
         }
 
+    override val hasText: Boolean
+        get() {
+            // Check if there's text before or after cursor, or selected text
+            val beforeText = documentContextBeforeInput
+            val afterText = documentContextAfterInput
+            val selectedText = inputConnection.getSelectedText(0)
+            return !beforeText.isNullOrEmpty() || !afterText.isNullOrEmpty() || !selectedText.isNullOrEmpty()
+        }
+
     override fun insertText(text: String) {
         inputConnection.commitText(text, 1)
     }

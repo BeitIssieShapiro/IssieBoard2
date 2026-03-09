@@ -141,8 +141,14 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
     // Convert styleGroups to the groups format expected by native renderer
     // Since members are already key values, we can use them directly
     // Only include active groups
+    console.log(`🎨 [InteractiveCanvas] Converting ${state.styleGroups.length} styleGroups to groups`);
+
     const groupConfigs = state.styleGroups
-      .filter(group => group.active !== false)
+      .filter(group => {
+        const isActive = group.active !== false;
+        console.log(`🎨 Group "${group.name}": active=${isActive}, members=${group.members?.length || 0}, bgColor=${group.style.bgColor}`);
+        return isActive;
+      })
       .map(group => ({
         name: group.name,
         items: group.members, // Already key values, no conversion needed
@@ -154,6 +160,11 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
           visibilityMode: group.style.visibilityMode,
         },
       }));
+
+    console.log(`🎨 [InteractiveCanvas] Created ${groupConfigs.length} group configs`);
+    if (groupConfigs.length > 0) {
+      console.log(`🎨 [InteractiveCanvas] Sample group:`, JSON.stringify(groupConfigs[0]));
+    }
 
     // Get settingsButtonEnabled setting (default to true)
     const settingsButtonEnabled = state.config.settingsButtonEnabled !== false;

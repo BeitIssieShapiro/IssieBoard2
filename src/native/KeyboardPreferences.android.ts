@@ -236,6 +236,20 @@ class KeyboardPreferences {
   async getAppGroupIdentifier(): Promise<string> {
     return 'SharedPreferences (issieboard_keyboard_prefs)';
   }
+
+  /**
+   * Add listener for launch keyboard language changes
+   * Triggered when app is opened from keyboard extension with a language parameter
+   * Returns a subscription object with a remove() method
+   *
+   * Note: Android doesn't have the same URL scheme deep linking as iOS yet,
+   * so this is a no-op for now but maintains API compatibility.
+   */
+  addLaunchKeyboardListener(callback: (language: string) => void): { remove: () => void } {
+    // TODO: Implement deep linking from keyboard to app on Android
+    console.log('📱 [KeyboardPreferences Android] addLaunchKeyboardListener called (not implemented yet)');
+    return { remove: () => {} };
+  }
 }
 
 export default new KeyboardPreferences();

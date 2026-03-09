@@ -328,6 +328,13 @@ data class ParsedKey(
             
             // Get group template if exists - check by value first, then by type for special keys
             val groupTemplate = groups[value] ?: if (value.isEmpty()) groups[keyType] else null
+
+            // Debug logging for group lookup
+            if (value.isNotEmpty() && value.length <= 3) {  // Only log for normal characters
+                val hasGroup = groupTemplate != null
+                val groupBgColor = groupTemplate?.bgColor
+                android.util.Log.d("IssieBoard", "🔑 Key '$value': hasGroup=$hasGroup, groupBgColor=$groupBgColor, keyBgColor=${key.bgColor}")
+            }
             
             // Resolve width
             val width = key.width ?: groupTemplate?.width ?: 1.0

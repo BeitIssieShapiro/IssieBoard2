@@ -23,6 +23,11 @@ interface TextDocumentProxyProtocol {
     val documentContextAfterInput: String?
 
     /**
+     * Whether there is text in the document or a text selection
+     */
+    val hasText: Boolean
+
+    /**
      * Insert text at cursor position
      */
     fun insertText(text: String)

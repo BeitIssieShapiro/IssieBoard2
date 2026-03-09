@@ -324,9 +324,8 @@ const getKeyboardConfigKey = (language: LanguageId, appContext: AppContext = 'is
  */
 const saveKeyboardConfig = async (config: any, language: LanguageId, appContext: AppContext = 'issieboard'): Promise<void> => {
   const configJSON = JSON.stringify(config);
-  const configKey = getKeyboardConfigKey(language, appContext);
 
-  console.log(`📱 saveKeyboardConfig: key=${configKey}`);
+  console.log(`📱 saveKeyboardConfig: language=${language}, appContext=${appContext}`);
   console.log(`📱 Config properties:`, {
     fontSize: config.fontSize,
     fontWeight: config.fontWeight,
@@ -338,16 +337,26 @@ const saveKeyboardConfig = async (config: any, language: LanguageId, appContext:
     groups: config.groups,
   });
 
-  // Use setKeyboardConfigForLanguage which calls setString (no profile_ prefix)
-  // This ensures the keyboard extension can read it from keyboardConfig_<lang>
-  const { NativeModules } = require('react-native');
-  const { KeyboardPreferencesModule } = NativeModules;
+  // Debug: log first group if exists
+  if (config.groups && config.groups.length > 0) {
+    console.log(`📱 First group sample:`, {
+      items: config.groups[0].items?.slice(0, 5),
+      template: config.groups[0].template
+    });
+  }
 
-  if (KeyboardPreferencesModule?.setString) {
-    await KeyboardPreferencesModule.setString(configJSON, configKey);
-    console.log(`✅ Saved keyboard config to ${configKey} using setString, length: ${configJSON.length}`);
+  // Determine the correct key for storage
+  // IssieBoard: keyboardConfig_<lang> (e.g., keyboardConfig_he)
+  // IssieVoice: keyboardConfig_issievoice_<lang> (e.g., keyboardConfig_issievoice_he)
+  const keyboardId = appContext === 'issieboard' ? language : `${appContext}_${language}`;
+
+  // Use platform-agnostic KeyboardPreferences API
+  const result = await KeyboardPreferences.setKeyboardConfigForLanguage(configJSON, keyboardId);
+
+  if (result.success) {
+    console.log(`✅ Saved keyboard config to keyboardConfig_${keyboardId}, length: ${configJSON.length}`);
   } else {
-    console.error(`❌ KeyboardPreferencesModule.setString not available`);
+    console.error(`❌ Failed to save keyboard config`, result.error);
   }
 };
 
@@ -704,6 +713,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
             id: `builtin_${templateId}_${index}`,
             createdAt,
           }));
+
           const config = buildConfiguration(profileDef);
           setConfig(config, styleGroups);
           setCurrentProfileName(template.name);

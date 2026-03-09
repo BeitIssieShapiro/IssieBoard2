@@ -51,6 +51,12 @@ class CustomTextDocumentProxy : TextDocumentProxyProtocol {
             return null
         }
 
+    override val hasText: Boolean
+        get() {
+            val text = getCurrentText?.invoke()
+            return !text.isNullOrEmpty()
+        }
+
     override fun insertText(text: String) {
         Log.d(TAG, "insertText: '$text'")
         onInsertText?.invoke(text)

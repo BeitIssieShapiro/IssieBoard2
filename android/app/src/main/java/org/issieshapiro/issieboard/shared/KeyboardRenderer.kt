@@ -554,11 +554,15 @@ class KeyboardRenderer(private val context: Context) {
     private fun buildGroupsMap(groups: List<Group>): Pair<Map<String, GroupTemplate>, Set<String>?> {
         val groupsMap = mutableMapOf<String, GroupTemplate>()
         var showOnlyKeys: Set<String>? = null
-        
-        for (group in groups) {
+
+        debugLog("🎨 Building groups map from ${groups.size} groups")
+
+        for ((index, group) in groups.withIndex()) {
+            debugLog("🎨 Group $index: items=${group.items.take(5)}${if (group.items.size > 5) "..." else ""}, bgColor=${group.template.bgColor}, color=${group.template.color}")
+
             // Check if this group has "showOnly" visibility mode
             val visMode = group.template.effectiveVisibilityMode
-            
+
             if (visMode == VisibilityMode.SHOW_ONLY) {
                 // Collect keys that should be visible
                 if (showOnlyKeys == null) {
@@ -568,13 +572,15 @@ class KeyboardRenderer(private val context: Context) {
                     (showOnlyKeys as MutableSet).add(item)
                 }
             }
-            
+
             // Store template for all items (for colors, etc.)
             for (item in group.items) {
                 groupsMap[item] = group.template
             }
         }
-        
+
+        debugLog("🎨 Groups map built with ${groupsMap.size} items")
+
         return Pair(groupsMap, showOnlyKeys)
     }
     

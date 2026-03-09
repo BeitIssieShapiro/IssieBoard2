@@ -1,3 +1,9 @@
+Android Bugs:
+- in mobile font wight options go out of screen
+- trying to edit fontSize/keyHeight - a kb is shown hiding
+- 
+
+
 2-March
 ------
 V- make height percent from screen
