@@ -1,11 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  TextInput,
 } from 'react-native';
 import { useEditor } from '../../context/EditorContext';
 import { CompactColorPicker } from '../shared/CompactColorPicker';
@@ -21,7 +20,6 @@ export interface FontOption {
   id: string;
   label: string;
   fontFamily?: string;
-  fontSize?: number;
 }
 
 export interface GlobalSettingsPanelProps {
@@ -56,7 +54,6 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
     updateWordSuggestions,
     updateAutoCorrect,
     updateFontName,
-    updateFontSize,
     updateFontWeight,
     updateKeyGap,
     updateSettingsButton,
@@ -69,39 +66,36 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
   const wordSuggestionsEnabled = state.config.wordSuggestionsEnabled !== false;
   const autoCorrectEnabled = state.config.autoCorrectEnabled === true;
   const currentFontName = state.config.fontName;
-  const currentFontSize = state.config.fontSize;
+  const currentFontSizePreset = state.config.fontSizePreset || 'normal';
+  const currentHeightPreset = state.config.heightPreset || 'normal';
   const currentFontWeight = state.config.fontWeight || 'heavy'; // Default to heavy
-  const currentKeyHeight = state.config.keyHeight;
   const currentKeyGap = state.config.keyGap || 3;
   const settingsButtonEnabled = state.config.settingsButtonEnabled !== false;
 
-  // Local state for advanced settings (before committing)
-  const [localKeyHeight, setLocalKeyHeight] = useState<string>('');
-  const [localFontSize, setLocalFontSize] = useState<string>('');
+  // Font size presets
+  const fontSizePresetOptions = [
+    { id: 'xs', label: 'XS' },
+    { id: 'small', label: 'S' },
+    { id: 'normal', label: 'M' },
+    { id: 'large', label: 'L' },
+    { id: 'xl', label: 'XL' },
+  ];
 
-  // Debounce timers
-  const keyHeightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const fontSizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Track if we've initialized (to prevent resetting while user is typing)
-  const initializedRef = useRef(false);
-
-  // Initialize local state from config only once
-  useEffect(() => {
-    if (!initializedRef.current) {
-      setLocalKeyHeight(currentKeyHeight?.toString() || '');
-      setLocalFontSize(currentFontSize?.toString() || '');
-      initializedRef.current = true;
-    }
-  }, [currentKeyHeight, currentFontSize]);
+  // Height presets
+  const heightPresetOptions = [
+    { id: 'compact', label: 'Compact' },
+    { id: 'normal', label: 'Normal' },
+    { id: 'tall', label: 'Tall' },
+    { id: 'x-tall', label: 'X-Tall' },
+  ];
 
   // Check if current keyboard is Hebrew (matches 'he', 'he_ordered', etc.)
   const isHebrewKeyboard = currentKeyboardId?.startsWith('he') || false;
 
   // Font options for Hebrew keyboard
   const hebrewFontOptions: FontOption[] = [
-    { id: 'system', label: 'אבג', fontFamily: undefined, fontSize: undefined },
-    { id: 'yad', label: 'אבג', fontFamily: 'GveretLevinAlefAlefAlef-Regular', fontSize: 38 },
+    { id: 'system', label: 'אבג', fontFamily: undefined },
+    { id: 'yad', label: 'אבג', fontFamily: 'GveretLevinAlefAlefAlef-Regular' },
   ];
 
   // Key gap options
@@ -139,8 +133,8 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
     dispatch({ type: 'MARK_DIRTY' });
   };
 
-  const updateKeyHeight = (height: number | undefined) => {
-    const updatedConfig = { ...state.config, keyHeight: height };
+  const updateHeightPreset = (preset: string) => {
+    const updatedConfig = { ...state.config, heightPreset: preset as 'compact' | 'normal' | 'tall' | 'x-tall' };
     dispatch({
       type: 'SET_CONFIG',
       payload: { config: updatedConfig, styleGroups: state.styleGroups },
@@ -148,57 +142,14 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
     dispatch({ type: 'MARK_DIRTY' });
   };
 
-  // Debounced key height update
-  const handleKeyHeightChange = (text: string) => {
-    setLocalKeyHeight(text);
-
-    // Clear existing timer
-    if (keyHeightTimerRef.current) {
-      clearTimeout(keyHeightTimerRef.current);
-    }
-
-    // Set new timer to commit after 1 second
-    keyHeightTimerRef.current = setTimeout(() => {
-      const num = parseInt(text, 10);
-      if (text === '' || text === '0') {
-        updateKeyHeight(undefined);
-      } else if (!isNaN(num) && num >= 10 && num <= 180) {
-        updateKeyHeight(num);
-      }
-    }, 1000);
+  const updateFontSizePreset = (preset: string) => {
+    const updatedConfig = { ...state.config, fontSizePreset: preset as 'xs' | 'small' | 'normal' | 'large' | 'xl' };
+    dispatch({
+      type: 'SET_CONFIG',
+      payload: { config: updatedConfig, styleGroups: state.styleGroups },
+    });
+    dispatch({ type: 'MARK_DIRTY' });
   };
-
-  // Debounced font size update
-  const handleFontSizeChange = (text: string) => {
-    setLocalFontSize(text);
-
-    // Clear existing timer
-    if (fontSizeTimerRef.current) {
-      clearTimeout(fontSizeTimerRef.current);
-    }
-
-    // Set new timer to commit after 1 second
-    fontSizeTimerRef.current = setTimeout(() => {
-      const num = parseInt(text, 10);
-      if (text === '' || text === '0') {
-        updateFontSize(undefined);
-      } else if (!isNaN(num) && num >= 10 && num <= 100) {
-        updateFontSize(num);
-      }
-    }, 1000);
-  };
-
-  // Cleanup timers on unmount
-  useEffect(() => {
-    return () => {
-      if (keyHeightTimerRef.current) {
-        clearTimeout(keyHeightTimerRef.current);
-      }
-      if (fontSizeTimerRef.current) {
-        clearTimeout(fontSizeTimerRef.current);
-      }
-    };
-  }, []);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -262,13 +213,6 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
           onSelect={(id) => {
             const option = hebrewFontOptions.find(o => o.id === id);
             updateFontName(option?.fontFamily);
-            // Update fontSize if defined in the font option
-            if (option?.fontSize !== undefined) {
-              updateFontSize(option.fontSize);
-            } else {
-              // Clear fontSize to use default when switching to system font
-              updateFontSize(undefined);
-            }
           }}
         />
       )}
@@ -388,39 +332,33 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
 
         {advancedExpanded && (
           <View style={styles.advancedContent}>
-            {/* Key Height */}
-            <View style={styles.advancedRow}>
-              <View style={styles.advancedInfo}>
-                <Text allowFontScaling={false} style={styles.advancedLabel}>Key Height</Text>
-                <Text allowFontScaling={false} style={styles.advancedDescription}>
-                  Height of keys in points (10-180, default: auto)
-                </Text>
-              </View>
-              <TextInput
-                style={styles.numberInput}
-                value={localKeyHeight}
-                placeholder="Auto"
-                placeholderTextColor="#999"
-                keyboardType="numeric"
-                onChangeText={handleKeyHeightChange}
+            {/* Height Preset */}
+            <View style={styles.section}>
+              <ButtonGroupRow
+                title="Keyboard Height"
+                options={heightPresetOptions.map(opt => ({
+                  id: opt.id,
+                  label: opt.label,
+                }))}
+                selectedId={currentHeightPreset}
+                onSelect={(id) => {
+                  updateHeightPreset(id);
+                }}
               />
             </View>
 
-            {/* Font Size */}
-            <View style={styles.advancedRow}>
-              <View style={styles.advancedInfo}>
-                <Text allowFontScaling={false} style={styles.advancedLabel}>Font Size</Text>
-                <Text allowFontScaling={false} style={styles.advancedDescription}>
-                  Text size in points (10-100, default: auto)
-                </Text>
-              </View>
-              <TextInput
-                style={styles.numberInput}
-                value={localFontSize}
-                placeholder="Auto"
-                placeholderTextColor="#999"
-                keyboardType="numeric"
-                onChangeText={handleFontSizeChange}
+            {/* Font Size Preset */}
+            <View style={styles.section}>
+              <ButtonGroupRow
+                title="Font Size"
+                options={fontSizePresetOptions.map(opt => ({
+                  id: opt.id,
+                  label: opt.label,
+                }))}
+                selectedId={currentFontSizePreset}
+                onSelect={(id) => {
+                  updateFontSizePreset(id);
+                }}
               />
             </View>
 
@@ -560,18 +498,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     marginTop: 4,
-  },
-  numberInput: {
-    width: 80,
-    height: 40,
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 8,
-    backgroundColor: '#FFF',
-    paddingHorizontal: 12,
-    fontSize: 15,
-    textAlign: 'center',
-    color: '#333',
   },
 });
 

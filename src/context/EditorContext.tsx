@@ -83,7 +83,8 @@ type EditorAction =
   | { type: 'UPDATE_WORD_SUGGESTIONS'; payload: boolean }
   | { type: 'UPDATE_AUTO_CORRECT'; payload: boolean }
   | { type: 'UPDATE_FONT_NAME'; payload: string | undefined }
-  | { type: 'UPDATE_FONT_SIZE'; payload: number | undefined }
+  | { type: 'UPDATE_FONT_SIZE_PRESET'; payload: 'xs' | 'small' | 'normal' | 'large' | 'xl' | undefined }
+  | { type: 'UPDATE_HEIGHT_PRESET'; payload: 'compact' | 'normal' | 'tall' | 'x-tall' | undefined }
   | { type: 'UPDATE_FONT_WEIGHT'; payload: 'ultraLight' | 'thin' | 'light' | 'regular' | 'medium' | 'semibold' | 'bold' | 'heavy' | 'black' | undefined }
   | { type: 'UPDATE_KEY_GAP'; payload: number | undefined }
   | { type: 'UPDATE_SETTINGS_BUTTON'; payload: boolean }
@@ -431,10 +432,18 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       };
     }
 
-    case 'UPDATE_FONT_SIZE': {
+    case 'UPDATE_FONT_SIZE_PRESET': {
       return {
         ...state,
-        config: { ...state.config, fontSize: action.payload },
+        config: { ...state.config, fontSizePreset: action.payload },
+        isDirty: true,
+      };
+    }
+
+    case 'UPDATE_HEIGHT_PRESET': {
+      return {
+        ...state,
+        config: { ...state.config, heightPreset: action.payload },
         isDirty: true,
       };
     }
@@ -493,8 +502,8 @@ const createInitialState = (
     keyboards: [],
     defaultKeyboard: 'en',
     fontWeight: 'heavy', // Default to heavy font weight
-    fontSize: 48,
-    // fontSize not set - will use native default (48)
+    fontSizePreset: 'normal',
+    heightPreset: 'normal',
   },
   styleGroups: styleGroups || [],
   isDirty: false,
@@ -561,7 +570,8 @@ interface EditorContextValue {
   updateWordSuggestions: (enabled: boolean) => void;
   updateAutoCorrect: (enabled: boolean) => void;
   updateFontName: (fontName: string | undefined) => void;
-  updateFontSize: (fontSize: number | undefined) => void;
+  updateFontSizePreset: (preset: 'xs' | 'small' | 'normal' | 'large' | 'xl' | undefined) => void;
+  updateHeightPreset: (preset: 'compact' | 'normal' | 'tall' | 'x-tall' | undefined) => void;
   updateFontWeight: (fontWeight: 'ultraLight' | 'thin' | 'light' | 'regular' | 'medium' | 'semibold' | 'bold' | 'heavy' | 'black' | undefined) => void;
   updateKeyGap: (keyGap: number | undefined) => void;
   updateSettingsButton: (enabled: boolean) => void;
@@ -683,8 +693,12 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
     dispatch({ type: 'UPDATE_FONT_NAME', payload: fontName });
   }, []);
 
-  const updateFontSize = useCallback((fontSize: number | undefined) => {
-    dispatch({ type: 'UPDATE_FONT_SIZE', payload: fontSize });
+  const updateFontSizePreset = useCallback((preset: 'xs' | 'small' | 'normal' | 'large' | 'xl' | undefined) => {
+    dispatch({ type: 'UPDATE_FONT_SIZE_PRESET', payload: preset });
+  }, []);
+
+  const updateHeightPreset = useCallback((preset: 'compact' | 'normal' | 'tall' | 'x-tall' | undefined) => {
+    dispatch({ type: 'UPDATE_HEIGHT_PRESET', payload: preset });
   }, []);
 
   const updateFontWeight = useCallback((fontWeight: 'ultraLight' | 'thin' | 'light' | 'regular' | 'medium' | 'semibold' | 'bold' | 'heavy' | 'black' | undefined) => {
@@ -729,7 +743,8 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
     updateWordSuggestions,
     updateAutoCorrect,
     updateFontName,
-    updateFontSize,
+    updateFontSizePreset,
+    updateHeightPreset,
     updateFontWeight,
     updateKeyGap,
     updateSettingsButton,

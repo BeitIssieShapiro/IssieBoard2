@@ -44,6 +44,9 @@ class KeyboardPreviewView: UIView {
     // Event callback for height changes
     @objc var onHeightChange: RCTBubblingEventBlock?
 
+    // Maximum height for preview scaling
+    private var previewMaxHeight: CGFloat?
+
     // Synced text that mirrors React Native state (single source of truth proxy)
     private var syncedText: String = ""
 
@@ -63,6 +66,7 @@ class KeyboardPreviewView: UIView {
         super.init(frame: frame)
 
         backgroundColor = UIColor(red: 0.82, green: 0.82, blue: 0.82, alpha: 1.0)
+        clipsToBounds = false  // Allow touches to scaled content outside bounds
 
         debugLog("📱 KeyboardPreviewView initialized (mode will be determined when text prop is set)")
     }
@@ -138,6 +142,19 @@ class KeyboardPreviewView: UIView {
             // Let KeyboardEngine's shared logic handle it
             print("📝 setText: External change - calling handleTextChanged()")
             keyboardEngine?.handleTextChanged()
+        }
+    }
+
+    @objc func setMaxHeight(_ maxHeight: NSNumber?) {
+        if let height = maxHeight?.doubleValue {
+            previewMaxHeight = CGFloat(height)
+            // Update renderer with new max height
+            renderer?.setPreviewMode(maxHeight: previewMaxHeight)
+            // Re-render with new scale
+            renderKeyboard()
+        } else {
+            previewMaxHeight = nil
+            renderer?.setPreviewMode(maxHeight: nil)
         }
     }
 
@@ -342,7 +359,13 @@ class KeyboardPreviewView: UIView {
 
         // Configure for input mode
         renderer.setShowGlobeButton(false)
-        renderer.setPreviewMode(true)
+
+        // Set preview mode with maxHeight if available
+        if let maxHeight = previewMaxHeight {
+            renderer.setPreviewMode(maxHeight: maxHeight)
+        } else {
+            renderer.setPreviewMode(true)
+        }
 
         // Configure suggestions
         engine.suggestionController.setEnabled(config.isWordSuggestionsEnabled)
@@ -412,7 +435,14 @@ class KeyboardPreviewView: UIView {
         guard let renderer = configModeRenderer else { return }
 
         renderer.setShowGlobeButton(false)
-        renderer.setPreviewMode(true)
+
+        // Set preview mode with maxHeight if available
+        if let maxHeight = previewMaxHeight {
+            renderer.setPreviewMode(maxHeight: maxHeight)
+        } else {
+            renderer.setPreviewMode(true)
+        }
+
         renderer.setSelectedKeys(selectedKeyIds)
 
         let currentKeysetId = renderer.currentKeysetId.isEmpty ? (config.defaultKeyset ?? "abc") : renderer.currentKeysetId

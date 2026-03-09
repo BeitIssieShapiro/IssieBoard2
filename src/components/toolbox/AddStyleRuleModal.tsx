@@ -7,6 +7,7 @@ import {
   TextInput,
   ScrollView,
   Animated,
+  useWindowDimensions,
 } from 'react-native';
 import { useEditor } from '../../context/EditorContext';
 import { StyleGroup, KeyStyleOverride, KeyboardConfig, VisibilityMode } from '../../../types';
@@ -289,26 +290,22 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
       }
     }
 
-    // Scale fontSize proportionally to keyHeight reduction
-    const modalKeyHeight = 48;
-    const originalKeyHeight = state.config.keyHeight || 90;
-    const scaleFactor = modalKeyHeight / originalKeyHeight;
-    const scaledFontSize = Math.round((state.config.fontSize || 48) * scaleFactor);
-
     return {
       ...state.config,
       groups, // Only the current group being edited, not other groups
       wordSuggestionsEnabled: false, // Disable word suggestions in modal preview
-      keyHeight: modalKeyHeight, // Smaller key height for modal preview to fit without scaling
-      fontSize: scaledFontSize, // Scale fontSize proportionally (e.g., 48 * (48/90) ≈ 26)
       keyGap: 0, // Remove gaps between keys in modal preview to prevent overflow
     };
   }, [state.config, selectedKeyValues, bgColor, textColor, visibilityMode]);
 
   const previewConfigJson = useMemo(() => JSON.stringify(previewConfig), [previewConfig]);
 
-  // Simple fixed height for modal preview
-  const modalPreviewHeight = 200;
+  // Get window dimensions to detect orientation
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const isPortrait = windowHeight > windowWidth;
+
+  // Modal preview height - 1.5x taller in portrait for better visibility
+  const modalPreviewHeight = isPortrait ? 300 : 200;
 
   // Build selected keys JSON for highlighting in the preview
   const selectedKeysJson = useMemo(() => {
@@ -402,6 +399,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
                   style={{ height: modalPreviewHeight }}
                   configJson={previewConfigJson}
                   selectedKeys={selectedKeysJson}
+                  maxHeight={modalPreviewHeight}
                   onKeyPress={handleKeyPress}
                 />
               </View>

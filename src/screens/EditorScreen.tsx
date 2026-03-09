@@ -186,10 +186,10 @@ const extractProfileDefinition = (
     wordSuggestionsEnabled: config.wordSuggestionsEnabled,
     autoCorrectEnabled: config.autoCorrectEnabled,
     fontName: config.fontName,
-    fontSize: config.fontSize,
+    fontSizePreset: config.fontSizePreset,
     fontWeight: config.fontWeight,
     keyGap: config.keyGap,
-    keyHeight: config.keyHeight,
+    heightPreset: config.heightPreset,
     settingsButtonEnabled: config.settingsButtonEnabled,
   };
 };
@@ -239,10 +239,10 @@ const buildConfiguration = (profile: SavedProfileDefinition): KeyboardConfig => 
     wordSuggestionsEnabled: profile.wordSuggestionsEnabled,
     autoCorrectEnabled: profile.autoCorrectEnabled,
     fontName: profile.fontName,
-    fontSize: profile.fontSize,
+    fontSizePreset: profile.fontSizePreset,
     fontWeight: profile.fontWeight,
     keyGap: profile.keyGap,
-    keyHeight: profile.keyHeight && profile.keyHeight > 0 ? profile.keyHeight : undefined, // Ensure valid keyHeight or undefined for auto
+    heightPreset: profile.heightPreset,
     settingsButtonEnabled: profile.settingsButtonEnabled,
   } as KeyboardConfig;
 
@@ -327,7 +327,7 @@ const saveKeyboardConfig = async (config: any, language: LanguageId, appContext:
 
   console.log(`📱 saveKeyboardConfig: language=${language}, appContext=${appContext}`);
   console.log(`📱 Config properties:`, {
-    fontSize: config.fontSize,
+    fontSizePreset: config.fontSizePreset,
     fontWeight: config.fontWeight,
     backgroundColor: config.backgroundColor,
     keysBgColor: config.keysBgColor,
@@ -922,10 +922,10 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       wordSuggestionsEnabled: state.config.wordSuggestionsEnabled,
       autoCorrectEnabled: state.config.autoCorrectEnabled,
       fontName: state.config.fontName,
-      fontSize: state.config.fontSize,
+      fontSizePreset: state.config.fontSizePreset,
       fontWeight: state.config.fontWeight,
       keyGap: state.config.keyGap,
-      keyHeight: state.config.keyHeight,
+      heightPreset: state.config.heightPreset,
       keysBgColor: (state.config as any).keysBgColor,
       textColor: (state.config as any).textColor,
       settingsButtonEnabled: state.config.settingsButtonEnabled,

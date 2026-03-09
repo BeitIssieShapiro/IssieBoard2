@@ -162,10 +162,10 @@ export interface ProfileDefinition {
     systemRow?: SystemRowConfig;
     groups?: GroupConfig[];
     diacritics?: Record<string, DiacriticsSettings>;  // Per-keyboard diacritics settings
-    heightPreset?: 'compact' | 'normal' | 'tall' | 'x-tall';  // Keyboard height preset
+    heightPreset?: 'compact' | 'normal' | 'tall' | 'x-tall';  // Keyboard height preset (default: 'normal')
     keyGap?: number;  // Gap between keys in points (default: 3)
     fontWeight?: 'ultraLight' | 'thin' | 'light' | 'regular' | 'medium' | 'semibold' | 'bold' | 'heavy' | 'black';
-    fontSize?: number;  // Font size for keys (default: 24). Adjust per font as needed (e.g., 32 for Yad font)
+    fontSizePreset?: 'xs' | 'small' | 'normal' | 'large' | 'xl';  // Font size preset (default: 'normal')
 }
 
 // Keyboard definition (as stored in keyboard JSON files)
@@ -190,7 +190,7 @@ export interface KeyboardConfig {
     wordSuggestionsEnabled?: boolean;  // Whether word suggestions bar is shown (default: true)
     autoCorrectEnabled?: boolean;  // Whether auto-correct replaces typed word with suggestion on space (default: true)
     fontName?: string;  // Custom font name to use for character keys (e.g., 'DanaYadAlefAlefAlef-Normal'). If not set, system font is used.
-    fontSize?: number;  // Global font size for all keys (default: 24). Individual keys can override this. Use different values per font as needed.
+    fontSizePreset?: 'xs' | 'small' | 'normal' | 'large' | 'xl';  // Font size preset (default: 'normal'). Automatically scales to device.
     heightPreset?: 'compact' | 'normal' | 'tall' | 'x-tall';  // Keyboard height preset (default: 'normal'). Automatically adapts to device and orientation.
     keyGap?: number;  // Gap between keys in points (default: 3)
     fontWeight?: 'ultraLight' | 'thin' | 'light' | 'regular' | 'medium' | 'semibold' | 'bold' | 'heavy' | 'black';  // Font weight (default: 'regular')

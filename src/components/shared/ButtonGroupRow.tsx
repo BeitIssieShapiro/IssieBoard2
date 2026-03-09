@@ -83,14 +83,15 @@ const styles = StyleSheet.create({
     padding: 4,
     gap: 4,
     alignSelf: 'flex-start',
+    flexWrap: 'wrap', // Allow buttons to wrap to next line if needed
   },
   button: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,  // Reduced from 16
     paddingVertical: 8,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 80,
+    minWidth: 60,  // Reduced from 80 to fit more buttons
   },
   buttonActive: {
     backgroundColor: '#3B82F6',

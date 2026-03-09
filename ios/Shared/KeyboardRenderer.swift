@@ -1,6 +1,38 @@
 import UIKit
 
 /**
+ * Custom container view that properly handles hit testing with transforms
+ * When scaled down, the view's bounds are larger than the visible content
+ * We need to ensure touches pass through to the transformed subviews
+ */
+private class TransformAwareContainerView: UIView {
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        // If hidden or transparent, don't handle touches
+        guard !isHidden && alpha > 0.01 else {
+            return nil
+        }
+
+        // Check if point is in bounds (untransformed coordinate space)
+        guard bounds.contains(point) else {
+            print("🔍 Hit test: point \(point) outside bounds \(bounds)")
+            return nil
+        }
+
+        // Test subviews - they will handle their own hit testing with the transform
+        for subview in subviews.reversed() {
+            let convertedPoint = subview.convert(point, from: self)
+            if let hitView = subview.hitTest(convertedPoint, with: event) {
+                print("🔍 Hit test: found view at \(point) -> \(type(of: hitView))")
+                return hitView
+            }
+        }
+
+        print("🔍 Hit test: no subview hit at \(point)")
+        return nil
+    }
+}
+
+/**
  * Self-contained keyboard renderer that manages all keyboard logic internally.
  * Used for both the in-app preview and the actual keyboard extension.
  * Container only needs to provide the view and listen to final key output.
@@ -140,32 +172,92 @@ class KeyboardRenderer {
         // Use available height (safe area) instead of full screen height
         let screenHeight = availableHeight
 
+        print("📐 [rowHeight] screenBounds: \(screenBounds), safeAreaInsets: \(safeAreaInsets), screenHeight: \(screenHeight), preset: \(preset)")
+
+        // Get font size preset from config (defaults to .normal)
+        let fontPreset: FontSizePreset
+        if let presetString = config?.fontSizePreset {
+            fontPreset = FontSizePreset(rawValue: presetString) ?? .normal
+        } else {
+            fontPreset = .normal
+        }
+
         // Create dimensions calculator
         let dimensions = KeyboardDimensions(
             screenWidth: container.bounds.width,
             screenHeight: screenHeight,
             deviceType: .current,
-            heightPreset: preset
+            heightPreset: preset,
+            fontSizePreset: fontPreset
         )
 
         // Calculate row height (4 rows, with or without suggestions)
         // Check if suggestions are enabled (considering both config and override)
         let hasSuggestions = wordSuggestionsOverrideEnabled ?? wordSuggestionsEnabled
-        return dimensions.calculateRowHeight(numberOfRows: 4, hasSuggestions: hasSuggestions)
+        let calculatedRowHeight = dimensions.calculateRowHeight(numberOfRows: 4, hasSuggestions: hasSuggestions)
+
+        print("📐 [rowHeight] calculated: \(calculatedRowHeight)")
+
+        return calculatedRowHeight
     }
     private let keySpacing: CGFloat = 0       // No spacing between key tap areas
     private let keyInternalPadding: CGFloat = 3  // Visual gap between keys (internal margin)
-    private let rowSpacing: CGFloat = 0       // No spacing between row tap areas (visual gap from keyInternalPadding)
     private let keyVerticalPadding: CGFloat = 5  // Vertical padding for visual gap between rows (2px more than horizontal)
     private let keyCornerRadius: CGFloat = 5
     private let fontSize: CGFloat = 24
     private let largeFontSize: CGFloat = 28
     private let suggestionsBarHeight: CGFloat = 32  // Reduced by 20% from 40
     private let suggestionsFontSize: CGFloat = 26  // Larger than key font (24) for better readability
+
+    // Use the same rowSpacing as KeyboardHeightConstants for consistency
+    private var rowSpacing: CGFloat {
+        return KeyboardHeightConstants.rowSpacing
+    }
     
     // Suggestions bar view reference for updates
     private weak var suggestionsBar: UIView?
-    
+
+    // MARK: - Preview Mode Scaling
+
+    /// Maximum height for preview mode (if set, keyboard will scale to fit)
+    private var previewMaxHeight: CGFloat?
+
+    /// Current scale factor (1.0 = full size, 0.8 = 80%, etc.)
+    private var currentScale: CGFloat = 1.0
+
+    // MARK: - Scaled Dimensions (for preview mode)
+
+    /// Effective scale for dimensions (1.0 when using transform scaling)
+    private var effectiveDimensionScale: CGFloat {
+        let useTransformScaling = isPreviewMode && currentScale < 1.0
+        return useTransformScaling ? 1.0 : currentScale
+    }
+
+    /// Scaled row height
+    private var scaledRowHeight: CGFloat {
+        return rowHeight * effectiveDimensionScale
+    }
+
+    /// Scaled key gap
+    private var scaledKeyGap: CGFloat {
+        return keyInternalPadding * effectiveDimensionScale
+    }
+
+    /// Scaled corner radius
+    private var scaledCornerRadius: CGFloat {
+        return keyCornerRadius * effectiveDimensionScale
+    }
+
+    /// Scaled suggestions bar height
+    private var scaledSuggestionsBarHeight: CGFloat {
+        return suggestionsBarHeight * effectiveDimensionScale
+    }
+
+    /// Scaled key vertical padding
+    private var scaledKeyVerticalPadding: CGFloat {
+        return keyVerticalPadding * effectiveDimensionScale
+    }
+
     // MARK: - Modular Helper Classes
     
     /// Handles long-press backspace logic
@@ -288,17 +380,49 @@ class KeyboardRenderer {
         guard let keyset = config.keysets.first(where: { $0.id == keysetId }) else {
             return 216  // Default iOS keyboard height
         }
-        
+
+        guard let container = container else {
+            return 216  // Fallback if no container
+        }
+
+        // Calculate row height using the passed config (not self.config)
+        let preset = KeyboardHeightPreset(rawValue: config.heightPreset ?? "normal") ?? .normal
+        let fontPreset = FontSizePreset(rawValue: config.fontSizePreset ?? "normal") ?? .normal
+
+        // Get screen dimensions
+        let screenBounds: CGRect
+        if let windowScene = container.window?.windowScene {
+            screenBounds = windowScene.screen.bounds
+        } else {
+            screenBounds = UIScreen.main.bounds
+        }
+
+        let safeAreaInsets = container.window?.safeAreaInsets ?? .zero
+        let availableHeight = screenBounds.height - safeAreaInsets.top - safeAreaInsets.bottom
+
+        // Create dimensions calculator with the passed config's presets
+        let dimensions = KeyboardDimensions(
+            screenWidth: container.bounds.width,
+            screenHeight: availableHeight,
+            deviceType: .current,
+            heightPreset: preset,
+            fontSizePreset: fontPreset
+        )
+
         let numberOfRows = keyset.rows.count
-        let rowsHeight = CGFloat(numberOfRows) * rowHeight
+        let calculatedRowHeight = dimensions.calculateRowHeight(numberOfRows: numberOfRows, hasSuggestions: suggestionsEnabled)
+
+        let rowsHeight = CGFloat(numberOfRows) * calculatedRowHeight
         let spacingHeight = CGFloat(max(0, numberOfRows - 1)) * rowSpacing
-        // Only include suggestions height if suggestions are actually enabled for this field
-        // Reduced spacing around suggestions bar (0pt top instead of 4pt)
         let suggestionsHeight = suggestionsEnabled ? suggestionsBarHeight : 0
-        let topPadding: CGFloat = 0  // Reduced from 4pt to push suggestions bar higher
+        let topPadding: CGFloat = 0
         let bottomPadding: CGFloat = 4
-        
-        return rowsHeight + spacingHeight + suggestionsHeight + topPadding + bottomPadding
+
+        let totalHeight = rowsHeight + spacingHeight + suggestionsHeight + topPadding + bottomPadding
+
+        print("📐 [calculateKeyboardHeight] preset: \(preset), rowHeight: \(calculatedRowHeight), rows: \(numberOfRows), total: \(totalHeight)")
+
+        return totalHeight
     }
     
     /// Check if width changed and re-render is needed
@@ -357,6 +481,35 @@ class KeyboardRenderer {
     func setPreviewMode(_ isPreview: Bool) {
         isPreviewMode = isPreview
     }
+
+    /// Set preview mode with maximum height for scaling
+    /// - Parameter maxHeight: Maximum height in points (keyboard will scale down to fit)
+    func setPreviewMode(maxHeight: CGFloat?) {
+        isPreviewMode = true
+        previewMaxHeight = maxHeight
+    }
+
+    /// Calculate preview scale based on keyboard height and maxHeight
+    /// - Parameters:
+    ///   - keyboardHeight: Full-size keyboard height
+    ///   - maxHeight: Maximum height constraint
+    /// - Returns: Scale factor (1.0 = no scaling, 0.5 = 50%, etc.)
+    private func calculatePreviewScale(keyboardHeight: CGFloat, maxHeight: CGFloat) -> CGFloat {
+        guard keyboardHeight > 0 && maxHeight > 0 else {
+            return 1.0
+        }
+
+        // If keyboard fits, no scaling needed (never upscale)
+        if keyboardHeight <= maxHeight {
+            return 1.0
+        }
+
+        // Scale down to fit
+        let scale = maxHeight / keyboardHeight
+
+        // Clamp between 0.5 (min) and 1.0 (max - never upscale)
+        return min(max(scale, 0.5), 1.0)
+    }
     
     /// Check if currently in cursor movement mode
     func isInCursorMoveMode() -> Bool {
@@ -390,7 +543,33 @@ class KeyboardRenderer {
         print("⚙️ [Config] fontWeight from config: \(config.fontWeight ?? "nil")")
         print("📐 RENDER CALL STACK:")
         Thread.callStackSymbols.prefix(10).forEach { print("  \($0)") }
-        
+
+        // Calculate scale if in preview mode with maxHeight
+        if isPreviewMode, let maxHeight = previewMaxHeight, maxHeight > 0 {
+            // Calculate full-size keyboard height
+            let fullKeyboardHeight = calculateKeyboardHeight(
+                for: config,
+                keysetId: currentKeysetId,
+                suggestionsEnabled: wordSuggestionsOverrideEnabled ?? wordSuggestionsEnabled
+            )
+
+            // Only scale if we have a valid keyboard height
+            if fullKeyboardHeight > 0 {
+                // Calculate scale
+                currentScale = calculatePreviewScale(
+                    keyboardHeight: fullKeyboardHeight,
+                    maxHeight: maxHeight
+                )
+
+                print("📏 Preview scaling: fullHeight=\(fullKeyboardHeight), maxHeight=\(maxHeight), scale=\(currentScale)")
+            } else {
+                currentScale = 1.0  // No valid height, use full size
+                print("⚠️ Preview scaling: Invalid keyboard height, using scale=1.0")
+            }
+        } else {
+            currentScale = 1.0  // Full size for actual keyboard or no maxHeight
+        }
+
         // Update last rendered width
         lastRenderedWidth = currentWidth
         
@@ -472,9 +651,9 @@ class KeyboardRenderer {
 
         if wordSuggestionsEnabled && !isPreviewMode {
             // Real keyboard - show native suggestions bar at the very top
-            let bar = suggestionsBarView.createBar(width: container.bounds.width)
+            let bar = suggestionsBarView.createBar(width: container.bounds.width * currentScale, height: scaledSuggestionsBarHeight)
             container.addSubview(bar)
-            topOffset = suggestionsBarHeight  // Use actual bar height (32pt)
+            topOffset = scaledSuggestionsBarHeight  // Use scaled bar height
             suggestionsBar = bar  // Store UIView reference for legacy code
         } else {
             // Preview mode - don't show bar (React Native handles it)
@@ -482,21 +661,35 @@ class KeyboardRenderer {
         }
 
         // Create rows container below suggestions bar (or at top if disabled)
-        let rowsContainer = UIView()
+        let rowsContainer = TransformAwareContainerView()
+        rowsContainer.clipsToBounds = false  // Allow touches outside bounds after transform
         container.addSubview(rowsContainer)
 
+        // Always use constraints to position the container
         rowsContainer.translatesAutoresizingMaskIntoConstraints = false
+
         NSLayoutConstraint.activate([
             rowsContainer.leftAnchor.constraint(equalTo: container.leftAnchor),
             rowsContainer.rightAnchor.constraint(equalTo: container.rightAnchor),
             rowsContainer.topAnchor.constraint(equalTo: container.topAnchor, constant: topOffset),
-            rowsContainer.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -4)
+            // No bottom constraint - let the container be its natural height
+            // This allows the full keyboard to be hit-testable even when scaled
         ])
-        
+
         // Render each row
         var currentY: CGFloat = 0
-        let availableWidth = container.bounds.width - 8
-        print("📐 AVAILABLE WIDTH = \(availableWidth)")
+
+        // When using transform scaling, render at full size (no dimension scaling)
+        // Otherwise use scaled dimensions
+        let useTransformScaling = isPreviewMode && currentScale < 1.0
+        let effectiveScale: CGFloat = useTransformScaling ? 1.0 : currentScale
+        let effectiveRowHeight = rowHeight * effectiveScale
+        let effectiveRowSpacing = rowSpacing * effectiveScale
+        let effectiveHorizontalPadding = 4 * effectiveScale
+
+        let availableWidth = container.bounds.width - (8 * effectiveScale)
+        print("📐 AVAILABLE WIDTH = \(availableWidth), useTransformScaling: \(useTransformScaling)")
+        print("📐 CURRENT SCALE = \(currentScale), effectiveScale: \(effectiveScale)")
         print("📐 RENDER END ===================")
         print("🎯 END OF RENDER: shiftState = \(shiftState)")
         
@@ -508,12 +701,46 @@ class KeyboardRenderer {
                                    keysetId: self.currentKeysetId,
                                    rowIndex: rowIndex)
             rowsContainer.addSubview(rowView)
-            
-            rowView.frame = CGRect(x: 4, y: currentY, width: availableWidth, height: rowHeight)
-            currentY += rowHeight + rowSpacing
+
+            rowView.frame = CGRect(x: effectiveHorizontalPadding, y: currentY, width: availableWidth, height: effectiveRowHeight)
+            print("📐 [Row \(rowIndex)] y: \(currentY), height: \(effectiveRowHeight), frame: \(rowView.frame)")
+            currentY += effectiveRowHeight + effectiveRowSpacing
+        }
+
+        // Set explicit height constraint based on content
+        let contentHeight = currentY - effectiveRowSpacing  // Remove last spacing
+        NSLayoutConstraint.activate([
+            rowsContainer.heightAnchor.constraint(equalToConstant: contentHeight)
+        ])
+
+        // Apply scale transform if in preview mode (after rendering so bounds are set)
+        if isPreviewMode && currentScale < 1.0 {
+            // Force layout to get correct bounds
+            rowsContainer.layoutIfNeeded()
+
+            // Use default anchor point (center) and apply transform
+            rowsContainer.layer.anchorPoint = CGPoint(x: 0.5, y: 0.5)
+
+            // Apply scale transform from center
+            let scaleTransform = CGAffineTransform(scaleX: currentScale, y: currentScale)
+
+            // After scaling from center, the top edge has shifted down
+            // Calculate how much we need to shift up to align top edge
+            // When scaling from center, top edge moves down by: (1 - scale) * height / 2
+            let containerHeight = rowsContainer.bounds.height
+            let heightShift = (1 - currentScale) * containerHeight / 2
+
+            // Apply translation in the scaled coordinate space
+            let finalTransform = scaleTransform.translatedBy(x: 0, y: -heightShift / currentScale)
+            rowsContainer.transform = finalTransform
+
+            print("📐 Applied transform - scale: \(currentScale), containerHeight: \(containerHeight), heightShift: \(heightShift), contentHeight: \(contentHeight)")
+        } else {
+            rowsContainer.layer.anchorPoint = CGPoint(x: 0.5, y: 0.5)
+            rowsContainer.transform = .identity
         }
     }
-    
+
     // MARK: - Private Helpers
     
     /// Build a map of key values to their group templates
@@ -827,7 +1054,7 @@ class KeyboardRenderer {
 
                 // Calculate pixel width - the keySpacing of 0 means we don't need to subtract anything
                 let keyWidth = (CGFloat(effectiveWidth) / baselineWidth) * availableWidth
-                let button = createKeyButton(parsedKey, width: keyWidth, height: rowHeight,
+                let button = createKeyButton(parsedKey, width: keyWidth, height: scaledRowHeight,
                                             editorContext: editorContext,
                                             isSelected: isSelected)
 
@@ -1054,13 +1281,13 @@ class KeyboardRenderer {
                 }
             }
         }
-        
+
         visualKeyView.backgroundColor = bgColor
-        visualKeyView.layer.cornerRadius = keyCornerRadius
+        visualKeyView.layer.cornerRadius = scaledCornerRadius
         visualKeyView.layer.shadowColor = UIColor.black.cgColor
-        visualKeyView.layer.shadowOffset = CGSize(width: 0, height: 1)
+        visualKeyView.layer.shadowOffset = CGSize(width: 0, height: 1 * effectiveDimensionScale)
         visualKeyView.layer.shadowOpacity = 0.2
-        visualKeyView.layer.shadowRadius = 1
+        visualKeyView.layer.shadowRadius = 1 * effectiveDimensionScale
         
         // Selection highlight for edit mode
         if isSelected {
@@ -1115,7 +1342,7 @@ class KeyboardRenderer {
             textColor = key.textColor
         }
 
-        // Font size - check for custom fontSize first, then global config fontSize, then use defaults
+        // Font size - check for custom fontSize first, then use preset system, then fall back to absolute fontSize
         let isLargeKey = ["shift", "backspace", "enter"].contains(key.type.lowercased())
         let isMultiChar = finalText.count > 1
         let isSettingsKey = key.type.lowercased() == "settings"
@@ -1127,44 +1354,92 @@ class KeyboardRenderer {
             if isSettingsKey {
                 print("⚙️ [Settings] Using custom fontSize: \(customFontSize)")
             }
-        } else {
-            // Use global config fontSize, or fall back to default sizing logic
+        } else if let fontPresetString = config?.fontSizePreset, !fontPresetString.isEmpty {
+            // Use font size preset system (proportional to row height)
+            let fontPreset = FontSizePreset(rawValue: fontPresetString) ?? .normal
+            let heightPreset = KeyboardHeightPreset(rawValue: config?.heightPreset ?? "normal") ?? .normal
+
+            // Get screen dimensions
+            let screenBounds: CGRect
+            if let windowScene = container?.window?.windowScene {
+                screenBounds = windowScene.screen.bounds
+            } else {
+                screenBounds = UIScreen.main.bounds
+            }
+
+            let safeAreaInsets = container?.window?.safeAreaInsets ?? .zero
+            let availableHeight = screenBounds.height - safeAreaInsets.top - safeAreaInsets.bottom
+
+            // Create dimensions calculator
+            let dimensions = KeyboardDimensions(
+                screenWidth: container?.bounds.width ?? screenBounds.width,
+                screenHeight: availableHeight,
+                deviceType: .current,
+                heightPreset: heightPreset,
+                fontSizePreset: fontPreset
+            )
+
+            // Calculate row height
+            let hasSuggestions = wordSuggestionsOverrideEnabled ?? wordSuggestionsEnabled
+            let rowHeight = dimensions.calculateRowHeight(numberOfRows: 4, hasSuggestions: hasSuggestions)
+
+            // Calculate font size from row height
+            finalFontSize = dimensions.calculateFontSize(rowHeight: rowHeight, isLargeKey: isLargeKey, isMultiChar: isMultiChar)
+
+            if isSettingsKey {
+                print("⚙️ [Settings] Using fontSizePreset: \(fontPresetString), rowHeight: \(rowHeight), finalFontSize: \(finalFontSize)")
+            }
+        } else if let absoluteFontSize = config?.fontSize {
+            // Fall back to absolute fontSize (deprecated)
             let defaultFontSize: CGFloat = fontSize
             let defaultLargeFontSize: CGFloat = largeFontSize
 
-            // Check for global fontSize in config
-            let globalFontSize: CGFloat = config?.fontSize.map { CGFloat($0) } ?? defaultFontSize
-            let globalLargeFontSize: CGFloat = config?.fontSize.map { CGFloat($0) * (defaultLargeFontSize / defaultFontSize) } ?? defaultLargeFontSize
+            let globalFontSize = CGFloat(absoluteFontSize)
+            let globalLargeFontSize = globalFontSize * (defaultLargeFontSize / defaultFontSize)
 
             if isSettingsKey {
-                print("⚙️ [Settings] Config fontSize: \(config?.fontSize ?? nil)")
-                print("⚙️ [Settings] Default fontSize: \(defaultFontSize), Large: \(defaultLargeFontSize)")
-                print("⚙️ [Settings] Global fontSize: \(globalFontSize), Global large: \(globalLargeFontSize)")
+                print("⚙️ [Settings] Using absolute fontSize: \(absoluteFontSize)")
             }
 
             let baseFontSize: CGFloat = isLargeKey ? globalLargeFontSize : globalFontSize
 
-            // For multi-character keys, scale down proportionally but still respect global fontSize
             if isMultiChar {
-                // If global fontSize is set, use it as base and scale down proportionally
-                if config?.fontSize != nil {
-                    finalFontSize = baseFontSize * 0.7
-                } else {
-                    // No global fontSize, use old logic with 14px cap
-                    finalFontSize = min(baseFontSize * 0.7, 14)
-                }
+                finalFontSize = baseFontSize * 0.7
+            } else {
+                finalFontSize = baseFontSize
+            }
+        } else {
+            // No preset or absolute fontSize - use hardcoded defaults
+            let defaultFontSize: CGFloat = fontSize
+            let defaultLargeFontSize: CGFloat = largeFontSize
+
+            let baseFontSize: CGFloat = isLargeKey ? defaultLargeFontSize : defaultFontSize
+
+            if isMultiChar {
+                finalFontSize = min(baseFontSize * 0.7, 14)
             } else {
                 finalFontSize = baseFontSize
             }
 
-            // Make nikkud diacritic mark larger for visibility
-            if isNikkudKey {
-                finalFontSize = 36
-            }
-
             if isSettingsKey {
-                print("⚙️ [Settings] BaseFontSize: \(baseFontSize), FinalFontSize: \(finalFontSize)")
+                print("⚙️ [Settings] Using default fontSize: \(finalFontSize)")
             }
+        }
+
+        // Make nikkud diacritic mark larger for visibility
+        if isNikkudKey {
+            finalFontSize = 36
+        }
+
+        if isSettingsKey {
+            print("⚙️ [Settings] FinalFontSize before scaling: \(finalFontSize)")
+        }
+
+        // Apply scaling for preview mode (only if not using transform scaling)
+        // When using transform scaling, render at full size
+        let useTransformScaling = isPreviewMode && currentScale < 1.0
+        if !useTransformScaling {
+            finalFontSize = finalFontSize * currentScale
         }
 
         // For settings key, use SF Symbol image
@@ -1297,8 +1572,8 @@ class KeyboardRenderer {
         }
 
         // Get key gap from config or use defaults
-        let horizontalGap = CGFloat(config?.keyGap ?? 3)
-        let verticalGap = horizontalGap + 2  // Vertical padding is slightly larger (2px more than horizontal)
+        let horizontalGap = (CGFloat(config?.keyGap ?? 3)) * currentScale
+        let verticalGap = (horizontalGap / currentScale + 2) * currentScale  // Vertical padding is slightly larger (2px more than horizontal)
 
         // Add visual key view to button (with padding for visual gap)
         button.addSubview(visualKeyView)
@@ -1675,7 +1950,7 @@ class KeyboardRenderer {
             
             // Position popup so the diagonal connections align with the VISUAL top of the button
             // Account for keyVerticalPadding (5px) + 1px extra
-            let visualMarginOffset = keyVerticalPadding + 1
+            let visualMarginOffset = scaledKeyVerticalPadding + (1 * effectiveDimensionScale)
             
             // Convert button's frame to container's coordinate system
             if let buttonSuperview = button.superview {

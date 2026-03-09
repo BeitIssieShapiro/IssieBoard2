@@ -44,6 +44,8 @@ interface KeyboardPreviewProps {
   language?: string;
   /** Current text content - used to sync keyboard state with external text changes */
   text?: string;
+  /** Maximum height for preview scaling (keyboard will scale proportionally to fit) */
+  maxHeight?: number;
   onKeyPress?: (event: KeyPressEvent) => void;
   onSuggestionsChange?: (event: SuggestionsChangeEvent) => void;
   onLanguageChange?: (event: LanguageChangeEvent) => void;

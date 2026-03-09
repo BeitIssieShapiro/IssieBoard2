@@ -48,12 +48,15 @@ class SuggestionsBarView {
     // MARK: - Public Methods
     
     /// Create the suggestions bar view
-    /// - Parameter width: Width of the container
+    /// - Parameters:
+    ///   - width: Width of the container
+    ///   - height: Optional custom height (defaults to barHeight)
     /// - Returns: The configured UIView
-    func createBar(width: CGFloat) -> UIView {
+    func createBar(width: CGFloat, height: CGFloat? = nil) -> UIView {
         let bar = UIView()
         bar.backgroundColor = UIColor.systemGray5
-        bar.frame = CGRect(x: 0, y: 0, width: width, height: barHeight)
+        let actualHeight = height ?? barHeight
+        bar.frame = CGRect(x: 0, y: 0, width: width, height: actualHeight)
         bar.tag = 888  // Tag to identify suggestions bar
         barView = bar
         return bar

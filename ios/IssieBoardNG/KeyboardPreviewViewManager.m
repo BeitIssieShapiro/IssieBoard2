@@ -12,6 +12,9 @@ RCT_EXPORT_VIEW_PROPERTY(selectedKeys, NSString)
 // Export the text property for external text synchronization
 RCT_EXPORT_VIEW_PROPERTY(text, NSString)
 
+// Export the maxHeight property for preview scaling
+RCT_EXPORT_VIEW_PROPERTY(maxHeight, NSNumber)
+
 // Export the onKeyPress event as a direct event (not bubbling)
 RCT_EXPORT_VIEW_PROPERTY(onKeyPress, RCTBubblingEventBlock)
 

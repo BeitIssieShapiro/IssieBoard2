@@ -18,7 +18,8 @@ struct KeyboardConfig: Codable {
     let wordSuggestionsEnabled: Bool?  // Enable/disable word suggestions (default: true)
     let autoCorrectEnabled: Bool?  // Enable/disable auto-correct on space (default: false)
     let fontName: String?  // Custom font name to use for character keys (e.g., 'DanaYadAlefAlefAlef-Normal')
-    let fontSize: Double?  // Global font size for all keys (default varies by platform). Individual keys can override this.
+    let fontSize: Double?  // Deprecated: use fontSizePreset instead. Global font size for all keys (default varies by platform). Individual keys can override this.
+    let fontSizePreset: String?  // Font size preset: "xs", "small", "normal", "large", "xl" (default: "normal")
     let heightPreset: String?  // Keyboard height preset: "compact", "normal", "tall", "x-tall" (default: "normal")
     let keyGap: Double?  // Gap between keys in points (default: 3)
     let fontWeight: String?  // Font weight: "ultraLight", "thin", "light", "regular", "medium", "semibold", "bold", "heavy", "black" (default: "regular")
@@ -39,6 +40,7 @@ struct KeyboardConfig: Codable {
         case autoCorrectEnabled
         case fontName
         case fontSize
+        case fontSizePreset
         case heightPreset
         case keyGap
         case fontWeight
@@ -605,6 +607,15 @@ enum KeyboardHeightPreset: String, Codable {
     case xTall = "x-tall"
 }
 
+/// Font size preset options
+enum FontSizePreset: String, Codable {
+    case xs = "xs"
+    case small = "small"
+    case normal = "normal"
+    case large = "large"
+    case xl = "xl"
+}
+
 /// Device type classification
 enum DeviceType {
     case phone
@@ -672,6 +683,35 @@ struct KeyboardHeightConstants {
     static let rowSpacing: CGFloat = 5
 }
 
+/// Configuration constants for font sizes
+/// Font sizes scale proportionally based on row height
+struct FontSizeConstants {
+    // MARK: - Base Font Size Percentages (applied to row height)
+
+    /// XS preset: 34% of row height
+    static let xsPercentage: CGFloat = 0.34
+
+    /// Small preset: 38% of row height
+    static let smallPercentage: CGFloat = 0.38
+
+    /// Normal preset: 42% of row height - DEFAULT
+    static let normalPercentage: CGFloat = 0.42
+
+    /// Large preset: 48% of row height
+    static let largePercentage: CGFloat = 0.48
+
+    /// XL preset: 54% of row height
+    static let xlPercentage: CGFloat = 0.54
+
+    // MARK: - Multipliers
+
+    /// Large key font multiplier (e.g., shift, enter keys)
+    static let largeKeyMultiplier: CGFloat = 1.17  // 17% larger than base
+
+    /// Multi-character key font multiplier (scaled down)
+    static let multiCharMultiplier: CGFloat = 0.7
+}
+
 // MARK: - Keyboard Dimensions Calculator
 
 struct KeyboardDimensions {
@@ -680,24 +720,27 @@ struct KeyboardDimensions {
     let deviceType: DeviceType
     let isPortrait: Bool
     let heightPreset: KeyboardHeightPreset
+    let fontSizePreset: FontSizePreset
 
     /// Initialize with current screen dimensions
     init(
         screenWidth: CGFloat,
         screenHeight: CGFloat,
         deviceType: DeviceType = .current,
-        heightPreset: KeyboardHeightPreset = .normal
+        heightPreset: KeyboardHeightPreset = .normal,
+        fontSizePreset: FontSizePreset = .normal
     ) {
         self.screenWidth = screenWidth
         self.screenHeight = screenHeight
         self.deviceType = deviceType
         self.isPortrait = screenHeight > screenWidth
         self.heightPreset = heightPreset
+        self.fontSizePreset = fontSizePreset
     }
 
     /// Convenience initializer using current screen
     /// Note: Uses UIScreen.main which is deprecated in iOS 16+. Prefer passing screen from window.windowScene.screen.
-    init(heightPreset: KeyboardHeightPreset = .normal) {
+    init(heightPreset: KeyboardHeightPreset = .normal, fontSizePreset: FontSizePreset = .normal) {
         #if os(iOS)
         let screen = UIScreen.main.bounds
         #else
@@ -707,7 +750,8 @@ struct KeyboardDimensions {
             screenWidth: screen.width,
             screenHeight: screen.height,
             deviceType: .current,
-            heightPreset: heightPreset
+            heightPreset: heightPreset,
+            fontSizePreset: fontSizePreset
         )
     }
 
@@ -743,6 +787,31 @@ struct KeyboardDimensions {
         return availableHeight / CGFloat(numberOfRows)
     }
 
+    /// Calculate base font size based on row height and font size preset
+    /// - Parameters:
+    ///   - rowHeight: The calculated row height from calculateRowHeight()
+    ///   - isLargeKey: Whether this is a large key (shift, enter, etc.)
+    ///   - isMultiChar: Whether this is a multi-character key (needs smaller font)
+    /// - Returns: The calculated font size in points
+    func calculateFontSize(rowHeight: CGFloat, isLargeKey: Bool = false, isMultiChar: Bool = false) -> CGFloat {
+        // 1. Get percentage for preset
+        let percentage = getFontSizePercentage()
+
+        // 2. Calculate base font size from row height
+        var fontSize = rowHeight * percentage
+
+        // 3. Apply multipliers
+        if isLargeKey {
+            fontSize *= FontSizeConstants.largeKeyMultiplier
+        }
+
+        if isMultiChar {
+            fontSize *= FontSizeConstants.multiCharMultiplier
+        }
+
+        return fontSize
+    }
+
     // MARK: - Private Helpers
 
     private func getBasePercentage() -> CGFloat {
@@ -762,6 +831,16 @@ struct KeyboardDimensions {
         switch deviceType {
         case .phone:  return KeyboardHeightConstants.phoneModifier
         case .tablet: return KeyboardHeightConstants.tabletModifier
+        }
+    }
+
+    private func getFontSizePercentage() -> CGFloat {
+        switch fontSizePreset {
+        case .xs:     return FontSizeConstants.xsPercentage
+        case .small:  return FontSizeConstants.smallPercentage
+        case .normal: return FontSizeConstants.normalPercentage
+        case .large:  return FontSizeConstants.largePercentage
+        case .xl:     return FontSizeConstants.xlPercentage
         }
     }
 

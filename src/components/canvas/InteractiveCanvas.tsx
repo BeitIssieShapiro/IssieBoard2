@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useState, useEffect } from 'react';
+import React, { useMemo, useCallback, useState } from 'react';
 import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
 import { KeyboardPreview, KeyPressEvent } from '../KeyboardPreview';
 import { useEditor } from '../../context/EditorContext';
@@ -55,18 +55,7 @@ const LANGUAGE_NAMES: Record<string, string> = {
 export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInput, height }) => {
   const { state, dispatch } = useEditor();
   const [keyboardHeight, setKeyboardHeight] = useState<number>(height);
-  const [scale, setScale] = useState<number>(1);
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
-
-  // Recalculate scale when container height changes
-  useEffect(() => {
-    if (keyboardHeight > 0) {
-      const s = height / (keyboardHeight - 60);
-      const newScale = Math.min(s, 1);
-      console.log('📐 [InteractiveCanvas] Container height changed, recalculating scale:', { height, keyboardHeight, newScale });
-      setScale(newScale);
-    }
-  }, [height, keyboardHeight]);
 
   // Get language display name from keyboard ID
   const languageDisplayName = useMemo(() => {
@@ -180,28 +169,22 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
 
     // Return the base config with the current groups and filtered keysets
     // Disable word suggestions for preview
-    // IMPORTANT: Preserve all config properties (keyHeight, fontSize, colors, etc.)
-    // Only scale fontSize if we're scaling down
-    const scaledConfig: KeyboardConfig = {
+    // IMPORTANT: Preserve all config properties (heightPreset, fontSizePreset, colors, etc.)
+    const previewConfig: KeyboardConfig = {
       ...state.config,
       keysets: filteredKeysets,
       groups: groupConfigs,
       wordSuggestionsEnabled: false,
     };
 
-    // Only modify fontSize if we're actually scaling down and fontSize exists
-    if (scale < 1 && scaledConfig.fontSize) {
-      scaledConfig.fontSize = Math.round(scaledConfig.fontSize * scale);
-    }
-
-    return scaledConfig;
-  }, [state.config, state.styleGroups, scale]);
+    return previewConfig;
+  }, [state.config, state.styleGroups]);
 
   const configJson = useMemo(() => {
     return JSON.stringify(configWithGroups);
   }, [configWithGroups]);
 
-  console.log("📐 [InteractiveCanvas] Render - keyboardHeight:", keyboardHeight, "containerHeight:", height, "scale:", scale, "windowWidth:", windowWidth);
+  console.log("📐 [InteractiveCanvas] Render - keyboardHeight:", keyboardHeight, "containerHeight:", height, "windowWidth:", windowWidth);
 
   const isLandscape = windowWidth > windowHeight;
 
@@ -239,21 +222,18 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
         position: "absolute",
         top: windowWidth < windowHeight ? 50 : 0,
         left: 5,
-        transform: [
-          { scale },
-          { translateY: -keyboardHeight * (1 - scale) / 2 }
-        ]
       }}>
         <KeyboardPreview
           key={`editor-preview-${windowWidth}`}
           style={[
             styles.preview,
             {
-              height: keyboardHeight,
+              height: height,  // Container height (what we're willing to allocate)
               width: windowWidth - 60,
             }
           ]}
           configJson={configJson}
+          maxHeight={height}  // Tell keyboard to scale to fit this height
           onKeyPress={handleKeyPress}
           onHeightChange={handleHeightChange}
         />
