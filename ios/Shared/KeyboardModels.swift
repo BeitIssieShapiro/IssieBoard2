@@ -19,7 +19,7 @@ struct KeyboardConfig: Codable {
     let autoCorrectEnabled: Bool?  // Enable/disable auto-correct on space (default: false)
     let fontName: String?  // Custom font name to use for character keys (e.g., 'DanaYadAlefAlefAlef-Normal')
     let fontSize: Double?  // Global font size for all keys (default varies by platform). Individual keys can override this.
-    let keyHeight: Double?  // Custom key row height in points (default: 54 for iPhone, 74 for iPad keyboard extension)
+    let heightPreset: String?  // Keyboard height preset: "compact", "normal", "tall", "x-tall" (default: "normal")
     let keyGap: Double?  // Gap between keys in points (default: 3)
     let fontWeight: String?  // Font weight: "ultraLight", "thin", "light", "regular", "medium", "semibold", "bold", "heavy", "black" (default: "regular")
 
@@ -39,7 +39,7 @@ struct KeyboardConfig: Codable {
         case autoCorrectEnabled
         case fontName
         case fontSize
-        case keyHeight
+        case heightPreset
         case keyGap
         case fontWeight
     }
@@ -591,5 +591,206 @@ class DiacriticsGenerator {
         // Otherwise, generate from diacritics definition
         let generated = generateOptions(for: key.value, diacritics: diacritics, settings: settings)
         return toNikkudOptions(generated)
+    }
+}
+
+
+// MARK: - Keyboard Height Presets & Adaptive Dimensions
+
+/// Height preset options
+enum KeyboardHeightPreset: String, Codable {
+    case compact = "compact"
+    case normal = "normal"
+    case tall = "tall"
+    case xTall = "x-tall"
+}
+
+/// Device type classification
+enum DeviceType {
+    case phone
+    case tablet
+
+    static var current: DeviceType {
+        return UIDevice.current.userInterfaceIdiom == .pad ? .tablet : .phone
+    }
+}
+
+/// Configuration constants - adjust these to tune the keyboard heights
+/// NOTE: These percentages are applied to SAFE AREA height (excluding notch/Dynamic Island/home indicator)
+struct KeyboardHeightConstants {
+
+    // MARK: - Portrait Percentages (applied to safe area height)
+
+    /// Compact preset: portrait phone/tablet (35% of safe area height)
+    static let compactPortrait: CGFloat = 0.22
+
+    /// Normal preset: portrait phone/tablet (42% of safe area height) - DEFAULT
+    static let normalPortrait: CGFloat = 0.28
+
+    /// Tall preset: portrait phone/tablet (46% of safe area height)
+    static let tallPortrait: CGFloat = 0.36
+
+    /// X-Tall preset: portrait phone/tablet (50% of safe area height)
+    static let xTallPortrait: CGFloat = 0.47
+
+    // MARK: - Landscape Percentages (applied to safe area height)
+
+    /// Compact preset: landscape phone/tablet (25% of safe area height)
+    static let compactLandscape: CGFloat = 0.32
+
+    /// Normal preset: landscape phone/tablet (32% of safe area height) - DEFAULT
+    static let normalLandscape: CGFloat = 0.38
+
+    /// Tall preset: landscape phone/tablet (36% of safe area height)
+    static let tallLandscape: CGFloat = 0.45
+
+    /// X-Tall preset: landscape phone/tablet (40% of safe area height)
+    static let xTallLandscape: CGFloat = 0.5
+
+    // MARK: - Device Modifiers
+
+    /// Tablet height modifier (tablets can be slightly more compact percentage-wise)
+    static let tabletModifier: CGFloat = 0.92  // 8% reduction
+
+    /// Phone height modifier (no adjustment)
+    static let phoneModifier: CGFloat = 1.0
+
+    // MARK: - Constraints
+
+    /// Minimum keyboard height (never smaller than this)
+    static let minHeight: CGFloat = 180
+
+    /// Maximum keyboard height as percentage of screen (never more than this)
+    static let maxHeightPercentage: CGFloat = 0.55
+
+    // MARK: - Component Heights
+
+    /// Suggestions bar height (reduced by 20% from 40)
+    static let suggestionsBarHeight: CGFloat = 32
+
+    /// Vertical spacing between rows
+    static let rowSpacing: CGFloat = 5
+}
+
+// MARK: - Keyboard Dimensions Calculator
+
+struct KeyboardDimensions {
+    let screenWidth: CGFloat
+    let screenHeight: CGFloat
+    let deviceType: DeviceType
+    let isPortrait: Bool
+    let heightPreset: KeyboardHeightPreset
+
+    /// Initialize with current screen dimensions
+    init(
+        screenWidth: CGFloat,
+        screenHeight: CGFloat,
+        deviceType: DeviceType = .current,
+        heightPreset: KeyboardHeightPreset = .normal
+    ) {
+        self.screenWidth = screenWidth
+        self.screenHeight = screenHeight
+        self.deviceType = deviceType
+        self.isPortrait = screenHeight > screenWidth
+        self.heightPreset = heightPreset
+    }
+
+    /// Convenience initializer using current screen
+    /// Note: Uses UIScreen.main which is deprecated in iOS 16+. Prefer passing screen from window.windowScene.screen.
+    init(heightPreset: KeyboardHeightPreset = .normal) {
+        #if os(iOS)
+        let screen = UIScreen.main.bounds
+        #else
+        let screen = CGRect(x: 0, y: 0, width: 393, height: 852) // Default iPhone size
+        #endif
+        self.init(
+            screenWidth: screen.width,
+            screenHeight: screen.height,
+            deviceType: .current,
+            heightPreset: heightPreset
+        )
+    }
+
+    // MARK: - Calculations
+
+    /// Calculate total keyboard height
+    func calculateKeyboardHeight() -> CGFloat {
+        // 1. Get base percentage for preset and orientation
+        let percentage = getBasePercentage()
+
+        // 2. Apply device type modifier
+        let deviceModifier = getDeviceModifier()
+
+        // 3. Calculate target height
+        let targetHeight = screenHeight * percentage * deviceModifier
+
+        // 4. Apply constraints (min/max)
+        return constrain(targetHeight)
+    }
+
+    /// Calculate height for a single key row
+    func calculateRowHeight(numberOfRows: Int, hasSuggestions: Bool) -> CGFloat {
+        let totalHeight = calculateKeyboardHeight()
+
+        // Subtract fixed components
+        let suggestionsHeight = hasSuggestions ? KeyboardHeightConstants.suggestionsBarHeight : 0
+        let totalRowSpacing = KeyboardHeightConstants.rowSpacing * CGFloat(numberOfRows - 1)
+
+        // Available height for rows
+        let availableHeight = totalHeight - suggestionsHeight - totalRowSpacing
+
+        // Height per row
+        return availableHeight / CGFloat(numberOfRows)
+    }
+
+    // MARK: - Private Helpers
+
+    private func getBasePercentage() -> CGFloat {
+        switch (heightPreset, isPortrait) {
+        case (.compact, true):  return KeyboardHeightConstants.compactPortrait
+        case (.compact, false): return KeyboardHeightConstants.compactLandscape
+        case (.normal, true):   return KeyboardHeightConstants.normalPortrait
+        case (.normal, false):  return KeyboardHeightConstants.normalLandscape
+        case (.tall, true):     return KeyboardHeightConstants.tallPortrait
+        case (.tall, false):    return KeyboardHeightConstants.tallLandscape
+        case (.xTall, true):    return KeyboardHeightConstants.xTallPortrait
+        case (.xTall, false):   return KeyboardHeightConstants.xTallLandscape
+        }
+    }
+
+    private func getDeviceModifier() -> CGFloat {
+        switch deviceType {
+        case .phone:  return KeyboardHeightConstants.phoneModifier
+        case .tablet: return KeyboardHeightConstants.tabletModifier
+        }
+    }
+
+    private func constrain(_ height: CGFloat) -> CGFloat {
+        let minHeight = KeyboardHeightConstants.minHeight
+        let maxHeight = screenHeight * KeyboardHeightConstants.maxHeightPercentage
+
+        return max(minHeight, min(height, maxHeight))
+    }
+}
+
+// MARK: - Debug Helpers
+
+extension KeyboardDimensions {
+    /// Get debug description of current dimensions
+    func debugDescription() -> String {
+        let height = calculateKeyboardHeight()
+        let percentage = (height / screenHeight) * 100
+        let rowHeight = calculateRowHeight(numberOfRows: 4, hasSuggestions: true)
+
+        return """
+        📐 Keyboard Dimensions:
+           Screen: \(Int(screenWidth)) × \(Int(screenHeight))pt
+           Device: \(deviceType)
+           Orientation: \(isPortrait ? "Portrait" : "Landscape")
+           Preset: \(heightPreset.rawValue)
+           ---
+           Keyboard Height: \(Int(height))pt (\(String(format: "%.1f", percentage))%)
+           Row Height: \(Int(rowHeight))pt
+        """
     }
 }

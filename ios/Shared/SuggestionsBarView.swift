@@ -19,9 +19,9 @@ class SuggestionsBarView {
     var onSuggestionSelected: ((String) -> Void)?
     
     // MARK: - UI Constants
-    
-    let barHeight: CGFloat = 40
-    let fontSize: CGFloat = 26  // Larger than key font for better readability
+
+    let barHeight: CGFloat = 32  // Reduced by 20% from 40
+    let fontSize: CGFloat = 22  // Reduced proportionally from 26
     
     // MARK: - State
     

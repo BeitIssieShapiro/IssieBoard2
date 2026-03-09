@@ -320,6 +320,11 @@ class KeyboardEngine {
         suggestionController.detectCurrentWord(from: textProxy.documentContextBeforeInput ?? "")
     }
 
+    /// Handle suggestion tapped/selected (public for system shortcuts bar)
+    func handleSuggestionTapped(_ suggestion: String) {
+        handleSuggestionSelected(suggestion)
+    }
+
     private func handleSuggestionSelected(_ suggestion: String) {
         let replacedWord = suggestionController.currentWord
 

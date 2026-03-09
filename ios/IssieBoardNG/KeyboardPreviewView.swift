@@ -227,8 +227,8 @@ class KeyboardPreviewView: UIView {
             }
         }
 
-        // Set up suggestion updates callback
-        engine.renderer.onSuggestionsUpdated = { [weak self] suggestions in
+        // Set up suggestion updates callback (preview mode doesn't use highlightIndex)
+        engine.renderer.onSuggestionsUpdated = { [weak self] suggestions, _ in
             self?.sendSuggestionsToReactNative(suggestions)
         }
 

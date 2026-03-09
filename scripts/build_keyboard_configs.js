@@ -27,9 +27,9 @@ const path = require('path');
 // CONFIGURATION CONSTANTS
 // ============================================
 
-// Default key height in points (set to null to use device defaults: 54pt iPhone, 74pt iPad)
-// Try values like: 60, 65, 70, 80, etc.
-const DEFAULT_KEY_HEIGHT = 90;  // Change this to test different heights (e.g., 70)
+// Default height preset: "compact", "normal", "tall", "x-tall"
+// This replaces the old keyHeight pixel value with semantic presets that adapt to device
+const DEFAULT_HEIGHT_PRESET = 'normal';  // Options: compact, normal, tall, x-tall
 
 // Default key gap in points (space between keys)
 const DEFAULT_KEY_GAP = 3;
@@ -85,10 +85,8 @@ const DEFAULT_CONFIG_TEMPLATE = {
   groups: []
 };
 
-// Add keyHeight if specified (only include if not null)
-if (DEFAULT_KEY_HEIGHT !== null) {
-  DEFAULT_CONFIG_TEMPLATE.keyHeight = DEFAULT_KEY_HEIGHT;
-}
+// Add heightPreset (always included)
+DEFAULT_CONFIG_TEMPLATE.heightPreset = DEFAULT_HEIGHT_PRESET;
 
 // Add fontSize if specified (only include if not null)
 if (DEFAULT_FONT_SIZE !== null) {
@@ -456,10 +454,8 @@ function createCombinedAndroidConfig(commonKeysets) {
     diacriticsSettings: {}
   };
 
-  // Add keyHeight if specified
-  if (DEFAULT_KEY_HEIGHT !== null) {
-    combinedConfig.keyHeight = DEFAULT_KEY_HEIGHT;
-  }
+  // Add heightPreset
+  combinedConfig.heightPreset = DEFAULT_HEIGHT_PRESET;
 
   // Add fontSize if specified
   if (DEFAULT_FONT_SIZE !== null) {

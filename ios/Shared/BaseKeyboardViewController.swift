@@ -37,16 +37,20 @@ class BaseKeyboardViewController: UIInputViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+
         debugLog("🚀 BaseKeyboardViewController viewDidLoad - Language: \(keyboardLanguage)")
-        
+
+        // Set background immediately to prevent dark flash
+        // Use light gray (systemGray6) which matches iOS system keyboard
+        self.view.backgroundColor = UIColor.systemGray6
+
         // Enable system dictation key
         // On iPad, this shows the microphone in the Shortcut Bar (grey bar above keyboard)
         // On iPhone, this may show in the keyboard if space allows
         // Note: We cannot programmatically trigger system dictation from our custom button
         // but this enables users to access dictation through iOS's built-in mechanism
         self.hasDictationKey = false
-        
+
         setupKeyboard()
         setupKeyboardEngine()
         loadPreferences()
@@ -55,6 +59,9 @@ class BaseKeyboardViewController: UIInputViewController {
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+
+        // Disable system's autocorrection/suggestions bar
+        // We render our own suggestions bar as part of the keyboard
         let assistant = self.inputAssistantItem
         assistant.leadingBarButtonGroups = []
         assistant.trailingBarButtonGroups = []
@@ -302,6 +309,7 @@ class BaseKeyboardViewController: UIInputViewController {
         let shouldDisable = shouldDisableSuggestionsForKeyboardType()
         let suggestionsEnabled = config.isWordSuggestionsEnabled && !shouldDisable
 
+        // Always use custom suggestions bar (system shortcuts bar doesn't work for third-party keyboards)
         keyboardEngine.suggestionController.setEnabled(suggestionsEnabled)
         keyboardEngine.suggestionController.setAutoCorrectEnabled(config.isAutoCorrectEnabled)
         keyboardEngine.renderer.setWordSuggestionsEnabled(suggestionsEnabled)

@@ -17,7 +17,7 @@ class KeyboardRenderer {
     var onSuggestionSelected: ((String) -> Void)?
     
     // Callback for suggestions update (to send to React Native)
-    var onSuggestionsUpdated: (([String]) -> Void)?
+    var onSuggestionsUpdated: (([String], Int?) -> Void)?
     
     // Whether to show the globe (next-keyboard) button
     // This is controlled by needsInputModeSwitchKey from the keyboard extension
@@ -110,19 +110,48 @@ class KeyboardRenderer {
     }
     
     // UI Constants - same for preview and keyboard
-    // Dynamic row height: uses config keyHeight if provided, otherwise 54px base, +20px on iPad when NOT in preview mode
+    // Dynamic row height: uses adaptive calculation based on screen size and preset
     private var rowHeight: CGFloat {
-        // Check if config specifies a custom key height
-        if let customHeight = config?.keyHeight {
-            return CGFloat(customHeight)
+        guard let container = container else {
+            return 54  // Fallback if no container
         }
-        
-        // Otherwise use default logic
-        let baseHeight: CGFloat = 54
-        if isLargeScreen && !isPreviewMode {
-            return baseHeight + 20  // 74px on iPad actual keyboard
+
+        // Get height preset from config (defaults to .normal)
+        let preset: KeyboardHeightPreset
+        if let presetString = config?.heightPreset {
+            preset = KeyboardHeightPreset(rawValue: presetString) ?? .normal
+        } else {
+            preset = .normal
         }
-        return baseHeight  // 54px otherwise
+
+        // Get screen height from window scene if available, otherwise use main screen
+        let screenBounds: CGRect
+        if let windowScene = container.window?.windowScene {
+            screenBounds = windowScene.screen.bounds
+        } else {
+            screenBounds = UIScreen.main.bounds
+        }
+
+        // Calculate available height considering safe area insets
+        // This is crucial for iPhones with notches/Dynamic Island
+        let safeAreaInsets = container.window?.safeAreaInsets ?? .zero
+        let availableHeight = screenBounds.height - safeAreaInsets.top - safeAreaInsets.bottom
+
+        // Use available height (safe area) instead of full screen height
+        let screenHeight = availableHeight
+
+        // Create dimensions calculator
+        let dimensions = KeyboardDimensions(
+            screenWidth: container.bounds.width,
+            screenHeight: screenHeight,
+            deviceType: .current,
+            heightPreset: preset
+        )
+
+        // Calculate row height (4 rows, with or without suggestions)
+        // Check if suggestions are enabled (considering both config and override)
+        let hasSuggestions = wordSuggestionsOverrideEnabled ?? wordSuggestionsEnabled
+        return dimensions.calculateRowHeight(numberOfRows: 4, hasSuggestions: hasSuggestions)
     }
     private let keySpacing: CGFloat = 0       // No spacing between key tap areas
     private let keyInternalPadding: CGFloat = 3  // Visual gap between keys (internal margin)
@@ -131,7 +160,7 @@ class KeyboardRenderer {
     private let keyCornerRadius: CGFloat = 5
     private let fontSize: CGFloat = 24
     private let largeFontSize: CGFloat = 28
-    private let suggestionsBarHeight: CGFloat = 40
+    private let suggestionsBarHeight: CGFloat = 32  // Reduced by 20% from 40
     private let suggestionsFontSize: CGFloat = 26  // Larger than key font (24) for better readability
     
     // Suggestions bar view reference for updates
@@ -264,8 +293,9 @@ class KeyboardRenderer {
         let rowsHeight = CGFloat(numberOfRows) * rowHeight
         let spacingHeight = CGFloat(max(0, numberOfRows - 1)) * rowSpacing
         // Only include suggestions height if suggestions are actually enabled for this field
-        let suggestionsHeight = suggestionsEnabled ? suggestionsBarHeight + 4 : 0
-        let topPadding: CGFloat = 4
+        // Reduced spacing around suggestions bar (0pt top instead of 4pt)
+        let suggestionsHeight = suggestionsEnabled ? suggestionsBarHeight : 0
+        let topPadding: CGFloat = 0  // Reduced from 4pt to push suggestions bar higher
         let bottomPadding: CGFloat = 4
         
         return rowsHeight + spacingHeight + suggestionsHeight + topPadding + bottomPadding
@@ -300,16 +330,16 @@ class KeyboardRenderer {
         currentSuggestions = suggestions
         suggestionHighlightIndex = highlightIndex
         updateSuggestionsBar()
-        // Notify callback (for React Native)
-        onSuggestionsUpdated?(suggestions)
+        // Notify callback (for system shortcuts bar or React Native)
+        onSuggestionsUpdated?(suggestions, highlightIndex)
     }
     
     /// Clear all suggestions
     func clearSuggestions() {
         currentSuggestions = []
         updateSuggestionsBar()
-        // Notify callback (for React Native)
-        onSuggestionsUpdated?([])
+        // Notify callback (for system shortcuts bar or React Native)
+        onSuggestionsUpdated?([], nil)
     }
     
     /// Set whether to show the globe (next-keyboard) button
@@ -438,13 +468,13 @@ class KeyboardRenderer {
         }
         
         // Show suggestions bar in real keyboard, hide in preview (preview sends to React Native)
-        var topOffset: CGFloat = 4
+        var topOffset: CGFloat = 0  // Start at 0 to push suggestions bar to very top
 
         if wordSuggestionsEnabled && !isPreviewMode {
-            // Real keyboard - show native suggestions bar
+            // Real keyboard - show native suggestions bar at the very top
             let bar = suggestionsBarView.createBar(width: container.bounds.width)
             container.addSubview(bar)
-            topOffset = 50
+            topOffset = suggestionsBarHeight  // Use actual bar height (32pt)
             suggestionsBar = bar  // Store UIView reference for legacy code
         } else {
             // Preview mode - don't show bar (React Native handles it)

@@ -1927,5 +1927,5 @@
       "simpleMode": true
     }
   },
-  "keyHeight": 90
+  "heightPreset": "normal"
 }

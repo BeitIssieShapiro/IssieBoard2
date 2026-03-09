@@ -58,17 +58,24 @@ abstract class BaseKeyboardService : InputMethodService() {
     
     override fun onCreateInputView(): View {
         alwaysLog("🎨 BaseKeyboardService onCreateInputView - starting")
-        
+
         // Create the keyboard container view
         keyboardView = KeyboardContainerView(this)
-        
+
         alwaysLog("🎨 BaseKeyboardService onCreateInputView - created view: ${keyboardView != null}")
-        
+
         // Load config and render SYNCHRONOUSLY before returning (like old SimpleKeyboardService)
         loadPreferences()
         renderKeyboard(null)
-        
+
         return keyboardView!!
+    }
+
+    override fun onCreateCandidatesView(): View? {
+        // Disable system's autocorrection/suggestions bar
+        // We render our own suggestions bar as part of the keyboard
+        // (Equivalent to iOS: inputAssistantItem.leadingBarButtonGroups = [])
+        return null
     }
     
     override fun onEvaluateInputViewShown(): Boolean {
