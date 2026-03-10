@@ -91,6 +91,13 @@ def enableProguardInReleaseBuilds = false
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
+// Load version properties
+def versionPropsFile = file('../../android/version.properties')
+def versionProps = new Properties()
+if (versionPropsFile.exists()) {
+    versionProps.load(new FileInputStream(versionPropsFile))
+}
+
 android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
@@ -106,8 +113,7 @@ android {
         applicationId "org.issieshapiro.issieboard"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // Version is set per-flavor below
     }
     signingConfigs {
         debug {
@@ -132,12 +138,16 @@ android {
             applicationId "org.issieshapiro.issieboard"
             resValue "string", "app_name", "IssieBoard"
             manifestPlaceholders = [appName: "IssieBoard"]
+            versionCode versionProps['issieboard.versionCode']?.toInteger() ?: 1
+            versionName versionProps['issieboard.versionName'] ?: "1.0.0"
         }
         issievoice {
             dimension "app"
             applicationId "org.issieshapiro.issievoice"
             resValue "string", "app_name", "IssieVoice"
             manifestPlaceholders = [appName: "IssieVoice"]
+            versionCode versionProps['issievoice.versionCode']?.toInteger() ?: 1
+            versionName versionProps['issievoice.versionName'] ?: "1.0.0"
         }
     }
     buildTypes {

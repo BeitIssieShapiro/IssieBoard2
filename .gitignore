@@ -85,6 +85,11 @@ dict/ara_news_*
 # Android release files
 android/app/*.keystore
 !android/app/debug.keystore
+android/app/*.jks
+!android/app/debug.jks
 android/gradle.properties
+android/fastlane/release-admin-creds.json
 releases/
 .claude
+
+release-admin-creds.json

@@ -1,0 +1,11 @@
+# Appfile for IssieBoard/IssieVoice Android deployment
+# This file is used by fastlane to configure app-specific settings
+
+for_platform :android do
+  # Default package name (IssieBoard)
+  package_name("org.issieshapiro.issieboard")
+
+  # Path to Google Play service account JSON key
+  # This file must be created by following GOOGLE_PLAY_SETUP.md
+  json_key_file("./fastlane/release-admin-creds.json")
+end

@@ -19,6 +19,8 @@
     "build:keyboard-neighbors": "node scripts/build_keyboard_neighbors.js",
     "build:all": "npm run build:dictionaries && npm run build:keyboards && npm run build:keyboard-neighbors",
     "open:android-sim": "~/Library/Android/sdk/emulator/emulator -avd Pixel_3a &",
+    "deploy:android:issieboard": "scripts/deploy-android.sh issieboard",
+    "deploy:android:issievoice": "scripts/deploy-android.sh issievoice",
     "postinstall": "patch-package"
   },
   "dependencies": {

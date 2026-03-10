@@ -1,0 +1,176 @@
+# Fastfile for IssieBoard/IssieVoice Android deployment
+# This file defines automated deployment lanes for Google Play
+
+default_platform(:android)
+
+# Ruby helper methods (not lanes)
+def read_properties_file(file_path)
+  properties = {}
+  File.readlines(file_path).each do |line|
+    line = line.strip
+    next if line.empty? || line.start_with?('#')
+
+    key, value = line.split('=', 2)
+    properties[key.strip] = value.strip if key && value
+  end
+  properties
+end
+
+def write_properties_file(file_path, properties)
+  lines = []
+
+  # Read existing file to preserve comments and structure
+  if File.exist?(file_path)
+    File.readlines(file_path).each do |line|
+      stripped = line.strip
+      if stripped.empty? || stripped.start_with?('#')
+        lines << line
+      else
+        key, _ = stripped.split('=', 2)
+        if key && properties.key?(key.strip)
+          lines << "#{key.strip}=#{properties[key.strip]}\n"
+          properties.delete(key.strip)
+        else
+          lines << line
+        end
+      end
+    end
+  end
+
+  # Add any new properties
+  properties.each do |key, value|
+    lines << "#{key}=#{value}\n"
+  end
+
+  File.write(file_path, lines.join)
+end
+
+platform :android do
+
+  # Common setup before all lanes
+  before_all do
+    ensure_git_status_clean
+  end
+
+  # IssieBoard deployment
+  desc "Deploy IssieBoard to Google Play Internal Track"
+  lane :deploy_issieboard do |options|
+    # Read and increment version
+    increment_version(flavor: "issieboard")
+
+    # Build release bundle
+    gradle(
+      task: "bundle",
+      flavor: "issieboard",
+      build_type: "Release",
+      print_command: false,
+      properties: {
+        "android.injected.version.code" => get_version_code(flavor: "issieboard"),
+        "android.injected.version.name" => get_version_name(flavor: "issieboard")
+      }
+    )
+
+    # Upload to Play Store
+    upload_to_play_store(
+      track: 'internal',
+      package_name: 'org.issieshapiro.issieboard',
+      aab: 'app/build/outputs/bundle/issieboardRelease/app-issieboard-release.aab',
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      json_key: './fastlane/release-admin-creds.json'
+    )
+
+    # Commit version bump
+    commit_version_bump(flavor: "issieboard")
+  end
+
+  # IssieVoice deployment
+  desc "Deploy IssieVoice to Google Play Internal Track"
+  lane :deploy_issievoice do |options|
+    # Read and increment version
+    increment_version(flavor: "issievoice")
+
+    # Build release bundle
+    gradle(
+      task: "bundle",
+      flavor: "issievoice",
+      build_type: "Release",
+      print_command: false,
+      properties: {
+        "android.injected.version.code" => get_version_code(flavor: "issievoice"),
+        "android.injected.version.name" => get_version_name(flavor: "issievoice")
+      }
+    )
+
+    # Upload to Play Store
+    upload_to_play_store(
+      track: 'internal',
+      package_name: 'org.issieshapiro.issievoice',
+      aab: 'app/build/outputs/bundle/issievoiceRelease/app-issievoice-release.aab',
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      json_key: './fastlane/release-admin-creds.json'
+    )
+
+    # Commit version bump
+    commit_version_bump(flavor: "issievoice")
+  end
+
+  # Helper: Get current version code
+  private_lane :get_version_code do |options|
+    flavor = options[:flavor]
+    version_file = "../version.properties"
+
+    versions = read_properties_file(version_file)
+    versions["#{flavor}.versionCode"].to_i
+  end
+
+  # Helper: Get current version name
+  private_lane :get_version_name do |options|
+    flavor = options[:flavor]
+    version_file = "../version.properties"
+
+    versions = read_properties_file(version_file)
+    versions["#{flavor}.versionName"]
+  end
+
+  # Helper: Increment version code
+  private_lane :increment_version do |options|
+    flavor = options[:flavor]
+    version_file = "../version.properties"
+
+    # Read current versions
+    versions = read_properties_file(version_file)
+    version_code = versions["#{flavor}.versionCode"].to_i + 1
+    version_name = versions["#{flavor}.versionName"]
+
+    # Write incremented version
+    versions["#{flavor}.versionCode"] = version_code.to_s
+    write_properties_file(version_file, versions)
+
+    UI.success("Incremented #{flavor} to versionCode #{version_code}")
+  end
+
+  # Helper: Commit version bump
+  private_lane :commit_version_bump do |options|
+    flavor = options[:flavor]
+
+    git_add(path: "version.properties")
+    git_commit(
+      path: ["version.properties"],
+      message: "Bump #{flavor} version for release"
+    )
+
+    UI.success("Committed version bump for #{flavor}")
+  end
+
+  # Error handling
+  error do |lane, exception|
+    UI.error("Error in lane #{lane}: #{exception.message}")
+  end
+
+end
