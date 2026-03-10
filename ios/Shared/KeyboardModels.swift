@@ -18,7 +18,6 @@ struct KeyboardConfig: Codable {
     let wordSuggestionsEnabled: Bool?  // Enable/disable word suggestions (default: true)
     let autoCorrectEnabled: Bool?  // Enable/disable auto-correct on space (default: false)
     let fontName: String?  // Custom font name to use for character keys (e.g., 'DanaYadAlefAlefAlef-Normal')
-    let fontSize: Double?  // Deprecated: use fontSizePreset instead. Global font size for all keys (default varies by platform). Individual keys can override this.
     let fontSizePreset: String?  // Font size preset: "xs", "small", "normal", "large", "xl" (default: "normal")
     let heightPreset: String?  // Keyboard height preset: "compact", "normal", "tall", "x-tall" (default: "normal")
     let keyGap: Double?  // Gap between keys in points (default: 3)
@@ -39,7 +38,6 @@ struct KeyboardConfig: Codable {
         case wordSuggestionsEnabled
         case autoCorrectEnabled
         case fontName
-        case fontSize
         case fontSizePreset
         case heightPreset
         case keyGap
@@ -92,7 +90,7 @@ struct Key: Codable {
     let opacity: Double?  // Key opacity (0.0 = fully transparent, 1.0 = fully opaque). Useful for preview mode to show semi-hidden keys.
     let color: String?
     let bgColor: String?
-    let fontSize: Double?  // Custom font size for this key (overrides default)
+    let fontSizePreset: String?  // Font size preset for this key: "xs", "small", "normal", "large", "xl"
     let label: String?
     let keysetValue: String?
     let returnKeysetValue: String?
@@ -114,7 +112,7 @@ struct Key: Codable {
         case opacity
         case color
         case bgColor
-        case fontSize
+        case fontSizePreset
         case label
         case keysetValue
         case returnKeysetValue
@@ -302,10 +300,9 @@ struct GroupTemplate: Codable {
     let opacity: Double?         // Key opacity (0.0 = fully transparent, 1.0 = fully opaque). Useful for preview mode to show semi-hidden keys.
     let color: String?
     let bgColor: String?
-    let fontSize: Double?        // Font size for keys in this group
 
     enum CodingKeys: String, CodingKey {
-        case width, offset, hidden, visibilityMode, opacity, color, bgColor, fontSize
+        case width, offset, hidden, visibilityMode, opacity, color, bgColor
     }
     
     /// Get effective visibility mode (handles backward compatibility with hidden boolean)
@@ -360,7 +357,7 @@ struct ParsedKey {
     let opacity: Double  // Key opacity (0.0-1.0), defaults to 1.0
     let textColor: UIColor
     let backgroundColor: UIColor
-    let fontSize: Double?  // Custom font size (nil = use default)
+    let fontSizePreset: String?  // Font size preset for this key (nil = use default)
     let label: String
     let keysetValue: String
     let returnKeysetValue: String
@@ -375,7 +372,7 @@ struct ParsedKey {
         self.caption = key.caption ?? value
         self.sCaption = key.sCaption ?? (key.sValue ?? (key.caption ?? value))
         self.type = keyType
-        self.fontSize = key.fontSize  // Pass through custom font size
+        self.fontSizePreset = key.fontSizePreset  // Pass through font size preset
         self.label = key.label ?? ""
         self.keysetValue = key.keysetValue ?? ""
         self.returnKeysetValue = key.returnKeysetValue ?? ""

@@ -318,7 +318,7 @@ class KeyboardRenderer {
                 opacity: nil,
                 color: nil,
                 bgColor: nil,
-                fontSize: nil,
+                fontSizePreset: nil,
                 label: nil,
                 keysetValue: nil,
                 returnKeysetValue: nil,
@@ -538,7 +538,7 @@ class KeyboardRenderer {
         let currentWidth = container.bounds.width
         print("📐 RENDER START =================")
         print("📐 RENDER: container.bounds.width = \(currentWidth), lastRenderedWidth = \(lastRenderedWidth)")
-        print("⚙️ [Config] fontSize from config: \(config.fontSize ?? nil)")
+        print("⚙️ [Config] fontSizePreset from config: \(config.fontSizePreset ?? "nil")")
         print("⚙️ [Config] fontName from config: \(config.fontName ?? "nil")")
         print("⚙️ [Config] fontWeight from config: \(config.fontWeight ?? "nil")")
         print("📐 RENDER CALL STACK:")
@@ -1342,88 +1342,47 @@ class KeyboardRenderer {
             textColor = key.textColor
         }
 
-        // Font size - check for custom fontSize first, then use preset system, then fall back to absolute fontSize
+        // Font size - use preset system (key preset overrides config preset)
         let isLargeKey = ["shift", "backspace", "enter"].contains(key.type.lowercased())
         let isMultiChar = finalText.count > 1
         let isSettingsKey = key.type.lowercased() == "settings"
 
         var finalFontSize: CGFloat
-        if let customFontSize = key.fontSize {
-            // Use custom font size if specified on the key
-            finalFontSize = CGFloat(customFontSize)
-            if isSettingsKey {
-                print("⚙️ [Settings] Using custom fontSize: \(customFontSize)")
-            }
-        } else if let fontPresetString = config?.fontSizePreset, !fontPresetString.isEmpty {
-            // Use font size preset system (proportional to row height)
-            let fontPreset = FontSizePreset(rawValue: fontPresetString) ?? .normal
-            let heightPreset = KeyboardHeightPreset(rawValue: config?.heightPreset ?? "normal") ?? .normal
 
-            // Get screen dimensions
-            let screenBounds: CGRect
-            if let windowScene = container?.window?.windowScene {
-                screenBounds = windowScene.screen.bounds
-            } else {
-                screenBounds = UIScreen.main.bounds
-            }
+        // Determine which font preset to use: key's preset > config's preset > "normal"
+        let fontPresetString = key.fontSizePreset ?? config?.fontSizePreset ?? "normal"
+        let fontPreset = FontSizePreset(rawValue: fontPresetString) ?? .normal
+        let heightPreset = KeyboardHeightPreset(rawValue: config?.heightPreset ?? "normal") ?? .normal
 
-            let safeAreaInsets = container?.window?.safeAreaInsets ?? .zero
-            let availableHeight = screenBounds.height - safeAreaInsets.top - safeAreaInsets.bottom
-
-            // Create dimensions calculator
-            let dimensions = KeyboardDimensions(
-                screenWidth: container?.bounds.width ?? screenBounds.width,
-                screenHeight: availableHeight,
-                deviceType: .current,
-                heightPreset: heightPreset,
-                fontSizePreset: fontPreset
-            )
-
-            // Calculate row height
-            let hasSuggestions = wordSuggestionsOverrideEnabled ?? wordSuggestionsEnabled
-            let rowHeight = dimensions.calculateRowHeight(numberOfRows: 4, hasSuggestions: hasSuggestions)
-
-            // Calculate font size from row height
-            finalFontSize = dimensions.calculateFontSize(rowHeight: rowHeight, isLargeKey: isLargeKey, isMultiChar: isMultiChar)
-
-            if isSettingsKey {
-                print("⚙️ [Settings] Using fontSizePreset: \(fontPresetString), rowHeight: \(rowHeight), finalFontSize: \(finalFontSize)")
-            }
-        } else if let absoluteFontSize = config?.fontSize {
-            // Fall back to absolute fontSize (deprecated)
-            let defaultFontSize: CGFloat = fontSize
-            let defaultLargeFontSize: CGFloat = largeFontSize
-
-            let globalFontSize = CGFloat(absoluteFontSize)
-            let globalLargeFontSize = globalFontSize * (defaultLargeFontSize / defaultFontSize)
-
-            if isSettingsKey {
-                print("⚙️ [Settings] Using absolute fontSize: \(absoluteFontSize)")
-            }
-
-            let baseFontSize: CGFloat = isLargeKey ? globalLargeFontSize : globalFontSize
-
-            if isMultiChar {
-                finalFontSize = baseFontSize * 0.7
-            } else {
-                finalFontSize = baseFontSize
-            }
+        // Get screen dimensions
+        let screenBounds: CGRect
+        if let windowScene = container?.window?.windowScene {
+            screenBounds = windowScene.screen.bounds
         } else {
-            // No preset or absolute fontSize - use hardcoded defaults
-            let defaultFontSize: CGFloat = fontSize
-            let defaultLargeFontSize: CGFloat = largeFontSize
+            screenBounds = UIScreen.main.bounds
+        }
 
-            let baseFontSize: CGFloat = isLargeKey ? defaultLargeFontSize : defaultFontSize
+        let safeAreaInsets = container?.window?.safeAreaInsets ?? .zero
+        let availableHeight = screenBounds.height - safeAreaInsets.top - safeAreaInsets.bottom
 
-            if isMultiChar {
-                finalFontSize = min(baseFontSize * 0.7, 14)
-            } else {
-                finalFontSize = baseFontSize
-            }
+        // Create dimensions calculator
+        let dimensions = KeyboardDimensions(
+            screenWidth: container?.bounds.width ?? screenBounds.width,
+            screenHeight: availableHeight,
+            deviceType: .current,
+            heightPreset: heightPreset,
+            fontSizePreset: fontPreset
+        )
 
-            if isSettingsKey {
-                print("⚙️ [Settings] Using default fontSize: \(finalFontSize)")
-            }
+        // Calculate row height
+        let hasSuggestions = wordSuggestionsOverrideEnabled ?? wordSuggestionsEnabled
+        let rowHeight = dimensions.calculateRowHeight(numberOfRows: 4, hasSuggestions: hasSuggestions)
+
+        // Calculate font size from row height
+        finalFontSize = dimensions.calculateFontSize(rowHeight: rowHeight, isLargeKey: isLargeKey, isMultiChar: isMultiChar)
+
+        if isSettingsKey {
+            print("⚙️ [Settings] Using fontSizePreset: \(fontPresetString), rowHeight: \(rowHeight), finalFontSize: \(finalFontSize)")
         }
 
         // Make nikkud diacritic mark larger for visibility
@@ -2300,7 +2259,7 @@ class KeyboardRenderer {
             opacity: nil,
             color: nil,
             bgColor: nil,
-            fontSize: nil,
+            fontSizePreset: nil,
             label: label,
             keysetValue: keysetValue,
             returnKeysetValue: returnKeysetValue,
@@ -2359,7 +2318,7 @@ class KeyboardRenderer {
                 opacity: nil,
                 color: nil,
                 bgColor: nil,
-                fontSize: nil,
+                fontSizePreset: nil,
                 label: nil,
                 keysetValue: nil,
                 returnKeysetValue: nil,

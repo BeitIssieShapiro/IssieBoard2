@@ -1307,80 +1307,48 @@ class KeyboardRenderer(private val context: Context) {
                 key.value.isNotEmpty() -> key.value
                 else -> getDefaultLabel(key.type, editorContext)
             }
-            
+
             // For nikkud key, we'll use an ImageView instead of TextView - skip text setup
             val isNikkudKey = key.type.lowercase() == "nikkud"
             if (!isNikkudKey) {
                 text = finalText
-                
-            // Font size - check for custom fontSize first, then fontSizePreset, then absolute fontSize, then defaults
+
+            // Font size - use preset system (key preset overrides config preset)
             val isLargeKey = listOf("shift", "backspace", "enter").contains(key.type.lowercase())
             val isMultiChar = finalText.length > 1
 
-            val finalFontSize: Float = if (key.fontSize != null) {
-                // Use custom font size if specified on the key
-                key.fontSize.toFloat()
-            } else if (config?.fontSizePreset != null && config?.fontSizePreset!!.isNotEmpty()) {
-                // Use font size preset system (proportional to row height)
-                val fontPreset = FontSizePreset.from(config?.fontSizePreset)
-                val heightPreset = KeyboardHeightPreset.from(config?.heightPreset)
+            // Determine which font preset to use: key's preset > config's preset > "normal"
+            val fontPresetString = key.fontSizePreset ?: config?.fontSizePreset ?: "normal"
+            val fontPreset = FontSizePreset.from(fontPresetString)
+            val heightPreset = KeyboardHeightPreset.from(config?.heightPreset)
 
-                // Get screen dimensions in dp
-                val displayMetrics = context.resources.displayMetrics
-                val screenWidthDp = displayMetrics.widthPixels.toFloat() / displayMetrics.density
-                val screenHeightDp = displayMetrics.heightPixels.toFloat() / displayMetrics.density
+            // Get screen dimensions in dp
+            val displayMetrics = context.resources.displayMetrics
+            val screenWidthDp = displayMetrics.widthPixels.toFloat() / displayMetrics.density
+            val screenHeightDp = displayMetrics.heightPixels.toFloat() / displayMetrics.density
 
-                // Create dimensions calculator
-                val dimensions = KeyboardDimensions(
-                    screenWidth = screenWidthDp,
-                    screenHeight = screenHeightDp,
-                    deviceType = DeviceType.current(context),
-                    heightPreset = heightPreset,
-                    fontSizePreset = fontPreset
-                )
+            // Create dimensions calculator
+            val dimensions = KeyboardDimensions(
+                screenWidth = screenWidthDp,
+                screenHeight = screenHeightDp,
+                deviceType = DeviceType.current(context),
+                heightPreset = heightPreset,
+                fontSizePreset = fontPreset
+            )
 
-                // Calculate row height
-                val hasSuggestions = wordSuggestionsOverrideEnabled ?: wordSuggestionsEnabled
-                val calculatedRowHeight = dimensions.calculateRowHeight(numberOfRows = 4, hasSuggestions = hasSuggestions)
+            // Calculate row height
+            val hasSuggestions = wordSuggestionsOverrideEnabled ?: wordSuggestionsEnabled
+            val calculatedRowHeight = dimensions.calculateRowHeight(numberOfRows = 4, hasSuggestions = hasSuggestions)
 
-                // Calculate font size from row height (result is in dp, use as sp)
-                dimensions.calculateFontSize(rowHeight = calculatedRowHeight, isLargeKey = isLargeKey, isMultiChar = isMultiChar)
-            } else if (config?.fontSize != null) {
-                // Fall back to absolute fontSize (deprecated)
-                val defaultFontSize = fontSize
-                val defaultLargeFontSize = largeFontSize
-
-                val globalFontSize = config?.fontSize!!.toFloat()
-                val globalLargeFontSize = globalFontSize * (defaultLargeFontSize / defaultFontSize)
-
-                val baseFontSize = if (isLargeKey) globalLargeFontSize else globalFontSize
-
-                // For multi-character keys, scale down proportionally but still respect global fontSize
-                if (isMultiChar) {
-                    baseFontSize * 0.7f
-                } else {
-                    baseFontSize
-                }
-            } else {
-                // No preset or absolute fontSize - use hardcoded defaults
-                val defaultFontSize = fontSize
-                val defaultLargeFontSize = largeFontSize
-
-                val baseFontSize = if (isLargeKey) defaultLargeFontSize else defaultFontSize
-
-                if (isMultiChar) {
-                    minOf(baseFontSize * 0.7f, 14f)
-                } else {
-                    baseFontSize
-                }
-            }
+            // Calculate font size from row height (result is in dp, use as sp)
+            val finalFontSize = dimensions.calculateFontSize(rowHeight = calculatedRowHeight, isLargeKey = isLargeKey, isMultiChar = isMultiChar)
 
             // Apply scaling for preview mode
             // Android always uses dimension-based scaling (scale all dimensions by currentScale)
             val scaledFontSize = finalFontSize * currentScale
 
             textSize = scaledFontSize
-                
+
                 // Text color
                 setTextColor(if (key.textColor == Color.BLACK) Color.BLACK else key.textColor)
             }

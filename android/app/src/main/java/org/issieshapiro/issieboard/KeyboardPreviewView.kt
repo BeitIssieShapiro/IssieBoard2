@@ -28,7 +28,7 @@ import org.issieshapiro.issieboard.shared.*
  * FrameLayout children for layout calculations.
  */
 class KeyboardPreviewView(context: Context) : FrameLayout(context) {
-    
+
     private var configJson: String? = null
     private var selectedKeys: String? = null  // JSON array of selected key IDs
     private var renderer: KeyboardRenderer? = null
@@ -42,6 +42,10 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
 
     // Preview max height (for scaling)
     private var previewMaxHeight: Int? = null
+
+    // Track if we're in input mode (IssieVoice) vs config mode (IssieBoard)
+    // Input mode is detected when setText() is called
+    private var isInputMode: Boolean = false
     
     // Keyboard container - LinearLayout for better React Native compatibility
     private val keyboardContainer = LinearLayout(context).apply {
@@ -118,17 +122,16 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
             // Emit open-settings event to React Native
             emitOpenSettingsEvent()
         }
-        
-        r.onKeyLongPress = { key ->
-            // Emit long-press event for keyset/nikkud key selection in edit mode
-            val eventData: WritableMap = Arguments.createMap().apply {
-                putString("type", "longpress")
-                putString("value", key.type)  // Use type (e.g., "keyset", "nikkud") as the value for group matching
-                putString("label", key.label)
-                putBoolean("hasNikkud", false)
-            }
-            emitKeyPressEvent(eventData)
+
+        r.onSuggestionsUpdated = { suggestions ->
+            // Emit suggestions-change event to React Native
+            debugLog("🔮 Sending ${suggestions.size} suggestions to React Native: $suggestions")
+            emitSuggestionsChangeEvent(suggestions)
         }
+
+        // Only set onKeyLongPress in config mode (IssieBoard editor)
+        // In input mode (IssieVoice), we don't want selection mode
+        // This will be set conditionally when we detect the mode
 
         r.onLanguageSwitch = {
             // Emit language switch event to React Native
@@ -189,15 +192,34 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
     }
     
     /**
-     * Set selected key IDs for visual highlighting
+     * Set selected key IDs for visual highlighting (config mode only)
      * @param keys JSON array string, e.g., '["abc:0:3", "abc:1:2"]'
      */
     fun setSelectedKeys(keys: String?) {
+        debugLog("🔧 setSelectedKeys called")
+
+        // Selected keys indicate config mode (IssieBoard editor)
+        if (!isInputMode && renderer?.onKeyLongPress == null) {
+            debugLog("🔧 Setting up CONFIG MODE (IssieBoard)")
+
+            // In config mode, enable key selection via long press
+            renderer?.onKeyLongPress = { key ->
+                // Emit long-press event for keyset/nikkud key selection in edit mode
+                val eventData: WritableMap = Arguments.createMap().apply {
+                    putString("type", "longpress")
+                    putString("value", key.type)
+                    putString("label", key.label)
+                    putBoolean("hasNikkud", false)
+                }
+                emitKeyPressEvent(eventData)
+            }
+        }
+
         // Skip if selected keys haven't changed
         if (keys == selectedKeys) {
             return
         }
-        
+
         selectedKeys = keys
         // Parse selected keys and pass to renderer
         val keyIds: Set<String> = if (keys == null || keys.isEmpty() || keys == "[]") {
@@ -215,7 +237,7 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
                 emptySet()
             }
         }
-        
+
         renderer?.setSelectedKeys(keyIds)
 
         // Only re-render if we have a config
@@ -246,6 +268,47 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
         if (parsedConfig != null) {
             renderKeyboard()
         }
+    }
+
+    /**
+     * Set the current text for input mode (IssieVoice)
+     * @param text Current text content
+     */
+    fun setText(text: String?) {
+        val newText = text ?: ""
+        debugLog("🔧 setText called with: '$newText'")
+
+        // First time setText is called - enter input mode (IssieVoice)
+        if (!isInputMode) {
+            debugLog("🔧 Entering INPUT MODE (IssieVoice)")
+            isInputMode = true
+
+            // In input mode, we don't want selection mode, so don't set onKeyLongPress
+            // (isSelectionMode in KeyboardRenderer is determined by onKeyLongPress != null)
+        }
+
+        // Update typed text
+        typedText = newText
+
+        // Update suggestion controller with new text
+        // Use detectCurrentWord to trigger suggestion updates
+        suggestionController?.detectCurrentWord(newText)
+    }
+
+    /**
+     * Set selected key IDs for visual highlighting (config mode only)
+     * @param keys JSON array string, e.g., '["abc:0:3", "abc:1:2"]'
+     */
+    /**
+     * Set the keyboard language
+     * @param language Language code (e.g., "en", "he", "ar")
+     */
+    fun setLanguage(language: String?) {
+        val lang = language ?: "en"
+        debugLog("🔧 setLanguage called with: $lang")
+
+        // Update suggestion controller language
+        suggestionController?.setLanguage(lang)
     }
 
     private fun renderKeyboard() {
@@ -429,6 +492,18 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
 
         eventDispatcher?.dispatchEvent(
             OpenSettingsEvent(surfaceId, id)
+        )
+    }
+
+    private fun emitSuggestionsChangeEvent(suggestions: List<String>) {
+        val reactContext = context as? ReactContext ?: return
+
+        // Use new architecture event dispatcher
+        val surfaceId = UIManagerHelper.getSurfaceId(reactContext)
+        val eventDispatcher = UIManagerHelper.getEventDispatcherForReactTag(reactContext, id)
+
+        eventDispatcher?.dispatchEvent(
+            SuggestionsChangeEvent(surfaceId, id, suggestions)
         )
     }
 
@@ -619,4 +694,25 @@ class OpenSettingsEvent(
     override fun getEventName(): String = "onOpenSettings"
 
     override fun getEventData(): WritableMap = Arguments.createMap()
+}
+
+/**
+ * Custom event class for suggestions change events
+ * Used with the new React Native architecture event system
+ */
+class SuggestionsChangeEvent(
+    surfaceId: Int,
+    viewTag: Int,
+    private val suggestions: List<String>
+) : Event<SuggestionsChangeEvent>(surfaceId, viewTag) {
+
+    override fun getEventName(): String = "onSuggestionsChange"
+
+    override fun getEventData(): WritableMap {
+        val eventData = Arguments.createMap()
+        val suggestionsArray = Arguments.createArray()
+        suggestions.forEach { suggestionsArray.pushString(it) }
+        eventData.putArray("suggestions", suggestionsArray)
+        return eventData
+    }
 }

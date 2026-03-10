@@ -53,12 +53,30 @@ class KeyboardPreviewViewManager(
     }
 
     /**
+     * Set the current text for input mode (IssieVoice)
+     */
+    @ReactProp(name = "text")
+    fun setText(view: KeyboardPreviewView, text: String?) {
+        view.setText(text)
+    }
+
+    /**
+     * Set the keyboard language
+     */
+    @ReactProp(name = "language")
+    fun setLanguage(view: KeyboardPreviewView, language: String?) {
+        view.setLanguage(language)
+    }
+
+    /**
      * Export event names that this view can emit
      */
     override fun getExportedCustomDirectEventTypeConstants(): Map<String, Any>? {
         return MapBuilder.builder<String, Any>()
             .put("onKeyPress", MapBuilder.of("registrationName", "onKeyPress"))
             .put("onOpenSettings", MapBuilder.of("registrationName", "onOpenSettings"))
+            .put("onSuggestionsChange", MapBuilder.of("registrationName", "onSuggestionsChange"))
+            .put("onHeightChange", MapBuilder.of("registrationName", "onHeightChange"))
             .build()
     }
 }

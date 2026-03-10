@@ -41,7 +41,6 @@ object KeyboardConfigParser {
             fontName = json.optString("fontName", null),
             keyHeight = if (json.has("keyHeight")) json.optInt("keyHeight") else null,
             keyGap = if (json.has("keyGap")) json.optInt("keyGap") else null,
-            fontSize = if (json.has("fontSize")) json.optDouble("fontSize") else null,
             fontSizePreset = json.optString("fontSizePreset", null),
             heightPreset = json.optString("heightPreset", null),
             fontWeight = json.optString("fontWeight", null)
@@ -100,7 +99,7 @@ object KeyboardConfigParser {
             opacity = if (json.has("opacity")) json.optDouble("opacity") else null,
             color = json.optString("color", null),
             bgColor = json.optString("bgColor", null),
-            fontSize = if (json.has("fontSize")) json.optDouble("fontSize") else null,
+            fontSizePreset = json.optString("fontSizePreset", null),
             label = json.optString("label", null),
             keysetValue = json.optString("keysetValue", null),
             returnKeysetValue = json.optString("returnKeysetValue", null),
@@ -169,8 +168,7 @@ object KeyboardConfigParser {
             visibilityMode = json.optString("visibilityMode", null),
             opacity = if (json.has("opacity")) json.optDouble("opacity") else null,
             color = json.optString("color", null),
-            bgColor = json.optString("bgColor", null),
-            fontSize = if (json.has("fontSize")) json.optDouble("fontSize") else null
+            bgColor = json.optString("bgColor", null)
         )
     }
     

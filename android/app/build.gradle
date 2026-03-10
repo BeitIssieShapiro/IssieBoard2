@@ -125,6 +125,21 @@ android {
             }
         }
     }
+    flavorDimensions = ["app"]
+    productFlavors {
+        issieboard {
+            dimension "app"
+            applicationId "org.issieshapiro.issieboard"
+            resValue "string", "app_name", "IssieBoard"
+            manifestPlaceholders = [appName: "IssieBoard"]
+        }
+        issievoice {
+            dimension "app"
+            applicationId "org.issieshapiro.issievoice"
+            resValue "string", "app_name", "IssieVoice"
+            manifestPlaceholders = [appName: "IssieVoice"]
+        }
+    }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug

@@ -183,6 +183,22 @@ class KeyboardPreferences {
     return null;
   }
 
+  /**
+   * Get a string value without the profile_ prefix
+   * Use this for reading keyboard configs that were saved with setString
+   */
+  async getString(key: string): Promise<string | null> {
+    try {
+      await DefaultPreference.setName('issieboard_keyboard_prefs');
+      const value = await DefaultPreference.get(key);
+      console.log('📖 Android: Get string:', key, value ? `${value.length} chars` : 'null');
+      return value || null;
+    } catch (error) {
+      console.error('❌ Android: Failed to get string', error);
+      return null;
+    }
+  }
+
   async printAllPreferences(): Promise<PreferenceInfo> {
     const profile = await this.getCurrentProfile();
     const language = await this.getSelectedLanguage();

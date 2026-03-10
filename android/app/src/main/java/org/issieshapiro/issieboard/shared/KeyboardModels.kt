@@ -28,7 +28,6 @@ data class KeyboardConfig(
     val fontName: String? = null,  // Custom font name to use for character keys (e.g., 'DanaYadAlefAlefAlef-Normal.otf')
     val keyHeight: Int? = null,  // Custom key height in dp (overrides default 54dp)
     val keyGap: Int? = null,  // Gap between keys in dp (default: 3dp)
-    val fontSize: Double? = null,  // Deprecated: use fontSizePreset instead. Global font size for all keys (default varies by platform). Individual keys can override this.
     val fontSizePreset: String? = null,  // Font size preset: "xs", "small", "normal", "large", "xl" (default: "normal")
     val heightPreset: String? = null,  // Keyboard height preset: "compact", "normal", "tall", "x-tall" (default: "normal")
     val fontWeight: String? = null  // Font weight: "ultraLight", "thin", "light", "regular", "medium", "semibold", "bold", "heavy", "black" (default: "heavy")
@@ -71,7 +70,7 @@ data class Key(
     val opacity: Double? = null,  // Key opacity (0.0 = fully transparent, 1.0 = fully opaque). Useful for preview mode to show semi-hidden keys.
     val color: String? = null,
     val bgColor: String? = null,
-    val fontSize: Double? = null,  // Custom font size for this key (overrides default)
+    val fontSizePreset: String? = null,  // Font size preset for this key: "xs", "small", "normal", "large", "xl"
     val label: String? = null,
     val keysetValue: String? = null,
     val returnKeysetValue: String? = null,
@@ -249,8 +248,7 @@ data class GroupTemplate(
     val visibilityMode: String? = null,  // New tri-state visibility ("default", "hide", "showOnly")
     val opacity: Double? = null,  // Key opacity (0.0 = fully transparent, 1.0 = fully opaque). Useful for preview mode to show semi-hidden keys.
     val color: String? = null,
-    val bgColor: String? = null,
-    val fontSize: Double? = null  // Font size for keys in this group
+    val bgColor: String? = null
 ) {
     /** Get effective visibility mode (handles backward compatibility with hidden boolean) */
     val effectiveVisibilityMode: VisibilityMode
@@ -305,7 +303,7 @@ data class ParsedKey(
     val opacity: Double,  // Key opacity (0.0-1.0), defaults to 1.0
     val textColor: Int,
     val backgroundColor: Int,
-    val fontSize: Double?,  // Custom font size (null = use default)
+    val fontSizePreset: String?,  // Font size preset for this key (null = use default)
     val label: String,
     val keysetValue: String,
     val returnKeysetValue: String,
@@ -379,7 +377,7 @@ data class ParsedKey(
                 opacity = opacity,
                 textColor = textColor,
                 backgroundColor = backgroundColor,
-                fontSize = key.fontSize,  // Pass through custom font size
+                fontSizePreset = key.fontSizePreset,  // Pass through font size preset
                 label = label,
                 keysetValue = keysetValue,
                 returnKeysetValue = returnKeysetValue,

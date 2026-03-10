@@ -3,8 +3,12 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "android": "react-native run-android",
+    "android": "react-native run-android --mode=issieboardDebug",
+    "android:issieboard": "react-native run-android --mode=issieboardDebug",
+    "android:issievoice": "react-native run-android --mode=issievoiceDebug",
     "ios": "npm run build:keyboards && react-native run-ios",
+    "ios:issieboard": "npm run build:keyboards && react-native run-ios --scheme IssieBoardNG",
+    "ios:issievoice": "npm run build:keyboards && react-native run-ios --scheme IssieVoice",
     "lint": "eslint .",
     "start": "react-native start",
     "test": "jest",

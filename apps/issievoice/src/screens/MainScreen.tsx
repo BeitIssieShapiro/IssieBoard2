@@ -31,7 +31,7 @@ const settingsKey = {
   value: 'SETTINGS',  // Event identifier
   width: 1,
   bgColor: '#888888',
-  fontSize: 32,
+  fontSizePreset: 'normal',
 };
 
 const clearAllKey = {
@@ -41,7 +41,7 @@ const clearAllKey = {
   value: 'CLEAR_ALL',  // Event identifier
   width: 1,
   bgColor: '#f44336',
-  fontSize: 32,
+  fontSizePreset: 'normal',
 };
 
 const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
@@ -112,10 +112,16 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
 
             console.log(`🔑 Creating language key for ${language} keyboard:`, languageKey);
 
+            // Determine if we're on mobile (for settings button placement)
+            const isMobileDevice = frame.width < 600;
+
             // Update all keysets to include language switch key and remove close/next-keyboard
             savedConfig.keysets = savedConfig.keysets.map((keyset: any) => ({
               ...keyset,
               rows: keyset.rows.map((row: any, rowIndex: number) => {
+                // Check if this is the top row (for mobile settings button)
+                const isTopRow = rowIndex === 0;
+
                 // Check if this is the bottom row by looking for space key or if it's the last row with control keys
                 const hasSpaceKey = row.keys.some((k: any) => k.type === 'space' || k.value === ' ');
                 const hasControlKeys = row.keys.some((k: any) =>
@@ -123,19 +129,37 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
                 );
                 const isBottomRow = row.alwaysInclude || hasSpaceKey || (hasControlKeys && rowIndex === keyset.rows.length - 1);
 
+                // Always filter out unwanted keys
+                const filteredKeys = row.keys.filter((key: any) =>
+                  key.type !== 'next-keyboard' && key.type !== 'close'
+                );
+
+                // MOBILE: Add settings to top row
+                if (isMobileDevice && isTopRow) {
+                  const hasSettingsKey = row.keys.some((k: any) => k.value === settingsKey.value);
+
+                  if (!hasSettingsKey) {
+                    // Add spacer + settings at the end of top row
+                    return {
+                      ...row,
+                      keys: [
+                        ...filteredKeys,
+                        { hidden: true, width: 0.5 },  // Half-key spacer
+                        settingsKey
+                      ]
+                    };
+                  }
+                }
+
+                // BOTTOM ROW: Add language switch and clear-all
                 if (isBottomRow) {
                   // Check if language key already exists
                   const hasLanguageKey = row.keys.some((k: any) => k.type === 'language');
                   const hasClearAllKey = row.keys.some((k: any) => k.value === clearAllKey.value);
                   const hasSettingsKey = row.keys.some((k: any) => k.value === settingsKey.value);
 
-                  // Always filter out unwanted keys
-                  const filteredKeys = row.keys.filter((key: any) =>
-                    key.type !== 'next-keyboard' && key.type !== 'close'
-                  );
-
-                  if (!hasLanguageKey || !hasClearAllKey || !hasSettingsKey) {
-                    // Add language key after first key, settings + clear-all at the end
+                  if (!hasLanguageKey || !hasClearAllKey || (!hasSettingsKey && !isMobileDevice)) {
+                    // Add language key after first key
                     const newKeys = filteredKeys.reduce((acc: any[], key: any, index: number) => {
                       acc.push(key);
                       if (index === 0 && !hasLanguageKey) {
@@ -144,21 +168,22 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
                       return acc;
                     }, []);
 
-                    // Add gap + clear-all + gap + settings at the end (settings rightmost)
-                    if (!hasClearAllKey || !hasSettingsKey) {
+                    // Add gap + clear-all (+ settings on non-mobile) at the end
+                    if (!hasClearAllKey || (!hasSettingsKey && !isMobileDevice)) {
                       newKeys.push({ hidden: true, width: 0.5 });
                       if (!hasClearAllKey) {
                         newKeys.push(clearAllKey);
                       }
-                      newKeys.push({ hidden: true, width: 0.5 });
-                      if (!hasSettingsKey) {
+                      // Only add settings to bottom row on non-mobile devices
+                      if (!isMobileDevice && !hasSettingsKey) {
+                        newKeys.push({ hidden: true, width: 0.5 });
                         newKeys.push(settingsKey);
                       }
                     }
 
                     return { ...row, keys: newKeys };
                   } else {
-                    // Both keys exist, just use filtered keys
+                    // Keys exist, just use filtered keys
                     return { ...row, keys: filteredKeys };
                   }
                 }
@@ -248,6 +273,9 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
       console.log('🔑 Language key:', languageKey);
       console.log('📋 Original bottom row keys:', bottomRow.keys.length);
 
+      // Determine if we're on mobile (for settings button placement)
+      const isMobileDevice = frame.width < 600;
+
       // Remove next-keyboard and close keys, insert language key after the first key (123 button)
       const modifiedBottomRow = {
         ...bottomRow,
@@ -264,24 +292,52 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
           }, []),
       };
 
-      // Add gap + clear-all + gap + settings at the end (settings rightmost)
+      // Add gap + clear-all (+ settings on non-mobile) at the end
       modifiedBottomRow.keys.push({ hidden: true, width: 0.5 });
       modifiedBottomRow.keys.push(clearAllKey);
-      modifiedBottomRow.keys.push({ hidden: true, width: 0.5 });
-      modifiedBottomRow.keys.push(settingsKey);
+      if (!isMobileDevice) {
+        modifiedBottomRow.keys.push({ hidden: true, width: 0.5 });
+        modifiedBottomRow.keys.push(settingsKey);
+      }
 
       console.log('📋 Modified bottom row keys:', modifiedBottomRow.keys.length);
       console.log('📋 Modified bottom row keys types:', modifiedBottomRow.keys.map((k: any) => k.type || k.value));
 
       const mergedCommonKeysets = commonKeysets.map((keyset: any) => ({
         ...keyset,
-        rows: [...keyset.rows, modifiedBottomRow],
+        rows: [
+          // MOBILE: Add settings to top row
+          ...(isMobileDevice && keyset.rows.length > 0 ? [{
+            ...keyset.rows[0],
+            keys: [
+              ...keyset.rows[0].keys,
+              { hidden: true, width: 0.5 },  // Half-key spacer
+              settingsKey
+            ]
+          }] : [keyset.rows[0]]),
+          // Rest of rows
+          ...keyset.rows.slice(1),
+          // Bottom row
+          modifiedBottomRow
+        ],
       }));
 
       // Also modify the original language-specific keysets
       const modifiedLanguageKeysets = config.keysets.map((keyset: any) => ({
         ...keyset,
-        rows: keyset.rows.map((row: any) => {
+        rows: keyset.rows.map((row: any, rowIndex: number) => {
+          // MOBILE: Add settings to top row
+          if (isMobileDevice && rowIndex === 0) {
+            return {
+              ...row,
+              keys: [
+                ...row.keys,
+                { hidden: true, width: 0.5 },  // Half-key spacer
+                settingsKey
+              ]
+            };
+          }
+
           if (row.alwaysInclude) {
             // This is the bottom row - remove next-keyboard and close, insert language key after first key
             const filteredKeys = row.keys
@@ -294,11 +350,13 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
                 return acc;
               }, []);
 
-            // Add gap + clear-all + gap + settings at the end (settings rightmost)
+            // Add gap + clear-all (+ settings on non-mobile) at the end
             filteredKeys.push({ hidden: true, width: 0.5 });
             filteredKeys.push(clearAllKey);
-            filteredKeys.push({ hidden: true, width: 0.5 });
-            filteredKeys.push(settingsKey);
+            if (!isMobileDevice) {
+              filteredKeys.push({ hidden: true, width: 0.5 });
+              filteredKeys.push(settingsKey);
+            }
 
             return {
               ...row,

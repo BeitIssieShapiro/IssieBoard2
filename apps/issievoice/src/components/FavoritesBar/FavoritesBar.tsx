@@ -302,6 +302,9 @@ const styles = StyleSheet.create({
     color: 'gray',
     fontSize: 32,
     fontWeight: 'bold',
+    lineHeight: 32,
+    textAlign: 'center',
+    textAlignVertical: 'center',
   },
   toolbar: {
     position: 'absolute',

@@ -29,7 +29,7 @@ const path = require('path');
 
 // Default height preset: "compact", "normal", "tall", "x-tall"
 // This replaces the old keyHeight pixel value with semantic presets that adapt to device
-const DEFAULT_HEIGHT_PRESET = 'normal';  // Options: compact, normal, tall, x-tall
+const DEFAULT_HEIGHT_PRESET = 'tall';  // Options: compact, normal, tall, x-tall
 
 // Default key gap in points (space between keys)
 const DEFAULT_KEY_GAP = 3;

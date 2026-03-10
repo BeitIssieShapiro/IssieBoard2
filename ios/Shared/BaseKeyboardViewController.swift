@@ -260,7 +260,7 @@ class BaseKeyboardViewController: UIInputViewController {
         do {
             parsedConfig = try JSONDecoder().decode(KeyboardConfig.self, from: jsonData)
             print("⚙️ [ConfigLoad] Successfully decoded config")
-            print("⚙️ [ConfigLoad] fontSize: \(parsedConfig?.fontSize ?? nil)")
+            print("⚙️ [ConfigLoad] fontSizePreset: \(parsedConfig?.fontSizePreset ?? "nil")")
             print("⚙️ [ConfigLoad] fontName: \(parsedConfig?.fontName ?? "nil")")
             print("⚙️ [ConfigLoad] fontWeight: \(parsedConfig?.fontWeight ?? "nil")")
             renderKeyboard()
