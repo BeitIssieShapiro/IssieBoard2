@@ -671,6 +671,7 @@ class KeyboardRenderer(private val context: Context) {
 
         val rowsContainer = TransformAwareContainer(context).apply {
             orientation = LinearLayout.VERTICAL
+            gravity = android.view.Gravity.CENTER_HORIZONTAL  // Center rows horizontally
             setBackgroundColor(Color.TRANSPARENT)  // Transparent to show keyboard background
             clipChildren = false
             clipToPadding = false
@@ -697,9 +698,11 @@ class KeyboardRenderer(private val context: Context) {
         container.addView(rowsContainer)
 
         // Render each row
-        // Scale availableWidth by currentScale so keys are proportionally narrower in preview
-        val scaledPadding = (dpToPx(8) * currentScale).toInt()
-        val availableWidth = ((currentWidth * currentScale).toInt() - scaledPadding)
+        // Calculate available width for keys
+        // iOS: availableWidth = container.bounds.width - (8 * effectiveScale)
+        // Android: same, keys are calculated proportionally from this
+        val horizontalPadding = (dpToPx(8) * currentScale).toInt()
+        val availableWidth = (currentWidth * currentScale).toInt() - horizontalPadding
         debugLog("📐 Rendering ${keyset.rows.size} rows with currentWidth=$currentWidth, currentScale=$currentScale, availableWidth=$availableWidth")
         debugLog("📐 CURRENT SCALE = $currentScale, effectiveScale: $effectiveScale")
 
@@ -901,17 +904,20 @@ class KeyboardRenderer(private val context: Context) {
     ): ViewGroup {
         val effectiveRowHeight = scaledRowHeight
         debugLog("🎯 createRow #$rowIndex: effectiveRowHeight=$effectiveRowHeight, scaledRowHeight=$scaledRowHeight, rowHeight=$rowHeight, currentScale=$currentScale")
+        // Add small buffer to row width to accommodate rounding errors from key width calculations
+        // Keys are calculated as (effectiveWidth / baselineWidth) * availableWidth and rounded down
+        // This can cause the total to slightly exceed availableWidth due to accumulated rounding
+        val rowWidth = availableWidth + (dpToPx(6) * currentScale).toInt()  // Add 6dp buffer
         val rowContainer = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
+                rowWidth,  // Slightly wider than availableWidth to accommodate rounding
                 effectiveRowHeight
-            ).apply {
-                setMargins(dpToPx(4), 0, dpToPx(4), 0)
-            }
+            )
+            // No margins - we handle horizontal spacing via availableWidth calculation
             // Force a layout pass and log the actual measured height
             post {
-                debugLog("🎯 createRow #$rowIndex MEASURED: height=$height, layoutParams.height=${layoutParams.height}")
+                debugLog("🎯 createRow #$rowIndex MEASURED: height=$height, width=$width, layoutParams.width=${layoutParams.width}")
             }
         }
         debugLog("🎯 createRow #$rowIndex: rowContainer.layoutParams.height=${rowContainer.layoutParams.height}")
@@ -1095,7 +1101,8 @@ class KeyboardRenderer(private val context: Context) {
                 }
 
                 rowContainer.addView(button)
-                
+                debugLog("🔑 Row $rowIndex: Added key #$keyIndex: type='${parsedKey.type}', value='${parsedKey.value}', width=$keyWidth")
+
                 // Track first visible key (using intended X position that includes hidden spacers)
                 if (firstVisibleKey == null) {
                     firstVisibleKey = QuadTuple(parsedKey, button, currentX, keyWidth)

@@ -12,9 +12,9 @@ export interface BuiltInProfileTemplate {
     backgroundColor?: string;
     keysBgColor?: string;
     textColor?: string;
-    fontSize?: number;
+    fontSizePreset?: 'xs' | 'small' | 'normal' | 'large' | 'xl';  // Font size preset (replaces fontSize)
+    heightPreset?: 'compact' | 'normal' | 'tall' | 'x-tall';      // Height preset (replaces keyHeight)
     fontWeight?: 'ultraLight' | 'thin' | 'light' | 'regular' | 'medium' | 'semibold' | 'bold' | 'heavy' | 'black';
-    keyHeight?: number;
     keyGap?: number;
     wordSuggestionsEnabled?: boolean;
     autoCorrectEnabled?: boolean;
@@ -35,9 +35,9 @@ export const BUILT_IN_PROFILES: BuiltInProfileTemplate[] = [
     description: 'Clean, neutral keyboard with comfortable spacing',
     config: {
       backgroundColor: 'default',  // Transparent/liquid glass effect on iOS
-      fontSize: 48,
+      fontSizePreset: 'normal',    // Normal font size
+      heightPreset: 'normal',      // Normal keyboard height
       fontWeight: 'heavy',
-      keyHeight: 90,
       keyGap: 3,
       wordSuggestionsEnabled: true,
       autoCorrectEnabled: false,
@@ -55,9 +55,9 @@ export const BUILT_IN_PROFILES: BuiltInProfileTemplate[] = [
       backgroundColor: '#A0A0A0',   // Medium gray keyboard background
       keysBgColor: '#FFEB3B',       // Bright yellow keys
       textColor: '#0000FF',         // Blue text
-      fontSize: 48,
+      fontSizePreset: 'normal',     // Normal font size
+      heightPreset: 'normal',       // Normal keyboard height
       fontWeight: 'heavy',
-      keyHeight: 90,
       keyGap: 3,
       wordSuggestionsEnabled: true,
       autoCorrectEnabled: false,
@@ -84,11 +84,11 @@ export const BUILT_IN_PROFILES: BuiltInProfileTemplate[] = [
     description: 'Maximum visibility with white keys on black background',
     config: {
       backgroundColor: '#000000',   // Black keyboard background
-      keysBgColor: '#FFEB3B',       // White keys
+      keysBgColor: '#FFEB3B',       // Yellow keys for high contrast
       textColor: '#000000',         // Black text
-      fontSize: 56,                 // Larger text for accessibility
+      fontSizePreset: 'large',      // Larger text for accessibility
+      heightPreset: 'tall',         // Taller keys for accessibility
       fontWeight: 'black',          // Boldest font weight
-      keyHeight: 100,               // Taller keys
       keyGap: 6,                    // Wider gaps for visual separation
       wordSuggestionsEnabled: true,
       autoCorrectEnabled: false,
