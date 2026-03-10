@@ -222,6 +222,8 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
         position: "absolute",
         top: windowWidth < windowHeight ? 50 : 0,
         left: 5,
+        width: windowWidth - 60,
+        alignItems: 'center',  // Center the scaled keyboard horizontally
       }}>
         <KeyboardPreview
           key={`editor-preview-${windowWidth}`}

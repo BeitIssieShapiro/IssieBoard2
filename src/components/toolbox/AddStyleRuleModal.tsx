@@ -214,7 +214,6 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
   // DO NOT include other style groups - only show general settings + current group
   // IMPORTANT: In the modal preview, we show opacity effect (0.3) to preview semi-hidden keys,
   // but we don't fully hide keys (visibility modes) because we need all keys visible for selection.
-  // Use smaller key height for modal to fit without scaling, and scale fontSize proportionally
   const previewConfig = useMemo((): KeyboardConfig => {
     const groups: any[] = [];
 
@@ -294,7 +293,6 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
       ...state.config,
       groups, // Only the current group being edited, not other groups
       wordSuggestionsEnabled: false, // Disable word suggestions in modal preview
-      keyGap: 0, // Remove gaps between keys in modal preview to prevent overflow
     };
   }, [state.config, selectedKeyValues, bgColor, textColor, visibilityMode]);
 
@@ -305,7 +303,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
   const isPortrait = windowHeight > windowWidth;
 
   // Modal preview height - 1.5x taller in portrait for better visibility
-  const modalPreviewHeight = isPortrait ? 300 : 200;
+  const modalPreviewHeight = isPortrait ? 280 : 200;
 
   // Build selected keys JSON for highlighting in the preview
   const selectedKeysJson = useMemo(() => {

@@ -2,7 +2,9 @@ package org.issieshapiro.issieboard.shared
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Matrix
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.util.TypedValue
@@ -19,6 +21,23 @@ import org.json.JSONObject
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
+
+/**
+ * Container view that properly handles touch events for scaled/transformed content
+ * Port of TransformAwareContainerView from iOS
+ *
+ * Android's default behavior already handles scale/rotation transforms correctly.
+ * We just need to ensure clipChildren/clipToPadding are false to allow touches
+ * outside the original bounds.
+ */
+private class TransformAwareContainer(context: Context) : LinearLayout(context) {
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        if (event.action == MotionEvent.ACTION_DOWN) {
+            debugLog("🔍 Touch DOWN: x=${event.x}, y=${event.y}")
+        }
+        return super.dispatchTouchEvent(event)
+    }
+}
 
 /**
  * Self-contained keyboard renderer that manages all keyboard logic internally.
@@ -166,9 +185,14 @@ class KeyboardRenderer(private val context: Context) {
             val hasSuggestions = wordSuggestionsOverrideEnabled ?: wordSuggestionsEnabled
             val calculatedRowHeight = dimensions.calculateRowHeight(numberOfRows = 4, hasSuggestions = hasSuggestions)
 
-            debugLog("📐 [rowHeight] calculated: ${calculatedRowHeight}dp -> ${dpToPx(calculatedRowHeight.toInt())}px")
+            val heightPx = dpToPx(calculatedRowHeight.toInt())
 
-            return dpToPx(calculatedRowHeight.toInt())
+            debugLog("📐 [rowHeight] calculated: ${calculatedRowHeight}dp -> ${heightPx}px, currentScale=$currentScale")
+
+            // IMPORTANT: In preview mode, rowHeight represents the BASE height at the selected preset
+            // It will be multiplied by currentScale in the render method
+            // DO NOT apply currentScale here, or we'll get double-scaling
+            return heightPx
         }
     private val keySpacing: Int = 0
     private val rowSpacing: Int
@@ -200,8 +224,9 @@ class KeyboardRenderer(private val context: Context) {
     /** Effective scale for dimensions (1.0 when using transform scaling) */
     private val effectiveDimensionScale: Float
         get() {
-            val useTransformScaling = isPreviewMode && currentScale < 1.0f
-            return if (useTransformScaling) 1.0f else currentScale
+            // Android always uses dimension scaling (transforms don't work properly in React Native)
+            // Scale all dimensions by currentScale
+            return currentScale
         }
 
     /** Scaled row height */
@@ -482,7 +507,13 @@ class KeyboardRenderer(private val context: Context) {
 
         // Calculate scale if in preview mode with maxHeight
         val maxHeight = previewMaxHeight
+        debugLog("📏 Before calc: currentScale=$currentScale, isPreviewMode=$isPreviewMode, maxHeight=$maxHeight")
         if (isPreviewMode && maxHeight != null && maxHeight > 0) {
+            // IMPORTANT: Temporarily reset currentScale to 1.0 so calculateKeyboardHeight returns the FULL height
+            // Otherwise on subsequent renders, it will use the already-scaled height and scale won't work correctly
+            val savedScale = currentScale
+            currentScale = 1.0f
+
             // Calculate full-size keyboard height
             val fullKeyboardHeight = calculateKeyboardHeight(
                 config,
@@ -493,13 +524,14 @@ class KeyboardRenderer(private val context: Context) {
             // Only scale if we have a valid keyboard height
             if (fullKeyboardHeight > 0) {
                 currentScale = calculatePreviewScale(fullKeyboardHeight, maxHeight)
-                debugLog("📏 Preview scaling: fullHeight=$fullKeyboardHeight, maxHeight=$maxHeight, scale=$currentScale")
+                debugLog("📏 Preview scaling: fullHeight=$fullKeyboardHeight, maxHeight=$maxHeight, scale=$currentScale (was $savedScale)")
             } else {
                 currentScale = 1.0f
                 debugLog("Preview scaling: Invalid keyboard height, using scale=1.0")
             }
         } else {
             currentScale = 1.0f  // Full size for actual keyboard or no maxHeight
+            debugLog("📏 No preview scaling - isPreviewMode=$isPreviewMode, maxHeight=$maxHeight, setting currentScale=1.0")
         }
         
         // Update last rendered width
@@ -621,19 +653,23 @@ class KeyboardRenderer(private val context: Context) {
             suggestionsBar = null
         }
 
-        // When using transform scaling, render at full size (no dimension scaling)
-        // Otherwise use scaled dimensions
-        val useTransformScaling = isPreviewMode && currentScale < 1.0f
-        val effectiveScale = if (useTransformScaling) 1.0f else currentScale
+        // Android: Always use dimension-based scaling
+        // Transform scaling doesn't work properly in React Native views (touch events break)
+        val useTransformScaling = false
+        val effectiveScale = currentScale  // Always scale dimensions
         val effectiveRowHeight = (rowHeight * effectiveScale).toInt()
         val effectiveRowSpacing = (rowSpacing * effectiveScale).toInt()
         val effectiveHorizontalPadding = (dpToPx(4) * effectiveScale).toInt()
+
+        debugLog("🎯 SCALING: currentScale=$currentScale, effectiveScale=$effectiveScale")
+        debugLog("🎯 HEIGHTS: rowHeight=$rowHeight, effectiveRowHeight=$effectiveRowHeight")
+        debugLog("🎯 MODE: isPreviewMode=$isPreviewMode, useTransformScaling=$useTransformScaling")
 
         // Create rows container
         val totalRowsHeight = keyset.rows.size * effectiveRowHeight + (keyset.rows.size - 1) * effectiveRowSpacing
         debugLog("📐 Total rows height: $totalRowsHeight (${keyset.rows.size} rows x $effectiveRowHeight)")
 
-        val rowsContainer = LinearLayout(context).apply {
+        val rowsContainer = TransformAwareContainer(context).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(Color.TRANSPARENT)  // Transparent to show keyboard background
             clipChildren = false
@@ -646,12 +682,14 @@ class KeyboardRenderer(private val context: Context) {
                     setMargins(0, (dpToPx(4) * effectiveScale).toInt(), 0, (dpToPx(4) * effectiveScale).toInt())
                 }
             } else {
+                // FrameLayout: Use explicit height for content, but allow overflow for touch events
+                // Don't set bottom margin to allow touch events below the container bounds
                 layoutParams = FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.MATCH_PARENT,
-                    totalRowsHeight
+                    FrameLayout.LayoutParams.WRAP_CONTENT  // Let content determine height
                 ).apply {
                     val topMargin = if (wordSuggestionsEnabled && !isPreviewMode) scaledSuggestionsBarHeight + (dpToPx(4) * effectiveScale).toInt() else (dpToPx(4) * effectiveScale).toInt()
-                    setMargins(0, topMargin, 0, (dpToPx(4) * effectiveScale).toInt())
+                    setMargins(0, topMargin, 0, 0)  // No bottom margin to allow overflow
                 }
             }
         }
@@ -659,8 +697,10 @@ class KeyboardRenderer(private val context: Context) {
         container.addView(rowsContainer)
 
         // Render each row
-        val availableWidth = currentWidth - (dpToPx(8) * effectiveScale).toInt()
-        debugLog("📐 Rendering ${keyset.rows.size} rows with availableWidth=$availableWidth, useTransformScaling=$useTransformScaling")
+        // Scale availableWidth by currentScale so keys are proportionally narrower in preview
+        val scaledPadding = (dpToPx(8) * currentScale).toInt()
+        val availableWidth = ((currentWidth * currentScale).toInt() - scaledPadding)
+        debugLog("📐 Rendering ${keyset.rows.size} rows with currentWidth=$currentWidth, currentScale=$currentScale, availableWidth=$availableWidth")
         debugLog("📐 CURRENT SCALE = $currentScale, effectiveScale: $effectiveScale")
 
         for ((rowIndex, row) in keyset.rows.withIndex()) {
@@ -690,34 +730,8 @@ class KeyboardRenderer(private val context: Context) {
             rowsContainer.addView(rowView)
         }
 
-        // Apply scale transform if in preview mode (after layout completes)
-        if (isPreviewMode && currentScale < 1.0f) {
-            // Post to ensure layout is complete before applying transform
-            rowsContainer.post {
-                // Use center anchor point (default is 0.5, 0.5)
-                rowsContainer.pivotX = rowsContainer.width / 2f
-                rowsContainer.pivotY = rowsContainer.height / 2f
-
-                // Apply scale
-                rowsContainer.scaleX = currentScale
-                rowsContainer.scaleY = currentScale
-
-                // After scaling from center, the top edge has shifted down
-                // Calculate how much we need to shift up to align top edge
-                // When scaling from center, top edge moves down by: (1 - scale) * height / 2
-                val containerHeight = rowsContainer.height.toFloat()
-                val heightShift = (1 - currentScale) * containerHeight / 2
-
-                // Shift up to align top edge
-                rowsContainer.translationY = -heightShift
-
-                debugLog("📐 Applied transform - scale: $currentScale, containerHeight: $containerHeight, heightShift: $heightShift, width: ${rowsContainer.width}, height: ${rowsContainer.height}")
-            }
-        } else {
-            rowsContainer.scaleX = 1.0f
-            rowsContainer.scaleY = 1.0f
-            rowsContainer.translationY = 0f
-        }
+        // Android: Always use dimension-based scaling (no transforms)
+        debugLog("📐 Android preview: using dimension scaling with effectiveScale=$effectiveScale, currentScale=$currentScale")
     }
 
     // MARK: - Private Helpers
@@ -886,6 +900,7 @@ class KeyboardRenderer(private val context: Context) {
         rowIndex: Int
     ): ViewGroup {
         val effectiveRowHeight = scaledRowHeight
+        debugLog("🎯 createRow #$rowIndex: effectiveRowHeight=$effectiveRowHeight, scaledRowHeight=$scaledRowHeight, rowHeight=$rowHeight, currentScale=$currentScale")
         val rowContainer = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             layoutParams = LinearLayout.LayoutParams(
@@ -894,7 +909,12 @@ class KeyboardRenderer(private val context: Context) {
             ).apply {
                 setMargins(dpToPx(4), 0, dpToPx(4), 0)
             }
+            // Force a layout pass and log the actual measured height
+            post {
+                debugLog("🎯 createRow #$rowIndex MEASURED: height=$height, layoutParams.height=${layoutParams.height}")
+            }
         }
+        debugLog("🎯 createRow #$rowIndex: rowContainer.layoutParams.height=${rowContainer.layoutParams.height}")
         
         // Track first and last visible keys for tap area extension
         var firstVisibleKey: QuadTuple<ParsedKey, View, Int, Int>? = null
@@ -1348,14 +1368,9 @@ class KeyboardRenderer(private val context: Context) {
                 }
             }
 
-            // Apply scaling for preview mode (only if not using transform scaling)
-            // When using transform scaling, render at full size
-            val useTransformScaling = isPreviewMode && currentScale < 1.0f
-            val scaledFontSize = if (!useTransformScaling) {
-                finalFontSize * currentScale
-            } else {
-                finalFontSize
-            }
+            // Apply scaling for preview mode
+            // Android always uses dimension-based scaling (scale all dimensions by currentScale)
+            val scaledFontSize = finalFontSize * currentScale
 
             textSize = scaledFontSize
                 

@@ -60,7 +60,10 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
         setBackgroundColor(Color.parseColor("#D2D5DB"))
         clipChildren = false  // Allow touches to scaled content outside bounds
         clipToPadding = false
-        
+
+        // Extend touch delegate to allow touches outside visual bounds
+        isClickable = false  // Don't intercept touches at this level
+
         // Add keyboard container at index 0 (bottom layer)
         addView(keyboardContainer, 0)
         
@@ -247,24 +250,24 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
 
     private fun renderKeyboard() {
         val config = parsedConfig ?: return
-        
+
         // Wait for layout if width is 0
         if (width == 0) {
             debugLog("🔧 Width is 0, postponing render until layout")
             post { renderKeyboard() }
             return
         }
-        
+
         debugLog("🔧 renderKeyboard: width=$width, height=$height")
-        
+
         // Don't clear keyboardContainer here - the renderer handles it internally
-        
+
         // Use config's default keyset, or first available keyset
         val availableKeysets = config.keysets.map { it.id }
-        val defaultKeyset = config.defaultKeyset 
-            ?: availableKeysets.firstOrNull() 
+        val defaultKeyset = config.defaultKeyset
+            ?: availableKeysets.firstOrNull()
             ?: "abc"
-        
+
         // Use renderer's current keyset if it's valid in this config
         val rendererKeyset = renderer?.currentKeysetId
         val currentKeyset = if (rendererKeyset != null && availableKeysets.contains(rendererKeyset)) {
@@ -272,8 +275,36 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
         } else {
             defaultKeyset
         }
-        
+
         debugLog("🔧 Rendering with keyset: $currentKeyset (default: $defaultKeyset, available: $availableKeysets)")
+
+        // Calculate scale factor if we have maxHeight
+        val scale = if (previewMaxHeight != null && previewMaxHeight!! > 0) {
+            val fullKeyboardHeight = renderer?.calculateKeyboardHeight(
+                config,
+                currentKeyset,
+                config.isWordSuggestionsEnabled
+            ) ?: 0
+
+            if (fullKeyboardHeight > 0) {
+                previewMaxHeight!!.toFloat() / fullKeyboardHeight.toFloat()
+            } else {
+                1.0f
+            }
+        } else {
+            1.0f
+        }
+
+        // Adjust container width based on scale
+        val scaledWidth = (width * scale).toInt()
+        debugLog("🔧 Scaling container: originalWidth=$width, scale=$scale, scaledWidth=$scaledWidth")
+
+        keyboardContainer.layoutParams = FrameLayout.LayoutParams(
+            scaledWidth,
+            FrameLayout.LayoutParams.MATCH_PARENT
+        ).apply {
+            gravity = Gravity.CENTER_HORIZONTAL  // Center the scaled container
+        }
 
         // Set preview mode with maxHeight before rendering
         if (previewMaxHeight != null) {
