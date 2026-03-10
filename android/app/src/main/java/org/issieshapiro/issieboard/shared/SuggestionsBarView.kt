@@ -65,14 +65,16 @@ class SuggestionsBarView(private val context: Context) {
     /**
      * Create the suggestions bar view
      * @param width Width of the container
+     * @param height Optional custom height (defaults to barHeight)
      * @return The configured ViewGroup
      */
-    fun createBar(width: Int): ViewGroup {
+    fun createBar(width: Int, height: Int? = null): ViewGroup {
+        val actualHeight = height ?: barHeight
         val bar = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             setBackgroundColor(Color.parseColor("#E8E8E8"))  // systemGray5 equivalent
             // Use FrameLayout.LayoutParams since we're being added to a FrameLayout
-            layoutParams = FrameLayout.LayoutParams(width, barHeight).apply {
+            layoutParams = FrameLayout.LayoutParams(width, actualHeight).apply {
                 gravity = Gravity.TOP
             }
             tag = 888  // Tag to identify suggestions bar

@@ -42,7 +42,16 @@ class KeyboardPreviewViewManager(
     fun setSelectedKeys(view: KeyboardPreviewView, selectedKeys: String?) {
         view.setSelectedKeys(selectedKeys)
     }
-    
+
+    /**
+     * Set maximum height for preview scaling
+     * @param maxHeight Maximum height in density-independent pixels (dp)
+     */
+    @ReactProp(name = "maxHeight")
+    fun setMaxHeight(view: KeyboardPreviewView, maxHeight: Double) {
+        view.setMaxHeight(maxHeight)
+    }
+
     /**
      * Export event names that this view can emit
      */

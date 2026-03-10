@@ -223,6 +223,22 @@ Android:
 
 ---
 
+## Last Ported Commits
+
+| Commit | Description | Date Ported |
+|--------|-------------|-------------|
+| `d8ae0c4` | kb height #1 - FontSizePreset, KeyboardHeightPreset enums, KeyboardDimensions calculator | 2026-03-10 |
+| `59168ac` | scale #2 (ios done) - Preview mode scaling, effectiveDimensionScale, transform-based scaling | 2026-03-10 |
+
+**Files updated:**
+- `KeyboardModels.kt` - Added FontSizePreset, KeyboardHeightPreset, DeviceType enums, KeyboardHeightConstants, FontSizeConstants, KeyboardDimensions
+- `KeyboardConfigParser.kt` - Parse fontSizePreset, heightPreset, fontSize as Double
+- `KeyboardRenderer.kt` - Dynamic row height from KeyboardDimensions, preview scaling with View transforms
+- `SuggestionsBarView.kt` - Height parameter for createBar()
+- `KeyboardPreviewView.kt` - clipChildren/clipToPadding = false for scaled content
+
+---
+
 ## ⚠️ Important Notes
 
 1. **Do NOT diverge from iOS logic** - If you find a bug or improvement needed, implement it in iOS first, then port to Android.

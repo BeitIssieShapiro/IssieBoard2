@@ -60,7 +60,6 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
   const [favoritesReloadTrigger, setFavoritesReloadTrigger] = useState(0);
   const keyboardConfigRef = useRef<any>(null);
   const keyboardHeightRef = useRef<number>(350);
-  const isAdjustingRef = useRef<boolean>(false);
 
   // Get window dimensions using useSafeAreaFrame (works with ScreenSizer)
   const frame = useSafeAreaFrame();
@@ -168,18 +167,18 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
             }));
 
             // Store the config object for height calculations
-            // Reset keyHeight to base value (90) - saved configs may have different values
+            // Use presets instead of absolute values
             console.log('💾 Saved config has:', {
-              keyHeight: savedConfig.keyHeight,
-              fontSize: savedConfig.fontSize,
+              heightPreset: savedConfig.heightPreset,
+              fontSizePreset: savedConfig.fontSizePreset,
               fontWeight: savedConfig.fontWeight,
               hasGroups: !!savedConfig.groups,
               groupCount: savedConfig.groups?.length
             });
             keyboardConfigRef.current = {
               ...savedConfig,
-              keyHeight: 90,
-              fontSize: 38,
+              heightPreset: 'tall',  // Use preset for better accessibility
+              fontSizePreset: 'large',  // Use preset for better readability
             };
 
             console.log('📋 Final config before sending to KeyboardPreview:', {
@@ -318,8 +317,8 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
       const issieVoiceConfig = {
         ...config,
         keysets: allKeysets,
-        keyHeight: 90, // Larger keys for better accessibility in IssieVoice
-        fontSize: 38, // Larger font size for better readability
+        heightPreset: 'tall', // Use preset for better accessibility in IssieVoice
+        fontSizePreset: 'large', // Use preset for better readability
         language: language, // Set the language for suggestions
         settingsButtonEnabled: true, // Enable settings button
       };
@@ -386,75 +385,8 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
     loadConfig();
   }, [currentLanguage]);
 
-  // Effect to adjust keyboard config when screen dimensions change
-  useEffect(() => {
-    if (!keyboardConfigRef.current) {
-      console.log('⚙️ Skipping height adjustment - config not loaded yet');
-      return;
-    }
-
-    if (isAdjustingRef.current) {
-      console.log('⚙️ Skipping height adjustment - already adjusting');
-      return;
-    }
-
-    // Use the actual keyboard height from ref to avoid triggering effect
-    const actualKeyboardHeight = keyboardHeightRef.current;
-    const isMobileDevice = frame.width < 600;
-    const maxAllowedHeight = frame.height * (isMobileDevice ? 0.4 : 0.5); // 40% on mobile, 50% on tablet/desktop
-
-    console.log('⚙️ Height adjustment triggered - frame:', frame.width, 'x', frame.height, 'mobile:', isMobileDevice, 'keyboard height:', actualKeyboardHeight, 'max allowed:', maxAllowedHeight);
-
-    // Always start from the desired base keyHeight (reset on rotation)
-    // Use smaller keys on mobile devices (width < 600)
-    const desiredKeyHeight = isMobileDevice ? 60 : 90;
-    let finalKeyHeight = desiredKeyHeight;
-    let finalFontSize = isMobileDevice ? 28 : 38;
-
-    // Only scale down if the reported keyboard height exceeds 50% of screen
-    if (actualKeyboardHeight > maxAllowedHeight && actualKeyboardHeight > 0) {
-      // Calculate scaling factor based on actual vs max height
-      const scaleFactor = maxAllowedHeight / actualKeyboardHeight;
-      finalKeyHeight = Math.floor(desiredKeyHeight * scaleFactor);
-      finalFontSize = Math.floor(38 * scaleFactor);
-
-      console.log(`⚙️ Scaling down - factor: ${scaleFactor.toFixed(2)}, keyHeight: ${desiredKeyHeight} → ${finalKeyHeight}, fontSize: 38 → ${finalFontSize}`);
-    } else {
-      console.log(`⚙️ No scaling needed - using keyHeight ${desiredKeyHeight}, fontSize ${finalFontSize}`);
-    }
-
-    // Check if values actually changed to avoid unnecessary updates
-    const currentKeyHeight = keyboardConfigRef.current.keyHeight;
-    const currentFontSize = keyboardConfigRef.current.fontSize;
-
-    if (currentKeyHeight === finalKeyHeight && currentFontSize === finalFontSize) {
-      console.log('⚙️ No change in keyHeight/fontSize - skipping update');
-      return;
-    }
-
-    // Set flag to prevent re-entry
-    isAdjustingRef.current = true;
-
-    // Create a new config object with adjusted values (don't mutate the ref)
-    const adjustedConfig = {
-      ...keyboardConfigRef.current,
-      keyHeight: finalKeyHeight,
-      fontSize: finalFontSize,
-    };
-
-    console.log('⚙️ Setting config with keyHeight:', adjustedConfig.keyHeight, 'fontSize:', adjustedConfig.fontSize);
-
-    // Update the ref to track current values
-    keyboardConfigRef.current = adjustedConfig;
-
-    // Update the config string to trigger re-render
-    setKeyboardConfig(JSON.stringify(adjustedConfig));
-
-    // Reset flag after a short delay to allow next adjustment if needed
-    setTimeout(() => {
-      isAdjustingRef.current = false;
-    }, 500);
-  }, [frame.height, frame.width]); // Only re-run when screen dimensions change
+  // Native keyboard now handles scaling automatically with presets
+  // No need for manual height adjustment
 
   // Separate effect for TTS language to avoid circular dependencies
   useEffect(() => {

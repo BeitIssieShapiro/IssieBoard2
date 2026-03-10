@@ -18,6 +18,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import kotlin.math.abs
 import kotlin.math.max
+import kotlin.math.min
 
 /**
  * Self-contained keyboard renderer that manages all keyboard logic internally.
@@ -136,23 +137,47 @@ class KeyboardRenderer(private val context: Context) {
     private var isPreviewMode: Boolean = false
 
     // UI Constants - same for preview and keyboard
-    // Dynamic row height: uses config keyHeight if provided, otherwise 54px base
+    // Dynamic row height: uses adaptive calculation based on screen size and preset
     private val rowHeight: Int
         get() {
-            // Check if config specifies a custom key height
-            config?.keyHeight?.let { customHeight ->
-                return dpToPx(customHeight)
-            }
+            // Get height preset from config (defaults to .normal)
+            val preset = KeyboardHeightPreset.from(config?.heightPreset)
 
-            // Otherwise use default
-            return dpToPx(54)
+            // Get font size preset from config (defaults to .normal)
+            val fontPreset = FontSizePreset.from(config?.fontSizePreset)
+
+            // Get screen dimensions in dp
+            val displayMetrics = context.resources.displayMetrics
+            val screenWidthDp = displayMetrics.widthPixels.toFloat() / displayMetrics.density
+            val screenHeightDp = displayMetrics.heightPixels.toFloat() / displayMetrics.density
+
+            debugLog("📐 [rowHeight] screenDp: ${screenWidthDp}x${screenHeightDp}, preset: ${preset.value}")
+
+            // Create dimensions calculator (uses dp throughout)
+            val dimensions = KeyboardDimensions(
+                screenWidth = screenWidthDp,
+                screenHeight = screenHeightDp,
+                deviceType = DeviceType.current(context),
+                heightPreset = preset,
+                fontSizePreset = fontPreset
+            )
+
+            // Calculate row height (4 rows, with or without suggestions)
+            val hasSuggestions = wordSuggestionsOverrideEnabled ?: wordSuggestionsEnabled
+            val calculatedRowHeight = dimensions.calculateRowHeight(numberOfRows = 4, hasSuggestions = hasSuggestions)
+
+            debugLog("📐 [rowHeight] calculated: ${calculatedRowHeight}dp -> ${dpToPx(calculatedRowHeight.toInt())}px")
+
+            return dpToPx(calculatedRowHeight.toInt())
         }
     private val keySpacing: Int = 0
-    private val rowSpacing: Int = 0
+    private val rowSpacing: Int
+        get() = dpToPx(KeyboardHeightConstants.ROW_SPACING.toInt())
     private val keyCornerRadius: Float = dpToPx(5).toFloat()
     private val fontSize: Float = 34f
     private val largeFontSize: Float = 38f
-    private val suggestionsBarHeight: Int = dpToPx(40)
+    private val suggestionsBarHeight: Int
+        get() = dpToPx(KeyboardHeightConstants.SUGGESTIONS_BAR_HEIGHT.toInt())
 
     // Get key gap from config or use default
     private fun getKeyGap(): Int {
@@ -161,6 +186,43 @@ class KeyboardRenderer(private val context: Context) {
 
     // Suggestions bar view reference for updates
     private var suggestionsBar: ViewGroup? = null
+
+    // MARK: - Preview Mode Scaling
+
+    /** Maximum height for preview mode (if set, keyboard will scale to fit) */
+    private var previewMaxHeight: Int? = null
+
+    /** Current scale factor (1.0 = full size, 0.8 = 80%, etc.) */
+    private var currentScale: Float = 1.0f
+
+    // MARK: - Scaled Dimensions (for preview mode)
+
+    /** Effective scale for dimensions (1.0 when using transform scaling) */
+    private val effectiveDimensionScale: Float
+        get() {
+            val useTransformScaling = isPreviewMode && currentScale < 1.0f
+            return if (useTransformScaling) 1.0f else currentScale
+        }
+
+    /** Scaled row height */
+    private val scaledRowHeight: Int
+        get() = (rowHeight * effectiveDimensionScale).toInt()
+
+    /** Scaled key gap */
+    private val scaledKeyGap: Int
+        get() = (getKeyGap() * effectiveDimensionScale).toInt()
+
+    /** Scaled corner radius */
+    private val scaledCornerRadius: Float
+        get() = keyCornerRadius * effectiveDimensionScale
+
+    /** Scaled suggestions bar height */
+    private val scaledSuggestionsBarHeight: Int
+        get() = (suggestionsBarHeight * effectiveDimensionScale).toInt()
+
+    /** Scaled key vertical padding (visual gap between rows) */
+    private val scaledKeyVerticalPadding: Int
+        get() = (dpToPx(5) * effectiveDimensionScale).toInt()
     
     // MARK: - Modular Helper Classes
     
@@ -279,20 +341,43 @@ class KeyboardRenderer(private val context: Context) {
     }
     
     // MARK: - Public Methods
-    
+
     /** Calculate the required keyboard height based on the current config */
     fun calculateKeyboardHeight(config: KeyboardConfig, keysetId: String, suggestionsEnabled: Boolean): Int {
         val keyset = config.keysets.find { it.id == keysetId } ?: return dpToPx(216)
-        
+
+        // Calculate row height using the dimension system
+        val preset = KeyboardHeightPreset.from(config.heightPreset)
+        val fontPreset = FontSizePreset.from(config.fontSizePreset)
+
+        // Get screen dimensions in dp
+        val displayMetrics = context.resources.displayMetrics
+        val screenWidthDp = displayMetrics.widthPixels.toFloat() / displayMetrics.density
+        val screenHeightDp = displayMetrics.heightPixels.toFloat() / displayMetrics.density
+
+        // Create dimensions calculator with the passed config's presets
+        val dimensions = KeyboardDimensions(
+            screenWidth = screenWidthDp,
+            screenHeight = screenHeightDp,
+            deviceType = DeviceType.current(context),
+            heightPreset = preset,
+            fontSizePreset = fontPreset
+        )
+
         val numberOfRows = keyset.rows.size
-        val rowsHeight = numberOfRows * rowHeight
+        val calculatedRowHeight = dimensions.calculateRowHeight(numberOfRows = numberOfRows, hasSuggestions = suggestionsEnabled)
+
+        val rowsHeight = (numberOfRows * dpToPx(calculatedRowHeight.toInt()))
         val spacingHeight = max(0, numberOfRows - 1) * rowSpacing
-        // Only include suggestions height if suggestions are actually enabled for this field
-        val suggestionsHeight = if (suggestionsEnabled) suggestionsBarHeight + dpToPx(4) else 0
-        val topPadding = dpToPx(4)
+        val suggestionsHeight = if (suggestionsEnabled) suggestionsBarHeight else 0
+        val topPadding = 0
         val bottomPadding = dpToPx(4)
-        
-        return rowsHeight + spacingHeight + suggestionsHeight + topPadding + bottomPadding
+
+        val totalHeight = rowsHeight + spacingHeight + suggestionsHeight + topPadding + bottomPadding
+
+        debugLog("📐 [calculateKeyboardHeight] preset: ${preset.value}, rowHeight: ${calculatedRowHeight}dp, rows: $numberOfRows, total: $totalHeight")
+
+        return totalHeight
     }
     
     /** Check if width changed and re-render is needed */
@@ -340,6 +425,34 @@ class KeyboardRenderer(private val context: Context) {
         isPreviewMode = isPreview
     }
 
+    /** Set preview mode with maximum height for scaling
+     * @param maxHeight Maximum height in pixels (keyboard will scale down to fit), or null to disable */
+    fun setPreviewMode(maxHeight: Int?) {
+        isPreviewMode = true
+        previewMaxHeight = maxHeight
+    }
+
+    /** Calculate preview scale based on keyboard height and maxHeight
+     * @param keyboardHeight Full-size keyboard height
+     * @param maxHeight Maximum height constraint
+     * @return Scale factor (1.0 = no scaling, 0.5 = 50%, etc.) */
+    private fun calculatePreviewScale(keyboardHeight: Int, maxHeight: Int): Float {
+        if (keyboardHeight <= 0 || maxHeight <= 0) {
+            return 1.0f
+        }
+
+        // If keyboard fits, no scaling needed (never upscale)
+        if (keyboardHeight <= maxHeight) {
+            return 1.0f
+        }
+
+        // Scale down to fit
+        val scale = maxHeight.toFloat() / keyboardHeight.toFloat()
+
+        // Clamp between 0.5 (min) and 1.0 (max - never upscale)
+        return min(max(scale, 0.5f), 1.0f)
+    }
+
     /** Set whether word suggestions are enabled (override config setting) */
     fun setWordSuggestionsEnabled(enabled: Boolean?) {
         if (wordSuggestionsOverrideEnabled != enabled) {
@@ -360,11 +473,33 @@ class KeyboardRenderer(private val context: Context) {
         debugLog("🎬 KeyboardRenderer.renderKeyboard ENTRY - keyset: $currentKeysetId, caller: ${Thread.currentThread().stackTrace[3].methodName}")
         var currentWidth = container.width
         debugLog("📐 RENDER START - keysetId: $currentKeysetId, width: $currentWidth")
-        
+
         // If width is 0, use screen width as fallback (for InputMethodService where view may not be laid out)
         if (currentWidth == 0) {
             currentWidth = context.resources.displayMetrics.widthPixels
             debugLog("📐 Width was 0, using screen width: $currentWidth")
+        }
+
+        // Calculate scale if in preview mode with maxHeight
+        val maxHeight = previewMaxHeight
+        if (isPreviewMode && maxHeight != null && maxHeight > 0) {
+            // Calculate full-size keyboard height
+            val fullKeyboardHeight = calculateKeyboardHeight(
+                config,
+                currentKeysetId,
+                wordSuggestionsOverrideEnabled ?: wordSuggestionsEnabled
+            )
+
+            // Only scale if we have a valid keyboard height
+            if (fullKeyboardHeight > 0) {
+                currentScale = calculatePreviewScale(fullKeyboardHeight, maxHeight)
+                debugLog("📏 Preview scaling: fullHeight=$fullKeyboardHeight, maxHeight=$maxHeight, scale=$currentScale")
+            } else {
+                currentScale = 1.0f
+                debugLog("Preview scaling: Invalid keyboard height, using scale=1.0")
+            }
+        } else {
+            currentScale = 1.0f  // Full size for actual keyboard or no maxHeight
         }
         
         // Update last rendered width
@@ -461,65 +596,76 @@ class KeyboardRenderer(private val context: Context) {
             // Real keyboard - show native suggestions bar
             suggestionsBarView.currentKeyboardId = currentKeyboardId
 
-            // Create suggestions bar - we'll add with proper params below
-            val bar = LinearLayout(context).apply {
-                orientation = LinearLayout.HORIZONTAL
-                setBackgroundColor(Color.parseColor("#E8E8E8"))
-                if (isLinearContainer) {
-                    layoutParams = LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        suggestionsBarHeight
-                    )
-                } else {
-                    layoutParams = FrameLayout.LayoutParams(
-                        FrameLayout.LayoutParams.MATCH_PARENT,
-                        suggestionsBarHeight
-                    )
-                }
-                tag = 888  // Tag to identify suggestions bar
+            // Create suggestions bar with scaled height
+            val bar = suggestionsBarView.createBar(
+                width = (currentWidth * currentScale).toInt(),
+                height = scaledSuggestionsBarHeight
+            )
+            // Override layout params for the container type
+            if (isLinearContainer) {
+                bar.layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    scaledSuggestionsBarHeight
+                )
+            } else {
+                bar.layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    scaledSuggestionsBarHeight
+                )
             }
             container.addView(bar)
             suggestionsBar = bar
-            suggestionsBarView.setBarView(bar)
             suggestionsBarView.updateSuggestions(currentSuggestions, suggestionHighlightIndex)
         } else {
             // Preview mode - don't show bar (React Native handles it)
             suggestionsBar = null
         }
-        
-        // Create rows container - use explicit height calculation for debugging
-        val totalRowsHeight = keyset.rows.size * rowHeight
-        debugLog("📐 Total rows height: $totalRowsHeight (${keyset.rows.size} rows x $rowHeight)")
-        
+
+        // When using transform scaling, render at full size (no dimension scaling)
+        // Otherwise use scaled dimensions
+        val useTransformScaling = isPreviewMode && currentScale < 1.0f
+        val effectiveScale = if (useTransformScaling) 1.0f else currentScale
+        val effectiveRowHeight = (rowHeight * effectiveScale).toInt()
+        val effectiveRowSpacing = (rowSpacing * effectiveScale).toInt()
+        val effectiveHorizontalPadding = (dpToPx(4) * effectiveScale).toInt()
+
+        // Create rows container
+        val totalRowsHeight = keyset.rows.size * effectiveRowHeight + (keyset.rows.size - 1) * effectiveRowSpacing
+        debugLog("📐 Total rows height: $totalRowsHeight (${keyset.rows.size} rows x $effectiveRowHeight)")
+
         val rowsContainer = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(Color.TRANSPARENT)  // Transparent to show keyboard background
+            clipChildren = false
+            clipToPadding = false
             if (isLinearContainer) {
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
                 ).apply {
-                    setMargins(0, dpToPx(4), 0, dpToPx(4))
+                    setMargins(0, (dpToPx(4) * effectiveScale).toInt(), 0, (dpToPx(4) * effectiveScale).toInt())
                 }
             } else {
                 layoutParams = FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.MATCH_PARENT,
                     totalRowsHeight
                 ).apply {
-                    setMargins(0, suggestionsBarHeight + dpToPx(4), 0, dpToPx(4))
+                    val topMargin = if (wordSuggestionsEnabled && !isPreviewMode) scaledSuggestionsBarHeight + (dpToPx(4) * effectiveScale).toInt() else (dpToPx(4) * effectiveScale).toInt()
+                    setMargins(0, topMargin, 0, (dpToPx(4) * effectiveScale).toInt())
                 }
             }
         }
         debugLog("📐 Adding rows container to parent")
         container.addView(rowsContainer)
-        
+
         // Render each row
-        val availableWidth = currentWidth - dpToPx(8)
-        debugLog("📐 Rendering ${keyset.rows.size} rows with availableWidth=$availableWidth")
-        
+        val availableWidth = currentWidth - (dpToPx(8) * effectiveScale).toInt()
+        debugLog("📐 Rendering ${keyset.rows.size} rows with availableWidth=$availableWidth, useTransformScaling=$useTransformScaling")
+        debugLog("📐 CURRENT SCALE = $currentScale, effectiveScale: $effectiveScale")
+
         for ((rowIndex, row) in keyset.rows.withIndex()) {
             debugLog("📐 Creating row $rowIndex with ${row.keys.size} keys")
-        
+
         // Count hidden spacers for debugging
         var hiddenSpacerCount = 0
         for (key in row.keys) {
@@ -543,8 +689,37 @@ class KeyboardRenderer(private val context: Context) {
             )
             rowsContainer.addView(rowView)
         }
+
+        // Apply scale transform if in preview mode (after layout completes)
+        if (isPreviewMode && currentScale < 1.0f) {
+            // Post to ensure layout is complete before applying transform
+            rowsContainer.post {
+                // Use center anchor point (default is 0.5, 0.5)
+                rowsContainer.pivotX = rowsContainer.width / 2f
+                rowsContainer.pivotY = rowsContainer.height / 2f
+
+                // Apply scale
+                rowsContainer.scaleX = currentScale
+                rowsContainer.scaleY = currentScale
+
+                // After scaling from center, the top edge has shifted down
+                // Calculate how much we need to shift up to align top edge
+                // When scaling from center, top edge moves down by: (1 - scale) * height / 2
+                val containerHeight = rowsContainer.height.toFloat()
+                val heightShift = (1 - currentScale) * containerHeight / 2
+
+                // Shift up to align top edge
+                rowsContainer.translationY = -heightShift
+
+                debugLog("📐 Applied transform - scale: $currentScale, containerHeight: $containerHeight, heightShift: $heightShift, width: ${rowsContainer.width}, height: ${rowsContainer.height}")
+            }
+        } else {
+            rowsContainer.scaleX = 1.0f
+            rowsContainer.scaleY = 1.0f
+            rowsContainer.translationY = 0f
+        }
     }
-    
+
     // MARK: - Private Helpers
     
     /**
@@ -710,11 +885,12 @@ class KeyboardRenderer(private val context: Context) {
         keysetId: String,
         rowIndex: Int
     ): ViewGroup {
+        val effectiveRowHeight = scaledRowHeight
         val rowContainer = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                rowHeight
+                effectiveRowHeight
             ).apply {
                 setMargins(dpToPx(4), 0, dpToPx(4), 0)
             }
@@ -835,10 +1011,10 @@ class KeyboardRenderer(private val context: Context) {
             if (parsedKey.offset > 0) {
                 val offsetWidth = ((parsedKey.offset / baselineWidth) * availableWidth).toInt()
                 val spacer = View(context)
-                spacer.layoutParams = LinearLayout.LayoutParams(offsetWidth, rowHeight)
+                spacer.layoutParams = LinearLayout.LayoutParams(offsetWidth, effectiveRowHeight)
                 rowContainer.addView(spacer)
             }
-            
+
             // Generate key identifier for selection checking
             val keyId = "$keysetId:$rowIndex:$keyIndex"
             val isSelected = selectedKeyIds.contains(keyId)
@@ -857,7 +1033,7 @@ class KeyboardRenderer(private val context: Context) {
                 // These keys ARE counted in the baseline, so we need to create the gap
                 val hiddenWidth = ((parsedKey.width / baselineWidth) * availableWidth).toInt()
                 val spacer = View(context)
-                spacer.layoutParams = LinearLayout.LayoutParams(hiddenWidth, rowHeight)
+                spacer.layoutParams = LinearLayout.LayoutParams(hiddenWidth, effectiveRowHeight)
                 rowContainer.addView(spacer)
                 debugLog("🔲 HIDDEN KEY SPACER: value='${parsedKey.value}', type='${parsedKey.type}', width=$hiddenWidth")
                 keyIndex++
@@ -885,9 +1061,9 @@ class KeyboardRenderer(private val context: Context) {
                     debugLog("📐 KEY: value='${parsedKey.value}', type='${parsedKey.type}', effectiveWidth=$effectiveWidth, baselineWidth=$baselineWidth, availableWidth=$availableWidth, finalKeyWidth=$keyWidth")
                 }
                 if (keyIndex == 0 && rowIndex == 0) {
-                    debugLog("📐 First key: width=$keyWidth, height=$rowHeight, caption='${parsedKey.caption}', value='${parsedKey.value}'")
+                    debugLog("📐 First key: width=$keyWidth, height=$effectiveRowHeight, caption='${parsedKey.caption}', value='${parsedKey.value}'")
                 }
-                val button = createKeyButton(parsedKey, keyWidth, rowHeight, editorContext, isSelected)
+                val button = createKeyButton(parsedKey, keyWidth, effectiveRowHeight, editorContext, isSelected)
 
                 // Apply opacity to the button
                 // Priority: 1. If key would be hidden in preview mode (showOnly/hide), use 0.3
@@ -921,7 +1097,7 @@ class KeyboardRenderer(private val context: Context) {
                 button = first.second,
                 keyX = first.third,
                 keyWidth = first.fourth,
-                rowHeight = rowHeight,
+                rowHeight = effectiveRowHeight,
                 availableWidth = availableWidth,
                 isLeftEdge = true,
                 container = rowContainer
@@ -935,7 +1111,7 @@ class KeyboardRenderer(private val context: Context) {
                     button = last.second,
                     keyX = last.third,
                     keyWidth = last.fourth,
-                    rowHeight = rowHeight,
+                    rowHeight = effectiveRowHeight,
                     availableWidth = availableWidth,
                     isLeftEdge = false,
                     container = rowContainer
@@ -1065,7 +1241,7 @@ class KeyboardRenderer(private val context: Context) {
                 }
                 
                 setColor(bgColor)
-                cornerRadius = keyCornerRadius
+                cornerRadius = scaledCornerRadius
             }
             background = bgDrawable
             elevation = dpToPx(2).toFloat()
@@ -1110,39 +1286,78 @@ class KeyboardRenderer(private val context: Context) {
             if (!isNikkudKey) {
                 text = finalText
                 
-            // Font size - check for custom fontSize first, then global config fontSize, then use defaults
+            // Font size - check for custom fontSize first, then fontSizePreset, then absolute fontSize, then defaults
             val isLargeKey = listOf("shift", "backspace", "enter").contains(key.type.lowercase())
             val isMultiChar = finalText.length > 1
 
             val finalFontSize: Float = if (key.fontSize != null) {
                 // Use custom font size if specified on the key
                 key.fontSize.toFloat()
-            } else {
-                // Use global config fontSize, or fall back to default sizing logic
+            } else if (config?.fontSizePreset != null && config?.fontSizePreset!!.isNotEmpty()) {
+                // Use font size preset system (proportional to row height)
+                val fontPreset = FontSizePreset.from(config?.fontSizePreset)
+                val heightPreset = KeyboardHeightPreset.from(config?.heightPreset)
+
+                // Get screen dimensions in dp
+                val displayMetrics = context.resources.displayMetrics
+                val screenWidthDp = displayMetrics.widthPixels.toFloat() / displayMetrics.density
+                val screenHeightDp = displayMetrics.heightPixels.toFloat() / displayMetrics.density
+
+                // Create dimensions calculator
+                val dimensions = KeyboardDimensions(
+                    screenWidth = screenWidthDp,
+                    screenHeight = screenHeightDp,
+                    deviceType = DeviceType.current(context),
+                    heightPreset = heightPreset,
+                    fontSizePreset = fontPreset
+                )
+
+                // Calculate row height
+                val hasSuggestions = wordSuggestionsOverrideEnabled ?: wordSuggestionsEnabled
+                val calculatedRowHeight = dimensions.calculateRowHeight(numberOfRows = 4, hasSuggestions = hasSuggestions)
+
+                // Calculate font size from row height (result is in dp, use as sp)
+                dimensions.calculateFontSize(rowHeight = calculatedRowHeight, isLargeKey = isLargeKey, isMultiChar = isMultiChar)
+            } else if (config?.fontSize != null) {
+                // Fall back to absolute fontSize (deprecated)
                 val defaultFontSize = fontSize
                 val defaultLargeFontSize = largeFontSize
 
-                // Check for global fontSize in config
-                val globalFontSize = config?.fontSize?.toFloat() ?: defaultFontSize
-                val globalLargeFontSize = config?.fontSize?.let { it.toFloat() * (defaultLargeFontSize / defaultFontSize) } ?: defaultLargeFontSize
+                val globalFontSize = config?.fontSize!!.toFloat()
+                val globalLargeFontSize = globalFontSize * (defaultLargeFontSize / defaultFontSize)
 
                 val baseFontSize = if (isLargeKey) globalLargeFontSize else globalFontSize
 
                 // For multi-character keys, scale down proportionally but still respect global fontSize
                 if (isMultiChar) {
-                    // If global fontSize is set, use it as base and scale down proportionally
-                    if (config?.fontSize != null) {
-                        baseFontSize * 0.7f
-                    } else {
-                        // No global fontSize, use old logic with 14px cap
-                        minOf(baseFontSize * 0.7f, 14f)
-                    }
+                    baseFontSize * 0.7f
+                } else {
+                    baseFontSize
+                }
+            } else {
+                // No preset or absolute fontSize - use hardcoded defaults
+                val defaultFontSize = fontSize
+                val defaultLargeFontSize = largeFontSize
+
+                val baseFontSize = if (isLargeKey) defaultLargeFontSize else defaultFontSize
+
+                if (isMultiChar) {
+                    minOf(baseFontSize * 0.7f, 14f)
                 } else {
                     baseFontSize
                 }
             }
 
-            textSize = finalFontSize
+            // Apply scaling for preview mode (only if not using transform scaling)
+            // When using transform scaling, render at full size
+            val useTransformScaling = isPreviewMode && currentScale < 1.0f
+            val scaledFontSize = if (!useTransformScaling) {
+                finalFontSize * currentScale
+            } else {
+                finalFontSize
+            }
+
+            textSize = scaledFontSize
                 
                 // Text color
                 setTextColor(if (key.textColor == Color.BLACK) Color.BLACK else key.textColor)
@@ -1226,8 +1441,8 @@ class KeyboardRenderer(private val context: Context) {
         }
 
         // Get key gap from config or use defaults (matching iOS logic)
-        val horizontalGap = getKeyGap()
-        val verticalGap = horizontalGap + dpToPx(2)  // Vertical padding is slightly larger (2dp more than horizontal)
+        val horizontalGap = scaledKeyGap
+        val verticalGap = horizontalGap + (dpToPx(2) * effectiveDimensionScale).toInt()  // Vertical padding is slightly larger (2dp more than horizontal)
 
         // Add visual key view with padding
         buttonContainer.addView(visualKeyView, FrameLayout.LayoutParams(

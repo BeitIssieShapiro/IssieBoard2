@@ -41,7 +41,9 @@ object KeyboardConfigParser {
             fontName = json.optString("fontName", null),
             keyHeight = if (json.has("keyHeight")) json.optInt("keyHeight") else null,
             keyGap = if (json.has("keyGap")) json.optInt("keyGap") else null,
-            fontSize = if (json.has("fontSize")) json.optInt("fontSize") else null,
+            fontSize = if (json.has("fontSize")) json.optDouble("fontSize") else null,
+            fontSizePreset = json.optString("fontSizePreset", null),
+            heightPreset = json.optString("heightPreset", null),
             fontWeight = json.optString("fontWeight", null)
         )
     }
@@ -95,8 +97,10 @@ object KeyboardConfigParser {
             width = if (json.has("width")) json.optDouble("width") else null,
             offset = if (json.has("offset")) json.optDouble("offset") else null,
             hidden = if (json.has("hidden")) json.optBoolean("hidden") else null,
+            opacity = if (json.has("opacity")) json.optDouble("opacity") else null,
             color = json.optString("color", null),
             bgColor = json.optString("bgColor", null),
+            fontSize = if (json.has("fontSize")) json.optDouble("fontSize") else null,
             label = json.optString("label", null),
             keysetValue = json.optString("keysetValue", null),
             returnKeysetValue = json.optString("returnKeysetValue", null),
@@ -163,8 +167,10 @@ object KeyboardConfigParser {
             offset = if (json.has("offset")) json.optDouble("offset") else null,
             hidden = if (json.has("hidden")) json.optBoolean("hidden") else null,
             visibilityMode = json.optString("visibilityMode", null),
+            opacity = if (json.has("opacity")) json.optDouble("opacity") else null,
             color = json.optString("color", null),
-            bgColor = json.optString("bgColor", null)
+            bgColor = json.optString("bgColor", null),
+            fontSize = if (json.has("fontSize")) json.optDouble("fontSize") else null
         )
     }
     

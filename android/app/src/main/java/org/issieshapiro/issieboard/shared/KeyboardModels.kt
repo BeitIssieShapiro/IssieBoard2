@@ -1,5 +1,7 @@
 package org.issieshapiro.issieboard.shared
 
+import android.content.Context
+import android.content.res.Configuration
 import android.graphics.Color
 
 /**
@@ -26,7 +28,9 @@ data class KeyboardConfig(
     val fontName: String? = null,  // Custom font name to use for character keys (e.g., 'DanaYadAlefAlefAlef-Normal.otf')
     val keyHeight: Int? = null,  // Custom key height in dp (overrides default 54dp)
     val keyGap: Int? = null,  // Gap between keys in dp (default: 3dp)
-    val fontSize: Int? = null,  // Global font size for all keys (overrides defaults)
+    val fontSize: Double? = null,  // Deprecated: use fontSizePreset instead. Global font size for all keys (default varies by platform). Individual keys can override this.
+    val fontSizePreset: String? = null,  // Font size preset: "xs", "small", "normal", "large", "xl" (default: "normal")
+    val heightPreset: String? = null,  // Keyboard height preset: "compact", "normal", "tall", "x-tall" (default: "normal")
     val fontWeight: String? = null  // Font weight: "ultraLight", "thin", "light", "regular", "medium", "semibold", "bold", "heavy", "black" (default: "heavy")
 ) {
     /** Check if word suggestions are enabled (defaults to true if not specified) */
@@ -555,9 +559,288 @@ object DiacriticsGenerator {
         if (key.nikkud.isNotEmpty()) {
             return key.nikkud
         }
-        
+
         // Otherwise, generate from diacritics definition
         val generated = generateOptions(key.value, diacritics, settings)
         return toNikkudOptions(generated)
     }
+}
+
+
+// MARK: - Keyboard Height Presets & Adaptive Dimensions
+
+/** Height preset options */
+enum class KeyboardHeightPreset(val value: String) {
+    COMPACT("compact"),
+    NORMAL("normal"),
+    TALL("tall"),
+    X_TALL("x-tall");
+
+    companion object {
+        fun from(value: String?): KeyboardHeightPreset {
+            if (value == null) return NORMAL
+            return entries.find { it.value == value } ?: NORMAL
+        }
+    }
+}
+
+/** Font size preset options */
+enum class FontSizePreset(val value: String) {
+    XS("xs"),
+    SMALL("small"),
+    NORMAL("normal"),
+    LARGE("large"),
+    XL("xl");
+
+    companion object {
+        fun from(value: String?): FontSizePreset {
+            if (value == null) return NORMAL
+            return entries.find { it.value == value } ?: NORMAL
+        }
+    }
+}
+
+/** Device type classification */
+enum class DeviceType {
+    PHONE,
+    TABLET;
+
+    companion object {
+        fun current(context: Context): DeviceType {
+            val screenLayout = context.resources.configuration.screenLayout
+            val screenSize = screenLayout and Configuration.SCREENLAYOUT_SIZE_MASK
+            return if (screenSize >= Configuration.SCREENLAYOUT_SIZE_LARGE) TABLET else PHONE
+        }
+    }
+}
+
+/**
+ * Configuration constants - adjust these to tune the keyboard heights
+ * NOTE: These percentages are applied to available screen height
+ */
+object KeyboardHeightConstants {
+
+    // MARK: - Portrait Percentages (applied to available height)
+
+    /** Compact preset: portrait phone/tablet */
+    const val COMPACT_PORTRAIT: Float = 0.22f
+
+    /** Normal preset: portrait phone/tablet - DEFAULT */
+    const val NORMAL_PORTRAIT: Float = 0.28f
+
+    /** Tall preset: portrait phone/tablet */
+    const val TALL_PORTRAIT: Float = 0.36f
+
+    /** X-Tall preset: portrait phone/tablet */
+    const val X_TALL_PORTRAIT: Float = 0.47f
+
+    // MARK: - Landscape Percentages (applied to available height)
+
+    /** Compact preset: landscape phone/tablet */
+    const val COMPACT_LANDSCAPE: Float = 0.32f
+
+    /** Normal preset: landscape phone/tablet - DEFAULT */
+    const val NORMAL_LANDSCAPE: Float = 0.38f
+
+    /** Tall preset: landscape phone/tablet */
+    const val TALL_LANDSCAPE: Float = 0.45f
+
+    /** X-Tall preset: landscape phone/tablet */
+    const val X_TALL_LANDSCAPE: Float = 0.5f
+
+    // MARK: - Device Modifiers
+
+    /** Tablet height modifier (tablets can be slightly more compact percentage-wise) */
+    const val TABLET_MODIFIER: Float = 0.92f  // 8% reduction
+
+    /** Phone height modifier (no adjustment) */
+    const val PHONE_MODIFIER: Float = 1.0f
+
+    // MARK: - Constraints
+
+    /** Minimum keyboard height (never smaller than this, in dp) */
+    const val MIN_HEIGHT: Float = 180f
+
+    /** Maximum keyboard height as percentage of screen (never more than this) */
+    const val MAX_HEIGHT_PERCENTAGE: Float = 0.55f
+
+    // MARK: - Component Heights
+
+    /** Suggestions bar height (reduced by 20% from 40) */
+    const val SUGGESTIONS_BAR_HEIGHT: Float = 32f
+
+    /** Vertical spacing between rows */
+    const val ROW_SPACING: Float = 5f
+}
+
+/** Configuration constants for font sizes.
+ *  Font sizes scale proportionally based on row height. */
+object FontSizeConstants {
+    // MARK: - Base Font Size Percentages (applied to row height)
+
+    /** XS preset: 34% of row height */
+    const val XS_PERCENTAGE: Float = 0.34f
+
+    /** Small preset: 38% of row height */
+    const val SMALL_PERCENTAGE: Float = 0.38f
+
+    /** Normal preset: 42% of row height - DEFAULT */
+    const val NORMAL_PERCENTAGE: Float = 0.42f
+
+    /** Large preset: 48% of row height */
+    const val LARGE_PERCENTAGE: Float = 0.48f
+
+    /** XL preset: 54% of row height */
+    const val XL_PERCENTAGE: Float = 0.54f
+
+    // MARK: - Multipliers
+
+    /** Large key font multiplier (e.g., shift, enter keys) */
+    const val LARGE_KEY_MULTIPLIER: Float = 1.17f  // 17% larger than base
+
+    /** Multi-character key font multiplier (scaled down) */
+    const val MULTI_CHAR_MULTIPLIER: Float = 0.7f
+}
+
+// MARK: - Keyboard Dimensions Calculator
+
+/**
+ * Calculates keyboard dimensions based on screen size, device type, and presets.
+ * Port of KeyboardDimensions struct from ios/Shared/KeyboardModels.swift
+ */
+data class KeyboardDimensions(
+    val screenWidth: Float,
+    val screenHeight: Float,
+    val deviceType: DeviceType,
+    val isPortrait: Boolean = screenHeight > screenWidth,
+    val heightPreset: KeyboardHeightPreset = KeyboardHeightPreset.NORMAL,
+    val fontSizePreset: FontSizePreset = FontSizePreset.NORMAL
+) {
+    /**
+     * Convenience constructor using current screen from context
+     */
+    constructor(
+        context: Context,
+        heightPreset: KeyboardHeightPreset = KeyboardHeightPreset.NORMAL,
+        fontSizePreset: FontSizePreset = FontSizePreset.NORMAL
+    ) : this(
+        screenWidth = context.resources.displayMetrics.widthPixels.toFloat() / context.resources.displayMetrics.density,
+        screenHeight = context.resources.displayMetrics.heightPixels.toFloat() / context.resources.displayMetrics.density,
+        deviceType = DeviceType.current(context),
+        heightPreset = heightPreset,
+        fontSizePreset = fontSizePreset
+    )
+
+    // MARK: - Calculations
+
+    /** Calculate total keyboard height (in dp) */
+    fun calculateKeyboardHeight(): Float {
+        // 1. Get base percentage for preset and orientation
+        val percentage = getBasePercentage()
+
+        // 2. Apply device type modifier
+        val deviceModifier = getDeviceModifier()
+
+        // 3. Calculate target height
+        val targetHeight = screenHeight * percentage * deviceModifier
+
+        // 4. Apply constraints (min/max)
+        return constrain(targetHeight)
+    }
+
+    /** Calculate height for a single key row (in dp) */
+    fun calculateRowHeight(numberOfRows: Int, hasSuggestions: Boolean): Float {
+        val totalHeight = calculateKeyboardHeight()
+
+        // Subtract fixed components
+        val suggestionsHeight = if (hasSuggestions) KeyboardHeightConstants.SUGGESTIONS_BAR_HEIGHT else 0f
+        val totalRowSpacing = KeyboardHeightConstants.ROW_SPACING * (numberOfRows - 1).toFloat()
+
+        // Available height for rows
+        val availableHeight = totalHeight - suggestionsHeight - totalRowSpacing
+
+        // Height per row
+        return availableHeight / numberOfRows.toFloat()
+    }
+
+    /**
+     * Calculate base font size based on row height and font size preset
+     * @param rowHeight The calculated row height from calculateRowHeight()
+     * @param isLargeKey Whether this is a large key (shift, enter, etc.)
+     * @param isMultiChar Whether this is a multi-character key (needs smaller font)
+     * @return The calculated font size in sp
+     */
+    fun calculateFontSize(rowHeight: Float, isLargeKey: Boolean = false, isMultiChar: Boolean = false): Float {
+        // 1. Get percentage for preset
+        val percentage = getFontSizePercentage()
+
+        // 2. Calculate base font size from row height
+        var fontSize = rowHeight * percentage
+
+        // 3. Apply multipliers
+        if (isLargeKey) {
+            fontSize *= FontSizeConstants.LARGE_KEY_MULTIPLIER
+        }
+
+        if (isMultiChar) {
+            fontSize *= FontSizeConstants.MULTI_CHAR_MULTIPLIER
+        }
+
+        return fontSize
+    }
+
+    // MARK: - Private Helpers
+
+    private fun getBasePercentage(): Float {
+        return when (heightPreset) {
+            KeyboardHeightPreset.COMPACT -> if (isPortrait) KeyboardHeightConstants.COMPACT_PORTRAIT else KeyboardHeightConstants.COMPACT_LANDSCAPE
+            KeyboardHeightPreset.NORMAL -> if (isPortrait) KeyboardHeightConstants.NORMAL_PORTRAIT else KeyboardHeightConstants.NORMAL_LANDSCAPE
+            KeyboardHeightPreset.TALL -> if (isPortrait) KeyboardHeightConstants.TALL_PORTRAIT else KeyboardHeightConstants.TALL_LANDSCAPE
+            KeyboardHeightPreset.X_TALL -> if (isPortrait) KeyboardHeightConstants.X_TALL_PORTRAIT else KeyboardHeightConstants.X_TALL_LANDSCAPE
+        }
+    }
+
+    private fun getDeviceModifier(): Float {
+        return when (deviceType) {
+            DeviceType.PHONE -> KeyboardHeightConstants.PHONE_MODIFIER
+            DeviceType.TABLET -> KeyboardHeightConstants.TABLET_MODIFIER
+        }
+    }
+
+    private fun getFontSizePercentage(): Float {
+        return when (fontSizePreset) {
+            FontSizePreset.XS -> FontSizeConstants.XS_PERCENTAGE
+            FontSizePreset.SMALL -> FontSizeConstants.SMALL_PERCENTAGE
+            FontSizePreset.NORMAL -> FontSizeConstants.NORMAL_PERCENTAGE
+            FontSizePreset.LARGE -> FontSizeConstants.LARGE_PERCENTAGE
+            FontSizePreset.XL -> FontSizeConstants.XL_PERCENTAGE
+        }
+    }
+
+    private fun constrain(height: Float): Float {
+        val minHeight = KeyboardHeightConstants.MIN_HEIGHT
+        val maxHeight = screenHeight * KeyboardHeightConstants.MAX_HEIGHT_PERCENTAGE
+
+        return maxOf(minHeight, minOf(height, maxHeight))
+    }
+}
+
+// MARK: - Debug Helpers
+
+/** Get debug description of current dimensions */
+fun KeyboardDimensions.debugDescription(): String {
+    val height = calculateKeyboardHeight()
+    val percentage = (height / screenHeight) * 100
+    val rowHeight = calculateRowHeight(numberOfRows = 4, hasSuggestions = true)
+
+    return """
+        Keyboard Dimensions:
+           Screen: ${screenWidth.toInt()} x ${screenHeight.toInt()}dp
+           Device: $deviceType
+           Orientation: ${if (isPortrait) "Portrait" else "Landscape"}
+           Preset: ${heightPreset.value}
+           ---
+           Keyboard Height: ${height.toInt()}dp (${String.format("%.1f", percentage)}%)
+           Row Height: ${rowHeight.toInt()}dp
+    """.trimIndent()
 }

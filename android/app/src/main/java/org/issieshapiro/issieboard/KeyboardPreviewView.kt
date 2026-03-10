@@ -33,12 +33,15 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
     private var selectedKeys: String? = null  // JSON array of selected key IDs
     private var renderer: KeyboardRenderer? = null
     private var parsedConfig: KeyboardConfig? = null
-    
+
     // Word suggestion controller - shared logic with keyboard extension
     private var suggestionController: WordSuggestionController? = null
-    
+
     // Track typed text (for preview testing)
     private var typedText: String = ""
+
+    // Preview max height (for scaling)
+    private var previewMaxHeight: Int? = null
     
     // Keyboard container - LinearLayout for better React Native compatibility
     private val keyboardContainer = LinearLayout(context).apply {
@@ -48,11 +51,15 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
             FrameLayout.LayoutParams.MATCH_PARENT
         )
         setBackgroundColor(Color.parseColor("#D2D5DB"))  // Default keyboard background
+        clipChildren = false  // Allow scaled content to overflow
+        clipToPadding = false
     }
     
     init {
         // Set default background
         setBackgroundColor(Color.parseColor("#D2D5DB"))
+        clipChildren = false  // Allow touches to scaled content outside bounds
+        clipToPadding = false
         
         // Add keyboard container at index 0 (bottom layer)
         addView(keyboardContainer, 0)
@@ -69,7 +76,9 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
         
         // In preview mode, hide the globe (language) button - it's redundant
         r.setShowGlobeButton(false)
-        r.setPreviewMode(true)
+
+        // Initially set preview mode without maxHeight (will be set via prop)
+        r.setPreviewMode(maxHeight = null)
 
         r.onKeyPress = { key ->
             handleKeyPress(key)
@@ -205,13 +214,37 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
         }
         
         renderer?.setSelectedKeys(keyIds)
-        
+
         // Only re-render if we have a config
         if (parsedConfig != null) {
             renderKeyboard()
         }
     }
-    
+
+    /**
+     * Set maximum height for preview scaling
+     * @param maxHeight Maximum height in density-independent pixels (dp)
+     */
+    fun setMaxHeight(maxHeight: Double) {
+        val heightPx = (maxHeight * resources.displayMetrics.density).toInt()
+
+        // Skip if maxHeight hasn't changed
+        if (heightPx == previewMaxHeight) {
+            return
+        }
+
+        previewMaxHeight = heightPx
+        debugLog("🔧 setMaxHeight: ${maxHeight}dp = ${heightPx}px")
+
+        // Update renderer with new max height
+        renderer?.setPreviewMode(maxHeight = heightPx)
+
+        // Re-render with new scale if we have a config
+        if (parsedConfig != null) {
+            renderKeyboard()
+        }
+    }
+
     private fun renderKeyboard() {
         val config = parsedConfig ?: return
         
@@ -241,7 +274,14 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
         }
         
         debugLog("🔧 Rendering with keyset: $currentKeyset (default: $defaultKeyset, available: $availableKeysets)")
-        
+
+        // Set preview mode with maxHeight before rendering
+        if (previewMaxHeight != null) {
+            renderer?.setPreviewMode(maxHeight = previewMaxHeight)
+        } else {
+            renderer?.setPreviewMode(maxHeight = null)
+        }
+
         // Configure suggestion controller based on config
         suggestionController?.setEnabled(config.isWordSuggestionsEnabled)
         suggestionController?.setAutoCorrectEnabled(config.isAutoCorrectEnabled)
