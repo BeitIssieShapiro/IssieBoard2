@@ -21,7 +21,7 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 [bundle exec] fastlane android deploy_issieboard
 ```
 
-Deploy IssieBoard to Google Play Internal Track
+Deploy IssieBoard to Google Play as Draft
 
 ### android deploy_issievoice
 
@@ -29,7 +29,7 @@ Deploy IssieBoard to Google Play Internal Track
 [bundle exec] fastlane android deploy_issievoice
 ```
 
-Deploy IssieVoice to Google Play Internal Track
+Deploy IssieVoice to Google Play as Draft
 
 ----
 
