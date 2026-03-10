@@ -53,7 +53,7 @@ platform :android do
   end
 
   # IssieBoard deployment
-  desc "Deploy IssieBoard to Google Play Internal Track"
+  desc "Deploy IssieBoard to Google Play as Draft"
   lane :deploy_issieboard do |options|
     # Read and increment version
     increment_version(flavor: "issieboard")
@@ -70,9 +70,10 @@ platform :android do
       }
     )
 
-    # Upload to Play Store
+    # Upload to Play Store as DRAFT
     upload_to_play_store(
       track: 'internal',
+      release_status: 'draft',  # Create as draft instead of publishing
       package_name: 'org.issieshapiro.issieboard',
       aab: 'app/build/outputs/bundle/issieboardRelease/app-issieboard-release.aab',
       skip_upload_apk: true,
@@ -87,7 +88,7 @@ platform :android do
   end
 
   # IssieVoice deployment
-  desc "Deploy IssieVoice to Google Play Internal Track"
+  desc "Deploy IssieVoice to Google Play as Draft"
   lane :deploy_issievoice do |options|
     # Read and increment version
     increment_version(flavor: "issievoice")
@@ -104,9 +105,10 @@ platform :android do
       }
     )
 
-    # Upload to Play Store
+    # Upload to Play Store as DRAFT
     upload_to_play_store(
       track: 'internal',
+      release_status: 'draft',  # Create as draft instead of publishing
       package_name: 'org.issieshapiro.issievoice',
       aab: 'app/build/outputs/bundle/issievoiceRelease/app-issievoice-release.aab',
       skip_upload_apk: true,
