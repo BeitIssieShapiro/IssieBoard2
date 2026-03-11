@@ -4,6 +4,12 @@ Android Bugs:
 - 
 
 
+11-March
+--------
+- icon and caption not only in favorites
+
+
+
 2-March
 ------
 V- make height percent from screen
