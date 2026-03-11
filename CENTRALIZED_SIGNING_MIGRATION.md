@@ -4,7 +4,17 @@
 
 IssieBoardNG has been migrated to use the centralized signing configuration from `issie-shared`.
 
-### 1. Updated build.gradle
+### 1. Removed Local Fastlane Infrastructure
+
+**Deleted:**
+- `android/fastlane/` directory (Fastfile, Appfile, credentials)
+- `Gemfile` and `Gemfile.lock`
+- `.bundle/` directory
+- `vendor/` directory
+
+All Fastlane configuration now lives in `issie-shared/android/fastlane/`.
+
+### 2. Updated build.gradle
 **File**: `IssieBoardNG/android/app/build.gradle`
 
 **Changed:**
@@ -36,7 +46,7 @@ release {
 apply from: "../../../issie-shared/android/keys/apply-signing.gradle"
 ```
 
-### 2. Updated gradle.properties
+### 3. Updated gradle.properties
 **File**: `IssieBoardNG/android/gradle.properties`
 
 **Removed:**
@@ -54,7 +64,7 @@ ISSIE_UPLOAD_KEY_PASSWORD=issiesays
 # See issie-shared/android/keys/README.md for details
 ```
 
-### 3. Signing Config Already Present
+### 4. Signing Config Already Present
 **File**: `issie-shared/android/keys/signing-config.properties`
 
 Both flavors already registered:
@@ -62,10 +72,20 @@ Both flavors already registered:
 issie.main.projects=issieboard,issievoice,issiesays,issiedocs
 ```
 
+### 5. Updated .gitignore
+
+**Removed references to:**
+- `android/gradle.properties` (no longer needs to be ignored)
+- `android/fastlane/release-admin-creds.json` (no longer exists locally)
+
+These files now only exist in `issie-shared/` and are covered by that repo's .gitignore.
+
 ## Benefits
 
 ✅ **No per-project keystore paths** - all handled centrally
 ✅ **No credentials in project files** - only in issie-shared
+✅ **No local Fastlane files** - single shared Fastlane configuration
+✅ **No Ruby dependencies in project** - Gemfile/bundler only in issie-shared
 ✅ **Automatic detection** - apply-signing.gradle detects project from applicationId
 ✅ **Consistent with other projects** - IssieSays, IssieDocs, IssieBoardNG now all use same system
 

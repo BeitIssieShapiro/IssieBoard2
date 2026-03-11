@@ -87,8 +87,7 @@ android/app/*.keystore
 !android/app/debug.keystore
 android/app/*.jks
 !android/app/debug.jks
-android/gradle.properties
-android/fastlane/release-admin-creds.json
+# Signing and credentials now centralized in issie-shared
 releases/
 .claude
 
