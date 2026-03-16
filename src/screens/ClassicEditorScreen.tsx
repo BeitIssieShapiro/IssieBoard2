@@ -22,7 +22,7 @@ import heKeyboard from '../../keyboards/he.json';
 import heOrderedKeyboard from '../../keyboards/he_ordered.json';
 import arKeyboard from '../../keyboards/ar.json';
 
-import { buildKeyboardConfig, SourceKeyboard } from '../utils/keyboardConfigMerger';
+import { buildKeyboardConfig, SourceKeyboard, transformConfigForPreview } from '../utils/keyboardConfigMerger';
 
 // Import predefined rules for preset member lookup
 import enRules from '../../assets/predefined-rules/en.json';
@@ -285,7 +285,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
       const config = buildConfiguration(newProfileDef);
       const groupConfigs = convertStyleGroupsToGroupConfig(newStyleGroups);
       const configWithGroups = { ...config, groups: groupConfigs };
-      setConfigJson(JSON.stringify(configWithGroups));
+      setConfigJson(JSON.stringify(transformConfigForPreview(configWithGroups)));
 
       // Save the profile so it persists
       await KeyboardPreferences.setProfile(
@@ -328,7 +328,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
         const config = buildConfiguration(loaded.profileDef);
         const groupConfigs = convertStyleGroupsToGroupConfig(loaded.styleGroups);
         const configWithGroups = { ...config, groups: groupConfigs };
-        setConfigJson(JSON.stringify(configWithGroups));
+        setConfigJson(JSON.stringify(transformConfigForPreview(configWithGroups)));
       } else {
         // No profile found - use defaults
         const defaultKeyboardId = language === 'he' ? 'he' : language;
@@ -346,7 +346,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
         setClassicState(extractClassicState([], language));
 
         const config = buildConfiguration(defaultDef);
-        setConfigJson(JSON.stringify(config));
+        setConfigJson(JSON.stringify(transformConfigForPreview(config)));
       }
     } catch (error) {
       console.error('ClassicEditor: Failed to load profile:', error);
@@ -365,7 +365,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
     const config = buildConfiguration(newProfileDef);
     const groupConfigs = convertStyleGroupsToGroupConfig(newStyleGroups);
     const configWithGroups = { ...config, groups: groupConfigs };
-    setConfigJson(JSON.stringify(configWithGroups));
+    setConfigJson(JSON.stringify(transformConfigForPreview(configWithGroups)));
   }, [currentLanguage]);
 
   // Save the current profile and push config to keyboard

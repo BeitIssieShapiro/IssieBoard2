@@ -38,7 +38,7 @@ const getNextKeysetId = (
   return sameTypeKeysets[nextIndex];
 };
 import { KeyboardConfig } from '../../../types';
-import { filterSettingsButton } from '../../utils/keyboardConfigMerger';
+import { filterSettingsButton, transformConfigForPreview } from '../../utils/keyboardConfigMerger';
 
 interface InteractiveCanvasProps {
   onTestInput?: (text: string) => void;
@@ -181,7 +181,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
   }, [state.config, state.styleGroups]);
 
   const configJson = useMemo(() => {
-    return JSON.stringify(configWithGroups);
+    return JSON.stringify(transformConfigForPreview(configWithGroups));
   }, [configWithGroups]);
 
   console.log("📐 [InteractiveCanvas] Render - keyboardHeight:", keyboardHeight, "containerHeight:", height, "windowWidth:", windowWidth);

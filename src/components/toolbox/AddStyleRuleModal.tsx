@@ -15,6 +15,7 @@ import { CompactColorPicker } from '../shared/CompactColorPicker';
 import { ButtonGroupRow } from '../shared/ButtonGroupRow';
 import { KeyboardPreview, KeyPressEvent } from '../KeyboardPreview';
 import { ActionButton } from '../shared/ActionButton';
+import { transformConfigForPreview } from '../../utils/keyboardConfigMerger';
 
 interface AddStyleRuleModalProps {
   visible: boolean;
@@ -296,7 +297,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
     };
   }, [state.config, selectedKeyValues, bgColor, textColor, visibilityMode]);
 
-  const previewConfigJson = useMemo(() => JSON.stringify(previewConfig), [previewConfig]);
+  const previewConfigJson = useMemo(() => JSON.stringify(transformConfigForPreview(previewConfig)), [previewConfig]);
 
   // Get window dimensions to detect orientation
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();

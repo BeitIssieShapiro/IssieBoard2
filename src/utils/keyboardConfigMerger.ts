@@ -407,5 +407,99 @@ export function buildKeyboardConfig(
   return config;
 }
 
+/**
+ * Transform a keyboard config for main preview display.
+ * In the main preview, hidden keys (via visibilityMode or hidden groups) should be
+ * fully invisible, not semi-transparent. The native renderer shows hidden keys at 0.3
+ * alpha in preview mode, which is only desirable in the keys group modal.
+ *
+ * This function:
+ * 1. Converts placeholder keys (hidden: true with no value/type) to opacity: 0
+ *    so they are invisible instead of semi-transparent.
+ * 2. Converts 'hide' groups to use opacity: 0 instead of visibilityMode/hidden.
+ * 3. Converts 'showOnly' groups: removes visibilityMode and adds an inverse group
+ *    with opacity: 0 for all non-selected keys.
+ */
+export function transformConfigForPreview(config: {
+  keysets: { id: string; rows: { keys: any[] }[] }[];
+  groups?: { name: string; items: string[]; template: any }[];
+  [key: string]: any;
+}): typeof config {
+  // 1. Fix placeholder keys in keysets
+  const transformedKeysets = config.keysets.map(keyset => ({
+    ...keyset,
+    rows: keyset.rows.map(row => ({
+      ...row,
+      keys: row.keys.map(key => {
+        // Placeholder: hidden with no value and no meaningful type
+        const isPlaceholder = key.hidden === true &&
+          !key.value && !key.type;
+        if (isPlaceholder) {
+          const { hidden: _h, ...rest } = key;
+          return { ...rest, opacity: 0 };
+        }
+        return key;
+      }),
+    })),
+  }));
+
+  if (!config.groups) {
+    return { ...config, keysets: transformedKeysets };
+  }
+
+  // Collect all key values from keysets (needed for showOnly inverse)
+  const allKeyValues = new Set<string>();
+  for (const keyset of config.keysets) {
+    for (const row of keyset.rows) {
+      for (const key of row.keys) {
+        const v = key.value || key.type;
+        if (v) allKeyValues.add(v);
+      }
+    }
+  }
+
+  // 2+3. Transform groups
+  const transformedGroups: typeof config.groups = [];
+  for (const group of config.groups!) {
+    const visMode = group.template.visibilityMode;
+
+    if (visMode === 'hide') {
+      // Replace with opacity: 0 group (no visibilityMode, no hidden)
+      const { visibilityMode: _v, hidden: _h, ...restTemplate } = group.template;
+      transformedGroups.push({
+        ...group,
+        template: { ...restTemplate, opacity: 0 },
+      });
+    } else if (visMode === 'showOnly') {
+      // Keep the showOnly group but strip visibilityMode (keys get their colors normally)
+      const { visibilityMode: _v, hidden: _h, ...restTemplate } = group.template;
+      transformedGroups.push({
+        ...group,
+        template: { ...restTemplate },
+      });
+
+      // Add inverse group: all keys NOT in the showOnly set get opacity: 0
+      const showOnlySet = new Set(group.items);
+      const inverseKeys = Array.from(allKeyValues).filter(k => !showOnlySet.has(k));
+      if (inverseKeys.length > 0) {
+        transformedGroups.push({
+          name: `_${group.name}_inverse_`,
+          items: inverseKeys,
+          template: { color: '', bgColor: '', opacity: 0 },
+        });
+      }
+    } else {
+      // Default mode — pass through, but strip hidden/visibilityMode if present
+      const { visibilityMode: _v, hidden: _h, ...restTemplate } = group.template;
+      transformedGroups.push({
+        ...group,
+        template: { ...restTemplate },
+      });
+    }
+  }
+
+  return { ...config, keysets: transformedKeysets, groups: transformedGroups };
+}
+
 // Export the common keysets directly for convenience
 export { commonKeysets };
