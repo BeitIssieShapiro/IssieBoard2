@@ -828,7 +828,8 @@ class KeyboardRenderer {
                 // Note: parsedKey.hidden keys (spacers) still take up space in layout,
                 // so they should be counted in baseline width calculation
                 let isHiddenByGroup = {
-                    if let template = groups[keyValue] {
+                    let keyType = key.type ?? ""
+                    if let template = groups[keyValue] ?? groups[keyType] {
                         return template.effectiveVisibilityMode == .hide
                     }
                     return false
@@ -862,7 +863,7 @@ class KeyboardRenderer {
         
         // Check if the key's group has an explicit "hide" visibility mode
         // This takes precedence - if explicitly marked to hide, hide it
-        if let template = groups[keyValue] {
+        if let template = groups[keyValue] ?? groups[parsedKey.type] {
             let visMode = template.effectiveVisibilityMode
             if visMode == .hide {
                 return true

@@ -4,6 +4,17 @@ Android Bugs:
 - 
 
 
+old app compatability:
+- en ordered?
+- when backm preserve the place in main 
+- no need for save
+- My IssieBoard should be Templates
+- when changing the defualt in classic?
+- ordered rows/sections
+- 
+
+
+
 11-March
 --------
 - icon and caption not only in favorites

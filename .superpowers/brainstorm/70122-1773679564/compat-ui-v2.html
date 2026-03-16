@@ -1,0 +1,216 @@
+<h2>Classic Editor — Master-Detail Flow</h2>
+<p class="subtitle">v1-style navigation: sections list on left, detail view with keyboard preview on right</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">Sections List (top level)</div>
+    <div class="mockup-body" style="padding: 0; background: #1a1a2e; color: #e0e0e0; font-family: -apple-system, sans-serif; font-size: 13px;">
+
+      <!-- Header with profile name + toggle -->
+      <div style="padding: 12px 16px; background: #12122a; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <div style="font-size: 11px; color: #888;">Current IssieBoard</div>
+          <div style="font-weight: 600;">My Setup (Hebrew)</div>
+        </div>
+        <div style="font-size: 11px; color: #4a90d9; padding: 4px 8px; border: 1px solid #4a90d9; border-radius: 12px;">Advanced View &rarr;</div>
+      </div>
+
+      <!-- Language selector at top -->
+      <div style="padding: 12px 16px; border-bottom: 1px solid #333;">
+        <div style="display: flex; gap: 6px;">
+          <div style="flex:1; padding: 8px; text-align:center; background: #4a90d9; border-radius: 6px; font-weight: 600;">Hebrew</div>
+          <div style="flex:1; padding: 8px; text-align:center; background: #2a2a3e; border-radius: 6px;">English</div>
+          <div style="flex:1; padding: 8px; text-align:center; background: #2a2a3e; border-radius: 6px;">Arabic</div>
+        </div>
+      </div>
+
+      <!-- Tappable sections -->
+      <div style="padding: 14px 16px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center;">
+        <span>Keyboard Layout</span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="color: #888; font-size: 12px;">Standard</span>
+          <span style="color: #555;">&rsaquo;</span>
+        </div>
+      </div>
+
+      <div style="padding: 14px 16px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center;">
+        <span>Main Colors</span>
+        <div style="display: flex; gap: 4px; align-items: center;">
+          <div style="width: 18px; height: 18px; border-radius: 9px; background: #A0A0A0; border: 1px solid #555;"></div>
+          <div style="width: 18px; height: 18px; border-radius: 9px; background: #FFEB3B; border: 1px solid #555;"></div>
+          <div style="width: 18px; height: 18px; border-radius: 9px; background: #0000FF; border: 1px solid #555;"></div>
+          <span style="color: #555; margin-left: 4px;">&rsaquo;</span>
+        </div>
+      </div>
+
+      <div style="padding: 14px 16px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center;">
+        <span>Action Keys Colors</span>
+        <div style="display: flex; gap: 4px; align-items: center;">
+          <div style="width: 18px; height: 18px; border-radius: 9px; background: #4DD0E1; border: 1px solid #555;"></div>
+          <span style="color: #555; margin-left: 4px;">&rsaquo;</span>
+        </div>
+      </div>
+
+      <div style="padding: 14px 16px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center;">
+        <span>Color Division</span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="color: #888; font-size: 12px;">By Rows &middot; 3 colors</span>
+          <span style="color: #555;">&rsaquo;</span>
+        </div>
+      </div>
+
+      <div style="padding: 14px 16px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center;">
+        <span>Group 1 (Top Row)</span>
+        <div style="display: flex; gap: 4px; align-items: center;">
+          <div style="width: 18px; height: 18px; border-radius: 9px; background: #FF5722; border: 1px solid #555;"></div>
+          <div style="width: 18px; height: 18px; border-radius: 9px; background: #FFF; border: 1px solid #555;"></div>
+          <span style="color: #555; margin-left: 4px;">&rsaquo;</span>
+        </div>
+      </div>
+
+      <div style="padding: 14px 16px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center;">
+        <span>Group 2 (Middle Row)</span>
+        <div style="display: flex; gap: 4px; align-items: center;">
+          <div style="width: 18px; height: 18px; border-radius: 9px; background: #4CAF50; border: 1px solid #555;"></div>
+          <div style="width: 18px; height: 18px; border-radius: 9px; background: #FFF; border: 1px solid #555;"></div>
+          <span style="color: #555; margin-left: 4px;">&rsaquo;</span>
+        </div>
+      </div>
+
+      <div style="padding: 14px 16px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center;">
+        <span>Group 3 (Bottom Row)</span>
+        <div style="display: flex; gap: 4px; align-items: center;">
+          <div style="width: 18px; height: 18px; border-radius: 9px; background: #2196F3; border: 1px solid #555;"></div>
+          <div style="width: 18px; height: 18px; border-radius: 9px; background: #FFF; border: 1px solid #555;"></div>
+          <span style="color: #555; margin-left: 4px;">&rsaquo;</span>
+        </div>
+      </div>
+
+      <div style="padding: 14px 16px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center;">
+        <span>Special Keys</span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="color: #888; font-size: 12px;">א ב ג</span>
+          <span style="color: #555;">&rsaquo;</span>
+        </div>
+      </div>
+
+      <div style="padding: 14px 16px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center;">
+        <span>Visible Keys</span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="color: #888; font-size: 12px;">All</span>
+          <span style="color: #555;">&rsaquo;</span>
+        </div>
+      </div>
+
+      <div style="padding: 12px 16px;">
+        <div style="display: flex; gap: 8px;">
+          <div style="flex:1; padding: 10px; text-align:center; background: #4a90d9; border-radius: 8px; font-weight: 600;">Save</div>
+          <div style="flex:1; padding: 10px; text-align:center; background: #2a2a3e; border-radius: 8px; border: 1px solid #4a90d9;">My IssieBoards</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">Detail View (e.g., "Group 1" tapped)</div>
+    <div class="mockup-body" style="padding: 0; background: #1a1a2e; color: #e0e0e0; font-family: -apple-system, sans-serif; font-size: 13px;">
+
+      <!-- Back nav -->
+      <div style="padding: 10px 16px; background: #12122a; border-bottom: 1px solid #333; display: flex; align-items: center; gap: 8px;">
+        <span style="color: #4a90d9;">&lsaquo; Back</span>
+        <span style="font-weight: 600;">Group 1 (Top Row)</span>
+      </div>
+
+      <!-- Color pickers -->
+      <div style="padding: 16px;">
+        <div style="font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 12px;">Keys Color</div>
+        <!-- Color grid -->
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px;">
+          <div style="width: 32px; height: 32px; border-radius: 16px; background: #F44336;"></div>
+          <div style="width: 32px; height: 32px; border-radius: 16px; background: #E91E63;"></div>
+          <div style="width: 32px; height: 32px; border-radius: 16px; background: #9C27B0;"></div>
+          <div style="width: 32px; height: 32px; border-radius: 16px; background: #673AB7;"></div>
+          <div style="width: 32px; height: 32px; border-radius: 16px; background: #3F51B5;"></div>
+          <div style="width: 32px; height: 32px; border-radius: 16px; background: #2196F3;"></div>
+          <div style="width: 32px; height: 32px; border-radius: 16px; background: #03A9F4;"></div>
+          <div style="width: 32px; height: 32px; border-radius: 16px; background: #00BCD4;"></div>
+          <div style="width: 32px; height: 32px; border-radius: 16px; background: #009688;"></div>
+          <div style="width: 32px; height: 32px; border-radius: 16px; background: #4CAF50;"></div>
+          <div style="width: 32px; height: 32px; border-radius: 16px; background: #8BC34A;"></div>
+          <div style="width: 32px; height: 32px; border-radius: 16px; background: #CDDC39;"></div>
+          <div style="width: 32px; height: 32px; border-radius: 16px; background: #FFEB3B; border: 2px solid #4a90d9;"></div>
+          <div style="width: 32px; height: 32px; border-radius: 16px; background: #FFC107;"></div>
+          <div style="width: 32px; height: 32px; border-radius: 16px; background: #FF9800;"></div>
+          <div style="width: 32px; height: 32px; border-radius: 16px; background: #FF5722; border: 2px solid white;"></div>
+          <div style="width: 32px; height: 32px; border-radius: 16px; background: #795548;"></div>
+          <div style="width: 32px; height: 32px; border-radius: 16px; background: #9E9E9E;"></div>
+          <div style="width: 32px; height: 32px; border-radius: 16px; background: #607D8B;"></div>
+          <div style="width: 32px; height: 32px; border-radius: 16px; background: #000000; border: 1px solid #555;"></div>
+          <div style="width: 32px; height: 32px; border-radius: 16px; background: #FFFFFF;"></div>
+        </div>
+
+        <div style="font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 12px;">Text Color</div>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px;">
+          <div style="width: 32px; height: 32px; border-radius: 16px; background: #F44336;"></div>
+          <div style="width: 32px; height: 32px; border-radius: 16px; background: #E91E63;"></div>
+          <div style="width: 32px; height: 32px; border-radius: 16px; background: #9C27B0;"></div>
+          <div style="width: 32px; height: 32px; border-radius: 16px; background: #673AB7;"></div>
+          <div style="width: 32px; height: 32px; border-radius: 16px; background: #3F51B5;"></div>
+          <div style="width: 32px; height: 32px; border-radius: 16px; background: #2196F3;"></div>
+          <div style="width: 32px; height: 32px; border-radius: 16px; background: #FFFFFF; border: 2px solid white;"></div>
+          <div style="width: 32px; height: 32px; border-radius: 16px; background: #000000; border: 1px solid #555;"></div>
+        </div>
+      </div>
+
+      <!-- Keyboard preview -->
+      <div style="padding: 0 16px 16px;">
+        <div style="font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 8px;">Preview</div>
+        <div style="background: #A0A0A0; border-radius: 8px; padding: 6px; display: flex; flex-direction: column; gap: 4px;">
+          <!-- Row 1 - Top Row (Group 1 - orange) -->
+          <div style="display: flex; gap: 3px; justify-content: center;">
+            <div style="flex:1; padding: 8px 0; text-align:center; background: #FF5722; color: white; border-radius: 4px; font-size: 14px; font-weight: bold;">ק</div>
+            <div style="flex:1; padding: 8px 0; text-align:center; background: #FF5722; color: white; border-radius: 4px; font-size: 14px; font-weight: bold;">ר</div>
+            <div style="flex:1; padding: 8px 0; text-align:center; background: #FF5722; color: white; border-radius: 4px; font-size: 14px; font-weight: bold;">א</div>
+            <div style="flex:1; padding: 8px 0; text-align:center; background: #FF5722; color: white; border-radius: 4px; font-size: 14px; font-weight: bold;">ט</div>
+            <div style="flex:1; padding: 8px 0; text-align:center; background: #FF5722; color: white; border-radius: 4px; font-size: 14px; font-weight: bold;">ו</div>
+            <div style="flex:1; padding: 8px 0; text-align:center; background: #FF5722; color: white; border-radius: 4px; font-size: 14px; font-weight: bold;">ן</div>
+            <div style="flex:1; padding: 8px 0; text-align:center; background: #FF5722; color: white; border-radius: 4px; font-size: 14px; font-weight: bold;">ם</div>
+            <div style="flex:1; padding: 8px 0; text-align:center; background: #FF5722; color: white; border-radius: 4px; font-size: 14px; font-weight: bold;">פ</div>
+          </div>
+          <!-- Row 2 - Middle Row (Group 2 - green) -->
+          <div style="display: flex; gap: 3px; justify-content: center;">
+            <div style="flex:1; padding: 8px 0; text-align:center; background: #4CAF50; color: white; border-radius: 4px; font-size: 14px; font-weight: bold;">ש</div>
+            <div style="flex:1; padding: 8px 0; text-align:center; background: #4CAF50; color: white; border-radius: 4px; font-size: 14px; font-weight: bold;">ד</div>
+            <div style="flex:1; padding: 8px 0; text-align:center; background: #4CAF50; color: white; border-radius: 4px; font-size: 14px; font-weight: bold;">ג</div>
+            <div style="flex:1; padding: 8px 0; text-align:center; background: #4CAF50; color: white; border-radius: 4px; font-size: 14px; font-weight: bold;">כ</div>
+            <div style="flex:1; padding: 8px 0; text-align:center; background: #4CAF50; color: white; border-radius: 4px; font-size: 14px; font-weight: bold;">ע</div>
+            <div style="flex:1; padding: 8px 0; text-align:center; background: #4CAF50; color: white; border-radius: 4px; font-size: 14px; font-weight: bold;">י</div>
+            <div style="flex:1; padding: 8px 0; text-align:center; background: #4CAF50; color: white; border-radius: 4px; font-size: 14px; font-weight: bold;">ח</div>
+            <div style="flex:1; padding: 8px 0; text-align:center; background: #4CAF50; color: white; border-radius: 4px; font-size: 14px; font-weight: bold;">ל</div>
+            <div style="flex:1; padding: 8px 0; text-align:center; background: #4CAF50; color: white; border-radius: 4px; font-size: 14px; font-weight: bold;">ך</div>
+            <div style="flex:1; padding: 8px 0; text-align:center; background: #4CAF50; color: white; border-radius: 4px; font-size: 14px; font-weight: bold;">ף</div>
+          </div>
+          <!-- Row 3 - Bottom Row (Group 3 - blue) -->
+          <div style="display: flex; gap: 3px; justify-content: center;">
+            <div style="flex:1; padding: 8px 0; text-align:center; background: #2196F3; color: white; border-radius: 4px; font-size: 14px; font-weight: bold;">ז</div>
+            <div style="flex:1; padding: 8px 0; text-align:center; background: #2196F3; color: white; border-radius: 4px; font-size: 14px; font-weight: bold;">ס</div>
+            <div style="flex:1; padding: 8px 0; text-align:center; background: #2196F3; color: white; border-radius: 4px; font-size: 14px; font-weight: bold;">ב</div>
+            <div style="flex:1; padding: 8px 0; text-align:center; background: #2196F3; color: white; border-radius: 4px; font-size: 14px; font-weight: bold;">ה</div>
+            <div style="flex:1; padding: 8px 0; text-align:center; background: #2196F3; color: white; border-radius: 4px; font-size: 14px; font-weight: bold;">נ</div>
+            <div style="flex:1; padding: 8px 0; text-align:center; background: #2196F3; color: white; border-radius: 4px; font-size: 14px; font-weight: bold;">מ</div>
+            <div style="flex:1; padding: 8px 0; text-align:center; background: #2196F3; color: white; border-radius: 4px; font-size: 14px; font-weight: bold;">צ</div>
+            <div style="flex:1; padding: 8px 0; text-align:center; background: #2196F3; color: white; border-radius: 4px; font-size: 14px; font-weight: bold;">ת</div>
+            <div style="flex:1; padding: 8px 0; text-align:center; background: #2196F3; color: white; border-radius: 4px; font-size: 14px; font-weight: bold;">ץ</div>
+          </div>
+          <!-- Bottom row - action keys -->
+          <div style="display: flex; gap: 3px; justify-content: center;">
+            <div style="flex:1.5; padding: 8px 0; text-align:center; background: #4DD0E1; color: #333; border-radius: 4px; font-size: 11px;">123</div>
+            <div style="flex:3; padding: 8px 0; text-align:center; background: #4DD0E1; color: #333; border-radius: 4px; font-size: 11px;">space</div>
+            <div style="flex:1.5; padding: 8px 0; text-align:center; background: #4DD0E1; color: #333; border-radius: 4px; font-size: 11px;">⌫</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

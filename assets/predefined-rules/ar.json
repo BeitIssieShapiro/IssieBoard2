@@ -91,6 +91,46 @@
         "bgColor": "#E1BEE7",
         "color": "#6A1B9A"
       }
+    },
+    {
+      "id": "space-key",
+      "name": "مفتاح المسافة",
+      "description": "Space bar key",
+      "members": [" "],
+      "style": {
+        "bgColor": "#4DD0E1",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "delete-key",
+      "name": "مفتاح الحذف",
+      "description": "Backspace/delete key",
+      "members": ["backspace"],
+      "style": {
+        "bgColor": "#4DD0E1",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "enter-key",
+      "name": "مفتاح الإدخال",
+      "description": "Enter/return key",
+      "members": ["enter"],
+      "style": {
+        "bgColor": "#4DD0E1",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "other-keys",
+      "name": "مفاتيح أخرى",
+      "description": "مفاتيح تغيير الوضع والكرة الأرضية والإغلاق",
+      "members": ["keyset", "next-keyboard", "settings", "close"],
+      "style": {
+        "bgColor": "#4DD0E1",
+        "color": "#000000"
+      }
     }
   ]
 }

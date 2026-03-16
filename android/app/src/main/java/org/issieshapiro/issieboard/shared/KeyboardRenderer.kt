@@ -794,7 +794,7 @@ class KeyboardRenderer(private val context: Context) {
         // They're handled separately in the rendering loop
         
         // Check if the key's group has an explicit "hide" visibility mode
-        val template = groups[keyValue]
+        val template = groups[keyValue] ?: groups[parsedKey.type]
         if (template != null) {
             val visMode = template.effectiveVisibilityMode
             if (visMode == VisibilityMode.HIDE) {
@@ -869,7 +869,8 @@ class KeyboardRenderer(private val context: Context) {
                 
                 // Check if key is hidden via group "hide" visibility mode
                 val keyValue = key.value ?: key.type ?: ""
-                val isHiddenByGroup = groups[keyValue]?.effectiveVisibilityMode == VisibilityMode.HIDE
+                val keyType = key.type ?: ""
+                val isHiddenByGroup = (groups[keyValue] ?: groups[keyType])?.effectiveVisibilityMode == VisibilityMode.HIDE
                 
                 // Don't count group-hidden keys OR spacer keys (parsedKey.hidden) in baseline
                 // Spacers take up space in layout but shouldn't affect the baseline calculation

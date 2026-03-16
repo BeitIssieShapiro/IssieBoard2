@@ -21,6 +21,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     reactNativeDelegate = delegate
     reactNativeFactory = factory
 
+    // Migrate v1 templates to v2 profiles (one-time, idempotent)
+    V1Migration().migrateIfNeeded()
+
     window = UIWindow(frame: UIScreen.main.bounds)
 
     // Determine which app mode based on bundle identifier

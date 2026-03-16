@@ -378,6 +378,8 @@ interface EditorScreenInnerProps {
   onLanguageChange: (language: LanguageId) => void;
   onKeyboardChange: (keyboardId: string) => void;
   onCreateNew: (name: string, language: LanguageId, keyboardId: string) => Promise<void>;
+  isV1User?: boolean;
+  onSwitchToClassic?: () => void;
 }
 
 // Convert StyleGroups to GroupConfig format
@@ -428,6 +430,8 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   onLanguageChange,
   onKeyboardChange,
   onCreateNew,
+  isV1User,
+  onSwitchToClassic,
 }) => {
   const { state, setMode, setConfig, markDirty, dispatch } = useEditor();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
@@ -466,6 +470,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   const toastOpacity = useRef(new Animated.Value(0)).current;
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const saveButtonOpacity = useRef(new Animated.Value(1)).current;
+  const afterSaveAsRef = useRef<(() => void) | null>(null);
 
   // Get current language definition
   const currentLanguageDef = LANGUAGES.find(l => l.id === currentLanguage) || LANGUAGES[0];
@@ -890,6 +895,13 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       // Show success message
       showToast(`✓ Saved as "${newName}" and set as active`);
 
+      // Run pending action after Save As (e.g., switch to classic view)
+      if (afterSaveAsRef.current) {
+        const pendingAction = afterSaveAsRef.current;
+        afterSaveAsRef.current = null;
+        pendingAction();
+      }
+
       // For IssieVoice, close the settings screen after saving
       if (appContext === 'issievoice' && onClose) {
         setTimeout(() => {
@@ -1305,7 +1317,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       {/* Save As Modal - for read-only profiles */}
       <SaveAsModal
         visible={showSaveAsModal}
-        onClose={() => setShowSaveAsModal(false)}
+        onClose={() => { afterSaveAsRef.current = null; setShowSaveAsModal(false); }}
         onSaveAs={handleSaveAs}
         originalName={currentProfileName}
         existingNames={profiles.map(p => p.name)}
@@ -1563,6 +1575,41 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
                 )}
               </TouchableOpacity>
             </Animated.View>
+
+            {/* Classic View button - only for v1 migrated users */}
+            {isV1User && onSwitchToClassic && (
+              <TouchableOpacity
+                style={styles.classicViewButton}
+                onPress={() => {
+                  if (state.isDirty) {
+                    Alert.alert(
+                      'Unsaved Changes',
+                      'You have unsaved changes. Save before switching to Classic View?',
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        { text: 'Discard', style: 'destructive', onPress: onSwitchToClassic },
+                        { text: 'Save', onPress: async () => {
+                          const currentProfile = profiles.find(p => p.id === currentProfileId);
+                          if (currentProfile?.isBuiltIn) {
+                            // Built-in profile: Save As modal will open; switch after completion
+                            afterSaveAsRef.current = onSwitchToClassic;
+                          }
+                          await handleSave();
+                          // For custom profiles, handleSave completes synchronously — switch now
+                          if (!currentProfile?.isBuiltIn) {
+                            onSwitchToClassic();
+                          }
+                        }},
+                      ]
+                    );
+                  } else {
+                    onSwitchToClassic();
+                  }
+                }}
+              >
+                <Text allowFontScaling={false} style={styles.classicViewButtonText}>Classic View</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Reset Button - Hidden but not deleted */}
@@ -1603,6 +1650,8 @@ interface EditorScreenProps {
   appContext?: AppContext;  // Which app is using the settings
   onBack?: () => void;       // Made optional for IssieVoice
   onClose?: () => void;      // Close callback for IssieVoice
+  isV1User?: boolean;        // True if user migrated from v1
+  onSwitchToClassic?: () => void;  // Switch to classic editor view
 }
 
 export const EditorScreen: React.FC<EditorScreenProps> = ({
@@ -1611,6 +1660,8 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
   appContext = 'issieboard',
   onBack,
   onClose,
+  isV1User,
+  onSwitchToClassic,
 }) => {
   const [loading, setLoading] = useState(true);
   const [initialConfig, setInitialConfig] = useState<KeyboardConfig | null>(null);
@@ -2148,6 +2199,8 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
         onLanguageChange={handleLanguageChange}
         onKeyboardChange={handleKeyboardChange}
         onCreateNew={handleCreateNew}
+        isV1User={isV1User}
+        onSwitchToClassic={onSwitchToClassic}
       />
     </EditorProvider>
   );
@@ -2798,6 +2851,20 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     minWidth: 80,
     gap: 6,
+  },
+  classicViewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#78909C',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginLeft: 12,
+  },
+  classicViewButtonText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   profileSaveButtonIcon: {
     fontSize: 16,

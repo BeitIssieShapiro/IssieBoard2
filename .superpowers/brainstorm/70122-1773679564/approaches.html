@@ -1,0 +1,79 @@
+<h2>Migration & Compatibility: Architecture Approaches</h2>
+<p class="subtitle">Three approaches for structuring the v1 to v2 migration system</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Native Migration + React Native Compat UI</h3>
+      <p><strong>Recommended</strong></p>
+      <div style="margin: 12px 0; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 14px; line-height: 1.6;">
+        <strong>Migration layer:</strong> Swift code in <code>ios/Shared/</code> reads Core Data + old UserDefaults on first launch, converts to v2 profiles, writes via <code>KeyboardPreferences</code>. Runs before React Native loads.<br><br>
+        <strong>Compat UI:</strong> New React Native screen (<code>ClassicEditorScreen</code>) with the flat v1-style settings list. Reads/writes v2 profile model. Available via toggle in the main editor.<br><br>
+        <strong>Detection:</strong> Swift checks for Core Data store existence + migration flag in UserDefaults.
+      </div>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul>
+          <li>Migration happens at native layer - fast, reliable, before RN loads</li>
+          <li>Core Data reading is natural in Swift</li>
+          <li>Compat UI reuses existing RN components</li>
+          <li>Clean separation: native handles data, RN handles UI</li>
+        </ul></div>
+        <div class="cons"><h4>Cons</h4><ul>
+          <li>Migration logic in Swift only (not Android) - but v1 was iOS-only anyway</li>
+          <li>Two separate codebases for migration (Swift) and compat UI (RN)</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>All React Native via Native Bridge</h3>
+      <p>Everything in TypeScript, with a thin native bridge for Core Data reading</p>
+      <div style="margin: 12px 0; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 14px; line-height: 1.6;">
+        <strong>Migration layer:</strong> New native module <code>V1MigrationModule</code> exposes Core Data reading to RN. TypeScript code does the conversion logic and writes v2 profiles.<br><br>
+        <strong>Compat UI:</strong> Same as Approach A - React Native screen.<br><br>
+        <strong>Detection:</strong> RN calls native module to check for v1 data on app start.
+      </div>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul>
+          <li>All conversion logic in one language (TypeScript)</li>
+          <li>Easier to test conversion logic</li>
+          <li>Compat UI and migration share the same codebase</li>
+        </ul></div>
+        <div class="cons"><h4>Cons</h4><ul>
+          <li>Core Data access from RN requires custom native module anyway</li>
+          <li>Migration happens after RN loads - slower first launch</li>
+          <li>Async bridge adds complexity for something that should be synchronous</li>
+          <li>More moving parts for a one-time operation</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Hybrid: Native Migration, Shared Conversion Logic</h3>
+      <p>Swift reads v1 data into a JSON blob, TypeScript does the conversion</p>
+      <div style="margin: 12px 0; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 14px; line-height: 1.6;">
+        <strong>Migration layer:</strong> Swift reads Core Data + UserDefaults, serializes all v1 templates into a JSON array, writes to a known key. On RN start, TypeScript reads this JSON, converts to v2 profiles, and saves them.<br><br>
+        <strong>Compat UI:</strong> Same React Native screen.<br><br>
+        <strong>Detection:</strong> Swift sets a flag when v1 data is found. RN checks flag and runs conversion.
+      </div>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul>
+          <li>Native code only does simple data extraction (no conversion logic)</li>
+          <li>All mapping/conversion logic in TypeScript - testable, shared with compat UI</li>
+          <li>Clean handoff between native and RN layers</li>
+        </ul></div>
+        <div class="cons"><h4>Cons</h4><ul>
+          <li>Two-phase migration (extract then convert)</li>
+          <li>Slightly more complex than A for a one-time operation</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+</div>

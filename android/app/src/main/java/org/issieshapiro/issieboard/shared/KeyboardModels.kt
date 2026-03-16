@@ -328,8 +328,8 @@ data class ParsedKey(
             val returnKeysetLabel = key.returnKeysetLabel ?: ""
             val nikkud = key.nikkud ?: emptyList()
             
-            // Get group template if exists - check by value first, then by type for special keys
-            val groupTemplate = groups[value] ?: if (value.isEmpty()) groups[keyType] else null
+            // Get group template if exists - check by value first, then by type as fallback
+            val groupTemplate = groups[value] ?: groups[keyType]
 
             // Debug logging for group lookup
             if (value.isNotEmpty() && value.length <= 3) {  // Only log for normal characters

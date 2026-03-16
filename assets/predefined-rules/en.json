@@ -91,6 +91,46 @@
         "bgColor": "#E1BEE7",
         "color": "#6A1B9A"
       }
+    },
+    {
+      "id": "space-key",
+      "name": "Space Key",
+      "description": "Space bar key",
+      "members": [" "],
+      "style": {
+        "bgColor": "#4DD0E1",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "delete-key",
+      "name": "Delete Key",
+      "description": "Backspace/delete key",
+      "members": ["backspace"],
+      "style": {
+        "bgColor": "#4DD0E1",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "enter-key",
+      "name": "Enter Key",
+      "description": "Enter/return key",
+      "members": ["enter"],
+      "style": {
+        "bgColor": "#4DD0E1",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "other-keys",
+      "name": "Other Keys",
+      "description": "Mode change, globe, dismiss keys",
+      "members": ["keyset", "next-keyboard", "settings", "close"],
+      "style": {
+        "bgColor": "#4DD0E1",
+        "color": "#000000"
+      }
     }
   ]
 }

@@ -12,13 +12,15 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { View, StyleSheet, Linking } from 'react-native';
 import { EditorScreen } from './screens/EditorScreen';
+import { ClassicEditorScreen } from './screens/ClassicEditorScreen';
 import KeyboardPreferences from './native/KeyboardPreferences';
 
 type LanguageId = 'he' | 'en' | 'ar';
 
-type Screen = 
+type Screen =
   | { type: 'legacy' }
-  | { type: 'editor'; profileId?: string; initialLanguage?: LanguageId };
+  | { type: 'editor'; profileId?: string; initialLanguage?: LanguageId }
+  | { type: 'classic'; initialLanguage?: LanguageId };
 
 // Map keyboard IDs to language IDs
 const keyboardToLanguage: Record<string, LanguageId> = {
@@ -29,10 +31,11 @@ const keyboardToLanguage: Record<string, LanguageId> = {
 };
 
 export const AppNavigator: React.FC = () => {
-  // Start with the new Editor screen by default
-  const [currentScreen, setCurrentScreen] = useState<Screen>({ type: 'editor' });
+  // Screen type determined after v1_user check
+  const [currentScreen, setCurrentScreen] = useState<Screen | null>(null);
   const [initialLanguage, setInitialLanguage] = useState<LanguageId | undefined>(undefined);
   const [initialLoaded, setInitialLoaded] = useState(false);
+  const [isV1User, setIsV1User] = useState(false);
   // Key to force EditorScreen to remount when opened from keyboard
   const [editorKey, setEditorKey] = useState(0);
 
@@ -78,8 +81,31 @@ export const AppNavigator: React.FC = () => {
             setInitialLanguage(currentLang as LanguageId);
           }
         }
+
+        // Check if this is a v1 migrated user
+        let v1User = false;
+        if (KeyboardPreferencesModule?.getString) {
+          try {
+            const v1Flag = await KeyboardPreferencesModule.getString('v1_user');
+            v1User = v1Flag === 'true';
+          } catch (e) {
+            // Not a v1 user
+          }
+        }
+        // In DEV mode, always show the classic toggle so we can test without a real v1 install
+        const showClassicToggle = __DEV__ || v1User;
+        setIsV1User(showClassicToggle);
+
+        // v1 users default to classic editor, others to advanced editor
+        if (v1User) {
+          setCurrentScreen({ type: 'classic' });
+        } else {
+          setCurrentScreen({ type: 'editor' });
+        }
       } catch (error) {
         console.warn('Failed to load initial settings:', error);
+        // Fallback to advanced editor on error
+        setCurrentScreen({ type: 'editor' });
       } finally {
         setInitialLoaded(true);
       }
@@ -145,19 +171,43 @@ export const AppNavigator: React.FC = () => {
 
   
 
+  const handleSwitchToClassic = useCallback(() => {
+    setCurrentScreen({ type: 'classic' });
+    setEditorKey(prev => prev + 1);
+  }, []);
+
+  const handleSwitchToAdvanced = useCallback(() => {
+    setCurrentScreen({ type: 'editor' });
+    setEditorKey(prev => prev + 1);
+  }, []);
+
   // Don't render until initial settings are loaded
-  if (!initialLoaded) {
+  if (!initialLoaded || !currentScreen) {
     return <View style={styles.container} />;
+  }
+
+  if (currentScreen.type === 'classic') {
+    return (
+      <View style={styles.container}>
+        <ClassicEditorScreen
+          key={editorKey}
+          initialLanguage={initialLanguage}
+          onSwitchToAdvanced={handleSwitchToAdvanced}
+        />
+      </View>
+    );
   }
 
   const profileId = currentScreen.type === 'editor' ? currentScreen.profileId : undefined;
 
   return (
     <View style={styles.container}>
-      <EditorScreen 
+      <EditorScreen
         key={editorKey}
         profileId={profileId}
         initialLanguage={initialLanguage}
+        isV1User={isV1User}
+        onSwitchToClassic={handleSwitchToClassic}
       />
     </View>
   );

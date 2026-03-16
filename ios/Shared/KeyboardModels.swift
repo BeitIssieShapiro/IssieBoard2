@@ -379,8 +379,8 @@ struct ParsedKey {
         self.returnKeysetLabel = key.returnKeysetLabel ?? ""
         self.nikkud = key.nikkud ?? []
 
-        // Get group template if exists - check by value first, then by type for special keys
-        let groupTemplate = groups[value] ?? (value.isEmpty ? groups[keyType] : nil)
+        // Get group template if exists - check by value first, then by type as fallback
+        let groupTemplate = groups[value] ?? groups[keyType]
 
         // Resolve width
         if let keyWidth = key.width {

@@ -18,6 +18,7 @@ const getDeviceLanguage = (): Language => {
 
   // Extract language code (e.g., "en_US" -> "en", "he_IL" -> "he")
   const langCode = deviceLang.split(/[_-]/)[0].toLowerCase();
+  return 'he'
 
   // Return supported language or fallback to English
   if (langCode === 'he' || langCode === 'iw') return 'he';
