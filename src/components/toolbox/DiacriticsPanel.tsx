@@ -274,6 +274,7 @@ export const DiacriticsPanel: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: 'transparent',
+    padding:12
   },
   emptyContainer: {
     padding: 12,
@@ -342,17 +343,19 @@ const styles = StyleSheet.create({
   },
   modifierInfo: {
     flex: 1,
-    marginRight: 12,
+    marginRight: 12,    
   },
   modifierName: {
     fontSize: 14,
     fontWeight: '600',
     color: '#333',
     marginBottom: 2,
+    textAlign:"left"
   },
   modifierOptions: {
     fontSize: 11,
     color: '#666',
+    textAlign:"left"
   },
 });
 

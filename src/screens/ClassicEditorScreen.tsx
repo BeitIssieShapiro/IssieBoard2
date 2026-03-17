@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import KeyboardPreferences from '../native/KeyboardPreferences';
 import { KeyboardConfig, StyleGroup } from '../../types';
-import { extractClassicState, ClassicState } from './classic/classicProfileBridge';
+import { extractClassicState, ClassicState, matchesPreset } from './classic/classicProfileBridge';
 import ClassicSectionsList, { SettingId } from './classic/ClassicSectionsList';
 import ClassicDetailView from './classic/ClassicDetailView';
 import ClassicColorPicker from './classic/ClassicColorPicker';
@@ -457,7 +457,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
     const styleProp = property === 'keysBgColor' ? 'bgColor' : 'color';
     const charsetPresets = ['top-row', 'mid-row', 'bottom-row', 'left-third', 'mid-third', 'right-third', 'left-half', 'right-half'];
     const updatedGroups = styleGroups.map(g => {
-      if (charsetPresets.some(p => g.id.includes(p))) {
+      if (charsetPresets.some(p => matchesPreset(g, p))) {
         return { ...g, style: { ...g.style, [styleProp]: color } };
       }
       return g;
@@ -531,11 +531,11 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
 
     // Deactivate the "from" groups (and also halves when switching to rows)
     updatedGroups = updatedGroups.map(g => {
-      if (fromPresets.some(p => g.id.includes(p))) {
+      if (fromPresets.some(p => matchesPreset(g, p))) {
         return { ...g, active: false };
       }
       // When switching to rows, also deactivate halves (in case we're in 2-group sections mode)
-      if (mode === 'rows' && (g.id.includes('left-half') || g.id.includes('right-half'))) {
+      if (mode === 'rows' && (matchesPreset(g, 'left-half') || matchesPreset(g, 'right-half'))) {
         return { ...g, active: false };
       }
       return g;
@@ -544,7 +544,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
     // Activate or create the "to" groups with preserved colors
     for (let i = 0; i < toPresets.length; i++) {
       const presetId = toPresets[i];
-      const existing = updatedGroups.find(g => g.id.includes(presetId));
+      const existing = updatedGroups.find(g => matchesPreset(g, presetId));
       if (existing) {
         updatedGroups = updatedGroups.map(g => {
           if (g.id === existing.id) {
@@ -587,7 +587,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
 
       // Deactivate halves
       updatedGroups = updatedGroups.map(g => {
-        if (g.id.includes('left-half') || g.id.includes('right-half')) {
+        if (matchesPreset(g, 'left-half') || matchesPreset(g, 'right-half')) {
           return { ...g, active: false };
         }
         return g;
@@ -601,7 +601,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
 
       for (let i = 0; i < thirdPresets.length; i++) {
         const presetId = thirdPresets[i];
-        const existing = updatedGroups.find(g => g.id.includes(presetId));
+        const existing = updatedGroups.find(g => matchesPreset(g, presetId));
         if (existing) {
           updatedGroups = updatedGroups.map(g => {
             if (g.id === existing.id) {
@@ -632,7 +632,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
 
       // Deactivate thirds
       updatedGroups = updatedGroups.map(g => {
-        if (g.id.includes('left-third') || g.id.includes('mid-third') || g.id.includes('right-third')) {
+        if (matchesPreset(g, 'left-third') || matchesPreset(g, 'mid-third') || matchesPreset(g, 'right-third')) {
           return { ...g, active: false };
         }
         return g;
@@ -646,7 +646,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
       ];
 
       for (const { id: presetId, colors } of halfPresets) {
-        const existing = updatedGroups.find(g => g.id.includes(presetId));
+        const existing = updatedGroups.find(g => matchesPreset(g, presetId));
         if (existing) {
           updatedGroups = updatedGroups.map(g => {
             if (g.id === existing.id) {
@@ -702,7 +702,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
       g.active !== false &&
       g.style.bgColor &&
       !['top-row', 'mid-row', 'bottom-row', 'left-third', 'mid-third', 'right-third', 'left-half', 'right-half',
-        'space-key', 'delete-key', 'enter-key', 'other-keys'].some(p => g.id.includes(p)) &&
+        'space-key', 'delete-key', 'enter-key', 'other-keys'].some(p => matchesPreset(g, p)) &&
       g.style.visibilityMode !== 'showOnly'
     );
 
@@ -894,25 +894,25 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
         break;
       case 'space-color':
         await updateStyleGroupColor(
-          groups => groups.find(g => g.id.includes('space-key')),
+          groups => groups.find(g => matchesPreset(g, 'space-key')),
           'bgColor', color, create('space-key')
         );
         break;
       case 'delete-color':
         await updateStyleGroupColor(
-          groups => groups.find(g => g.id.includes('delete-key')),
+          groups => groups.find(g => matchesPreset(g, 'delete-key')),
           'bgColor', color, create('delete-key')
         );
         break;
       case 'enter-color':
         await updateStyleGroupColor(
-          groups => groups.find(g => g.id.includes('enter-key')),
+          groups => groups.find(g => matchesPreset(g, 'enter-key')),
           'bgColor', color, create('enter-key')
         );
         break;
       case 'other-color':
         await updateStyleGroupColor(
-          groups => groups.find(g => g.id.includes('other-keys')),
+          groups => groups.find(g => matchesPreset(g, 'other-keys')),
           'bgColor', color, create('other-keys')
         );
         break;
@@ -921,7 +921,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
           classicState?.threeColorMode === false ? 'right-half' :
           (currentLanguage === 'en' ? 'left-third' : 'right-third');
         await updateStyleGroupColor(
-          groups => groups.find(g => g.id.includes(preset)),
+          groups => groups.find(g => matchesPreset(g, preset)),
           'bgColor', color, create(preset)
         );
         break;
@@ -931,7 +931,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
           classicState?.threeColorMode === false ? 'right-half' :
           (currentLanguage === 'en' ? 'left-third' : 'right-third');
         await updateStyleGroupColor(
-          groups => groups.find(g => g.id.includes(preset)),
+          groups => groups.find(g => matchesPreset(g, preset)),
           'color', color, create(preset)
         );
         break;
@@ -939,7 +939,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
       case 'group2-keys-color': {
         const preset = classicState?.divisionMode === 'rows' ? 'mid-row' : 'mid-third';
         await updateStyleGroupColor(
-          groups => groups.find(g => g.id.includes(preset)),
+          groups => groups.find(g => matchesPreset(g, preset)),
           'bgColor', color, create(preset)
         );
         break;
@@ -947,7 +947,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
       case 'group2-text-color': {
         const preset = classicState?.divisionMode === 'rows' ? 'mid-row' : 'mid-third';
         await updateStyleGroupColor(
-          groups => groups.find(g => g.id.includes(preset)),
+          groups => groups.find(g => matchesPreset(g, preset)),
           'color', color, create(preset)
         );
         break;
@@ -957,7 +957,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
           classicState?.threeColorMode === false ? 'left-half' :
           (currentLanguage === 'en' ? 'right-third' : 'left-third');
         await updateStyleGroupColor(
-          groups => groups.find(g => g.id.includes(preset)),
+          groups => groups.find(g => matchesPreset(g, preset)),
           'bgColor', color, create(preset)
         );
         break;
@@ -967,7 +967,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
           classicState?.threeColorMode === false ? 'left-half' :
           (currentLanguage === 'en' ? 'right-third' : 'left-third');
         await updateStyleGroupColor(
-          groups => groups.find(g => g.id.includes(preset)),
+          groups => groups.find(g => matchesPreset(g, preset)),
           'color', color, create(preset)
         );
         break;
@@ -977,7 +977,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
           groups => groups.find(g =>
             g.active !== false && g.style.bgColor &&
             !['top-row', 'mid-row', 'bottom-row', 'left-third', 'mid-third', 'right-third',
-              'space-key', 'delete-key', 'enter-key', 'other-keys'].some(p => g.id.includes(p)) &&
+              'space-key', 'delete-key', 'enter-key', 'other-keys'].some(p => matchesPreset(g, p)) &&
             g.style.visibilityMode !== 'showOnly'
           ),
           'bgColor', color
@@ -988,7 +988,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
           groups => groups.find(g =>
             g.active !== false && g.style.bgColor &&
             !['top-row', 'mid-row', 'bottom-row', 'left-third', 'mid-third', 'right-third',
-              'space-key', 'delete-key', 'enter-key', 'other-keys'].some(p => g.id.includes(p)) &&
+              'space-key', 'delete-key', 'enter-key', 'other-keys'].some(p => matchesPreset(g, p)) &&
             g.style.visibilityMode !== 'showOnly'
           ),
           'color', color
@@ -1055,7 +1055,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
         <View style={styles.header}>
           <Text allowFontScaling={false} style={styles.headerTitle}>{strings.editor.classicView}</Text>
           <TouchableOpacity style={styles.advancedButton} onPress={onSwitchToAdvanced}>
-            <Text allowFontScaling={false} style={styles.advancedButtonText}>{strings.editor.settings}</Text>
+            <Text allowFontScaling={false} style={styles.advancedButtonText}>{strings.editor.backToNewsettings}</Text>
           </TouchableOpacity>
         </View>
         <ClassicSectionsList

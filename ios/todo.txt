@@ -11,7 +11,9 @@ old app compatability:
 - My IssieBoard should be Templates
 - when changing the defualt in classic?
 - ordered rows/sections
-- 
+- rename keyboards
+- go/search -> tranlsated
+- space larger and centered
 
 
 

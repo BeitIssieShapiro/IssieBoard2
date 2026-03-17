@@ -62,7 +62,8 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent:"space-between",
+    gap: 12,
     marginBottom: 20,
   },
   containerSmall: {
@@ -74,7 +75,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#333',
-    flex: 1,
   },
   buttonGroup: {
     flexDirection: 'row',
@@ -82,7 +82,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 4,
     gap: 4,
-    alignSelf: 'flex-start',
     flexWrap: 'wrap', // Allow buttons to wrap to next line if needed
   },
   button: {

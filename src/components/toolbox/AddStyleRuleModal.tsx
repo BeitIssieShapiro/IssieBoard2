@@ -50,7 +50,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
     createGroupFromValues,
     updateGroup,
   } = useEditor();
-  const { strings } = useLocalization();
+  const { strings, isRTL } = useLocalization();
 
   // Local state for the rule being created/edited
   const [ruleName, setRuleName] = useState('');
@@ -352,9 +352,14 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
           <View style={styles.header}>
             <View style={styles.headerTitleContainer}>
               {profileName && (
+                <>
                 <Text allowFontScaling={false} style={styles.breadcrumb}>
-                  {profileName} →{' '}
+                  {profileName}
                 </Text>
+                <Text allowFontScaling={false} style={styles.breadcrumb}>
+                 {isRTL? ' <- ':' -> '}
+                 </Text>
+                 </>
               )}
               <Text allowFontScaling={false} style={styles.headerTitle}>
                 {editingGroup ? editingGroup.name : (ruleName || (isPreset ? initialName : strings.styleRuleModal.newKeysGroup))}
@@ -380,7 +385,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
             <View style={styles.nameRow}>
               <Text allowFontScaling={false} style={styles.nameLabel}>{strings.styleRuleModal.nameLabel}:</Text>
               <TextInput
-                style={styles.nameInput}
+                style={[styles.nameInput, isRTL && {direction:"rtl", textAlign:"right"}]}
                 value={ruleName}
                 onChangeText={setRuleName}
                 placeholder={strings.styleRuleModal.namePlaceholder}
@@ -580,6 +585,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   sectionTitle: {
+    textAlign:"left",
     fontSize: 13,
     fontWeight: '600',
     color: '#333',

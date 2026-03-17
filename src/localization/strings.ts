@@ -30,6 +30,7 @@ export interface Strings {
     myKeyboards: string;
     builtIn: string;
     settings: string;
+    backToNewsettings: string;
     classicView: string;
     newProfile: string;
     duplicateProfile: string;
@@ -327,6 +328,7 @@ const en: Strings = {
     myKeyboards: 'My Keyboards',
     builtIn: 'Built-in',
     settings: 'Settings',
+    backToNewsettings: 'Back to Updated View',
     classicView: 'Classic View',
     newProfile: 'New Keyboard',
     duplicateProfile: 'Duplicate Keyboard',
@@ -624,6 +626,7 @@ const he: Strings = {
     myKeyboards: 'המקלדות שלי',
     builtIn: 'מובנה',
     settings: 'הגדרות',
+    backToNewsettings: 'חזרה לתצוגה חדשה',
     classicView: 'תצוגה קלאסית',
     newProfile: 'מקלדת חדשה',
     duplicateProfile: 'שכפל מקלדת',
@@ -921,6 +924,7 @@ const ar: Strings = {
     myKeyboards: 'لوحات المفاتيح',
     builtIn: 'مدمج',
     settings: 'إعدادات',
+    backToNewsettings: 'Back to Updated View',
     classicView: 'العرض الكلاسيكي',
     newProfile: 'لوحة مفاتيح جديدة',
     duplicateProfile: 'تكرار لوحة المفاتيح',

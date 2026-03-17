@@ -7,7 +7,6 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   Modal,
@@ -64,6 +63,7 @@ import {
   extractTemplateId,
   isBuiltInProfileId
 } from '../data/builtInProfiles';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // ============================================
 // FACTORY DEFAULT CONFIGURATION
@@ -463,7 +463,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   onCreateNew,
   onSwitchToClassic,
 }) => {
-  const { strings } = useLocalization();
+  const { strings, isRTL } = useLocalization();
   const LANGUAGES = useMemo(() => getLanguages(strings), [strings]);
   const { state, setMode, setConfig, markDirty, dispatch } = useEditor();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
@@ -1349,7 +1349,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   const isDefaultProfile = currentProfileId === getDefaultProfileId(currentLanguage);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { direction: isRTL ? "rtl" : "ltr" }]}>
       {/* Toast Notification */}
       {toastMessage && (
         <Animated.View style={[styles.toast, { opacity: toastOpacity }]}>
@@ -1471,7 +1471,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
               <FlatList
                 data={profiles}
                 keyExtractor={item => item.id}
-                style={{flexShrink: 1}}
+                style={{ flexShrink: 1 }}
                 renderItem={({ item }) => (
                   <View
                     style={[
@@ -1586,16 +1586,18 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
                   [
                     { text: strings.common.cancel, style: 'cancel' },
                     { text: strings.alerts.discard, style: 'destructive', onPress: onSwitchToClassic },
-                    { text: strings.common.save, onPress: async () => {
-                      const currentProfile = profiles.find(p => p.id === currentProfileId);
-                      if (currentProfile?.isBuiltIn) {
-                        afterSaveAsRef.current = onSwitchToClassic;
+                    {
+                      text: strings.common.save, onPress: async () => {
+                        const currentProfile = profiles.find(p => p.id === currentProfileId);
+                        if (currentProfile?.isBuiltIn) {
+                          afterSaveAsRef.current = onSwitchToClassic;
+                        }
+                        await handleSave();
+                        if (!currentProfile?.isBuiltIn) {
+                          onSwitchToClassic();
+                        }
                       }
-                      await handleSave();
-                      if (!currentProfile?.isBuiltIn) {
-                        onSwitchToClassic();
-                      }
-                    }},
+                    },
                   ]
                 );
               } else {
@@ -1691,8 +1693,8 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         style={styles.content}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={[styles.canvasContainer, { height: windowHeight * .38 }]}>
-          <InteractiveCanvas onTestInput={handleTestInput} height={windowHeight * .28 } />
+        <View style={[styles.canvasContainer]}>
+          <InteractiveCanvas onTestInput={handleTestInput} height={windowHeight * .28} />
         </View>
 
         <View style={styles.toolboxContainer}>
@@ -1725,7 +1727,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
   onClose,
   onSwitchToClassic,
 }) => {
-  const { strings } = useLocalization();
+  const { strings, isRTL } = useLocalization();
   const [loading, setLoading] = useState(true);
   const [initialConfig, setInitialConfig] = useState<KeyboardConfig | null>(null);
   const [initialStyleGroups, setInitialStyleGroups] = useState<any[]>([]);
@@ -2508,7 +2510,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 8,
     marginBottom: 12,
-    padding: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,

@@ -103,17 +103,21 @@ export function extractClassicState(styleGroups: StyleGroup[], language: string 
     };
 }
 
+export function matchesPreset(group: StyleGroup, presetId: string): boolean {
+    return group.id.includes(presetId) || group.presetId === presetId;
+}
+
 function findGroupsByIdPattern(groups: StyleGroup[], presetIds: string[]): (StyleGroup | null)[] {
     return presetIds.map(presetId =>
-        groups.find(g => g.id.includes(presetId)) ?? null
+        groups.find(g => matchesPreset(g, presetId)) ?? null
     );
 }
 
 function findGroupByIdPattern(groups: StyleGroup[], presetId: string): StyleGroup | null {
-    return groups.find(g => g.id.includes(presetId)) ?? null;
+    return groups.find(g => matchesPreset(g, presetId)) ?? null;
 }
 
 function isKnownPresetGroup(group: StyleGroup): boolean {
     const knownPatterns = [...ROW_PRESETS, ...THIRD_PRESETS, ...HALF_PRESETS, ...ACTION_PRESETS, 'visible-keys'];
-    return knownPatterns.some(pattern => group.id.includes(pattern));
+    return knownPatterns.some(pattern => matchesPreset(group, pattern));
 }

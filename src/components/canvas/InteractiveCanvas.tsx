@@ -56,7 +56,7 @@ const LANGUAGE_NAMES: Record<string, string> = {
 export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInput, height }) => {
   const { state, dispatch } = useEditor();
   const { strings } = useLocalization();
-  const [keyboardHeight, setKeyboardHeight] = useState<number>(height);
+  const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
 
   // Get language display name from keyboard ID
@@ -191,49 +191,34 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
   const isLandscape = windowWidth > windowHeight;
 
   return (
-    <>
+    <View style={{ flexDirection: isLandscape ? "row" : "column", minHeight: height + 20 }}>
+
       {/* Preview Header */}
-      <View style={[
-        styles.previewHeader,
-        isLandscape && styles.previewHeaderLandscape
-      ]}>
-        <View style={isLandscape ? styles.previewLabelColumn : styles.previewLabelRow}>
-          <Text allowFontScaling={false} style={styles.previewLabel}>{strings.canvas.preview}</Text>
-          {isLandscape && (
-            <View style={[styles.languageBadge, styles.languageBadgeLandscape]}>
-              <Text allowFontScaling={false} style={styles.languageBadgeText}>
-                {languageDisplayName}
-              </Text>
-            </View>
-          )}
+      <View style={isLandscape ? styles.previewHeaderLandscape : styles.previewHeader}>
+        <Text allowFontScaling={false} style={styles.previewLabel}>{strings.canvas.preview}</Text>
+        <View style={[styles.languageBadge]}>
+          <Text allowFontScaling={false} style={styles.languageBadgeText}>
+            {languageDisplayName}
+          </Text>
         </View>
-        {!isLandscape && (
-          <View style={styles.languageBadge}>
-            <Text allowFontScaling={false} style={styles.languageBadgeText}>
-              {languageDisplayName}
-            </Text>
-          </View>
-        )}
-        <Text allowFontScaling={false} style={styles.dimensionsText}>
-          {Math.round(keyboardHeight)}pt
-        </Text>
       </View>
 
       {/* Keyboard Preview */}
       <View style={{
-        position: "absolute",
-        top: windowWidth < windowHeight ? 50 : 0,
-        left: 5,
-        width: windowWidth - 60,
-        alignItems: 'center',  // Center the scaled keyboard horizontally
+        width: isLandscape ? windowWidth * 0.7 : windowWidth * 0.95,
+        alignItems: 'center',
+        justifyContent:"center",
+        height: Math.max(height, keyboardHeight) - 50,
+        marginTop: isLandscape ? 10 : 0,
+        marginHorizontal:  10,
       }}>
         <KeyboardPreview
           key={`editor-preview-${windowWidth}`}
           style={[
             styles.preview,
             {
-              height: height,  // Container height (what we're willing to allocate)
-              width: windowWidth - 60,
+              height: Math.max(height - 40, keyboardHeight),  // Container height (what we're willing to allocate)
+              width: isLandscape ? windowWidth * 0.7 : windowWidth * 0.95,
             }
           ]}
           configJson={configJson}
@@ -242,49 +227,47 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
           onHeightChange={handleHeightChange}
         />
       </View>
-    </>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
 
   previewHeader: {
+    margin: 5,
+    marginStart: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 5,
-    height: 20,
+    height: 25,
   },
   previewHeaderLandscape: {
-    height: 40, // Taller to accommodate vertical layout
-  },
-  previewLabelRow: {
-    // Portrait: label only
-  },
-  previewLabelColumn: {
-    // Landscape: label + badge stacked vertically
+    margin: 5,
+    marginStart: 16,
     flexDirection: 'column',
     alignItems: 'flex-start',
-    gap: 4,
+    width: "25%",
   },
+
   previewLabel: {
-    fontSize: 16,
+    fontSize: 19,
     fontWeight: '600',
-    color: '#6A7181',
+    color: '#111827',
   },
   languageBadge: {
     backgroundColor: '#39AC86',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 16,
-  },
-  languageBadgeLandscape: {
-    marginTop: 2,
+    width: 100,
+    textAlign: "center"
   },
   languageBadgeText: {
     fontSize: 12,
     fontWeight: '600',
     color: 'white',
+    textAlign:"center"
   },
   dimensionsText: {
     fontSize: 11,

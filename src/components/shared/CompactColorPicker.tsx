@@ -51,7 +51,7 @@ export const CompactColorPicker: React.FC<CompactColorPickerProps> = ({
   showSystemDefault = false,
   systemDefaultLabel: systemDefaultLabelProp,
 }) => {
-  const { strings } = useLocalization();
+  const { strings, isRTL } = useLocalization();
   const systemDefaultLabel = systemDefaultLabelProp ?? strings.common.default;
   const [showPopup, setShowPopup] = useState(false);
   const [showColorWheel, setShowColorWheel] = useState(false);
@@ -315,6 +315,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
     flex: 1,
+    textAlign:"left"
+
   },
   colorsContainer: {
     marginTop: 40,

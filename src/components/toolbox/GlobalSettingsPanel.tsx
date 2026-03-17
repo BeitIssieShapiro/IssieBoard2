@@ -60,7 +60,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
     updateSettingsButton,
     dispatch,
   } = useEditor();
-  const { strings } = useLocalization();
+  const { strings, isRTL } = useLocalization();
 
   // Get current settings (moved before local state initialization)
   const textColor = (state.config as any).textColor || '';
@@ -261,7 +261,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
             {strings.globalSettings.features}
           </Text>
           <Text allowFontScaling={false} style={styles.advancedArrow}>
-            {featuresExpanded ? '▼' : '▶'}
+            {featuresExpanded ? '▼' : isRTL ? '◀' : '▶'}
           </Text>
         </TouchableOpacity>
 
@@ -328,7 +328,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
             {strings.globalSettings.advancedSettings}
           </Text>
           <Text allowFontScaling={false} style={styles.advancedArrow}>
-            {advancedExpanded ? '▼' : '▶'}
+            {advancedExpanded ? '▼' : isRTL ? '◀' : '▶'}
           </Text>
         </TouchableOpacity>
 

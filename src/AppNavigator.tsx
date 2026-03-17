@@ -15,6 +15,7 @@ import { EditorScreen } from './screens/EditorScreen';
 import { ClassicEditorScreen } from './screens/ClassicEditorScreen';
 import KeyboardPreferences from './native/KeyboardPreferences';
 import { LocalizationProvider } from './localization';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 type LanguageId = 'he' | 'en' | 'ar';
 
@@ -51,12 +52,12 @@ export const AppNavigator: React.FC = () => {
         // For now, use getProfile with profile_ prefix workaround, but we should use getString
         // The keyboard saves to "launch_keyboard" directly, but getProfile reads "profile_launch_keyboard"
         // FIXED: We need to read from the actual key, not with prefix
-        
+
         // Try to get via native module directly - getString reads without prefix
         const { NativeModules } = require('react-native');
         const { KeyboardPreferencesModule } = NativeModules;
         let launchKeyboardId: string | null = null;
-        
+
         if (KeyboardPreferencesModule?.getString) {
           try {
             launchKeyboardId = await KeyboardPreferencesModule.getString('launch_keyboard');
@@ -65,18 +66,18 @@ export const AppNavigator: React.FC = () => {
             console.warn('getString failed:', e);
           }
         }
-        
+
         if (launchKeyboardId) {
           const lang = keyboardToLanguage[launchKeyboardId] || 'he';
           console.log(`📱 AppNavigator: Opening with keyboard=${launchKeyboardId}, language=${lang}`);
           setInitialLanguage(lang);
-          
+
           // Clear the launch_keyboard so next normal app launch doesn't use it
           if (KeyboardPreferencesModule?.setString) {
             await KeyboardPreferencesModule.setString('', 'launch_keyboard');
           }
         }
-        
+
         // Also check for current_language as fallback
         if (!launchKeyboardId) {
           const currentLang = await KeyboardPreferences.getProfile('current_language');
@@ -112,14 +113,14 @@ export const AppNavigator: React.FC = () => {
         setInitialLoaded(true);
       }
     };
-    
+
     loadInitialSettings();
-    
+
     // Also handle deep links
     const handleDeepLink = (event: { url: string }) => {
       const url = event.url;
       console.log(`📱 AppNavigator: Deep link received: ${url}`);
-      
+
       // Parse URL for language parameter
       // Format: issieboardng://settings?lang=he or issieboardng://settings?keyboard=he_ordered
       try {
@@ -134,10 +135,10 @@ export const AppNavigator: React.FC = () => {
               params[decodeURIComponent(key)] = decodeURIComponent(value);
             }
           });
-          
+
           const lang = params['lang'] as LanguageId;
           const keyboard = params['keyboard'];
-          
+
           if (lang && ['he', 'en', 'ar'].includes(lang)) {
             console.log(`📱 AppNavigator: Setting language from deep link: ${lang}`);
             setInitialLanguage(lang);
@@ -155,23 +156,23 @@ export const AppNavigator: React.FC = () => {
         // URL parsing failed, ignore
       }
     };
-    
+
     // Check for initial URL (app opened via deep link)
     Linking.getInitialURL().then(url => {
       if (url) {
         handleDeepLink({ url });
       }
     });
-    
+
     // Listen for deep link events while app is running
     const subscription = Linking.addEventListener('url', handleDeepLink);
-    
+
     return () => {
       subscription.remove();
     };
   }, []);
 
-  
+
 
   const handleSwitchToClassic = useCallback(() => {
     setCurrentScreen({ type: 'classic' });
@@ -206,14 +207,17 @@ export const AppNavigator: React.FC = () => {
 
   return (
     <LocalizationProvider>
-      <View style={styles.container}>
-        <EditorScreen
-          key={editorKey}
-          profileId={profileId}
-          initialLanguage={initialLanguage}
-          onSwitchToClassic={isV1User ? handleSwitchToClassic : undefined}
-        />
-      </View>
+      <SafeAreaProvider>
+
+        <View style={styles.container}>
+          <EditorScreen
+            key={editorKey}
+            profileId={profileId}
+            initialLanguage={initialLanguage}
+            onSwitchToClassic={isV1User ? handleSwitchToClassic : undefined}
+          />
+        </View>
+      </SafeAreaProvider>
     </LocalizationProvider>
   );
 };
