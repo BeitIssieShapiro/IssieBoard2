@@ -101,7 +101,7 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation, route}) => {
   const handleSelectForFavorite = async (sentence: SavedSentence) => {
     await FavoritesManager.addFavorite(sentence.id);
     await loadFavorites();
-    showNotification('Added to favorites', 'success');
+    showNotification(strings.favorites.addedToFavorites, 'success');
     navigation.goBack();
   };
 
@@ -123,7 +123,7 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation, route}) => {
         favoriteCaption.trim() || undefined,
         favoriteIcon.trim() || undefined
       );
-      showNotification('Favorite updated', 'success');
+      showNotification(strings.favorites.favoriteUpdated, 'success');
     } else {
       await FavoritesManager.addFavorite(
         editingFavorite.id,
@@ -131,7 +131,7 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation, route}) => {
         favoriteIcon.trim() || undefined
       );
       await loadFavorites();
-      showNotification('Added to favorites', 'success');
+      showNotification(strings.favorites.addedToFavorites, 'success');
     }
 
     setEditingFavorite(null);
@@ -175,17 +175,17 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation, route}) => {
 
   const handleDeletePress = (sentence: SavedSentence) => {
     Alert.alert(
-      strings.deleteText,
-      `${strings.deleteConfirm} "${sentence.text.substring(0, 30)}..."?`,
+      strings.browse.deleteText,
+      `${strings.browse.deleteConfirm} "${sentence.text.substring(0, 30)}..."?`,
       [
-        {text: strings.cancel, style: 'cancel'},
+        {text: strings.common.cancel, style: 'cancel'},
         {
-          text: strings.delete,
+          text: strings.common.delete,
           style: 'destructive',
           onPress: async () => {
             await SavedSentencesManager.deleteSentence(sentence.id);
             await loadSentences();
-            showNotification(strings.deleted, 'success');
+            showNotification(strings.browse.deleted, 'success');
           },
         },
       ],
@@ -293,17 +293,17 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation, route}) => {
     if (sentences.length === 0) return;
 
     Alert.alert(
-      strings.clearAll,
-      `${strings.clearAllConfirm} (${sentences.length})`,
+      strings.browse.clearAll,
+      `${strings.browse.clearAllConfirm} (${sentences.length})`,
       [
-        {text: strings.cancel, style: 'cancel'},
+        {text: strings.common.cancel, style: 'cancel'},
         {
-          text: strings.delete,
+          text: strings.common.delete,
           style: 'destructive',
           onPress: async () => {
             await SavedSentencesManager.clearAll();
             await loadSentences();
-            showNotification(strings.allDeleted, 'success');
+            showNotification(strings.browse.allDeleted, 'success');
           },
         },
       ],
@@ -318,10 +318,10 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation, route}) => {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}>
-          <Text style={styles.backButtonText}>{strings.back}</Text>
+          <Text style={styles.backButtonText}>{strings.common.back}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
-          {mode === 'select' ? 'Select Favorite' : strings.savedSentences}
+          {mode === 'select' ? strings.favorites.selectFavorite : strings.browse.savedSentences}
         </Text>
         {mode === 'browse' && (
           <TouchableOpacity
@@ -334,7 +334,7 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation, route}) => {
                 styles.clearAllButtonText,
                 sentences.length === 0 && styles.clearAllButtonTextDisabled,
               ]}>
-              {strings.clearAll}
+              {strings.browse.clearAll}
             </Text>
           </TouchableOpacity>
         )}
@@ -344,7 +344,7 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation, route}) => {
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
-          placeholder={strings.searchSentences}
+          placeholder={strings.browse.search}
           value={searchQuery}
           onChangeText={setSearchQuery}
           autoCapitalize="none"
@@ -368,13 +368,13 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation, route}) => {
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>
             {searchQuery
-              ? strings.noMatchingSearch
-              : strings.noSavedSentences}
+              ? strings.browse.noMatchingSearch
+              : strings.browse.noSaved}
           </Text>
           <Text style={styles.emptySubtext}>
             {searchQuery
-              ? strings.tryDifferentSearch
-              : strings.noSavedSentencesSubtext}
+              ? strings.browse.tryDifferentSearch
+              : strings.browse.noSavedSubtext}
           </Text>
         </View>
       )}
@@ -398,28 +398,28 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation, route}) => {
                   onPress={(e) => e.stopPropagation()}>
                   <View style={styles.editModalContent}>
                     <Text style={styles.editModalTitle}>
-                      Customize Favorite
+                      {strings.favorites.customize}
                     </Text>
 
                     {/* Caption Input */}
                     <View style={styles.inputGroup}>
-                      <Text style={styles.inputLabel}>Caption</Text>
+                      <Text style={styles.inputLabel}>{strings.favorites.caption}</Text>
                       <TextInput
                         style={styles.textInputField}
                         value={favoriteCaption}
                         onChangeText={setFavoriteCaption}
-                        placeholder="Leave empty for first word"
+                        placeholder={strings.favorites.captionPlaceholder}
                         placeholderTextColor={colors.textLight}
                         maxLength={20}
                       />
                       <Text style={styles.inputHint}>
-                        Short text shown on button
+                        {strings.favorites.captionHint}
                       </Text>
                     </View>
 
                     {/* Icon Input */}
                     <View style={styles.inputGroup}>
-                      <Text style={styles.inputLabel}>Icon</Text>
+                      <Text style={styles.inputLabel}>{strings.favorites.icon}</Text>
                       <TouchableOpacity
                         style={styles.iconPreviewButton}
                         onPress={() => {
@@ -433,7 +433,7 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation, route}) => {
                         </Text>
                       </TouchableOpacity>
                       <Text style={styles.inputHint}>
-                        Tap to select emoji
+                        {strings.favorites.iconHint}
                       </Text>
                     </View>
 
@@ -443,13 +443,13 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation, route}) => {
                         style={[styles.editModalButton, styles.cancelButton]}
                         onPress={handleCancelEdit}
                         activeOpacity={0.7}>
-                        <Text style={styles.editModalButtonText}>Cancel</Text>
+                        <Text style={styles.editModalButtonText}>{strings.common.cancel}</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={[styles.editModalButton, styles.saveButton]}
                         onPress={handleSaveFavorite}
                         activeOpacity={0.7}>
-                        <Text style={styles.editModalButtonText}>Save</Text>
+                        <Text style={styles.editModalButtonText}>{strings.common.save}</Text>
                       </TouchableOpacity>
                     </View>
                   </View>

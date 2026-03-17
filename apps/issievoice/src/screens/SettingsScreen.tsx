@@ -8,6 +8,7 @@ import {
   ScrollView,
 } from 'react-native';
 import {useTTS} from '../context/TTSContext';
+import {useLocalization} from '../context/LocalizationContext';
 import {colors, sizes} from '../constants';
 
 interface SettingsScreenProps {
@@ -16,6 +17,7 @@ interface SettingsScreenProps {
 
 const SettingsScreen: React.FC<SettingsScreenProps> = ({navigation}) => {
   const {settings, updateSettings} = useTTS();
+  const {strings} = useLocalization();
 
   const handleRateChange = async (rate: number) => {
     await updateSettings({rate});
@@ -26,15 +28,15 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({navigation}) => {
   };
 
   const rateOptions = [
-    {label: 'Slow', value: 0.3},
-    {label: 'Normal', value: 0.5},
-    {label: 'Fast', value: 0.7},
+    {label: strings.settings.slow, value: 0.3},
+    {label: strings.settings.normal, value: 0.5},
+    {label: strings.settings.fast, value: 0.7},
   ];
 
   const pitchOptions = [
-    {label: 'Low', value: 0.8},
-    {label: 'Normal', value: 1.0},
-    {label: 'High', value: 1.2},
+    {label: strings.settings.low, value: 0.8},
+    {label: strings.settings.normal, value: 1.0},
+    {label: strings.settings.high, value: 1.2},
   ];
 
   return (
@@ -45,15 +47,15 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({navigation}) => {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}>
-          <Text style={styles.backButtonText}>← Back</Text>
+          <Text style={styles.backButtonText}>{strings.common.back}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Settings</Text>
+        <Text style={styles.headerTitle}>{strings.settings.title}</Text>
       </View>
 
       <ScrollView style={styles.content}>
         {/* Speech Rate */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Speech Speed</Text>
+          <Text style={styles.sectionTitle}>{strings.settings.speechSpeed}</Text>
           <View style={styles.optionsRow}>
             {rateOptions.map(option => (
               <TouchableOpacity
@@ -79,7 +81,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({navigation}) => {
 
         {/* Pitch */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Voice Pitch</Text>
+          <Text style={styles.sectionTitle}>{strings.settings.voicePitch}</Text>
           <View style={styles.optionsRow}>
             {pitchOptions.map(option => (
               <TouchableOpacity
@@ -105,12 +107,11 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({navigation}) => {
 
         {/* Info Section */}
         <View style={styles.infoSection}>
-          <Text style={styles.infoTitle}>About IssieVoice</Text>
+          <Text style={styles.infoTitle}>{strings.settings.aboutTitle}</Text>
           <Text style={styles.infoText}>
-            IssieVoice helps people who cannot speak to communicate by typing
-            text and having it read aloud.
+            {strings.settings.aboutDescription}
           </Text>
-          <Text style={styles.infoText}>Version 1.0.0</Text>
+          <Text style={styles.infoText}>{strings.settings.version} 1.0.0</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

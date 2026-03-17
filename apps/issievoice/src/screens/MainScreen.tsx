@@ -572,15 +572,15 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
       if (result === null) {
         // Duplicate detected
         console.log('⚠️ Sentence already exists');
-        showNotification(strings.alreadyExists || 'This sentence is already saved', 'error');
+        showNotification(strings.notifications.alreadyExists, 'error');
       } else {
         // Success
         console.log('💾 Sentence saved successfully');
-        showNotification(strings.savedSuccessMessage || 'Saved successfully', 'success');
+        showNotification(strings.notifications.savedSuccess, 'success');
       }
     } catch (error: any) {
       console.error('❌ Save error:', error);
-      showNotification(strings.failedToSave || 'Failed to save', 'error');
+      showNotification(strings.notifications.failedToSave, 'error');
     }
   };
 
@@ -714,7 +714,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
             <IVButton
               onPress={handleSpeak}
               width={Math.min(200, frame.width * 0.25)}
-              caption={strings.speak}
+              caption={strings.actionBar.speak}
               icon='🗣️'
               style={{ backgroundColor: "#35C759" }}
             />
