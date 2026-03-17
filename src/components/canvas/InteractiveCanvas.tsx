@@ -2,6 +2,7 @@ import React, { useMemo, useCallback, useState } from 'react';
 import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
 import { KeyboardPreview, KeyPressEvent } from '../KeyboardPreview';
 import { useEditor } from '../../context/EditorContext';
+import { useLocalization } from '../../localization';
 
 // Helper to cycle to next keyset of the same type across keyboards
 const getNextKeysetId = (
@@ -54,6 +55,7 @@ const LANGUAGE_NAMES: Record<string, string> = {
 
 export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInput, height }) => {
   const { state, dispatch } = useEditor();
+  const { strings } = useLocalization();
   const [keyboardHeight, setKeyboardHeight] = useState<number>(height);
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
 
@@ -196,7 +198,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
         isLandscape && styles.previewHeaderLandscape
       ]}>
         <View style={isLandscape ? styles.previewLabelColumn : styles.previewLabelRow}>
-          <Text allowFontScaling={false} style={styles.previewLabel}>Preview</Text>
+          <Text allowFontScaling={false} style={styles.previewLabel}>{strings.canvas.preview}</Text>
           {isLandscape && (
             <View style={[styles.languageBadge, styles.languageBadgeLandscape]}>
               <Text allowFontScaling={false} style={styles.languageBadgeText}>

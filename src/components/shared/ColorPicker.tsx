@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import WheelColorPicker from 'react-native-wheel-color-picker';
 import { customColorsManager } from '../../utils/customColorsManager';
+import { useLocalization } from '../../localization';
 
 // Special value for system default
 export const SYSTEM_DEFAULT_COLOR = '';
@@ -50,8 +51,10 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
   allowCustom = true,
   label,
   showSystemDefault = false,
-  systemDefaultLabel = 'Default',
+  systemDefaultLabel: systemDefaultLabelProp,
 }) => {
+  const { strings } = useLocalization();
+  const systemDefaultLabel = systemDefaultLabelProp ?? strings.common.default;
   const [showCustomModal, setShowCustomModal] = useState(false);
   const [customColor, setCustomColor] = useState(value);
   const [customColors, setCustomColors] = useState<string[]>([]);
@@ -193,7 +196,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
           onPress={() => setShowCustomModal(false)}
         >
           <Pressable style={styles.modalContent} onPress={e => e.stopPropagation()}>
-            <Text allowFontScaling={false} style={styles.modalTitle}>Pick a Color</Text>
+            <Text allowFontScaling={false} style={styles.modalTitle}>{strings.colorPicker.modalTitle}</Text>
 
             <ScrollView contentContainerStyle={styles.scrollContent}>
               <View style={styles.colorWheelContainer}>
@@ -212,7 +215,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
               </View>
 
               <View style={styles.previewRow}>
-                <Text allowFontScaling={false} style={styles.previewLabel}>Selected Color:</Text>
+                <Text allowFontScaling={false} style={styles.previewLabel}>{strings.colorPicker.selectedColor}</Text>
                 <View style={[styles.previewSwatch, { backgroundColor: customColor }]} />
                 <Text allowFontScaling={false} style={styles.hexText}>{customColor.toUpperCase()}</Text>
               </View>
@@ -223,13 +226,13 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
                 style={[styles.modalButton, styles.cancelButton]}
                 onPress={() => setShowCustomModal(false)}
               >
-                <Text allowFontScaling={false} style={styles.cancelButtonText}>Cancel</Text>
+                <Text allowFontScaling={false} style={styles.cancelButtonText}>{strings.common.cancel}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalButton, styles.applyButton]}
                 onPress={handleCustomSubmit}
               >
-                <Text allowFontScaling={false} style={styles.applyButtonText}>Apply</Text>
+                <Text allowFontScaling={false} style={styles.applyButtonText}>{strings.common.apply}</Text>
               </TouchableOpacity>
             </View>
           </Pressable>

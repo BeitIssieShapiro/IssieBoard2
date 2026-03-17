@@ -6,6 +6,7 @@ import {
   Text,
   Animated,
 } from 'react-native';
+import { useLocalization } from '../../localization';
 
 interface ToggleSwitchProps {
   value: boolean;
@@ -19,11 +20,14 @@ interface ToggleSwitchProps {
 export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
   value,
   onChange,
-  labelOn = 'On',
-  labelOff = 'Off',
+  labelOn: labelOnProp,
+  labelOff: labelOffProp,
   disabled = false,
   size = 'medium',
 }) => {
+  const { strings } = useLocalization();
+  const labelOn = labelOnProp ?? strings.common.on;
+  const labelOff = labelOffProp ?? strings.common.off;
   const dimensions = {
     small: { track: { width: 40, height: 24 }, thumb: 18, padding: 3 },
     medium: { track: { width: 52, height: 32 }, thumb: 24, padding: 4 },
@@ -100,6 +104,7 @@ export const VisibilityToggle: React.FC<VisibilityToggleProps> = ({
   onChange,
   disabled = false,
 }) => {
+  const { strings } = useLocalization();
   return (
     <TouchableOpacity
       style={[
@@ -112,7 +117,7 @@ export const VisibilityToggle: React.FC<VisibilityToggleProps> = ({
       activeOpacity={0.7}
       accessibilityRole="switch"
       accessibilityState={{ checked: visible, disabled }}
-      accessibilityLabel={visible ? 'Key is visible, tap to hide' : 'Key is hidden, tap to show'}
+      accessibilityLabel={visible ? strings.toggleSwitch.a11yVisible : strings.toggleSwitch.a11yHidden}
     >
       <View style={styles.visibilityContent}>
         <Text allowFontScaling={false} style={styles.visibilityIcon}>{visible ? '👁️' : '👁️‍🗨️'}</Text>
@@ -120,10 +125,10 @@ export const VisibilityToggle: React.FC<VisibilityToggleProps> = ({
           styles.visibilityText,
           visible ? styles.visibilityTextVisible : styles.visibilityTextHidden,
         ]}>
-          {visible ? 'Visible' : 'Hidden'}
+          {visible ? strings.toggleSwitch.visible : strings.toggleSwitch.hidden}
         </Text>
       </View>
-      
+
       <View style={[
         styles.visibilityIndicator,
         visible ? styles.indicatorVisible : styles.indicatorHidden,

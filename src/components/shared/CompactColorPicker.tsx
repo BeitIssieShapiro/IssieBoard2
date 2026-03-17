@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import WheelColorPicker from 'react-native-wheel-color-picker';
 import { customColorsManager } from '../../utils/customColorsManager';
+import { useLocalization } from '../../localization';
 
 // Special value for system default
 export const SYSTEM_DEFAULT_COLOR = '';
@@ -48,8 +49,10 @@ export const CompactColorPicker: React.FC<CompactColorPickerProps> = ({
   onChange,
   presets = DEFAULT_PRESETS,
   showSystemDefault = false,
-  systemDefaultLabel = 'Default',
+  systemDefaultLabel: systemDefaultLabelProp,
 }) => {
+  const { strings } = useLocalization();
+  const systemDefaultLabel = systemDefaultLabelProp ?? strings.common.default;
   const [showPopup, setShowPopup] = useState(false);
   const [showColorWheel, setShowColorWheel] = useState(false);
   const [customColor, setCustomColor] = useState(value || '#FF5733');
@@ -276,7 +279,7 @@ export const CompactColorPicker: React.FC<CompactColorPickerProps> = ({
                   </View>
 
                   <View style={styles.previewRow}>
-                    <Text allowFontScaling={false} style={styles.previewLabel}>Selected Color:</Text>
+                    <Text allowFontScaling={false} style={styles.previewLabel}>{strings.colorPicker.selectedColor}</Text>
                     <Pressable style={[styles.previewSwatch, { backgroundColor: customColor }]}
                       onPress={handleCustomColorAdd} />
                     <Text allowFontScaling={false} style={styles.hexText}>{customColor.toUpperCase()}</Text>
