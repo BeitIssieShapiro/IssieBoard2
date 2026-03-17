@@ -280,6 +280,20 @@ export interface Strings {
     a11yVisible: string;
     a11yHidden: string;
   };
+  setup: {
+    keyboardNotAdded: string;
+    tapForInstructions: string;
+    setupInstructionsTitle: string;
+    setupStep1: string;
+    setupStep2: string;
+    setupStep3: string;
+    setupStep4: string;
+    setupStep5: string;
+    fullAccessTitle: string;
+    fullAccessStep1: string;
+    fullAccessStep2: string;
+    fullAccessStep3: string;
+  };
 }
 
 const en: Strings = {
@@ -561,6 +575,20 @@ const en: Strings = {
     hidden: 'Hidden',
     a11yVisible: 'Toggle visibility: currently visible',
     a11yHidden: 'Toggle visibility: currently hidden',
+  },
+  setup: {
+    keyboardNotAdded: 'IssieBoard keyboard is not added yet. Tap for setup instructions.',
+    tapForInstructions: 'Tap for instructions',
+    setupInstructionsTitle: 'Setup Instructions',
+    setupStep1: '1. Open the Settings app',
+    setupStep2: '2. Go to General > Keyboard > Keyboards',
+    setupStep3: '3. Tap "Add New Keyboard..."',
+    setupStep4: '4. Find and select "IssieBoard"',
+    setupStep5: '5. Enable "Allow Full Access" for full functionality',
+    fullAccessTitle: 'Enable Full Access',
+    fullAccessStep1: '1. Open Settings > General > Keyboard > Keyboards',
+    fullAccessStep2: '2. Tap "IssieBoard"',
+    fullAccessStep3: '3. Enable "Allow Full Access"',
   },
 };
 
@@ -844,6 +872,20 @@ const he: Strings = {
     a11yVisible: 'החלף נראות: גלוי כעת',
     a11yHidden: 'החלף נראות: מוסתר כעת',
   },
+  setup: {
+    keyboardNotAdded: 'מקלדת IssieBoard עדיין לא הוגדרה. לחצו להוראות הגדרה.',
+    tapForInstructions: 'לחצו להוראות',
+    setupInstructionsTitle: 'הוראות הגדרה',
+    setupStep1: '1. פתחו את אפליקציית ההגדרות',
+    setupStep2: '2. עברו אל כללי > מקלדת > מקלדות',
+    setupStep3: '3. לחצו על "הוסף מקלדת חדשה..."',
+    setupStep4: '4. מצאו ובחרו "IssieBoard"',
+    setupStep5: '5. הפעילו "גישה מלאה" לפונקציונליות מלאה',
+    fullAccessTitle: 'הפעלת גישה מלאה',
+    fullAccessStep1: '1. פתחו הגדרות > כללי > מקלדת > מקלדות',
+    fullAccessStep2: '2. לחצו על "IssieBoard"',
+    fullAccessStep3: '3. הפעילו "גישה מלאה"',
+  },
 };
 
 const ar: Strings = {
@@ -1125,6 +1167,20 @@ const ar: Strings = {
     hidden: 'مخفي',
     a11yVisible: 'تبديل الرؤية: مرئي حاليًا',
     a11yHidden: 'تبديل الرؤية: مخفي حاليًا',
+  },
+  setup: {
+    keyboardNotAdded: 'لم تتم إضافة لوحة مفاتيح IssieBoard بعد. اضغط لتعليمات الإعداد.',
+    tapForInstructions: 'اضغط للتعليمات',
+    setupInstructionsTitle: 'تعليمات الإعداد',
+    setupStep1: '1. افتح تطبيق الإعدادات',
+    setupStep2: '2. انتقل إلى عام > لوحة المفاتيح > لوحات المفاتيح',
+    setupStep3: '3. اضغط على "إضافة لوحة مفاتيح جديدة..."',
+    setupStep4: '4. ابحث عن "IssieBoard" واختره',
+    setupStep5: '5. فعّل "السماح بالوصول الكامل" للوظائف الكاملة',
+    fullAccessTitle: 'تفعيل الوصول الكامل',
+    fullAccessStep1: '1. افتح الإعدادات > عام > لوحة المفاتيح > لوحات المفاتيح',
+    fullAccessStep2: '2. اضغط على "IssieBoard"',
+    fullAccessStep3: '3. فعّل "السماح بالوصول الكامل"',
   },
 };
 
