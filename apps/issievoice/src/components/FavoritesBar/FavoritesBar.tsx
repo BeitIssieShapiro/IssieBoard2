@@ -150,13 +150,13 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
         {selectedId && (
           <View style={styles.toolbar}>
             <TouchableOpacity style={styles.toolbarButton} onPress={handleMoveLeft}>
-              <Text style={styles.toolbarButtonText}>{strings.moveLeft}</Text>
+              <Text style={styles.toolbarButtonText}>{strings.favorites.moveLeft}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.toolbarButton} onPress={handleDelete}>
-              <Text style={[styles.toolbarButtonText, styles.deleteText]}>{strings.delete}</Text>
+              <Text style={[styles.toolbarButtonText, styles.deleteText]}>{strings.common.delete}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.toolbarButton} onPress={handleMoveRight}>
-              <Text style={styles.toolbarButtonText}>{strings.moveRight}</Text>
+              <Text style={styles.toolbarButtonText}>{strings.favorites.moveRight}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.closeButton} onPress={() => setSelectedId(null)}>
               <Text style={styles.closeButtonText}>✕</Text>

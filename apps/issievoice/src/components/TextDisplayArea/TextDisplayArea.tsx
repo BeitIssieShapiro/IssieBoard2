@@ -65,7 +65,7 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1
         multiline={true}
         editable={true}
         autoFocus
-        placeholder={strings.textPlaceholder}
+        placeholder={strings.textDisplay.placeholder}
         placeholderTextColor={colors.textLight}
         inputAccessoryViewID="customKeyboard"
         showSoftInputOnFocus={false}
