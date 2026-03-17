@@ -61,4 +61,9 @@ RCT_EXTERN_METHOD(getAppGroupIdentifier:(RCTPromiseResolveBlock)resolve
 RCT_EXTERN_METHOD(getKeyboardDimensions:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
 
+// Keyboard Setup Status
+RCT_EXTERN_METHOD(getKeyboardSetupStatus:(NSString *)language
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+
 @end
