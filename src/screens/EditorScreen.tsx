@@ -27,6 +27,8 @@ import AddProfileModal from '../../components/AddProfileModal';
 import SaveAsModal from '../../components/SaveAsModal';
 import { ActionButton } from '../components/shared/ActionButton';
 import { useLocalization } from '../localization';
+import { useKeyboardSetupStatus } from '../hooks/useKeyboardSetupStatus';
+import { SetupStatusStrip } from '../components/SetupStatusStrip';
 
 // Import keyboard files
 import enKeyboard from '../../keyboards/en.json';
@@ -479,6 +481,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   const [currentLanguage, setCurrentLanguage] = useState<LanguageId>(language);
   const [currentKeyboardId, setCurrentKeyboardId] = useState(keyboardId);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const setupStatus = useKeyboardSetupStatus(currentLanguage);
 
   // Secret 5-tap reset feature
   const [tapCount, setTapCount] = useState(0);
@@ -815,6 +818,20 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       subscription.remove();
     };
   }, [handleLanguageChange]);
+
+  // Wrapper for language tab press — shows Full Access alert if tapping active tab with badge
+  const handleLanguageTabPress = useCallback((langId: LanguageId) => {
+    if (langId === currentLanguage && setupStatus.isAdded === true && setupStatus.hasFullAccess !== true) {
+      const message = [
+        strings.setup.fullAccessStep1,
+        strings.setup.fullAccessStep2,
+        strings.setup.fullAccessStep3,
+      ].join('\n');
+      Alert.alert(strings.setup.fullAccessTitle, message);
+      return;
+    }
+    handleLanguageChange(langId);
+  }, [currentLanguage, setupStatus, handleLanguageChange, strings.setup]);
 
   // Handle keyboard variant change (within same language) - update current profile's keyboard
   const handleSave = useCallback(async () => {
@@ -1538,7 +1555,12 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
                 styles.languageTab,
                 currentLanguage === lang.id && styles.languageTabActive,
               ]}
-              onPress={() => handleLanguageChange(lang.id)}
+              onPress={() => handleLanguageTabPress(lang.id)}
+              accessibilityLabel={
+                setupStatus.isAdded === true && setupStatus.hasFullAccess !== true && currentLanguage === lang.id
+                  ? `${lang.nativeName} - ${strings.setup.fullAccessTitle}`
+                  : lang.nativeName
+              }
             >
               <Text allowFontScaling={false} style={[
                 styles.languageTabText,
@@ -1546,6 +1568,9 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
               ]}>
                 {lang.nativeName}
               </Text>
+              {setupStatus.isAdded === true && setupStatus.hasFullAccess !== true && currentLanguage === lang.id && (
+                <View style={styles.setupBadgeDot} />
+              )}
             </TouchableOpacity>
           ))}
         </View>
@@ -1592,6 +1617,11 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
           </TouchableOpacity>
         )}
       </View>
+
+      {/* Keyboard Setup Status */}
+      {appContext !== 'issievoice' && (
+        <SetupStatusStrip isAdded={setupStatus.isAdded} />
+      )}
 
       {/* Profile Selection Row */}
       <View style={styles.profileRow}>
@@ -2317,6 +2347,15 @@ const styles = StyleSheet.create({
   languageTabTextActive: {
     color: '#FFF',
     fontWeight: '700',
+  },
+  setupBadgeDot: {
+    position: 'absolute' as const,
+    top: 2,
+    right: 2,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#F59E0B',
   },
   closeButton: {
     width: 36,
