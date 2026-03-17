@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useEditor } from '../../context/EditorContext';
+import { useLocalization } from '../../localization';
 import { CompactColorPicker } from '../shared/CompactColorPicker';
 import { ButtonGroupRow } from '../shared/ButtonGroupRow';
 import { ToggleSwitch } from '../shared/ToggleSwitch';
@@ -59,6 +60,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
     updateSettingsButton,
     dispatch,
   } = useEditor();
+  const { strings } = useLocalization();
 
   // Get current settings (moved before local state initialization)
   const textColor = (state.config as any).textColor || '';
@@ -74,19 +76,19 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
 
   // Font size presets
   const fontSizePresetOptions = [
-    { id: 'xs', label: 'XS' },
-    { id: 'small', label: 'S' },
-    { id: 'normal', label: 'M' },
-    { id: 'large', label: 'L' },
-    { id: 'xl', label: 'XL' },
+    { id: 'xs', label: strings.globalSettings.sizeXS },
+    { id: 'small', label: strings.globalSettings.sizeS },
+    { id: 'normal', label: strings.globalSettings.sizeM },
+    { id: 'large', label: strings.globalSettings.sizeL },
+    { id: 'xl', label: strings.globalSettings.sizeXL },
   ];
 
   // Height presets
   const heightPresetOptions = [
-    { id: 'compact', label: 'Compact' },
-    { id: 'normal', label: 'Normal' },
-    { id: 'tall', label: 'Tall' },
-    { id: 'x-tall', label: 'X-Tall' },
+    { id: 'compact', label: strings.globalSettings.heightCompact },
+    { id: 'normal', label: strings.globalSettings.heightNormal },
+    { id: 'tall', label: strings.globalSettings.heightTall },
+    { id: 'x-tall', label: strings.globalSettings.heightXTall },
   ];
 
   // Check if current keyboard is Hebrew (matches 'he', 'he_ordered', etc.)
@@ -100,19 +102,19 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
 
   // Key gap options
   const keyGapOptions = [
-    { id: 'regular', label: 'Regular', value: 3 },
-    { id: 'medium', label: 'Medium', value: 8 },
-    { id: 'large', label: 'Large', value: 16 },
+    { id: 'regular', label: strings.globalSettings.keyGapRegular, value: 3 },
+    { id: 'medium', label: strings.globalSettings.keyGapMedium, value: 8 },
+    { id: 'large', label: strings.globalSettings.keyGapLarge, value: 16 },
   ];
 
   // Font weight options
   const fontWeightOptions = [
-    { id: 'light', label: 'Light', value: 'light' as const },
-    { id: 'regular', label: 'Regular', value: 'regular' as const },
-    { id: 'medium', label: 'Medium', value: 'medium' as const },
-    { id: 'semibold', label: 'Semibold', value: 'semibold' as const },
-    { id: 'bold', label: 'Bold', value: 'bold' as const },
-    { id: 'heavy', label: 'Heavy', value: 'heavy' as const },
+    { id: 'light', label: strings.globalSettings.weightLight, value: 'light' as const },
+    { id: 'regular', label: strings.globalSettings.weightRegular, value: 'regular' as const },
+    { id: 'medium', label: strings.globalSettings.weightMedium, value: 'medium' as const },
+    { id: 'semibold', label: strings.globalSettings.weightSemibold, value: 'semibold' as const },
+    { id: 'bold', label: strings.globalSettings.weightBold, value: 'bold' as const },
+    { id: 'heavy', label: strings.globalSettings.weightHeavy, value: 'heavy' as const },
   ];
 
   const updateTextColor = (color: string) => {
@@ -155,14 +157,14 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Colors Section */}
       <View style={styles.settingSection}>
-        <Text allowFontScaling={false} style={styles.settingTitle}>Colors</Text>
+        <Text allowFontScaling={false} style={styles.settingTitle}>{strings.globalSettings.colors}</Text>
 
         <View style={styles.colorsTable}>
           {/* Header Row */}
           <View style={styles.colorsHeaderRow}>
-            <Text allowFontScaling={false} style={styles.colorColumnHeader}>Background</Text>
-            <Text allowFontScaling={false} style={styles.colorColumnHeader}>Keys Background</Text>
-            <Text allowFontScaling={false} style={styles.colorColumnHeader}>Keys Text</Text>
+            <Text allowFontScaling={false} style={styles.colorColumnHeader}>{strings.globalSettings.background}</Text>
+            <Text allowFontScaling={false} style={styles.colorColumnHeader}>{strings.globalSettings.keysBackground}</Text>
+            <Text allowFontScaling={false} style={styles.colorColumnHeader}>{strings.globalSettings.keysText}</Text>
           </View>
 
           {/* Color Buttons Row */}
@@ -173,7 +175,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
                 value={state.config.backgroundColor || ''}
                 onChange={updateBackgroundColor}
                 showSystemDefault
-                systemDefaultLabel="Default"
+                systemDefaultLabel={strings.common.default}
               />
             </View>
 
@@ -183,7 +185,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
                 value={keysBgColor}
                 onChange={updateKeysBgColor}
                 showSystemDefault
-                systemDefaultLabel="Default"
+                systemDefaultLabel={strings.common.default}
               />
             </View>
 
@@ -193,7 +195,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
                 value={textColor}
                 onChange={updateTextColor}
                 showSystemDefault
-                systemDefaultLabel="Default"
+                systemDefaultLabel={strings.common.default}
               />
             </View>
           </View>
@@ -203,7 +205,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
       {/* 4. Font (only for Hebrew) */}
       {isHebrewKeyboard && (
         <ButtonGroupRow
-          title="Font"
+          title={strings.globalSettings.font}
           options={hebrewFontOptions.map(opt => ({
             id: opt.id,
             label: opt.label,
@@ -219,7 +221,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
 
       {/* 5. Key Gap */}
       <ButtonGroupRow
-        title="Gap Between Keys"
+        title={strings.globalSettings.keyGap}
         options={keyGapOptions.map(opt => ({
           id: opt.id,
           label: opt.label,
@@ -241,7 +243,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
       {/* 6. Keyboard Layout (only show if multiple variants) */}
       {keyboardVariants && keyboardVariants.length > 1 && (
         <ButtonGroupRow
-          title="Keyboard Layout"
+          title={strings.globalSettings.keyboardLayout}
           options={keyboardVariants.map(v => ({ id: v.id, label: v.name }))}
           selectedId={currentKeyboardId || ''}
           onSelect={onKeyboardVariantChange!}
@@ -256,7 +258,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
           activeOpacity={0.7}
         >
           <Text allowFontScaling={false} style={styles.advancedTitle}>
-            Features
+            {strings.globalSettings.features}
           </Text>
           <Text allowFontScaling={false} style={styles.advancedArrow}>
             {featuresExpanded ? '▼' : '▶'}
@@ -267,9 +269,9 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
           <View style={styles.advancedContent}>
             <View style={styles.featureRow}>
               <View style={styles.featureInfo}>
-                <Text allowFontScaling={false} style={styles.featureLabel}>Word Suggestions</Text>
+                <Text allowFontScaling={false} style={styles.featureLabel}>{strings.globalSettings.wordSuggestions}</Text>
                 <Text allowFontScaling={false} style={styles.featureDescription}>
-                  Show word completion suggestions above keyboard
+                  {strings.globalSettings.wordSuggestionsDesc}
                 </Text>
               </View>
               <ToggleSwitch
@@ -282,9 +284,9 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
             </View>
             <View style={styles.featureRow}>
               <View style={styles.featureInfo}>
-                <Text allowFontScaling={false} style={styles.featureLabel}>Auto-Correct</Text>
+                <Text allowFontScaling={false} style={styles.featureLabel}>{strings.globalSettings.autoCorrect}</Text>
                 <Text allowFontScaling={false} style={styles.featureDescription}>
-                  Replace typed word with suggestion when pressing space
+                  {strings.globalSettings.autoCorrectDesc}
                 </Text>
               </View>
               <ToggleSwitch
@@ -298,9 +300,9 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
             </View>
             <View style={styles.featureRow}>
               <View style={styles.featureInfo}>
-                <Text allowFontScaling={false} style={styles.featureLabel}>Settings Button</Text>
+                <Text allowFontScaling={false} style={styles.featureLabel}>{strings.globalSettings.settingsButton}</Text>
                 <Text allowFontScaling={false} style={styles.featureDescription}>
-                  Show settings button on keyboard
+                  {strings.globalSettings.settingsButtonDesc}
                 </Text>
               </View>
               <ToggleSwitch
@@ -323,7 +325,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
           activeOpacity={0.7}
         >
           <Text allowFontScaling={false} style={styles.advancedTitle}>
-            Advanced Settings
+            {strings.globalSettings.advancedSettings}
           </Text>
           <Text allowFontScaling={false} style={styles.advancedArrow}>
             {advancedExpanded ? '▼' : '▶'}
@@ -335,7 +337,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
             {/* Height Preset */}
             <View style={styles.section}>
               <ButtonGroupRow
-                title="Keyboard Height"
+                title={strings.globalSettings.keyboardHeight}
                 options={heightPresetOptions.map(opt => ({
                   id: opt.id,
                   label: opt.label,
@@ -350,7 +352,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
             {/* Font Size Preset */}
             <View style={styles.section}>
               <ButtonGroupRow
-                title="Font Size"
+                title={strings.globalSettings.fontSize}
                 options={fontSizePresetOptions.map(opt => ({
                   id: opt.id,
                   label: opt.label,
@@ -365,7 +367,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
             {/* Font Weight */}
             <View style={styles.section}>
               <ButtonGroupRow
-                title="Font Weight"
+                title={strings.globalSettings.fontWeight}
                 options={fontWeightOptions.map(opt => ({
                   id: opt.id,
                   label: opt.label,
