@@ -26,6 +26,7 @@ interface Strings {
   common: {
     cancel: string;
     save: string;
+    saveChanges: string;
     delete: string;
     edit: string;
     create: string;
@@ -41,9 +42,13 @@ interface Strings {
     off: string;
     visible: string;
     hidden: string;
+    showOnly: string;
     none: string;
+    bgLabel: string;    // "BG:" label in style rules
+    textLabel: string;  // "Text:" label in style rules
   };
   editor: {
+    keyboardConfiguration: string;
     myKeyboards: string;
     builtIn: string;
     settings: string;
@@ -53,6 +58,8 @@ interface Strings {
     newProfilePlaceholder: string;
     select: string;
     saveAs: string;
+    saveCustomConfiguration: string;
+    editing: string;
     languages: {
       hebrew: string;
       english: string;
@@ -83,6 +90,7 @@ interface Strings {
     deleteConfirm: string;
     enterProfileName: string;
     failedToLoadProfile: string;
+    failedToLoadForEditing: string;
     profileChangedTo: string;
     closeAndReopenKeyboard: string;
     failedToSwitchProfile: string;
@@ -92,8 +100,15 @@ interface Strings {
     profileSaved: string;
     failedToSaveProfile: string;
     profileUpdated: string;
+    savedChangesTo: string;
+    editCancelled: string;
     deleted: string;
     failedToDeleteProfile: string;
+    whatWouldYouLikeToDo: string;
+    loadingProfile: string;
+    profileLoaded: string;
+    profileNotFound: string;
+    failedToLoadProfile: string;
   };
   classic: {
     mainSettings: string;
@@ -112,7 +127,10 @@ interface Strings {
     enterKeyColor: string;
     otherKeysColor: string;
     highlightedCharacters: string;
+    highlightKeysColor: string;
+    highlightTextColor: string;
     keyOrder: string;
+    language: string;
     byRows: string;
     bySections: string;
     topRow: string;
@@ -239,6 +257,8 @@ interface Strings {
     placeholder: string;
     enterName: string;
     nameInUse: string;
+    selectLanguages: string;
+    atLeastOneLanguage: string;
   };
   saveAsModal: {
     title: string;
@@ -377,7 +397,15 @@ interface Strings {
 }
 ```
 
-### 2. Debug Mode
+### 2. Context Provider for Configurator
+
+The Configurator currently uses a standalone hook with per-component `useState` -- calling `changeLanguage` in one component does not propagate to others. To align with IssieVoice's pattern and ensure a single source of truth:
+
+- **Add a `LocalizationProvider` to the Configurator** (in `src/localization/index.ts`) using the same React Context pattern as IssieVoice's `LocalizationContext.tsx`
+- Wrap the app root (in `App.tsx` or `AppNavigator.tsx`) with `<LocalizationProvider>`
+- The `useLocalization()` hook reads from context, ensuring all components share the same language state
+
+### 3. Debug Mode
 
 A compile-time flag at the top of each localization index file:
 
@@ -409,11 +437,20 @@ export const getStrings = (language: Language): Strings => {
 
 Both apps use the same pattern.
 
-### 3. Fix Device Language Detection
+### 4. Fix Device Language Detection
 
 Remove the hardcoded `return 'he'` on line 21 of `src/localization/index.ts` so the existing detection logic runs properly.
 
-### 4. Component Wiring Strategy
+### 5. IssieVoice Arabic Support
+
+Adding Arabic to IssieVoice requires these specific changes in `LocalizationContext.tsx`:
+
+1. Expand the `Language` type from `'en' | 'he'` to `'en' | 'he' | 'ar'`
+2. Update `isRTL` from `language === 'he'` to `language === 'he' || language === 'ar'`
+3. Update `getDeviceLanguage()` to detect Arabic (`langCode === 'ar'`)
+4. Update `getStrings()` switch statement to include the `ar` case
+
+### 6. Component Wiring Strategy
 
 Every component with hardcoded strings will:
 
@@ -421,24 +458,126 @@ Every component with hardcoded strings will:
 2. Destructure `const { strings } = useLocalization();`
 3. Replace hardcoded strings with `strings.group.key`
 
-No changes to component APIs — strings come from the hook, not props.
+No changes to component APIs -- strings come from the hook, not props.
 
-### 5. Consistency Between Apps
+For components that currently pass `systemDefaultLabel="Default"` as a prop (ColorPicker, CompactColorPicker, ColorPickerRow), the parent component should pass `strings.common.default` instead.
+
+### 7. Consistency Between Apps
 
 Both localization systems follow the same patterns:
 - Same file structure: `localization/index.ts` + `localization/strings.ts`
 - Same `DEBUG_LOCALIZATION` flag
-- Same `useLocalization()` hook API returning `{ language, strings, changeLanguage, isRTL }`
+- Same Context provider pattern with `LocalizationProvider` + `useLocalization()` hook
+- Same hook API returning `{ language, strings, changeLanguage, isRTL }`
 - Same `prefixStrings` utility
 - Shared concepts use the same key names (e.g. `common.cancel` in both)
+
+### 8. Interpolation and Plurals
+
+**Interpolation:** Strings with dynamic values use named placeholders (`{{name}}`, `{{count}}`):
+
+```typescript
+// In strings.ts
+saveAsMessage: 'Create a copy of "{{name}}" that you can customize.';
+deleteGroupConfirm: 'Delete "{{name}}"? This will remove styling from {{count}} key(s).';
+
+// In component
+strings.saveAsModal.message.replace('{{name}}', originalName)
+strings.styleRules.deleteGroupConfirm
+  .replace('{{name}}', group.name)
+  .replace('{{count}}', String(group.members.length))
+```
+
+Named placeholders allow translators to reorder tokens freely for RTL languages and different grammar structures.
+
+**Plurals:** For v1, plural forms use the `(s)` convention in English. Hebrew and Arabic translations will use their natural plural form. This is acceptable for the small number of pluralized strings (~3 total). A proper pluralization system is deferred.
+
+### 9. RTL Arrow Convention
+
+Directional arrows in strings (e.g. `'< Back'`, `'Move Left'`, `'Move Right ->') are included as part of the translated string. Each language provides its own appropriate arrow direction. For example:
+- English: `'< Back'`
+- Hebrew: `'< חזור'` (same arrow direction since it's a back navigation, context-dependent)
+
+This keeps the implementation simple -- no separate arrow logic needed.
+
+## Migration Table: Old Flat Keys to New Nested Keys
+
+The existing flat `Strings` interface in `src/localization/strings.ts` maps to new nested keys as follows. All existing Hebrew and Arabic translations are preserved.
+
+| Old Flat Key | New Nested Key |
+|---|---|
+| `keyboardConfiguration` | `editor.keyboardConfiguration` |
+| `builtInProfiles` | `profiles.builtInProfiles` |
+| `savedProfiles` | `profiles.savedProfiles` |
+| `longPressForOptions` | `profiles.longPressForOptions` |
+| `current` | `profiles.current` |
+| `custom` | `profiles.custom` |
+| `keyboardsInProfile` | `profiles.keyboardsInProfile` |
+| `customConfiguration` | `profiles.customConfiguration` |
+| `keyboardPreview` | `profiles.keyboardPreview` |
+| `previewHelpText` | `profiles.previewHelpText` |
+| `editing` | `editor.editing` |
+| `generatedConfiguration` | `profiles.generatedConfiguration` |
+| `editingHelpText` | `profiles.editingHelpText` |
+| `editorHelpText` | `profiles.editorHelpText` |
+| `cancel` | `common.cancel` |
+| `save` | `common.save` |
+| `saveChanges` | `common.saveChanges` |
+| `saveCustomConfiguration` | `editor.saveCustomConfiguration` |
+| `edit` | `common.edit` |
+| `delete` | `common.delete` |
+| `saveProfile` | `profiles.saveProfile` |
+| `enterProfileNamePrompt` | `profiles.enterProfileNamePrompt` |
+| `profileNamePlaceholder` | `profiles.profileNamePlaceholder` |
+| `addProfile` | `addProfileModal.title` |
+| `profileNameLabel` | `addProfileModal.nameLabel` |
+| `selectLanguages` | `addProfileModal.selectLanguages` |
+| `atLeastOneLanguage` | `addProfileModal.atLeastOneLanguage` |
+| `create` | `common.create` |
+| `aboutProfiles` | `profiles.aboutProfiles` |
+| `helpText` | `profiles.helpText` |
+| `success` | `common.success` |
+| `error` | `common.error` |
+| `syntaxError` | `alerts.syntaxError` |
+| `deleteProfile` | `alerts.deleteProfile` |
+| `profileChangedTo` | `alerts.profileChangedTo` |
+| `closeAndReopenKeyboard` | `alerts.closeAndReopenKeyboard` |
+| `failedToSwitchProfile` | `alerts.failedToSwitchProfile` |
+| `checkJsonFormatting` | `alerts.checkJsonFormatting` |
+| `enterProfileName` | `alerts.enterProfileName` |
+| `savingConfiguration` | `alerts.savingConfiguration` |
+| `profileSaved` | `alerts.profileSaved` |
+| `failedToSaveProfile` | `alerts.failedToSaveProfile` |
+| `loadingProfile` | `alerts.loadingProfile` |
+| `profileLoaded` | `alerts.profileLoaded` |
+| `profileNotFound` | `alerts.profileNotFound` |
+| `failedToLoadProfile` | `alerts.failedToLoadProfile` |
+| `whatWouldYouLikeToDo` | `alerts.whatWouldYouLikeToDo` |
+| `failedToLoadForEditing` | `alerts.failedToLoadForEditing` |
+| `savedChangesTo` | `alerts.savedChangesTo` |
+| `profileUpdated` | `alerts.profileUpdated` |
+| `editCancelled` | `alerts.editCancelled` |
+| `confirmDelete` | `alerts.deleteConfirm` |
+| `deleted` | `alerts.deleted` |
+| `failedToDeleteProfile` | `alerts.failedToDeleteProfile` |
+| `initializing` | `status.initializing` |
+| `loadedProfile` | `status.loadedProfile` |
+| `nativeModuleNotConnected` | `status.nativeModuleNotConnected` |
+| `errorLoadingConfiguration` | `status.errorLoadingConfiguration` |
+| `switchingProfile` | `status.switchingProfile` |
+| `switchedTo` | `status.switchedTo` |
+| `errorSwitchingProfile` | `status.errorSwitchingProfile` |
 
 ## Files to Modify
 
 ### Configurator App
 
 **Localization files (expand):**
-- `src/localization/strings.ts` — new nested `Strings` interface, expand en/he/ar translations
-- `src/localization/index.ts` — fix hardcoded `return 'he'`, add debug mode, update for nested types
+- `src/localization/strings.ts` -- new nested `Strings` interface, expand en/he/ar translations
+- `src/localization/index.ts` -- fix hardcoded `return 'he'`, add debug mode, add Context provider, update for nested types
+
+**App root (wrap with provider):**
+- `App.tsx` or `src/AppNavigator.tsx` -- wrap with `<LocalizationProvider>`
 
 **Screens (wire up):**
 - `src/screens/EditorScreen.tsx` (~65 strings)
@@ -465,38 +604,34 @@ Both localization systems follow the same patterns:
 **Top-level components (wire up):**
 - `components/AddProfileModal.tsx` (~5 strings)
 - `components/SaveAsModal.tsx` (~7 strings)
-- `components/SaveProfileModal.tsx` (update fallbacks)
+- `components/SaveProfileModal.tsx` (update to use nested keys)
 
 ### IssieVoice App
 
 **Localization files (expand):**
-- `apps/issievoice/src/localization/strings.ts` — new nested interface, add Arabic, expand strings
-- `apps/issievoice/src/context/LocalizationContext.tsx` — add Arabic support, add debug mode
+- `apps/issievoice/src/localization/strings.ts` -- new nested interface, add Arabic, expand strings
+- `apps/issievoice/src/context/LocalizationContext.tsx` -- add Arabic support (Language type, isRTL, getDeviceLanguage, getStrings), add debug mode
 
 **Screens (wire up):**
 - `apps/issievoice/src/screens/SettingsScreen.tsx` (~13 strings)
-- `apps/issievoice/src/screens/BrowseScreen.tsx` (~12 strings)
-- `apps/issievoice/src/screens/MainScreen.tsx` (3 fallback strings)
+- `apps/issievoice/src/screens/BrowseScreen.tsx` (~20 strings, includes favorites edit modal)
+- `apps/issievoice/src/screens/MainScreen.tsx` (3 fallback strings to remove)
 
-**Components (wire up):**
+**Components (wire up / update for nested keys):**
 - `apps/issievoice/src/components/SettingsModal/SettingsModal.tsx` (~12 strings)
+- `apps/issievoice/src/components/FavoritesBar/FavoritesBar.tsx` (update from flat to nested keys)
+- `apps/issievoice/src/components/TextDisplayArea/TextDisplayArea.tsx` (update from flat to nested keys)
+- `apps/issievoice/src/components/ActionBar/SpeakButton.tsx` (update from flat to nested keys)
 
 ## Translation Notes
 
-All ~230 strings need full translations in Hebrew and Arabic. Strings that already exist in the current flat `Strings` interface will be migrated to their new nested locations. The existing Hebrew and Arabic translations for the ~80 profile-management strings are preserved and moved to their new nested keys.
+All ~230 strings need full translations in Hebrew and Arabic. Strings that already exist in the current flat `Strings` interface will be migrated to their new nested locations using the migration table above. The existing Hebrew and Arabic translations for the ~80 profile-management strings are preserved.
 
-For interpolated strings (e.g. `` `Create a copy of "${name}"` ``), the pattern will be a function or template stored as a string with a placeholder, and a helper to fill it:
-
-```typescript
-// In strings.ts
-saveAsMessage: 'Create a copy of "%s" that you can customize.';
-
-// In component
-strings.saveAsModal.message.replace('%s', originalName)
-```
+Since both apps implement the `Strings` interface as typed objects, TypeScript will catch any missing translation keys at compile time.
 
 ## Out of Scope
 
-- Native keyboard engine strings (iOS Swift / Android Kotlin) — these are system-level and don't have user-facing text beyond key labels
-- Keyboard layout labels (the actual key characters) — these are language-specific by design
-- Adding a runtime language picker UI — detection is automatic from device locale
+- Native keyboard engine strings (iOS Swift / Android Kotlin) -- these are system-level and don't have user-facing text beyond key labels
+- Keyboard layout labels (the actual key characters) -- these are language-specific by design
+- Adding a runtime language picker UI -- detection is automatic from device locale
+- Full pluralization system -- deferred, v1 uses natural language plural forms per language
