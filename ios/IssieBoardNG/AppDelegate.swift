@@ -21,8 +21,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     reactNativeDelegate = delegate
     reactNativeFactory = factory
 
-    // TEMP: Force re-run migration to fix saved_list format (revert after testing)
-    V1Migration().forceMigrate()
+    V1Migration().migrateIfNeeded()
 
     window = UIWindow(frame: UIScreen.main.bounds)
 

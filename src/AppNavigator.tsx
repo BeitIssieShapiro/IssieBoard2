@@ -94,8 +94,7 @@ export const AppNavigator: React.FC = () => {
             // Not a v1 user
           }
         }
-        // TEMP: Always show classic toggle for testing (revert after testing)
-        const showClassicToggle = true;
+        const showClassicToggle = true //__DEV__ || v1User;
         setIsV1User(showClassicToggle);
 
         // v1 users default to classic editor, others to advanced editor
