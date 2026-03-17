@@ -6,6 +6,7 @@ export interface Strings {
     save: string;
     saveChanges: string;
     delete: string;
+    rename: string;
     edit: string;
     create: string;
     apply: string;
@@ -67,6 +68,8 @@ export interface Strings {
     cannotDeleteActive: string;
     deleteProfile: string;
     deleteConfirm: string;
+    renameProfile: string;
+    renamePrompt: string;
     enterProfileName: string;
     failedToLoadProfile: string;
     failedToLoadForEditing: string;
@@ -304,6 +307,7 @@ const en: Strings = {
     save: 'Save',
     saveChanges: 'Save Changes',
     delete: 'Delete',
+    rename: 'Rename',
     edit: 'Edit',
     create: 'Create',
     apply: 'Apply',
@@ -365,6 +369,8 @@ const en: Strings = {
     cannotDeleteActive: 'Cannot delete the active keyboard. Switch to another keyboard first.',
     deleteProfile: 'Delete an IssieBoard',
     deleteConfirm: 'Are you sure you want to delete "{{name}}"?',
+    renameProfile: 'Rename Keyboard',
+    renamePrompt: 'Enter a new name for "{{name}}"',
     enterProfileName: 'Please enter a keyboard name',
     failedToLoadProfile: 'Failed to load keyboard',
     failedToLoadForEditing: 'Failed to load keyboard for editing',
@@ -602,6 +608,7 @@ const he: Strings = {
     save: 'שמור',
     saveChanges: 'שמור שינויים',
     delete: 'מחיקה',
+    rename: 'שינוי שם',
     edit: 'עריכה',
     create: 'צור',
     apply: 'החל',
@@ -663,6 +670,8 @@ const he: Strings = {
     cannotDeleteActive: 'לא ניתן למחוק את המקלדת הפעילה. עבור למקלדת אחרת תחילה.',
     deleteProfile: 'מחיקת מקלדת',
     deleteConfirm: 'האם אתה בטוח שברצונך למחוק את "{{name}}"?',
+    renameProfile: 'שינוי שם מקלדת',
+    renamePrompt: 'הזן שם חדש עבור "{{name}}"',
     enterProfileName: 'אנא הזן שם למקלדת',
     failedToLoadProfile: 'טעינת המקלדת נכשלה',
     failedToLoadForEditing: 'טעינת המקלדת לעריכה נכשלה',
@@ -900,6 +909,7 @@ const ar: Strings = {
     save: 'حفظ',
     saveChanges: 'حفظ التغييرات',
     delete: 'حذف',
+    rename: 'إعادة تسمية',
     edit: 'تحرير',
     create: 'إنشاء',
     apply: 'تطبيق',
@@ -961,6 +971,8 @@ const ar: Strings = {
     cannotDeleteActive: 'لا يمكن حذف لوحة المفاتيح النشطة. انتقل إلى لوحة مفاتيح أخرى أولاً.',
     deleteProfile: 'حذف لوحة المفاتيح',
     deleteConfirm: 'هل أنت متأكد أنك تريد حذف "{{name}}"؟',
+    renameProfile: 'إعادة تسمية لوحة المفاتيح',
+    renamePrompt: 'أدخل اسمًا جديدًا لـ "{{name}}"',
     enterProfileName: 'يرجى إدخال اسم للوحة المفاتيح',
     failedToLoadProfile: 'فشل تحميل لوحة المفاتيح',
     failedToLoadForEditing: 'فشل تحميل لوحة المفاتيح للتحرير',

@@ -1230,6 +1230,59 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     );
   }, [currentProfileId, currentLanguage, onDelete, showToast, loadProfilesList, setConfig, onProfileChange, strings.alerts.cannotDelete, strings.alerts.cannotDeleteActive, strings.alerts.cannotDeleteDefault, strings.alerts.deleteConfirm, strings.alerts.deleteProfile, strings.alerts.deleted, strings.alerts.failedToDeleteProfile, strings.common.cancel, strings.common.delete]);
 
+  const handleRenameProfile = useCallback((profileToRename: ProfileOption) => {
+    if (profileToRename.isBuiltIn) return;
+
+    Alert.prompt(
+      strings.alerts.renameProfile,
+      strings.alerts.renamePrompt.replace('{{name}}', profileToRename.name),
+      async (newName: string) => {
+        const trimmed = newName.trim();
+        if (!trimmed) return;
+
+        try {
+          // Update saved_list
+          let savedList: { name: string; key: string; language: string; keyboardId: string }[] = [];
+          try {
+            const savedListJson = await KeyboardPreferences.getProfile('saved_list');
+            if (savedListJson) {
+              savedList = JSON.parse(savedListJson);
+            }
+          } catch { /* ignore */ }
+
+          const idx = savedList.findIndex(p => p.key === profileToRename.id);
+          if (idx >= 0) {
+            savedList[idx].name = trimmed;
+            await KeyboardPreferences.setProfile(JSON.stringify(savedList), 'saved_list');
+          }
+
+          // Update profile_def
+          try {
+            const defJson = await KeyboardPreferences.getProfile(`profile_def_${profileToRename.id}`);
+            if (defJson) {
+              const def = JSON.parse(defJson);
+              def.name = trimmed;
+              await KeyboardPreferences.setProfile(JSON.stringify(def), `profile_def_${profileToRename.id}`);
+            }
+          } catch { /* ignore */ }
+
+          // If renaming the currently loaded profile, update local state
+          if (profileToRename.id === currentProfileId) {
+            setCurrentProfileName(trimmed);
+            onProfileChange(currentProfileId, trimmed, currentLanguage, currentKeyboardId);
+          }
+
+          await loadProfilesList();
+          showToast(`✓ "${trimmed}"`);
+        } catch {
+          showToast('✗ ' + strings.common.error);
+        }
+      },
+      'plain-text',
+      profileToRename.name,
+    );
+  }, [currentProfileId, currentLanguage, currentKeyboardId, onProfileChange, showToast, loadProfilesList, strings]);
+
   const handleDuplicate = useCallback(async () => {
     if (!duplicateName.trim()) {
       Alert.alert(strings.common.error, strings.alerts.enterProfileName);
@@ -1505,8 +1558,16 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
                       </View>
                     </View>
 
-                    {/* Action buttons: Delete (if not built-in) then Select */}
+                    {/* Action buttons: Rename, Delete (if not built-in) then Select */}
                     <View style={styles.profileOptionActions}>
+                      {/* Rename button - only for custom profiles */}
+                      {!item.isBuiltIn && (
+                        <ActionButton
+                          label={strings.common.rename}
+                          color="gray"
+                          onPress={() => handleRenameProfile(item)}
+                        />
+                      )}
                       {/* Delete button - only for custom profiles */}
                       {!item.isBuiltIn && (
                         <ActionButton
@@ -2623,6 +2684,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginLeft: 8,
+    gap: 8,
   },
   profileActionButton: {
     paddingHorizontal: 16,
