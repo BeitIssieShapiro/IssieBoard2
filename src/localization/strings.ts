@@ -1,335 +1,1131 @@
 export type Language = 'en' | 'he' | 'ar';
 
 export interface Strings {
-  // Header
-  keyboardConfiguration: string;
-
-  // Profile Section
-  builtInProfiles: string;
-  savedProfiles: string;
-  longPressForOptions: string;
-  current: string;
-  custom: string;
-
-  // Keyboards Section
-  keyboardsInProfile: string;
-  customConfiguration: string;
-  keyboardPreview: string;
-  previewHelpText: string;
-
-  // Editor Section
-  editing: string;
-  generatedConfiguration: string;
-  editingHelpText: string;
-  editorHelpText: string;
-
-  // Buttons
-  cancel: string;
-  save: string;
-  saveChanges: string;
-  saveCustomConfiguration: string;
-  edit: string;
-  delete: string;
-
-  // Save Modal
-  saveProfile: string;
-  enterProfileNamePrompt: string;
-  profileNamePlaceholder: string;
-
-  // Add Profile Modal
-  addProfile: string;
-  profileNameLabel: string;
-  selectLanguages: string;
-  atLeastOneLanguage: string;
-  create: string;
-
-  // Help Section
-  aboutProfiles: string;
-  helpText: string;
-
-  // Alerts
-  success: string;
-  error: string;
-  syntaxError: string;
-  deleteProfile: string;
-  profileChangedTo: string;
-  closeAndReopenKeyboard: string;
-  failedToSwitchProfile: string;
-  checkJsonFormatting: string;
-  enterProfileName: string;
-  savingConfiguration: string;
-  profileSaved: string;
-  failedToSaveProfile: string;
-  loadingProfile: string;
-  profileLoaded: string;
-  profileNotFound: string;
-  failedToLoadProfile: string;
-  whatWouldYouLikeToDo: string;
-  failedToLoadForEditing: string;
-  savedChangesTo: string;
-  profileUpdated: string;
-  editCancelled: string;
-  confirmDelete: string;
-  deleted: string;
-  failedToDeleteProfile: string;
-
-  // Status Messages
-  initializing: string;
-  loadedProfile: string;
-  nativeModuleNotConnected: string;
-  errorLoadingConfiguration: string;
-  switchingProfile: string;
-  switchedTo: string;
-  errorSwitchingProfile: string;
+  common: {
+    cancel: string;
+    save: string;
+    saveChanges: string;
+    delete: string;
+    edit: string;
+    create: string;
+    apply: string;
+    reset: string;
+    error: string;
+    success: string;
+    loading: string;
+    default: string;
+    done: string;
+    back: string;
+    on: string;
+    off: string;
+    visible: string;
+    hidden: string;
+    showOnly: string;
+    none: string;
+    bgLabel: string;
+    textLabel: string;
+  };
+  editor: {
+    keyboardConfiguration: string;
+    myKeyboards: string;
+    builtIn: string;
+    settings: string;
+    classicView: string;
+    newProfile: string;
+    duplicateProfile: string;
+    newProfilePlaceholder: string;
+    select: string;
+    saveAs: string;
+    saveCustomConfiguration: string;
+    editing: string;
+    languages: {
+      hebrew: string;
+      english: string;
+      arabic: string;
+    };
+    keyboardVariants: {
+      standard: string;
+      orderedHe: string;
+      qwerty: string;
+      orderedEn: string;
+      orderedAr: string;
+    };
+  };
+  alerts: {
+    resetToFactory: string;
+    unsavedChanges: string;
+    unsavedChangesMessage: string;
+    discard: string;
+    saveFirst: string;
+    discardChanges: string;
+    discardChangesMessage: string;
+    clearAllSettings: string;
+    clearAll: string;
+    cannotDelete: string;
+    cannotDeleteDefault: string;
+    cannotDeleteActive: string;
+    deleteProfile: string;
+    deleteConfirm: string;
+    enterProfileName: string;
+    failedToLoadProfile: string;
+    failedToLoadForEditing: string;
+    profileChangedTo: string;
+    closeAndReopenKeyboard: string;
+    failedToSwitchProfile: string;
+    syntaxError: string;
+    checkJsonFormatting: string;
+    savingConfiguration: string;
+    profileSaved: string;
+    failedToSaveProfile: string;
+    profileUpdated: string;
+    savedChangesTo: string;
+    editCancelled: string;
+    deleted: string;
+    failedToDeleteProfile: string;
+    whatWouldYouLikeToDo: string;
+    loadingProfile: string;
+    profileLoaded: string;
+    profileNotFound: string;
+  };
+  classic: {
+    mainSettings: string;
+    mainColors: string;
+    actionKeys: string;
+    colorDivision: string;
+    specialKeys: string;
+    visibleKeys: string;
+    nikkud: string;
+    nikkudSettings: string;
+    backgroundColor: string;
+    keysColor: string;
+    textColor: string;
+    spaceKeyColor: string;
+    deleteKeyColor: string;
+    enterKeyColor: string;
+    otherKeysColor: string;
+    highlightedCharacters: string;
+    highlightKeysColor: string;
+    highlightTextColor: string;
+    keyOrder: string;
+    language: string;
+    byRows: string;
+    bySections: string;
+    topRow: string;
+    middleRow: string;
+    bottomRow: string;
+    rightThird: string;
+    middleThird: string;
+    leftThird: string;
+    typeCharacters: string;
+  };
+  toolbox: {
+    generalAppearance: string;
+    keysGroups: string;
+    nikkud: string;
+    presets: string;
+    new: string;
+    presetsModalTitle: string;
+    keysLabel: string;
+  };
+  globalSettings: {
+    colors: string;
+    background: string;
+    keysBackground: string;
+    keysText: string;
+    font: string;
+    keyGap: string;
+    keyGapRegular: string;
+    keyGapMedium: string;
+    keyGapLarge: string;
+    keyboardLayout: string;
+    features: string;
+    wordSuggestions: string;
+    wordSuggestionsDesc: string;
+    autoCorrect: string;
+    autoCorrectDesc: string;
+    settingsButton: string;
+    settingsButtonDesc: string;
+    advancedSettings: string;
+    keyboardHeight: string;
+    fontSize: string;
+    fontWeight: string;
+    heightCompact: string;
+    heightNormal: string;
+    heightTall: string;
+    heightXTall: string;
+    weightLight: string;
+    weightRegular: string;
+    weightMedium: string;
+    weightSemibold: string;
+    weightBold: string;
+    weightHeavy: string;
+    sizeXS: string;
+    sizeS: string;
+    sizeM: string;
+    sizeL: string;
+    sizeXL: string;
+  };
+  keyEditor: {
+    groupName: string;
+    groupNamePlaceholder: string;
+    doneEditing: string;
+    deselectAll: string;
+    inGroups: string;
+    visibility: string;
+    visibilityHint: string;
+    keyBgColor: string;
+    textColor: string;
+    customLabel: string;
+    customLabelHint: string;
+    customLabelPlaceholder: string;
+    keyInfo: string;
+    position: string;
+    output: string;
+    shiftOutput: string;
+    type: string;
+    width: string;
+  };
+  styleRules: {
+    deleteGroup: string;
+    deleteGroupConfirm: string;
+    noStyles: string;
+    noGroupsYet: string;
+    noGroupsHint: string;
+    styleGroups: string;
+    editing: string;
+    inactive: string;
+    tips: string;
+  };
+  diacritics: {
+    enableNikkud: string;
+    basic: string;
+    full: string;
+    custom: string;
+    diacriticsSection: string;
+    modifiers: string;
+    noDiacritics: string;
+  };
+  styleRuleModal: {
+    newKeysGroup: string;
+    nameLabel: string;
+    namePlaceholder: string;
+    presetKeysLocked: string;
+    tapKeysToSelect: string;
+    visibility: string;
+    visibilityDefault: string;
+    visibilityHide: string;
+    visibilityShowOnly: string;
+    showOnlyHint: string;
+    hiddenHint: string;
+    bgColor: string;
+    textColor: string;
+    keysLocked: string;
+  };
+  colorPicker: {
+    modalTitle: string;
+    selectedColor: string;
+  };
+  canvas: {
+    preview: string;
+  };
+  addProfileModal: {
+    title: string;
+    nameLabel: string;
+    placeholder: string;
+    enterName: string;
+    nameInUse: string;
+    selectLanguages: string;
+    atLeastOneLanguage: string;
+  };
+  saveAsModal: {
+    title: string;
+    message: string;
+    nameLabel: string;
+    placeholder: string;
+    saveAs: string;
+    enterName: string;
+    nameInUse: string;
+  };
+  profiles: {
+    saveProfile: string;
+    enterProfileNamePrompt: string;
+    profileNamePlaceholder: string;
+    builtInProfiles: string;
+    savedProfiles: string;
+    longPressForOptions: string;
+    current: string;
+    custom: string;
+    keyboardsInProfile: string;
+    customConfiguration: string;
+    keyboardPreview: string;
+    previewHelpText: string;
+    generatedConfiguration: string;
+    editingHelpText: string;
+    editorHelpText: string;
+    aboutProfiles: string;
+    helpText: string;
+  };
+  status: {
+    initializing: string;
+    loadedProfile: string;
+    nativeModuleNotConnected: string;
+    errorLoadingConfiguration: string;
+    switchingProfile: string;
+    switchedTo: string;
+    errorSwitchingProfile: string;
+  };
+  toggleSwitch: {
+    visible: string;
+    hidden: string;
+    a11yVisible: string;
+    a11yHidden: string;
+  };
 }
 
 const en: Strings = {
-  // Header
-  keyboardConfiguration: 'Keyboard Configuration',
-
-  // Profile Section
-  builtInProfiles: 'Built-in Profiles:',
-  savedProfiles: 'Saved Profiles:',
-  longPressForOptions: 'Long-press for options',
-  current: 'Current:',
-  custom: 'Custom',
-
-  // Keyboards Section
-  keyboardsInProfile: 'Keyboards in This Profile:',
-  customConfiguration: 'Custom configuration',
-  keyboardPreview: 'Keyboard Preview',
-  previewHelpText: 'Live preview of your keyboard. Tap keys to test!',
-
-  // Editor Section
-  editing: 'Editing:',
-  generatedConfiguration: 'Generated Configuration (Advanced):',
-  editingHelpText: 'Make your changes below and tap "Save Changes" when done.',
-  editorHelpText: 'You can manually edit the JSON below if needed. Changes will override the profile.',
-
-  // Buttons
-  cancel: 'Cancel',
-  save: 'Save',
-  saveChanges: 'Save Changes',
-  saveCustomConfiguration: 'Save Custom Configuration',
-  edit: 'Edit',
-  delete: 'Delete',
-
-  // Save Modal
-  saveProfile: 'Save Profile',
-  enterProfileNamePrompt: 'Enter a name for this profile',
-  profileNamePlaceholder: 'Profile name',
-
-  // Add Profile Modal
-  addProfile: 'Add New Profile',
-  profileNameLabel: 'Profile Name',
-  selectLanguages: 'Select Languages',
-  atLeastOneLanguage: 'At least one language must be selected',
-  create: 'Create',
-
-  // Help Section
-  aboutProfiles: 'About Profiles',
-  helpText: '• Profiles combine keyboards with styling\n• Switch profiles to change keyboards and themes\n• Edit keyboards/ folder to add new languages\n• Edit profiles/ folder to create custom themes\n• See keyboards/README.md for details',
-
-  // Alerts
-  success: 'Success',
-  error: 'Error',
-  syntaxError: 'Syntax Error',
-  deleteProfile: 'Delete an IssieBoard',
-  profileChangedTo: 'Profile changed to',
-  closeAndReopenKeyboard: 'Close and reopen the keyboard to see changes.',
-  failedToSwitchProfile: 'Failed to switch profile',
-  checkJsonFormatting: 'Please check your JSON formatting.',
-  enterProfileName: 'Please enter a profile name',
-  savingConfiguration: 'Saving custom configuration...',
-  profileSaved: 'Profile saved!',
-  failedToSaveProfile: 'Failed to save profile',
-  loadingProfile: 'Loading saved profile...',
-  profileLoaded: 'Profile loaded.',
-  profileNotFound: 'Profile not found',
-  failedToLoadProfile: 'Failed to load profile',
-  whatWouldYouLikeToDo: 'What would you like to do?',
-  failedToLoadForEditing: 'Failed to load profile for editing',
-  savedChangesTo: 'Saved changes to:',
-  profileUpdated: 'Profile updated.',
-  editCancelled: 'Edit cancelled',
-  confirmDelete: 'Are you sure you want to delete',
-  deleted: 'Deleted:',
-  failedToDeleteProfile: 'Failed to delete profile',
-
-  // Status Messages
-  initializing: 'Initializing...',
-  loadedProfile: 'Loaded profile:',
-  nativeModuleNotConnected: 'Native module not connected',
-  errorLoadingConfiguration: 'Error loading configuration',
-  switchingProfile: 'Switching profile...',
-  switchedTo: 'Switched to:',
-  errorSwitchingProfile: 'Error switching profile',
+  common: {
+    cancel: 'Cancel',
+    save: 'Save',
+    saveChanges: 'Save Changes',
+    delete: 'Delete',
+    edit: 'Edit',
+    create: 'Create',
+    apply: 'Apply',
+    reset: 'Reset',
+    error: 'Error',
+    success: 'Success',
+    loading: 'Loading...',
+    default: 'Default',
+    done: 'Done',
+    back: 'Back',
+    on: 'On',
+    off: 'Off',
+    visible: 'Visible',
+    hidden: 'Hidden',
+    showOnly: 'Show Only',
+    none: 'None',
+    bgLabel: 'Background',
+    textLabel: 'Text',
+  },
+  editor: {
+    keyboardConfiguration: 'Keyboard Configuration',
+    myKeyboards: 'My Keyboards',
+    builtIn: 'Built-in',
+    settings: 'Settings',
+    classicView: 'Classic View',
+    newProfile: 'New Profile',
+    duplicateProfile: 'Duplicate Profile',
+    newProfilePlaceholder: 'Enter profile name',
+    select: 'Select',
+    saveAs: 'Save As',
+    saveCustomConfiguration: 'Save Custom Configuration',
+    editing: 'Editing:',
+    languages: {
+      hebrew: 'Hebrew',
+      english: 'English',
+      arabic: 'Arabic',
+    },
+    keyboardVariants: {
+      standard: 'Standard',
+      orderedHe: 'Ordered (Alef-Bet)',
+      qwerty: 'QWERTY',
+      orderedEn: 'Ordered (A-Z)',
+      orderedAr: 'Ordered (Alif-Ba)',
+    },
+  },
+  alerts: {
+    resetToFactory: 'Reset to factory defaults?',
+    unsavedChanges: 'Unsaved Changes',
+    unsavedChangesMessage: 'You have unsaved changes. What would you like to do?',
+    discard: 'Discard',
+    saveFirst: 'Save First',
+    discardChanges: 'Discard Changes',
+    discardChangesMessage: 'Are you sure you want to discard all changes?',
+    clearAllSettings: 'Clear all settings and reset to defaults?',
+    clearAll: 'Clear All',
+    cannotDelete: 'Cannot Delete',
+    cannotDeleteDefault: 'Default profiles cannot be deleted.',
+    cannotDeleteActive: 'Cannot delete the active profile. Switch to another profile first.',
+    deleteProfile: 'Delete an IssieBoard',
+    deleteConfirm: 'Are you sure you want to delete "{{name}}"?',
+    enterProfileName: 'Please enter a profile name',
+    failedToLoadProfile: 'Failed to load profile',
+    failedToLoadForEditing: 'Failed to load profile for editing',
+    profileChangedTo: 'Profile changed to',
+    closeAndReopenKeyboard: 'Close and reopen the keyboard to see changes.',
+    failedToSwitchProfile: 'Failed to switch profile',
+    syntaxError: 'Syntax Error',
+    checkJsonFormatting: 'Please check your JSON formatting.',
+    savingConfiguration: 'Saving custom configuration...',
+    profileSaved: 'Profile saved!',
+    failedToSaveProfile: 'Failed to save profile',
+    profileUpdated: 'Profile updated.',
+    savedChangesTo: 'Saved changes to:',
+    editCancelled: 'Edit cancelled',
+    deleted: 'Deleted:',
+    failedToDeleteProfile: 'Failed to delete profile',
+    whatWouldYouLikeToDo: 'What would you like to do?',
+    loadingProfile: 'Loading saved profile...',
+    profileLoaded: 'Profile loaded.',
+    profileNotFound: 'Profile not found',
+  },
+  classic: {
+    mainSettings: 'Main Settings',
+    mainColors: 'Main Colors',
+    actionKeys: 'Action Keys',
+    colorDivision: 'Color Division',
+    specialKeys: 'Special Keys',
+    visibleKeys: 'Visible Keys',
+    nikkud: 'Nikkud',
+    nikkudSettings: 'Nikkud Settings',
+    backgroundColor: 'Background Color',
+    keysColor: 'Keys Color',
+    textColor: 'Text Color',
+    spaceKeyColor: 'Space Key Color',
+    deleteKeyColor: 'Delete Key Color',
+    enterKeyColor: 'Enter Key Color',
+    otherKeysColor: 'Other Keys Color',
+    highlightedCharacters: 'Highlighted Characters',
+    highlightKeysColor: 'Highlight Keys Color',
+    highlightTextColor: 'Highlight Text Color',
+    keyOrder: 'Key Order',
+    language: 'Language',
+    byRows: 'By Rows',
+    bySections: 'By Sections',
+    topRow: 'Top Row',
+    middleRow: 'Middle Row',
+    bottomRow: 'Bottom Row',
+    rightThird: 'Right Third',
+    middleThird: 'Middle Third',
+    leftThird: 'Left Third',
+    typeCharacters: 'Type characters to highlight',
+  },
+  toolbox: {
+    generalAppearance: 'General Appearance',
+    keysGroups: 'Keys Groups',
+    nikkud: 'Nikkud',
+    presets: 'Presets',
+    new: 'New',
+    presetsModalTitle: 'Choose a Preset',
+    keysLabel: 'Keys',
+  },
+  globalSettings: {
+    colors: 'Colors',
+    background: 'Background',
+    keysBackground: 'Keys Background',
+    keysText: 'Keys Text',
+    font: 'Font',
+    keyGap: 'Key Gap',
+    keyGapRegular: 'Regular',
+    keyGapMedium: 'Medium',
+    keyGapLarge: 'Large',
+    keyboardLayout: 'Keyboard Layout',
+    features: 'Features',
+    wordSuggestions: 'Word Suggestions',
+    wordSuggestionsDesc: 'Show word suggestions above the keyboard',
+    autoCorrect: 'Auto-Correct',
+    autoCorrectDesc: 'Automatically correct common typos',
+    settingsButton: 'Settings Button',
+    settingsButtonDesc: 'Show settings gear icon on keyboard',
+    advancedSettings: 'Advanced Settings',
+    keyboardHeight: 'Keyboard Height',
+    fontSize: 'Font Size',
+    fontWeight: 'Font Weight',
+    heightCompact: 'Compact',
+    heightNormal: 'Normal',
+    heightTall: 'Tall',
+    heightXTall: 'Extra Tall',
+    weightLight: 'Light',
+    weightRegular: 'Regular',
+    weightMedium: 'Medium',
+    weightSemibold: 'Semibold',
+    weightBold: 'Bold',
+    weightHeavy: 'Heavy',
+    sizeXS: 'XS',
+    sizeS: 'S',
+    sizeM: 'M',
+    sizeL: 'L',
+    sizeXL: 'XL',
+  },
+  keyEditor: {
+    groupName: 'Group Name',
+    groupNamePlaceholder: 'Enter group name',
+    doneEditing: 'Done Editing',
+    deselectAll: 'Deselect All',
+    inGroups: 'In Groups',
+    visibility: 'Visibility',
+    visibilityHint: 'Control whether selected keys are visible on the keyboard',
+    keyBgColor: 'Key Background Color',
+    textColor: 'Text Color',
+    customLabel: 'Custom Label',
+    customLabelHint: 'Override the displayed label on the key',
+    customLabelPlaceholder: 'Enter custom label',
+    keyInfo: 'Key Info',
+    position: 'Position',
+    output: 'Output',
+    shiftOutput: 'Shift Output',
+    type: 'Type',
+    width: 'Width',
+  },
+  styleRules: {
+    deleteGroup: 'Delete Group',
+    deleteGroupConfirm: 'Delete "{{name}}"? This will remove styling from {{count}} key(s).',
+    noStyles: 'No custom styles applied.',
+    noGroupsYet: 'No groups yet',
+    noGroupsHint: 'Tap "New" to create a keys group and start customizing.',
+    styleGroups: 'Style Groups',
+    editing: 'Editing',
+    inactive: 'Inactive',
+    tips: 'Tips',
+  },
+  diacritics: {
+    enableNikkud: 'Enable Nikkud',
+    basic: 'Basic',
+    full: 'Full',
+    custom: 'Custom',
+    diacriticsSection: 'Diacritics',
+    modifiers: 'Modifiers',
+    noDiacritics: 'No diacritics available for this language.',
+  },
+  styleRuleModal: {
+    newKeysGroup: 'New Keys Group',
+    nameLabel: 'Name',
+    namePlaceholder: 'Enter group name',
+    presetKeysLocked: 'Preset keys are locked and cannot be changed.',
+    tapKeysToSelect: 'Tap keys on the keyboard preview to select them.',
+    visibility: 'Visibility',
+    visibilityDefault: 'Default (Visible)',
+    visibilityHide: 'Hide',
+    visibilityShowOnly: 'Show Only',
+    showOnlyHint: 'Only selected keys will be visible. All others will be hidden.',
+    hiddenHint: 'Selected keys will be hidden from the keyboard.',
+    bgColor: 'Background Color',
+    textColor: 'Text Color',
+    keysLocked: 'Keys are locked for this preset group.',
+  },
+  colorPicker: {
+    modalTitle: 'Choose Color',
+    selectedColor: 'Selected Color',
+  },
+  canvas: {
+    preview: 'Preview',
+  },
+  addProfileModal: {
+    title: 'Add New Profile',
+    nameLabel: 'Profile Name',
+    placeholder: 'Profile name',
+    enterName: 'Please enter a profile name',
+    nameInUse: 'This name is already in use.',
+    selectLanguages: 'Select Languages',
+    atLeastOneLanguage: 'At least one language must be selected',
+  },
+  saveAsModal: {
+    title: 'Save As',
+    message: 'Save a copy of this profile with a new name.',
+    nameLabel: 'Profile Name',
+    placeholder: 'New profile name',
+    saveAs: 'Save As',
+    enterName: 'Please enter a name',
+    nameInUse: 'This name is already in use.',
+  },
+  profiles: {
+    saveProfile: 'Save Profile',
+    enterProfileNamePrompt: 'Enter a name for this profile',
+    profileNamePlaceholder: 'Profile name',
+    builtInProfiles: 'Built-in Profiles:',
+    savedProfiles: 'Saved Profiles:',
+    longPressForOptions: 'Long-press for options',
+    current: 'Current:',
+    custom: 'Custom',
+    keyboardsInProfile: 'Keyboards in This Profile:',
+    customConfiguration: 'Custom configuration',
+    keyboardPreview: 'Keyboard Preview',
+    previewHelpText: 'Live preview of your keyboard. Tap keys to test!',
+    generatedConfiguration: 'Generated Configuration (Advanced):',
+    editingHelpText: 'Make your changes below and tap "Save Changes" when done.',
+    editorHelpText: 'You can manually edit the JSON below if needed. Changes will override the profile.',
+    aboutProfiles: 'About Profiles',
+    helpText: '• Profiles combine keyboards with styling\n• Switch profiles to change keyboards and themes\n• Edit keyboards/ folder to add new languages\n• Edit profiles/ folder to create custom themes\n• See keyboards/README.md for details',
+  },
+  status: {
+    initializing: 'Initializing...',
+    loadedProfile: 'Loaded profile:',
+    nativeModuleNotConnected: 'Native module not connected',
+    errorLoadingConfiguration: 'Error loading configuration',
+    switchingProfile: 'Switching profile...',
+    switchedTo: 'Switched to:',
+    errorSwitchingProfile: 'Error switching profile',
+  },
+  toggleSwitch: {
+    visible: 'Visible',
+    hidden: 'Hidden',
+    a11yVisible: 'Toggle visibility: currently visible',
+    a11yHidden: 'Toggle visibility: currently hidden',
+  },
 };
 
 const he: Strings = {
-  // Header
-  keyboardConfiguration: 'הגדרות מקלדת',
-
-  // Profile Section
-  builtInProfiles: 'פרופילים מובנים:',
-  savedProfiles: 'פרופילים שמורים:',
-  longPressForOptions: 'לחיצה ארוכה לאפשרויות',
-  current: 'נוכחי:',
-  custom: 'מותאם אישית',
-
-  // Keyboards Section
-  keyboardsInProfile: 'מקלדות בפרופיל זה:',
-  customConfiguration: 'הגדרה מותאמת אישית',
-  keyboardPreview: 'תצוגה מקדימה של המקלדת',
-  previewHelpText: 'תצוגה מקדימה של המקלדת. לחץ על כפתורים כדי לבדוק!',
-
-  // Editor Section
-  editing: 'עריכה:',
-  generatedConfiguration: 'הגדרות מתקדמות:',
-  editingHelpText: 'ערוך את השינויים למטה ולחץ "שמור שינויים" בסיום.',
-  editorHelpText: 'ניתן לערוך את ה-JSON למטה במידת הצורך. השינויים ידרסו את הפרופיל.',
-
-  // Buttons
-  cancel: 'ביטול',
-  save: 'שמור',
-  saveChanges: 'שמור שינויים',
-  saveCustomConfiguration: 'שמור הגדרה מותאמת',
-  edit: 'עריכה',
-  delete: 'מחיקה',
-
-  // Save Modal
-  saveProfile: 'שמירת פרופיל',
-  enterProfileNamePrompt: 'הזן שם לפרופיל זה',
-  profileNamePlaceholder: 'שם הפרופיל',
-
-  // Add Profile Modal
-  addProfile: 'הוסף פרופיל חדש',
-  profileNameLabel: 'שם הפרופיל',
-  selectLanguages: 'בחר שפות',
-  atLeastOneLanguage: 'יש לבחור לפחות שפה אחת',
-  create: 'צור',
-
-  // Help Section
-  aboutProfiles: 'אודות פרופילים',
-  helpText: '• פרופילים משלבים מקלדות עם עיצוב\n• החלף פרופילים לשינוי מקלדות וערכות נושא\n• ערוך תיקיית keyboards/ להוספת שפות\n• ערוך תיקיית profiles/ ליצירת ערכות נושא\n• ראה keyboards/README.md לפרטים',
-
-  // Alerts
-  success: 'הצלחה',
-  error: 'שגיאה',
-  syntaxError: 'שגיאת תחביר',
-  deleteProfile: 'מחיקת פרופיל',
-  profileChangedTo: 'הפרופיל שונה ל',
-  closeAndReopenKeyboard: 'סגור ופתח מחדש את המקלדת לצפייה בשינויים.',
-  failedToSwitchProfile: 'החלפת פרופיל נכשלה',
-  checkJsonFormatting: 'אנא בדוק את פורמט ה-JSON.',
-  enterProfileName: 'אנא הזן שם לפרופיל',
-  savingConfiguration: 'שומר הגדרה מותאמת...',
-  profileSaved: 'הפרופיל נשמר!',
-  failedToSaveProfile: 'שמירת הפרופיל נכשלה',
-  loadingProfile: 'טוען פרופיל שמור...',
-  profileLoaded: 'הפרופיל נטען.',
-  profileNotFound: 'הפרופיל לא נמצא',
-  failedToLoadProfile: 'טעינת הפרופיל נכשלה',
-  whatWouldYouLikeToDo: 'מה תרצה לעשות?',
-  failedToLoadForEditing: 'טעינת הפרופיל לעריכה נכשלה',
-  savedChangesTo: 'השינויים נשמרו ב:',
-  profileUpdated: 'הפרופיל עודכן.',
-  editCancelled: 'העריכה בוטלה',
-  confirmDelete: 'האם אתה בטוח שברצונך למחוק את',
-  deleted: 'נמחק:',
-  failedToDeleteProfile: 'מחיקת הפרופיל נכשלה',
-
-  // Status Messages
-  initializing: 'מאתחל...',
-  loadedProfile: 'פרופיל נטען:',
-  nativeModuleNotConnected: 'המודול לא מחובר',
-  errorLoadingConfiguration: 'שגיאה בטעינת ההגדרות',
-  switchingProfile: 'מחליף פרופיל...',
-  switchedTo: 'הוחלף ל:',
-  errorSwitchingProfile: 'שגיאה בהחלפת פרופיל',
+  common: {
+    cancel: 'ביטול',
+    save: 'שמור',
+    saveChanges: 'שמור שינויים',
+    delete: 'מחיקה',
+    edit: 'עריכה',
+    create: 'צור',
+    apply: 'החל',
+    reset: 'איפוס',
+    error: 'שגיאה',
+    success: 'הצלחה',
+    loading: 'טוען...',
+    default: 'ברירת מחדל',
+    done: 'סיום',
+    back: 'חזרה',
+    on: 'פעיל',
+    off: 'כבוי',
+    visible: 'גלוי',
+    hidden: 'מוסתר',
+    showOnly: 'הצג בלבד',
+    none: 'ללא',
+    bgLabel: 'רקע',
+    textLabel: 'טקסט',
+  },
+  editor: {
+    keyboardConfiguration: 'הגדרות מקלדת',
+    myKeyboards: 'המקלדות שלי',
+    builtIn: 'מובנה',
+    settings: 'הגדרות',
+    classicView: 'תצוגה קלאסית',
+    newProfile: 'פרופיל חדש',
+    duplicateProfile: 'שכפל פרופיל',
+    newProfilePlaceholder: 'הזן שם פרופיל',
+    select: 'בחר',
+    saveAs: 'שמור בשם',
+    saveCustomConfiguration: 'שמור הגדרה מותאמת',
+    editing: 'עריכה:',
+    languages: {
+      hebrew: 'עברית',
+      english: 'אנגלית',
+      arabic: 'ערבית',
+    },
+    keyboardVariants: {
+      standard: 'רגיל',
+      orderedHe: 'לפי סדר (אלף-בית)',
+      qwerty: 'QWERTY',
+      orderedEn: 'לפי סדר (A-Z)',
+      orderedAr: 'לפי סדר (אליף-בא)',
+    },
+  },
+  alerts: {
+    resetToFactory: 'לאפס להגדרות ברירת מחדל?',
+    unsavedChanges: 'שינויים שלא נשמרו',
+    unsavedChangesMessage: 'יש לך שינויים שלא נשמרו. מה תרצה לעשות?',
+    discard: 'בטל',
+    saveFirst: 'שמור קודם',
+    discardChanges: 'בטל שינויים',
+    discardChangesMessage: 'האם אתה בטוח שברצונך לבטל את כל השינויים?',
+    clearAllSettings: 'לנקות את כל ההגדרות ולאפס לברירת מחדל?',
+    clearAll: 'נקה הכל',
+    cannotDelete: 'לא ניתן למחוק',
+    cannotDeleteDefault: 'לא ניתן למחוק פרופילים מובנים.',
+    cannotDeleteActive: 'לא ניתן למחוק את הפרופיל הפעיל. עבור לפרופיל אחר תחילה.',
+    deleteProfile: 'מחיקת פרופיל',
+    deleteConfirm: 'האם אתה בטוח שברצונך למחוק את "{{name}}"?',
+    enterProfileName: 'אנא הזן שם לפרופיל',
+    failedToLoadProfile: 'טעינת הפרופיל נכשלה',
+    failedToLoadForEditing: 'טעינת הפרופיל לעריכה נכשלה',
+    profileChangedTo: 'הפרופיל שונה ל',
+    closeAndReopenKeyboard: 'סגור ופתח מחדש את המקלדת לצפייה בשינויים.',
+    failedToSwitchProfile: 'החלפת פרופיל נכשלה',
+    syntaxError: 'שגיאת תחביר',
+    checkJsonFormatting: 'אנא בדוק את פורמט ה-JSON.',
+    savingConfiguration: 'שומר הגדרה מותאמת...',
+    profileSaved: 'הפרופיל נשמר!',
+    failedToSaveProfile: 'שמירת הפרופיל נכשלה',
+    profileUpdated: 'הפרופיל עודכן.',
+    savedChangesTo: 'השינויים נשמרו ב:',
+    editCancelled: 'העריכה בוטלה',
+    deleted: 'נמחק:',
+    failedToDeleteProfile: 'מחיקת הפרופיל נכשלה',
+    whatWouldYouLikeToDo: 'מה תרצה לעשות?',
+    loadingProfile: 'טוען פרופיל שמור...',
+    profileLoaded: 'הפרופיל נטען.',
+    profileNotFound: 'הפרופיל לא נמצא',
+  },
+  classic: {
+    mainSettings: 'הגדרות ראשיות',
+    mainColors: 'צבעים ראשיים',
+    actionKeys: 'מקשי פעולה',
+    colorDivision: 'חלוקת צבעים',
+    specialKeys: 'מקשים מיוחדים',
+    visibleKeys: 'מקשים גלויים',
+    nikkud: 'ניקוד',
+    nikkudSettings: 'הגדרות ניקוד',
+    backgroundColor: 'צבע רקע',
+    keysColor: 'צבע מקשים',
+    textColor: 'צבע טקסט',
+    spaceKeyColor: 'צבע מקש רווח',
+    deleteKeyColor: 'צבע מקש מחיקה',
+    enterKeyColor: 'צבע מקש אנטר',
+    otherKeysColor: 'צבע מקשים אחרים',
+    highlightedCharacters: 'תווים מודגשים',
+    highlightKeysColor: 'צבע מקשים מודגשים',
+    highlightTextColor: 'צבע טקסט מודגש',
+    keyOrder: 'סדר מקשים',
+    language: 'שפה',
+    byRows: 'לפי שורות',
+    bySections: 'לפי חלקים',
+    topRow: 'שורה עליונה',
+    middleRow: 'שורה אמצעית',
+    bottomRow: 'שורה תחתונה',
+    rightThird: 'שליש ימני',
+    middleThird: 'שליש אמצעי',
+    leftThird: 'שליש שמאלי',
+    typeCharacters: 'הקלד תווים להדגשה',
+  },
+  toolbox: {
+    generalAppearance: 'מראה כללי',
+    keysGroups: 'קבוצות מקשים',
+    nikkud: 'ניקוד',
+    presets: 'תבניות',
+    new: 'חדש',
+    presetsModalTitle: 'בחר תבנית',
+    keysLabel: 'מקשים',
+  },
+  globalSettings: {
+    colors: 'צבעים',
+    background: 'רקע',
+    keysBackground: 'רקע מקשים',
+    keysText: 'טקסט מקשים',
+    font: 'גופן',
+    keyGap: 'רווח בין מקשים',
+    keyGapRegular: 'רגיל',
+    keyGapMedium: 'בינוני',
+    keyGapLarge: 'גדול',
+    keyboardLayout: 'פריסת מקלדת',
+    features: 'תכונות',
+    wordSuggestions: 'הצעות מילים',
+    wordSuggestionsDesc: 'הצג הצעות מילים מעל המקלדת',
+    autoCorrect: 'תיקון אוטומטי',
+    autoCorrectDesc: 'תקן שגיאות הקלדה נפוצות באופן אוטומטי',
+    settingsButton: 'כפתור הגדרות',
+    settingsButtonDesc: 'הצג סמל הגדרות על המקלדת',
+    advancedSettings: 'הגדרות מתקדמות',
+    keyboardHeight: 'גובה מקלדת',
+    fontSize: 'גודל גופן',
+    fontWeight: 'עובי גופן',
+    heightCompact: 'קומפקטי',
+    heightNormal: 'רגיל',
+    heightTall: 'גבוה',
+    heightXTall: 'גבוה מאוד',
+    weightLight: 'דק',
+    weightRegular: 'רגיל',
+    weightMedium: 'בינוני',
+    weightSemibold: 'מעט מודגש',
+    weightBold: 'מודגש',
+    weightHeavy: 'כבד',
+    sizeXS: 'XS',
+    sizeS: 'S',
+    sizeM: 'M',
+    sizeL: 'L',
+    sizeXL: 'XL',
+  },
+  keyEditor: {
+    groupName: 'שם קבוצה',
+    groupNamePlaceholder: 'הזן שם קבוצה',
+    doneEditing: 'סיום עריכה',
+    deselectAll: 'בטל בחירה',
+    inGroups: 'בקבוצות',
+    visibility: 'נראות',
+    visibilityHint: 'שלוט האם המקשים הנבחרים גלויים על המקלדת',
+    keyBgColor: 'צבע רקע מקש',
+    textColor: 'צבע טקסט',
+    customLabel: 'תווית מותאמת',
+    customLabelHint: 'דרוס את התווית המוצגת על המקש',
+    customLabelPlaceholder: 'הזן תווית מותאמת',
+    keyInfo: 'מידע על מקש',
+    position: 'מיקום',
+    output: 'פלט',
+    shiftOutput: 'פלט שיפט',
+    type: 'סוג',
+    width: 'רוחב',
+  },
+  styleRules: {
+    deleteGroup: 'מחק קבוצה',
+    deleteGroupConfirm: 'למחוק את "{{name}}"? פעולה זו תסיר עיצוב מ-{{count}} מקש(ים).',
+    noStyles: 'לא הוחלו עיצובים מותאמים.',
+    noGroupsYet: 'אין קבוצות עדיין',
+    noGroupsHint: 'לחץ "חדש" כדי ליצור קבוצת מקשים ולהתחיל להתאים אישית.',
+    styleGroups: 'קבוצות עיצוב',
+    editing: 'עריכה',
+    inactive: 'לא פעיל',
+    tips: 'טיפים',
+  },
+  diacritics: {
+    enableNikkud: 'הפעל ניקוד',
+    basic: 'בסיסי',
+    full: 'מלא',
+    custom: 'מותאם אישית',
+    diacriticsSection: 'סימני ניקוד',
+    modifiers: 'מתאמים',
+    noDiacritics: 'אין סימני ניקוד זמינים לשפה זו.',
+  },
+  styleRuleModal: {
+    newKeysGroup: 'קבוצת מקשים חדשה',
+    nameLabel: 'שם',
+    namePlaceholder: 'הזן שם קבוצה',
+    presetKeysLocked: 'מקשי תבנית נעולים ולא ניתנים לשינוי.',
+    tapKeysToSelect: 'לחץ על מקשים בתצוגה המקדימה כדי לבחור אותם.',
+    visibility: 'נראות',
+    visibilityDefault: 'ברירת מחדל (גלוי)',
+    visibilityHide: 'הסתר',
+    visibilityShowOnly: 'הצג בלבד',
+    showOnlyHint: 'רק המקשים הנבחרים יהיו גלויים. כל השאר יוסתרו.',
+    hiddenHint: 'המקשים הנבחרים יוסתרו מהמקלדת.',
+    bgColor: 'צבע רקע',
+    textColor: 'צבע טקסט',
+    keysLocked: 'המקשים נעולים עבור קבוצת תבנית זו.',
+  },
+  colorPicker: {
+    modalTitle: 'בחר צבע',
+    selectedColor: 'צבע נבחר',
+  },
+  canvas: {
+    preview: 'תצוגה מקדימה',
+  },
+  addProfileModal: {
+    title: 'הוסף פרופיל חדש',
+    nameLabel: 'שם הפרופיל',
+    placeholder: 'שם הפרופיל',
+    enterName: 'אנא הזן שם לפרופיל',
+    nameInUse: 'שם זה כבר בשימוש.',
+    selectLanguages: 'בחר שפות',
+    atLeastOneLanguage: 'יש לבחור לפחות שפה אחת',
+  },
+  saveAsModal: {
+    title: 'שמור בשם',
+    message: 'שמור עותק של פרופיל זה בשם חדש.',
+    nameLabel: 'שם הפרופיל',
+    placeholder: 'שם פרופיל חדש',
+    saveAs: 'שמור בשם',
+    enterName: 'אנא הזן שם',
+    nameInUse: 'שם זה כבר בשימוש.',
+  },
+  profiles: {
+    saveProfile: 'שמירת פרופיל',
+    enterProfileNamePrompt: 'הזן שם לפרופיל זה',
+    profileNamePlaceholder: 'שם הפרופיל',
+    builtInProfiles: 'פרופילים מובנים:',
+    savedProfiles: 'פרופילים שמורים:',
+    longPressForOptions: 'לחיצה ארוכה לאפשרויות',
+    current: 'נוכחי:',
+    custom: 'מותאם אישית',
+    keyboardsInProfile: 'מקלדות בפרופיל זה:',
+    customConfiguration: 'הגדרה מותאמת אישית',
+    keyboardPreview: 'תצוגה מקדימה של המקלדת',
+    previewHelpText: 'תצוגה מקדימה של המקלדת. לחץ על כפתורים כדי לבדוק!',
+    generatedConfiguration: 'הגדרות מתקדמות:',
+    editingHelpText: 'ערוך את השינויים למטה ולחץ "שמור שינויים" בסיום.',
+    editorHelpText: 'ניתן לערוך את ה-JSON למטה במידת הצורך. השינויים ידרסו את הפרופיל.',
+    aboutProfiles: 'אודות פרופילים',
+    helpText: '• פרופילים משלבים מקלדות עם עיצוב\n• החלף פרופילים לשינוי מקלדות וערכות נושא\n• ערוך תיקיית keyboards/ להוספת שפות\n• ערוך תיקיית profiles/ ליצירת ערכות נושא\n• ראה keyboards/README.md לפרטים',
+  },
+  status: {
+    initializing: 'מאתחל...',
+    loadedProfile: 'פרופיל נטען:',
+    nativeModuleNotConnected: 'המודול לא מחובר',
+    errorLoadingConfiguration: 'שגיאה בטעינת ההגדרות',
+    switchingProfile: 'מחליף פרופיל...',
+    switchedTo: 'הוחלף ל:',
+    errorSwitchingProfile: 'שגיאה בהחלפת פרופיל',
+  },
+  toggleSwitch: {
+    visible: 'גלוי',
+    hidden: 'מוסתר',
+    a11yVisible: 'החלף נראות: גלוי כעת',
+    a11yHidden: 'החלף נראות: מוסתר כעת',
+  },
 };
 
 const ar: Strings = {
-  // Header
-  keyboardConfiguration: 'إعدادات لوحة المفاتيح',
-
-  // Profile Section
-  builtInProfiles: 'ملفات تعريف مدمجة:',
-  savedProfiles: 'ملفات تعريف محفوظة:',
-  longPressForOptions: 'اضغط مطولاً للخيارات',
-  current: 'الحالي:',
-  custom: 'مخصص',
-
-  // Keyboards Section
-  keyboardsInProfile: 'لوحات المفاتيح في هذا الملف:',
-  customConfiguration: 'إعداد مخصص',
-  keyboardPreview: 'عرض معاينة لوحة المفاتيح',
-  previewHelpText: 'عرض معاينة لوحة المفاتيح. اضغط على المفاتيح للاختبار!',
-
-  // Editor Section
-  editing: 'تحرير:',
-  generatedConfiguration: 'الإعدادات المتقدمة:',
-  editingHelpText: 'قم بإجراء التغييرات أدناه واضغط "حفظ التغييرات" عند الانتهاء.',
-  editorHelpText: 'يمكنك تحرير JSON أدناه إذا لزم الأمر. ستتجاوز التغييرات الملف الشخصي.',
-
-  // Buttons
-  cancel: 'إلغاء',
-  save: 'حفظ',
-  saveChanges: 'حفظ التغييرات',
-  saveCustomConfiguration: 'حفظ الإعداد المخصص',
-  edit: 'تحرير',
-  delete: 'حذف',
-
-  // Save Modal
-  saveProfile: 'حفظ الملف الشخصي',
-  enterProfileNamePrompt: 'أدخل اسمًا لهذا الملف الشخصي',
-  profileNamePlaceholder: 'اسم الملف الشخصي',
-
-  // Add Profile Modal
-  addProfile: 'إضافة ملف تعريف جديد',
-  profileNameLabel: 'اسم الملف الشخصي',
-  selectLanguages: 'اختر اللغات',
-  atLeastOneLanguage: 'يجب تحديد لغة واحدة على الأقل',
-  create: 'إنشاء',
-
-  // Help Section
-  aboutProfiles: 'حول الملفات الشخصية',
-  helpText: '• الملفات الشخصية تجمع بين لوحات المفاتيح والتصميم\n• بدّل الملفات لتغيير لوحات المفاتيح والسمات\n• حرر مجلد keyboards/ لإضافة لغات\n• حرر مجلد profiles/ لإنشاء سمات مخصصة\n• انظر keyboards/README.md للتفاصيل',
-
-  // Alerts
-  success: 'نجاح',
-  error: 'خطأ',
-  syntaxError: 'خطأ في الصياغة',
-  deleteProfile: 'حذف الملف الشخصي',
-  profileChangedTo: 'تم تغيير الملف الشخصي إلى',
-  closeAndReopenKeyboard: 'أغلق وأعد فتح لوحة المفاتيح لرؤية التغييرات.',
-  failedToSwitchProfile: 'فشل تبديل الملف الشخصي',
-  checkJsonFormatting: 'يرجى التحقق من تنسيق JSON.',
-  enterProfileName: 'يرجى إدخال اسم للملف الشخصي',
-  savingConfiguration: 'جارٍ حفظ الإعداد المخصص...',
-  profileSaved: 'تم حفظ الملف الشخصي!',
-  failedToSaveProfile: 'فشل حفظ الملف الشخصي',
-  loadingProfile: 'جارٍ تحميل الملف الشخصي...',
-  profileLoaded: 'تم تحميل الملف الشخصي.',
-  profileNotFound: 'الملف الشخصي غير موجود',
-  failedToLoadProfile: 'فشل تحميل الملف الشخصي',
-  whatWouldYouLikeToDo: 'ماذا تريد أن تفعل؟',
-  failedToLoadForEditing: 'فشل تحميل الملف الشخصي للتحرير',
-  savedChangesTo: 'تم حفظ التغييرات في:',
-  profileUpdated: 'تم تحديث الملف الشخصي.',
-  editCancelled: 'تم إلغاء التحرير',
-  confirmDelete: 'هل أنت متأكد أنك تريد حذف',
-  deleted: 'تم الحذف:',
-  failedToDeleteProfile: 'فشل حذف الملف الشخصي',
-
-  // Status Messages
-  initializing: 'جارٍ التهيئة...',
-  loadedProfile: 'تم تحميل الملف الشخصي:',
-  nativeModuleNotConnected: 'الوحدة الأصلية غير متصلة',
-  errorLoadingConfiguration: 'خطأ في تحميل الإعدادات',
-  switchingProfile: 'جارٍ تبديل الملف الشخصي...',
-  switchedTo: 'تم التبديل إلى:',
-  errorSwitchingProfile: 'خطأ في تبديل الملف الشخصي',
+  common: {
+    cancel: 'إلغاء',
+    save: 'حفظ',
+    saveChanges: 'حفظ التغييرات',
+    delete: 'حذف',
+    edit: 'تحرير',
+    create: 'إنشاء',
+    apply: 'تطبيق',
+    reset: 'إعادة تعيين',
+    error: 'خطأ',
+    success: 'نجاح',
+    loading: 'جارٍ التحميل...',
+    default: 'افتراضي',
+    done: 'تم',
+    back: 'رجوع',
+    on: 'مفعّل',
+    off: 'معطّل',
+    visible: 'مرئي',
+    hidden: 'مخفي',
+    showOnly: 'إظهار فقط',
+    none: 'لا شيء',
+    bgLabel: 'خلفية',
+    textLabel: 'نص',
+  },
+  editor: {
+    keyboardConfiguration: 'إعدادات لوحة المفاتيح',
+    myKeyboards: 'لوحات المفاتيح',
+    builtIn: 'مدمج',
+    settings: 'إعدادات',
+    classicView: 'العرض الكلاسيكي',
+    newProfile: 'ملف شخصي جديد',
+    duplicateProfile: 'تكرار الملف الشخصي',
+    newProfilePlaceholder: 'أدخل اسم الملف الشخصي',
+    select: 'اختر',
+    saveAs: 'حفظ باسم',
+    saveCustomConfiguration: 'حفظ الإعداد المخصص',
+    editing: 'تحرير:',
+    languages: {
+      hebrew: 'عبرية',
+      english: 'إنجليزية',
+      arabic: 'عربية',
+    },
+    keyboardVariants: {
+      standard: 'قياسي',
+      orderedHe: 'مرتب (ألف-بيت عبري)',
+      qwerty: 'QWERTY',
+      orderedEn: 'مرتب (A-Z)',
+      orderedAr: 'مرتب (ألف-باء)',
+    },
+  },
+  alerts: {
+    resetToFactory: 'إعادة التعيين إلى الإعدادات الافتراضية؟',
+    unsavedChanges: 'تغييرات غير محفوظة',
+    unsavedChangesMessage: 'لديك تغييرات غير محفوظة. ماذا تريد أن تفعل؟',
+    discard: 'تجاهل',
+    saveFirst: 'حفظ أولاً',
+    discardChanges: 'تجاهل التغييرات',
+    discardChangesMessage: 'هل أنت متأكد أنك تريد تجاهل كل التغييرات؟',
+    clearAllSettings: 'مسح جميع الإعدادات وإعادة التعيين إلى الافتراضي؟',
+    clearAll: 'مسح الكل',
+    cannotDelete: 'لا يمكن الحذف',
+    cannotDeleteDefault: 'لا يمكن حذف الملفات الشخصية الافتراضية.',
+    cannotDeleteActive: 'لا يمكن حذف الملف الشخصي النشط. انتقل إلى ملف شخصي آخر أولاً.',
+    deleteProfile: 'حذف الملف الشخصي',
+    deleteConfirm: 'هل أنت متأكد أنك تريد حذف "{{name}}"؟',
+    enterProfileName: 'يرجى إدخال اسم للملف الشخصي',
+    failedToLoadProfile: 'فشل تحميل الملف الشخصي',
+    failedToLoadForEditing: 'فشل تحميل الملف الشخصي للتحرير',
+    profileChangedTo: 'تم تغيير الملف الشخصي إلى',
+    closeAndReopenKeyboard: 'أغلق وأعد فتح لوحة المفاتيح لرؤية التغييرات.',
+    failedToSwitchProfile: 'فشل تبديل الملف الشخصي',
+    syntaxError: 'خطأ في الصياغة',
+    checkJsonFormatting: 'يرجى التحقق من تنسيق JSON.',
+    savingConfiguration: 'جارٍ حفظ الإعداد المخصص...',
+    profileSaved: 'تم حفظ الملف الشخصي!',
+    failedToSaveProfile: 'فشل حفظ الملف الشخصي',
+    profileUpdated: 'تم تحديث الملف الشخصي.',
+    savedChangesTo: 'تم حفظ التغييرات في:',
+    editCancelled: 'تم إلغاء التحرير',
+    deleted: 'تم الحذف:',
+    failedToDeleteProfile: 'فشل حذف الملف الشخصي',
+    whatWouldYouLikeToDo: 'ماذا تريد أن تفعل؟',
+    loadingProfile: 'جارٍ تحميل الملف الشخصي...',
+    profileLoaded: 'تم تحميل الملف الشخصي.',
+    profileNotFound: 'الملف الشخصي غير موجود',
+  },
+  classic: {
+    mainSettings: 'الإعدادات الرئيسية',
+    mainColors: 'الألوان الرئيسية',
+    actionKeys: 'مفاتيح الإجراءات',
+    colorDivision: 'تقسيم الألوان',
+    specialKeys: 'مفاتيح خاصة',
+    visibleKeys: 'مفاتيح مرئية',
+    nikkud: 'تشكيل',
+    nikkudSettings: 'إعدادات التشكيل',
+    backgroundColor: 'لون الخلفية',
+    keysColor: 'لون المفاتيح',
+    textColor: 'لون النص',
+    spaceKeyColor: 'لون مفتاح المسافة',
+    deleteKeyColor: 'لون مفتاح الحذف',
+    enterKeyColor: 'لون مفتاح الإدخال',
+    otherKeysColor: 'لون المفاتيح الأخرى',
+    highlightedCharacters: 'أحرف مميزة',
+    highlightKeysColor: 'لون المفاتيح المميزة',
+    highlightTextColor: 'لون النص المميز',
+    keyOrder: 'ترتيب المفاتيح',
+    language: 'اللغة',
+    byRows: 'حسب الصفوف',
+    bySections: 'حسب الأقسام',
+    topRow: 'الصف العلوي',
+    middleRow: 'الصف الأوسط',
+    bottomRow: 'الصف السفلي',
+    rightThird: 'الثلث الأيمن',
+    middleThird: 'الثلث الأوسط',
+    leftThird: 'الثلث الأيسر',
+    typeCharacters: 'اكتب أحرفًا لتمييزها',
+  },
+  toolbox: {
+    generalAppearance: 'المظهر العام',
+    keysGroups: 'مجموعات المفاتيح',
+    nikkud: 'تشكيل',
+    presets: 'قوالب',
+    new: 'جديد',
+    presetsModalTitle: 'اختر قالبًا',
+    keysLabel: 'مفاتيح',
+  },
+  globalSettings: {
+    colors: 'الألوان',
+    background: 'الخلفية',
+    keysBackground: 'خلفية المفاتيح',
+    keysText: 'نص المفاتيح',
+    font: 'الخط',
+    keyGap: 'المسافة بين المفاتيح',
+    keyGapRegular: 'عادي',
+    keyGapMedium: 'متوسط',
+    keyGapLarge: 'كبير',
+    keyboardLayout: 'تخطيط لوحة المفاتيح',
+    features: 'الميزات',
+    wordSuggestions: 'اقتراحات الكلمات',
+    wordSuggestionsDesc: 'إظهار اقتراحات الكلمات فوق لوحة المفاتيح',
+    autoCorrect: 'التصحيح التلقائي',
+    autoCorrectDesc: 'تصحيح الأخطاء الإملائية الشائعة تلقائيًا',
+    settingsButton: 'زر الإعدادات',
+    settingsButtonDesc: 'إظهار أيقونة الإعدادات على لوحة المفاتيح',
+    advancedSettings: 'إعدادات متقدمة',
+    keyboardHeight: 'ارتفاع لوحة المفاتيح',
+    fontSize: 'حجم الخط',
+    fontWeight: 'سماكة الخط',
+    heightCompact: 'مضغوط',
+    heightNormal: 'عادي',
+    heightTall: 'طويل',
+    heightXTall: 'طويل جدًا',
+    weightLight: 'خفيف',
+    weightRegular: 'عادي',
+    weightMedium: 'متوسط',
+    weightSemibold: 'شبه عريض',
+    weightBold: 'عريض',
+    weightHeavy: 'ثقيل',
+    sizeXS: 'XS',
+    sizeS: 'S',
+    sizeM: 'M',
+    sizeL: 'L',
+    sizeXL: 'XL',
+  },
+  keyEditor: {
+    groupName: 'اسم المجموعة',
+    groupNamePlaceholder: 'أدخل اسم المجموعة',
+    doneEditing: 'إنهاء التحرير',
+    deselectAll: 'إلغاء تحديد الكل',
+    inGroups: 'في مجموعات',
+    visibility: 'الرؤية',
+    visibilityHint: 'تحكم في ظهور المفاتيح المحددة على لوحة المفاتيح',
+    keyBgColor: 'لون خلفية المفتاح',
+    textColor: 'لون النص',
+    customLabel: 'تسمية مخصصة',
+    customLabelHint: 'تغيير التسمية المعروضة على المفتاح',
+    customLabelPlaceholder: 'أدخل تسمية مخصصة',
+    keyInfo: 'معلومات المفتاح',
+    position: 'الموضع',
+    output: 'الإخراج',
+    shiftOutput: 'إخراج شيفت',
+    type: 'النوع',
+    width: 'العرض',
+  },
+  styleRules: {
+    deleteGroup: 'حذف المجموعة',
+    deleteGroupConfirm: 'حذف "{{name}}"؟ سيؤدي ذلك إلى إزالة التنسيق من {{count}} مفتاح(مفاتيح).',
+    noStyles: 'لا توجد أنماط مخصصة مطبقة.',
+    noGroupsYet: 'لا توجد مجموعات بعد',
+    noGroupsHint: 'اضغط "جديد" لإنشاء مجموعة مفاتيح والبدء في التخصيص.',
+    styleGroups: 'مجموعات الأنماط',
+    editing: 'تحرير',
+    inactive: 'غير نشط',
+    tips: 'نصائح',
+  },
+  diacritics: {
+    enableNikkud: 'تفعيل التشكيل',
+    basic: 'أساسي',
+    full: 'كامل',
+    custom: 'مخصص',
+    diacriticsSection: 'علامات التشكيل',
+    modifiers: 'المعدّلات',
+    noDiacritics: 'لا تتوفر علامات تشكيل لهذه اللغة.',
+  },
+  styleRuleModal: {
+    newKeysGroup: 'مجموعة مفاتيح جديدة',
+    nameLabel: 'الاسم',
+    namePlaceholder: 'أدخل اسم المجموعة',
+    presetKeysLocked: 'مفاتيح القالب مقفلة ولا يمكن تغييرها.',
+    tapKeysToSelect: 'اضغط على المفاتيح في المعاينة لتحديدها.',
+    visibility: 'الرؤية',
+    visibilityDefault: 'افتراضي (مرئي)',
+    visibilityHide: 'إخفاء',
+    visibilityShowOnly: 'إظهار فقط',
+    showOnlyHint: 'ستكون المفاتيح المحددة فقط مرئية. سيتم إخفاء جميع المفاتيح الأخرى.',
+    hiddenHint: 'سيتم إخفاء المفاتيح المحددة من لوحة المفاتيح.',
+    bgColor: 'لون الخلفية',
+    textColor: 'لون النص',
+    keysLocked: 'المفاتيح مقفلة لمجموعة القالب هذه.',
+  },
+  colorPicker: {
+    modalTitle: 'اختر لونًا',
+    selectedColor: 'اللون المحدد',
+  },
+  canvas: {
+    preview: 'معاينة',
+  },
+  addProfileModal: {
+    title: 'إضافة ملف تعريف جديد',
+    nameLabel: 'اسم الملف الشخصي',
+    placeholder: 'اسم الملف الشخصي',
+    enterName: 'يرجى إدخال اسم للملف الشخصي',
+    nameInUse: 'هذا الاسم مستخدم بالفعل.',
+    selectLanguages: 'اختر اللغات',
+    atLeastOneLanguage: 'يجب تحديد لغة واحدة على الأقل',
+  },
+  saveAsModal: {
+    title: 'حفظ باسم',
+    message: 'حفظ نسخة من هذا الملف الشخصي باسم جديد.',
+    nameLabel: 'اسم الملف الشخصي',
+    placeholder: 'اسم ملف شخصي جديد',
+    saveAs: 'حفظ باسم',
+    enterName: 'يرجى إدخال اسم',
+    nameInUse: 'هذا الاسم مستخدم بالفعل.',
+  },
+  profiles: {
+    saveProfile: 'حفظ الملف الشخصي',
+    enterProfileNamePrompt: 'أدخل اسمًا لهذا الملف الشخصي',
+    profileNamePlaceholder: 'اسم الملف الشخصي',
+    builtInProfiles: 'ملفات تعريف مدمجة:',
+    savedProfiles: 'ملفات تعريف محفوظة:',
+    longPressForOptions: 'اضغط مطولاً للخيارات',
+    current: 'الحالي:',
+    custom: 'مخصص',
+    keyboardsInProfile: 'لوحات المفاتيح في هذا الملف:',
+    customConfiguration: 'إعداد مخصص',
+    keyboardPreview: 'عرض معاينة لوحة المفاتيح',
+    previewHelpText: 'عرض معاينة لوحة المفاتيح. اضغط على المفاتيح للاختبار!',
+    generatedConfiguration: 'الإعدادات المتقدمة:',
+    editingHelpText: 'قم بإجراء التغييرات أدناه واضغط "حفظ التغييرات" عند الانتهاء.',
+    editorHelpText: 'يمكنك تحرير JSON أدناه إذا لزم الأمر. ستتجاوز التغييرات الملف الشخصي.',
+    aboutProfiles: 'حول الملفات الشخصية',
+    helpText: '• الملفات الشخصية تجمع بين لوحات المفاتيح والتصميم\n• بدّل الملفات لتغيير لوحات المفاتيح والسمات\n• حرر مجلد keyboards/ لإضافة لغات\n• حرر مجلد profiles/ لإنشاء سمات مخصصة\n• انظر keyboards/README.md للتفاصيل',
+  },
+  status: {
+    initializing: 'جارٍ التهيئة...',
+    loadedProfile: 'تم تحميل الملف الشخصي:',
+    nativeModuleNotConnected: 'الوحدة الأصلية غير متصلة',
+    errorLoadingConfiguration: 'خطأ في تحميل الإعدادات',
+    switchingProfile: 'جارٍ تبديل الملف الشخصي...',
+    switchedTo: 'تم التبديل إلى:',
+    errorSwitchingProfile: 'خطأ في تبديل الملف الشخصي',
+  },
+  toggleSwitch: {
+    visible: 'مرئي',
+    hidden: 'مخفي',
+    a11yVisible: 'تبديل الرؤية: مرئي حاليًا',
+    a11yHidden: 'تبديل الرؤية: مخفي حاليًا',
+  },
 };
 
 export const translations: Record<Language, Strings> = {
