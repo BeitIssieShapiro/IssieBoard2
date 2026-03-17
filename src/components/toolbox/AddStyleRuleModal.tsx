@@ -10,6 +10,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useEditor } from '../../context/EditorContext';
+import { useLocalization } from '../../localization';
 import { StyleGroup, KeyStyleOverride, KeyboardConfig, VisibilityMode } from '../../../types';
 import { CompactColorPicker } from '../shared/CompactColorPicker';
 import { ButtonGroupRow } from '../shared/ButtonGroupRow';
@@ -44,11 +45,12 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
   profileName,
   onClose,
 }) => {
-  const { 
-    state, 
+  const {
+    state,
     createGroupFromValues,
     updateGroup,
   } = useEditor();
+  const { strings } = useLocalization();
 
   // Local state for the rule being created/edited
   const [ruleName, setRuleName] = useState('');
@@ -126,7 +128,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
   const handleKeyPress = useCallback((event: KeyPressEvent) => {
     // If in preset mode, keys are locked - show toast in modal
     if (isPreset && !editingGroup) {
-      showLocalToast('🔒 Keys locked. Only colors can be changed.', 2000);
+      showLocalToast(`🔒 ${strings.styleRuleModal.keysLocked}`, 2000);
       return;
     }
 
@@ -355,17 +357,17 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
                 </Text>
               )}
               <Text allowFontScaling={false} style={styles.headerTitle}>
-                {editingGroup ? editingGroup.name : (ruleName || (isPreset ? initialName : 'New Keys Group'))}
+                {editingGroup ? editingGroup.name : (ruleName || (isPreset ? initialName : strings.styleRuleModal.newKeysGroup))}
               </Text>
             </View>
             <View style={styles.headerActions}>
               <ActionButton
-                label="Cancel"
+                label={strings.common.cancel}
                 color="gray"
                 onPress={handleCancel}
               />
               <ActionButton
-                label={editingGroup ? 'Save' : (isPreset ? 'Apply' : 'Create')}
+                label={editingGroup ? strings.common.save : (isPreset ? strings.common.apply : strings.common.create)}
                 color="green"
                 onPress={handleOk}
                 disabled={selectedKeyValues.length === 0}
@@ -376,12 +378,12 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
           {/* Name input row - hidden for presets */}
           {!isPreset && (
             <View style={styles.nameRow}>
-              <Text allowFontScaling={false} style={styles.nameLabel}>Name:</Text>
+              <Text allowFontScaling={false} style={styles.nameLabel}>{strings.styleRuleModal.nameLabel}:</Text>
               <TextInput
                 style={styles.nameInput}
                 value={ruleName}
                 onChangeText={setRuleName}
-                placeholder="Enter group name..."
+                placeholder={strings.styleRuleModal.namePlaceholder}
               />
             </View>
           )}
@@ -391,8 +393,8 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
             <View style={styles.section}>
               <Text allowFontScaling={false} style={styles.sectionTitle}>
                 {isPreset && !editingGroup
-                  ? `Preset keys (${selectedKeyValues.length} keys locked)`
-                  : `Tap keys to select/deselect (${selectedKeyValues.length} selected)`}
+                  ? `${strings.styleRuleModal.presetKeysLocked} (${selectedKeyValues.length})`
+                  : `${strings.styleRuleModal.tapKeysToSelect} (${selectedKeyValues.length})`}
               </Text>
               <View style={styles.previewContainer}>
                 <KeyboardPreview
@@ -409,23 +411,23 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
             {/* Visibility Mode */}
             <View>
               <ButtonGroupRow
-                title="Visibility"
+                title={strings.styleRuleModal.visibility}
                 options={[
-                  { id: 'default', label: 'Default' },
-                  { id: 'hide', label: 'Hide' },
-                  { id: 'showOnly', label: 'Show Only' },
+                  { id: 'default', label: strings.styleRuleModal.visibilityDefault },
+                  { id: 'hide', label: strings.styleRuleModal.visibilityHide },
+                  { id: 'showOnly', label: strings.styleRuleModal.visibilityShowOnly },
                 ]}
                 selectedId={visibilityMode}
                 onSelect={(id) => setVisibilityMode(id as VisibilityMode)}
               />
               {visibilityMode === 'showOnly' && (
                 <Text allowFontScaling={false} style={styles.visibilityHint}>
-                  ⓘ Other keys shown semi-transparent in preview mode
+                  {strings.styleRuleModal.showOnlyHint}
                 </Text>
               )}
               {visibilityMode === 'hide' && (
                 <Text allowFontScaling={false} style={styles.visibilityHint}>
-                  ⓘ Hidden keys shown semi-transparent in preview mode
+                  {strings.styleRuleModal.hiddenHint}
                 </Text>
               )}
             </View>
@@ -433,22 +435,22 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
             {/* Background Color - only show if not in "hide" mode */}
             {visibilityMode !== 'hide' && (
               <CompactColorPicker
-                title="Background Color"
+                title={strings.styleRuleModal.bgColor}
                 value={bgColor}
                 onChange={setBgColor}
                 showSystemDefault
-                systemDefaultLabel="Default"
+                systemDefaultLabel={strings.common.default}
               />
             )}
 
             {/* Text Color - only show if not in "hide" mode */}
             {visibilityMode !== 'hide' && (
               <CompactColorPicker
-                title="Text Color"
+                title={strings.styleRuleModal.textColor}
                 value={textColor}
                 onChange={setTextColor}
                 showSystemDefault
-                systemDefaultLabel="Default"
+                systemDefaultLabel={strings.common.default}
               />
             )}
           </ScrollView>

@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useEditor } from '../../context/EditorContext';
+import { useLocalization } from '../../localization';
 import { StyleGroup } from '../../../types';
 import { ActionButton } from '../shared/ActionButton';
 
@@ -19,11 +20,12 @@ export const StyleRulesPanel: React.FC<StyleRulesPanelProps> = ({
   onEditPressed,
   onCreatePressed,
 }) => {
-  const { 
-    state, 
+  const {
+    state,
     deleteGroup,
     toggleGroupActive,
   } = useEditor();
+  const { strings } = useLocalization();
 
   // Get caption for a key by its value
   const getKeyCaption = useCallback((keyValue: string): string => {
@@ -53,12 +55,14 @@ export const StyleRulesPanel: React.FC<StyleRulesPanelProps> = ({
 
   const handleDeleteGroup = (group: StyleGroup) => {
     Alert.alert(
-      'Delete Keys Group',
-      `Delete "${group.name}"? This will remove styling from ${group.members.length} key(s).`,
+      strings.styleRules.deleteGroup,
+      strings.styleRules.deleteGroupConfirm
+        .replace('{{name}}', group.name)
+        .replace('{{count}}', String(group.members.length)),
       [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
+        { text: strings.common.cancel, style: 'cancel' },
+        {
+          text: strings.common.delete,
           style: 'destructive',
           onPress: () => {
             deleteGroup(group.id);
@@ -77,13 +81,13 @@ export const StyleRulesPanel: React.FC<StyleRulesPanelProps> = ({
     if (visMode === 'hide') {
       indicators.push(
         <View key="hidden" style={[styles.indicator, styles.indicatorHidden]}>
-          <Text allowFontScaling={false} style={styles.indicatorTextHidden}>Hidden</Text>
+          <Text allowFontScaling={false} style={styles.indicatorTextHidden}>{strings.common.hidden}</Text>
         </View>
       );
     } else if (visMode === 'showOnly') {
       indicators.push(
         <View key="showOnly" style={[styles.indicator, styles.indicatorShowOnly]}>
-          <Text allowFontScaling={false} style={styles.indicatorTextShowOnly}>Show Only</Text>
+          <Text allowFontScaling={false} style={styles.indicatorTextShowOnly}>{strings.common.showOnly}</Text>
         </View>
       );
     }
@@ -92,7 +96,7 @@ export const StyleRulesPanel: React.FC<StyleRulesPanelProps> = ({
     if (group.style.bgColor) {
       indicators.push(
         <View key="bg" style={styles.colorSwatchContainer}>
-          <Text allowFontScaling={false} style={styles.colorLabel}>BG:</Text>
+          <Text allowFontScaling={false} style={styles.colorLabel}>{strings.common.bgLabel}:</Text>
           <View 
             style={[styles.colorSwatch, { backgroundColor: group.style.bgColor }]} 
           />
@@ -104,7 +108,7 @@ export const StyleRulesPanel: React.FC<StyleRulesPanelProps> = ({
     if (group.style.color) {
       indicators.push(
         <View key="color" style={styles.colorSwatchContainer}>
-          <Text allowFontScaling={false} style={styles.colorLabel}>Text:</Text>
+          <Text allowFontScaling={false} style={styles.colorLabel}>{strings.common.textLabel}:</Text>
           <View 
             style={[styles.colorSwatch, { backgroundColor: group.style.color }]} 
           />
@@ -114,7 +118,7 @@ export const StyleRulesPanel: React.FC<StyleRulesPanelProps> = ({
     
     if (indicators.length === 0) {
       indicators.push(
-        <Text key="none" style={styles.noStyleText}>No styles applied</Text>
+        <Text key="none" style={styles.noStyleText}>{strings.styleRules.noStyles}</Text>
       );
     }
     
@@ -126,7 +130,7 @@ export const StyleRulesPanel: React.FC<StyleRulesPanelProps> = ({
       {state.styleGroups.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text allowFontScaling={false} style={styles.emptyText}>
-            No keys groups yet. Tap "New" to create one.
+            {strings.styleRules.noGroupsHint}
           </Text>
         </View>
       ) : (
@@ -168,12 +172,12 @@ export const StyleRulesPanel: React.FC<StyleRulesPanelProps> = ({
                 {/* Action Buttons */}
                 <View style={styles.groupActions}>
                   <ActionButton
-                    label="Edit"
+                    label={strings.common.edit}
                     color="blue"
                     onPress={() => onEditPressed(group)}
                   />
                   <ActionButton
-                    label="Delete"
+                    label={strings.common.delete}
                     color="red"
                     onPress={() => handleDeleteGroup(group)}
                   />

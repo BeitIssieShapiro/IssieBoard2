@@ -8,17 +8,19 @@ import {
   Alert,
 } from 'react-native';
 import { useEditor, stringToKeyId } from '../../context/EditorContext';
+import { useLocalization } from '../../localization';
 import { StyleGroup } from '../../../types';
 
 export const GroupsPanel: React.FC = () => {
-  const { 
-    state, 
-    setActiveGroup, 
+  const {
+    state,
+    setActiveGroup,
     deleteGroup,
     selectKeys,
     clearSelection,
     toggleGroupActive,
   } = useEditor();
+  const { strings } = useLocalization();
 
   const handleEditGroup = (group: StyleGroup) => {
     // Select all keys in the group and make it active
@@ -55,12 +57,14 @@ export const GroupsPanel: React.FC = () => {
 
   const handleDeleteGroup = (group: StyleGroup) => {
     Alert.alert(
-      'Delete Group',
-      `Delete "${group.name}"? This will remove all styling from ${group.members.length} key(s).`,
+      strings.styleRules.deleteGroup,
+      strings.styleRules.deleteGroupConfirm
+        .replace('{{name}}', group.name)
+        .replace('{{count}}', String(group.members.length)),
       [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
+        { text: strings.common.cancel, style: 'cancel' },
+        {
+          text: strings.common.delete,
           style: 'destructive',
           onPress: () => {
             deleteGroup(group.id);
@@ -78,13 +82,13 @@ export const GroupsPanel: React.FC = () => {
     if (group.style.hidden) {
       indicators.push(
         <View key="hidden" style={[styles.indicator, styles.indicatorHidden]}>
-          <Text allowFontScaling={false} style={styles.indicatorTextHidden}>🚫 Hidden</Text>
+          <Text allowFontScaling={false} style={styles.indicatorTextHidden}>🚫 {strings.common.hidden}</Text>
         </View>
       );
     } else {
       indicators.push(
         <View key="visible" style={[styles.indicator, styles.indicatorVisible]}>
-          <Text allowFontScaling={false} style={styles.indicatorTextVisible}>✓ Visible</Text>
+          <Text allowFontScaling={false} style={styles.indicatorTextVisible}>✓ {strings.common.visible}</Text>
         </View>
       );
     }
@@ -126,10 +130,9 @@ export const GroupsPanel: React.FC = () => {
     return (
       <View style={styles.emptyContainer}>
         <Text allowFontScaling={false} style={styles.emptyIcon}>📦</Text>
-        <Text allowFontScaling={false} style={styles.emptyTitle}>No Style Groups Yet</Text>
+        <Text allowFontScaling={false} style={styles.emptyTitle}>{strings.styleRules.noGroupsYet}</Text>
         <Text allowFontScaling={false} style={styles.emptyText}>
-          Select keys and apply styles (like hiding or coloring) to create groups.
-          Groups make it easy to manage and restore changes.
+          {strings.styleRules.noGroupsHint}
         </Text>
       </View>
     );
@@ -138,7 +141,7 @@ export const GroupsPanel: React.FC = () => {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <Text allowFontScaling={false} style={styles.headerTitle}>Style Groups</Text>
+        <Text allowFontScaling={false} style={styles.headerTitle}>{strings.styleRules.styleGroups}</Text>
         <Text allowFontScaling={false} style={styles.headerSubtitle}>
           {state.styleGroups.length} group{state.styleGroups.length !== 1 ? 's' : ''}
         </Text>
@@ -196,7 +199,7 @@ export const GroupsPanel: React.FC = () => {
             {/* Active status indicator */}
             {!isGroupActive && (
               <View style={styles.inactiveNotice}>
-                <Text allowFontScaling={false} style={styles.inactiveNoticeText}>⏸ Inactive - not applied to preview</Text>
+                <Text allowFontScaling={false} style={styles.inactiveNoticeText}>⏸ {strings.styleRules.inactive}</Text>
               </View>
             )}
             
@@ -214,7 +217,7 @@ export const GroupsPanel: React.FC = () => {
             
             {state.activeGroupId === group.id && (
               <View style={styles.activeIndicator}>
-                <Text allowFontScaling={false} style={styles.activeIndicatorText}>✓ Editing</Text>
+                <Text allowFontScaling={false} style={styles.activeIndicatorText}>✓ {strings.styleRules.editing}</Text>
               </View>
             )}
           </View>
@@ -222,7 +225,7 @@ export const GroupsPanel: React.FC = () => {
       })}
 
       <View style={styles.helpSection}>
-        <Text allowFontScaling={false} style={styles.helpTitle}>💡 Tips</Text>
+        <Text allowFontScaling={false} style={styles.helpTitle}>💡 {strings.styleRules.tips}</Text>
         <Text allowFontScaling={false} style={styles.helpText}>
           • Tap a group to select its keys{'\n'}
           • Long-press or tap 🗑️ to delete{'\n'}
