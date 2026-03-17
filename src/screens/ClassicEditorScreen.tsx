@@ -32,6 +32,7 @@ import heRules from '../../assets/predefined-rules/he.json';
 import arRules from '../../assets/predefined-rules/ar.json';
 import { BUILT_IN_PROFILES, isBuiltInProfileId, extractTemplateId, getBuiltInProfileTemplate } from '../data/builtInProfiles';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLocalization } from '../localization';
 
 const PREDEFINED_RULES: Record<string, any> = {
   'en': enRules,
@@ -194,6 +195,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
   initialLanguage,
   onSwitchToAdvanced,
 }) => {
+  const { strings } = useLocalization();
   const [loading, setLoading] = useState(true);
   const [currentLanguage, setCurrentLanguage] = useState<LanguageId>(initialLanguage || 'he');
   const [currentProfileId, setCurrentProfileId] = useState<string>('');
@@ -339,7 +341,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
         const defaultKeyboardId = language === 'he' ? 'he' : language;
         const defaultDef: SavedProfileDefinition = {
           id: getDefaultProfileId(language),
-          name: 'Default',
+          name: strings.common.default,
           version: '1.0.0',
           language,
           keyboardId: defaultKeyboardId,
@@ -358,7 +360,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [strings]);
 
   useEffect(() => {
     loadProfile(currentLanguage);
@@ -718,7 +720,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
       // Create new special keys group
       const newGroup: StyleGroup = {
         id: `special_keys_${Date.now()}`,
-        name: 'Special Keys',
+        name: strings.classic.specialKeys,
         members,
         style: { bgColor: '#FFFF00', color: '#000000', visibilityMode: 'default' },
         createdAt: new Date().toISOString(),
@@ -733,7 +735,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
     setStyleGroups(updatedGroups);
     refreshState(updatedGroups, profileDef);
     await saveProfile(profileDef, updatedGroups);
-  }, [profileDef, styleGroups, refreshState, saveProfile]);
+  }, [profileDef, styleGroups, refreshState, saveProfile, strings]);
 
   // Handle visible keys text change
   const handleVisibleKeysTextChange = useCallback(async (text: string) => {
@@ -753,7 +755,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
     } else if (members.length > 0) {
       const newGroup: StyleGroup = {
         id: `visible_keys_${Date.now()}`,
-        name: 'Visible Keys',
+        name: strings.classic.visibleKeys,
         members,
         style: { visibilityMode: 'showOnly' },
         createdAt: new Date().toISOString(),
@@ -768,7 +770,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
     setStyleGroups(updatedGroups);
     refreshState(updatedGroups, profileDef);
     await saveProfile(profileDef, updatedGroups);
-  }, [profileDef, styleGroups, refreshState, saveProfile]);
+  }, [profileDef, styleGroups, refreshState, saveProfile, strings]);
 
   // Handle reset
   const handleReset = useCallback(async () => {
@@ -777,16 +779,16 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
     const templateId = extractTemplateId(profileDef.id);
     const template = templateId ? getBuiltInProfileTemplate(templateId) : undefined;
     const message = template
-      ? `Reset to "${template.name}" defaults? This cannot be undone.`
-      : 'Clear all customizations? This cannot be undone.';
+      ? strings.alerts.resetToFactory
+      : strings.alerts.clearAllSettings;
 
     Alert.alert(
-      'Reset',
+      strings.common.reset,
       message,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: strings.common.cancel, style: 'cancel' },
         {
-          text: 'Reset',
+          text: strings.common.reset,
           style: 'destructive',
           onPress: async () => {
             const keyboardId = currentLanguage === 'he' ? 'he' : currentLanguage;
@@ -829,7 +831,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
         },
       ]
     );
-  }, [profileDef, currentLanguage, refreshState, saveProfile]);
+  }, [profileDef, currentLanguage, refreshState, saveProfile, strings]);
 
   // Route setting selection to appropriate handler or detail view
   const handleSelectSetting = useCallback((settingId: SettingId) => {
@@ -998,28 +1000,28 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
   // Get title for a setting detail view
   const getSettingTitle = (settingId: SettingId): string => {
     const titles: Record<string, string> = {
-      'bg-color': 'Background Color',
-      'keys-color': 'Keys Color',
-      'text-color': 'Text Color',
-      'space-color': 'Space Key Color',
-      'delete-color': 'Delete Key Color',
-      'enter-color': 'Enter Key Color',
-      'other-color': 'Other Keys Color',
-      'group1-keys-color': 'Group 1 Keys Color',
-      'group1-text-color': 'Group 1 Text Color',
-      'group2-keys-color': 'Group 2 Keys Color',
-      'group2-text-color': 'Group 2 Text Color',
-      'group3-keys-color': 'Group 3 Keys Color',
-      'group3-text-color': 'Group 3 Text Color',
-      'special-keys-text': 'Highlighted Characters',
-      'special-keys-color': 'Highlight Keys Color',
-      'special-keys-text-color': 'Highlight Text Color',
-      'visible-keys-text': 'Visible Keys',
-      'my-issieboards': 'My IssieBoards',
-      'key-order': 'Key Order',
-      'nikkud': 'Nikkud Settings',
-      'division-mode': 'Color Division',
-      'language': 'Language',
+      'bg-color': strings.classic.backgroundColor,
+      'keys-color': strings.classic.keysColor,
+      'text-color': strings.classic.textColor,
+      'space-color': strings.classic.spaceKeyColor,
+      'delete-color': strings.classic.deleteKeyColor,
+      'enter-color': strings.classic.enterKeyColor,
+      'other-color': strings.classic.otherKeysColor,
+      'group1-keys-color': strings.classic.highlightKeysColor,
+      'group1-text-color': strings.classic.highlightTextColor,
+      'group2-keys-color': strings.classic.highlightKeysColor,
+      'group2-text-color': strings.classic.highlightTextColor,
+      'group3-keys-color': strings.classic.highlightKeysColor,
+      'group3-text-color': strings.classic.highlightTextColor,
+      'special-keys-text': strings.classic.highlightedCharacters,
+      'special-keys-color': strings.classic.highlightKeysColor,
+      'special-keys-text-color': strings.classic.highlightTextColor,
+      'visible-keys-text': strings.classic.visibleKeys,
+      'my-issieboards': strings.editor.myKeyboards,
+      'key-order': strings.classic.keyOrder,
+      'nikkud': strings.classic.nikkudSettings,
+      'division-mode': strings.classic.colorDivision,
+      'language': strings.classic.language,
     };
     return titles[settingId] || settingId;
   };
@@ -1040,7 +1042,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
   if (!profileDef || !classicState) {
     return (
       <SafeAreaView style={styles.container}>
-        <Text allowFontScaling={false} style={styles.errorText}>Failed to load profile</Text>
+        <Text allowFontScaling={false} style={styles.errorText}>{strings.alerts.failedToLoadProfile}</Text>
       </SafeAreaView>
     );
   }
@@ -1051,9 +1053,9 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
       {/* Sections list — always mounted, never unmounted or hidden */}
       <View style={styles.sectionsLayer} pointerEvents={activeSetting ? 'none' : 'auto'}>
         <View style={styles.header}>
-          <Text allowFontScaling={false} style={styles.headerTitle}>IssieBoard Settings (classic)</Text>
+          <Text allowFontScaling={false} style={styles.headerTitle}>{strings.editor.classicView}</Text>
           <TouchableOpacity style={styles.advancedButton} onPress={onSwitchToAdvanced}>
-            <Text allowFontScaling={false} style={styles.advancedButtonText}>Advanced View</Text>
+            <Text allowFontScaling={false} style={styles.advancedButtonText}>{strings.editor.settings}</Text>
           </TouchableOpacity>
         </View>
         <ClassicSectionsList
@@ -1090,7 +1092,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
                 onPress={() => handleKeyOrderChange(false)}
               >
                 <Text allowFontScaling={false} style={[styles.pickerOptionText, currentKeyboardId === currentLanguage && styles.pickerOptionTextActive]}>
-                  Standard
+                  {strings.editor.keyboardVariants.standard}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -1098,7 +1100,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
                 onPress={() => handleKeyOrderChange(true)}
               >
                 <Text allowFontScaling={false} style={[styles.pickerOptionText, currentKeyboardId === `${currentLanguage}_ordered` && styles.pickerOptionTextActive]}>
-                  Ordered ({currentLanguage === 'he' ? 'א-ב' : currentLanguage === 'ar' ? 'أبج' : 'ABC'})
+                  {currentLanguage === 'he' ? strings.editor.keyboardVariants.orderedHe : currentLanguage === 'ar' ? strings.editor.keyboardVariants.orderedAr : strings.editor.keyboardVariants.orderedEn}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1109,7 +1111,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
                 onPress={() => handleNikkudChange(true)}
               >
                 <Text allowFontScaling={false} style={[styles.pickerOptionText, profileDef.diacritics?.[currentKeyboardId]?.simpleMode !== false && styles.pickerOptionTextActive]}>
-                  Basic
+                  {strings.diacritics.basic}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -1117,20 +1119,20 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
                 onPress={() => handleNikkudChange(false)}
               >
                 <Text allowFontScaling={false} style={[styles.pickerOptionText, profileDef.diacritics?.[currentKeyboardId]?.simpleMode === false && styles.pickerOptionTextActive]}>
-                  Full
+                  {strings.diacritics.full}
                 </Text>
               </TouchableOpacity>
             </View>
           ) : activeSetting === 'special-keys-text' ? (
             <View style={styles.textInputContainer}>
               <Text allowFontScaling={false} style={styles.textInputLabel}>
-                Enter characters to highlight:
+                {strings.classic.typeCharacters}
               </Text>
               <TextInput
                 style={styles.textInput}
                 value={classicState.specialKeysGroup?.members.join('') || ''}
                 onChangeText={handleSpecialKeysTextChange}
-                placeholder="Type characters..."
+                placeholder={strings.classic.typeCharacters}
                 autoCorrect={false}
                 autoCapitalize="none"
                 spellCheck={false}
@@ -1139,13 +1141,13 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
           ) : activeSetting === 'visible-keys-text' ? (
             <View style={styles.textInputContainer}>
               <Text allowFontScaling={false} style={styles.textInputLabel}>
-                Enter visible keys (leave empty to show all):
+                {strings.classic.visibleKeys}
               </Text>
               <TextInput
                 style={styles.textInput}
                 value={classicState.visibleKeysGroup?.members.join('') || ''}
                 onChangeText={handleVisibleKeysTextChange}
-                placeholder="Type characters..."
+                placeholder={strings.classic.typeCharacters}
                 autoCorrect={false}
                 autoCapitalize="none"
                 spellCheck={false}
@@ -1165,7 +1167,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
               ))}
             </ScrollView>
           ) : (
-            <Text allowFontScaling={false} style={styles.errorText}>Unknown setting</Text>
+            <Text allowFontScaling={false} style={styles.errorText}>{strings.common.error}</Text>
           )}
         </ClassicDetailView>
         </View>

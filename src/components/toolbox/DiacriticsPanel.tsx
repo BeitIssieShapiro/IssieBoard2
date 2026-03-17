@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useEditor } from '../../context/EditorContext';
+import { useLocalization } from '../../localization';
 import { DiacriticItem, DiacriticModifier } from '../../../types';
 import { ButtonGroupRow } from '../shared/ButtonGroupRow';
 import { ToggleSwitch } from '../shared/ToggleSwitch';
@@ -56,6 +57,7 @@ const NikkudKey: React.FC<NikkudKeyProps> = ({
 
 export const DiacriticsPanel: React.FC = () => {
   const { state, dispatch } = useEditor();
+  const { strings } = useLocalization();
   
   // Determine which keyboard is currently shown
   const keyboards = state.config.keyboards || [];
@@ -192,7 +194,7 @@ export const DiacriticsPanel: React.FC = () => {
     return (
       <View style={styles.emptyContainer}>
         <Text allowFontScaling={false} style={styles.emptyText}>
-          No diacritics available for this keyboard.
+          {strings.diacritics.noDiacritics}
         </Text>
       </View>
     );
@@ -209,12 +211,12 @@ export const DiacriticsPanel: React.FC = () => {
     <View style={styles.container}>
       {/* Mode Selector */}
       <ButtonGroupRow
-        title="Enable Nikkud (Diacritics)"
+        title={strings.diacritics.enableNikkud}
         options={[
-          { id: 'basic', label: 'Basic' },
-          { id: 'full', label: 'Full' },
-          { id: 'custom', label: 'Custom' },
-          { id: 'none', label: 'None' },
+          { id: 'basic', label: strings.diacritics.basic },
+          { id: 'full', label: strings.diacritics.full },
+          { id: 'custom', label: strings.diacritics.custom },
+          { id: 'none', label: strings.common.none },
         ]}
         selectedId={currentMode}
         onSelect={(id) => handleModeChange(id as NikkudMode)}
@@ -223,7 +225,7 @@ export const DiacriticsPanel: React.FC = () => {
       {/* Custom Mode - Show all nikkud options as toggleable keys */}
       {currentMode === 'custom' && (
         <View style={styles.section}>
-          <Text allowFontScaling={false} style={styles.sectionTitle}>Diacritics</Text>
+          <Text allowFontScaling={false} style={styles.sectionTitle}>{strings.diacritics.diacriticsSection}</Text>
           <View style={styles.nikkudGrid}>
             {allItems.map(item => (
               <NikkudKey
@@ -242,7 +244,7 @@ export const DiacriticsPanel: React.FC = () => {
       {currentMode !== 'none' && modifiers.length > 0 && (
         <View style={styles.section}>
           <Text allowFontScaling={false} style={[styles.sectionTitle, currentMode === 'custom' && { marginTop: 16 }]}>
-            Modifiers
+            {strings.diacritics.modifiers}
           </Text>
           {modifiers.map((modifier) => (
             <View key={modifier.id} style={styles.modifierRow}>

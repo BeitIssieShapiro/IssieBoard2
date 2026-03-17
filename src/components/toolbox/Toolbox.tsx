@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, FlatList } from 'react-native';
 import { useEditor, getKeyValueFromPositionId } from '../../context/EditorContext';
+import { useLocalization } from '../../localization';
 import { GlobalSettingsPanel } from './GlobalSettingsPanel';
 import { StyleRulesPanel } from './StyleRulesPanel';
 import { DiacriticsPanel } from './DiacriticsPanel';
@@ -67,6 +68,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
   profileName,
 }) => {
   const { state, clearSelection } = useEditor();
+  const { strings } = useLocalization();
   const [showStyleRuleModal, setShowStyleRuleModal] = useState(false);
   const [showTemplatesModal, setShowTemplatesModal] = useState(false);
   const [editingGroup, setEditingGroup] = useState<StyleGroup | null>(null);
@@ -186,7 +188,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
 
   return (
     <ScrollView style={styles.container}>
-      <AccordionSection id="settings" title="🎨 General Appearance">
+      <AccordionSection id="settings" title={`🎨 ${strings.toolbox.generalAppearance}`}>
         <GlobalSettingsPanel
           keyboardVariants={keyboardVariants}
           currentKeyboardId={currentKeyboardId}
@@ -200,18 +202,18 @@ export const Toolbox: React.FC<ToolboxProps> = ({
 
       <AccordionSection 
         id="styleRules" 
-        title="☰ Keys Groups"
+        title={`☰ ${strings.toolbox.keysGroups}`}
         badge={state.styleGroups.length > 0 ? `${state.styleGroups.length}` : undefined}
         actionButton={
           <View onStartShouldSetResponder={() => true} style={{ flexDirection: 'row', gap: 8 }}>
             <ActionButton
-              label="Presets"
+              label={strings.toolbox.presets}
               color="blue"
               icon="📋"
               onPress={() => setShowTemplatesModal(true)}
             />
             <ActionButton
-              label="New"
+              label={strings.toolbox.new}
               color="green"
               icon="+"
               onPress={handleCreatePressed}
@@ -226,7 +228,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
       </AccordionSection>
 
       {state.config.diacritics && (
-        <AccordionSection id="diacritics" title="◌ָ  Nikkud (Diacritics)">
+        <AccordionSection id="diacritics" title={`◌ָ  ${strings.toolbox.nikkud}`}>
           <DiacriticsPanel />
         </AccordionSection>
       )}
@@ -246,7 +248,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
         >
           <View style={styles.templatesModal} onStartShouldSetResponder={() => true}>
             <View style={styles.templatesHeader}>
-              <Text allowFontScaling={false} style={styles.templatesTitle}>📋 Keys Group Presets</Text>
+              <Text allowFontScaling={false} style={styles.templatesTitle}>📋 {strings.toolbox.presetsModalTitle}</Text>
               <TouchableOpacity onPress={() => setShowTemplatesModal(false)}>
                 <Text allowFontScaling={false} style={styles.templatesCloseButton}>✕</Text>
               </TouchableOpacity>
@@ -263,7 +265,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
                     <Text allowFontScaling={false} style={styles.templateName}>{item.name}</Text>
                     <Text allowFontScaling={false} style={styles.templateDescription}>{item.description}</Text>
                     <Text allowFontScaling={false} style={styles.templateKeys}>
-                      {resolveMembers(item, currentKeyboardId).length} keys: {resolveMembers(item, currentKeyboardId).slice(0, 8).join(', ')}
+                      {resolveMembers(item, currentKeyboardId).length} {strings.toolbox.keysLabel}: {resolveMembers(item, currentKeyboardId).slice(0, 8).join(', ')}
                       {resolveMembers(item, currentKeyboardId).length > 8 ? '...' : ''}
                     </Text>
                   </View>
