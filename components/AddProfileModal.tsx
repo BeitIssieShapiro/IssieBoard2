@@ -30,13 +30,13 @@ const AddProfileModal = ({ visible, onClose, onCreate, initialLanguage = 'he', i
     const trimmedName = profileName.trim();
     
     if (!trimmedName) {
-      setError('Please enter a name');
+      setError(strings.addProfileModal.enterName);
       return;
     }
     
     // Check for duplicate names (case-insensitive)
     if (existingNames.some(name => name.toLowerCase() === trimmedName.toLowerCase())) {
-      setError('This name is already in use');
+      setError(strings.addProfileModal.nameInUse);
       return;
     }
     
@@ -71,9 +71,9 @@ const AddProfileModal = ({ visible, onClose, onCreate, initialLanguage = 'he', i
       >
         <View style={styles.centeredView}>
           <View style={styles.dialog}>
-            <Text style={styles.title}>Add New IssieBoard</Text>
+            <Text style={styles.title}>{strings.addProfileModal.title}</Text>
 
-            <Text style={styles.label}>IssieBoard Name</Text>
+            <Text style={styles.label}>{strings.addProfileModal.nameLabel}</Text>
             <TextInput
               style={[styles.input, error ? styles.inputError : null]}
               value={profileName}
@@ -81,7 +81,7 @@ const AddProfileModal = ({ visible, onClose, onCreate, initialLanguage = 'he', i
                 setProfileName(text);
                 setError(''); // Clear error when typing
               }}
-              placeholder="My Custom Keyboard"
+              placeholder={strings.addProfileModal.placeholder}
               autoFocus
               returnKeyType="done"
               onSubmitEditing={handleCreate}
@@ -92,7 +92,7 @@ const AddProfileModal = ({ visible, onClose, onCreate, initialLanguage = 'he', i
 
             <View style={styles.buttons}>
               <TouchableOpacity style={styles.button} onPress={handleClose}>
-                <Text style={styles.buttonText}>{strings.cancel}</Text>
+                <Text style={styles.buttonText}>{strings.common.cancel}</Text>
               </TouchableOpacity>
               <View style={styles.buttonDivider} />
               <TouchableOpacity
@@ -105,7 +105,7 @@ const AddProfileModal = ({ visible, onClose, onCreate, initialLanguage = 'he', i
                   styles.createText,
                   isCreateDisabled && styles.buttonTextDisabled,
                 ]}>
-                  {strings.create || 'Create'}
+                  {strings.common.create}
                 </Text>
               </TouchableOpacity>
             </View>

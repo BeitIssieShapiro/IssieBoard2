@@ -23,23 +23,23 @@ const SaveProfileModal = ({showSaveModal, onClose, onSave} : SaveProfileModalPro
     >
       <View style={styles.overlay}>
         <View style={styles.dialog}>
-          <Text style={styles.title}>{strings.saveProfile || 'Save Profile'}</Text>
-          <Text style={styles.message}>{strings.enterProfileNamePrompt || 'Enter a name for this profile'}</Text>
+          <Text style={styles.title}>{strings.profiles.saveProfile}</Text>
+          <Text style={styles.message}>{strings.profiles.enterProfileNamePrompt}</Text>
           <TextInput
             style={styles.input}
             value={newProfileName}
             onChangeText={setNewProfileName}
-            placeholder={strings.profileNamePlaceholder || 'Profile name'}
+            placeholder={strings.profiles.profileNamePlaceholder}
             autoFocus
           />
           <View style={styles.divider} />
           <View style={styles.buttons}>
             <TouchableOpacity style={styles.button} onPress={onClose}>
-              <Text style={styles.buttonText}>{strings.cancel}</Text>
+              <Text style={styles.buttonText}>{strings.common.cancel}</Text>
             </TouchableOpacity>
             <View style={styles.buttonDivider} />
             <TouchableOpacity style={styles.button} onPress={() => onSave(newProfileName)}>
-              <Text style={[styles.buttonText, styles.saveText]}>{strings.save || 'Save'}</Text>
+              <Text style={[styles.buttonText, styles.saveText]}>{strings.common.save}</Text>
             </TouchableOpacity>
           </View>
         </View>
