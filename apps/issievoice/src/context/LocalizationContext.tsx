@@ -1,13 +1,30 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
 import { NativeModules, Platform } from 'react-native';
-import { Strings, en, he } from '../localization/strings';
+import { Language, Strings, getStrings as getRawStrings } from '../localization/strings';
 
-type Language = 'en' | 'he';
+export type { Language, Strings } from '../localization/strings';
+
+const DEBUG_LOCALIZATION = false;
+
+function prefixStrings<T>(obj: T): T {
+  if (typeof obj === 'string') return ('.' + obj) as T;
+  if (typeof obj === 'object' && obj !== null) {
+    return Object.fromEntries(
+      Object.entries(obj).map(([k, v]) => [k, prefixStrings(v)])
+    ) as T;
+  }
+  return obj;
+}
+
+const getStrings = (language: Language): Strings => {
+  const strings = getRawStrings(language);
+  return DEBUG_LOCALIZATION ? prefixStrings(strings) : strings;
+};
 
 interface LocalizationContextType {
   language: Language;
   strings: Strings;
-  setLanguage: (lang: Language) => void;
+  changeLanguage: (lang: Language) => void;
   isRTL: boolean;
 }
 
@@ -27,43 +44,31 @@ const getDeviceLanguage = (): Language => {
     deviceLanguage = NativeModules.I18nManager?.localeIdentifier || 'en';
   }
 
-  // Extract language code (e.g., "he_IL" -> "he", "en_US" -> "en")
   const langCode = deviceLanguage.split('_')[0].split('-')[0].toLowerCase();
 
-  // Only support en/he for now
-  return langCode === 'he' ? 'he' : 'en';
-};
-
-const getStrings = (language: Language): Strings => {
-  switch (language) {
-    case 'he':
-      return he;
-    case 'en':
-    default:
-      return en;
-  }
+  if (langCode === 'he' || langCode === 'iw') return 'he';
+  if (langCode === 'ar') return 'ar';
+  return 'en';
 };
 
 export const LocalizationProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [language, setLanguage] = useState<Language>(getDeviceLanguage());
-  const [strings, setStrings] = useState<Strings>(getStrings(language));
+  const strings = useMemo(() => getStrings(language), [language]);
+  const isRTL = language === 'he' || language === 'ar';
 
-  useEffect(() => {
-    setStrings(getStrings(language));
-  }, [language]);
+  const changeLanguage = useCallback((newLang: Language) => {
+    setLanguage(newLang);
+  }, []);
 
-  const isRTL = language === 'he';
+  const value = useMemo(
+    () => ({ language, strings, changeLanguage, isRTL }),
+    [language, strings, changeLanguage, isRTL],
+  );
 
   return (
-    <LocalizationContext.Provider
-      value={{
-        language,
-        strings,
-        setLanguage,
-        isRTL,
-      }}>
+    <LocalizationContext.Provider value={value}>
       {children}
     </LocalizationContext.Provider>
   );
