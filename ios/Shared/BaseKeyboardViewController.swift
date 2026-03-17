@@ -72,7 +72,13 @@ class BaseKeyboardViewController: UIInputViewController {
         // Apply auto-shift if at beginning of sentence
         keyboardEngine.autoShiftAfterPunctuation()
     }
-    
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        // Write full access status so the container app can read it
+        preferences.setString(self.hasFullAccess ? "true" : "false", forKey: "fullAccess_\(keyboardLanguage)")
+    }
+
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         updateGlobeButtonVisibility()
