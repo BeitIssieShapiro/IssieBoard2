@@ -9,7 +9,7 @@ old app compatability:
 
 
 
-11-March
+11-March - IssieVoice
 --------
 - icon and caption not only in favorites
 

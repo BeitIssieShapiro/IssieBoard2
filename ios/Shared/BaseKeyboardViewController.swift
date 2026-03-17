@@ -371,17 +371,17 @@ class BaseKeyboardViewController: UIInputViewController {
         
         let enterLabel: String
         switch returnKeyType {
-        case .search: enterLabel = "Search"
-        case .go: enterLabel = "Go"
-        case .send: enterLabel = "Send"
-        case .next: enterLabel = "Next"
-        case .done: enterLabel = "Done"
-        case .continue: enterLabel = "Continue"
-        case .join: enterLabel = "Join"
-        case .route: enterLabel = "Route"
-        case .emergencyCall: enterLabel = "Call"
-        case .google: enterLabel = "Google"
-        case .yahoo: enterLabel = "Yahoo"
+        case .search: enterLabel = "sf:magnifyingglass"
+        case .go: enterLabel = "sf:arrow.forward"
+        case .send: enterLabel = "sf:paperplane.fill"
+        case .next: enterLabel = "sf:arrow.forward"
+        case .done: enterLabel = "sf:checkmark"
+        case .continue: enterLabel = "sf:arrow.forward"
+        case .join: enterLabel = "sf:arrow.right.to.line"
+        case .route: enterLabel = "sf:arrow.triangle.turn.up.right.diamond.fill"
+        case .emergencyCall: enterLabel = "sf:phone.fill"
+        case .google: enterLabel = "sf:magnifyingglass"
+        case .yahoo: enterLabel = "sf:magnifyingglass"
         default: enterLabel = "↵"
         }
         

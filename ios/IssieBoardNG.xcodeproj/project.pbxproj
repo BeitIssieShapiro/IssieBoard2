@@ -7,12 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
+		13B07FBF1A68108700A75B9A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6A40D1D82F6A0DE7006F97AC /* Assets.xcassets */; };
 		5326AF4A4DECB80A70586DB4 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 		6A1E33702F220FCA00035455 /* KeyboardPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A1E336D2F220FCA00035455 /* KeyboardPreferences.swift */; };
 		6A1E33722F2216ED00035455 /* KeyboardPreferencesModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 6A1E33712F2216ED00035455 /* KeyboardPreferencesModule.m */; };
 		6A1E33752F22170C00035455 /* KeyboardPreferencesModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A1E33742F22170B00035455 /* KeyboardPreferencesModule.swift */; };
 		6A1E33772F22198A00035455 /* KeyboardModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A1E33762F22198A00035455 /* KeyboardModels.swift */; };
+		6A40D2A02F6A1176006F97AC /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6A40D29F2F6A1176006F97AC /* LaunchScreen.storyboard */; };
 		6A73B6892F24E985003898A5 /* KeyboardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A73B6882F24E985003898A5 /* KeyboardRenderer.swift */; };
 		6A73B68E2F24E9B1003898A5 /* KeyboardPreviewViewManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A73B68D2F24E9B1003898A5 /* KeyboardPreviewViewManager.swift */; };
 		6A73B68F2F24E9B1003898A5 /* KeyboardPreviewViewManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 6A73B68C2F24E9B1003898A5 /* KeyboardPreviewViewManager.m */; };
@@ -43,7 +44,7 @@
 		6AA1FD012F3D26FA002BD212 /* BackspaceHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ACC1FA02F30B20000F1FA30 /* BackspaceHandler.swift */; };
 		6AA1FD022F3D26FA002BD212 /* SuggestionsBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ACC1FA12F30B20000F1FA30 /* SuggestionsBarView.swift */; };
 		6AA1FD032F3D26FA002BD212 /* NikkudPickerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ACC1FA22F30B20000F1FA30 /* NikkudPickerController.swift */; };
-		6AA1FD082F3D26FA002BD212 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
+		6AA1FD082F3D26FA002BD212 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6A40D1D82F6A0DE7006F97AC /* Assets.xcassets */; };
 		6AA1FD092F3D26FA002BD212 /* SharedAssets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6ASHARED0001000000035455 /* SharedAssets.xcassets */; };
 		6AA1FD0A2F3D26FA002BD212 /* Gveret Levin AlefAlefAlef-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 6A877C1D2F34DAB900888533 /* Gveret Levin AlefAlefAlef-Regular.ttf */; };
 		6AA1FD0B2F3D26FA002BD212 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
@@ -146,7 +147,6 @@
 		6ASHARED0005000000035455 /* SharedAssets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6ASHARED0001000000035455 /* SharedAssets.xcassets */; };
 		6AWORD00032F300100035455 /* WordCompletionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AWORD00042F300100035455 /* WordCompletionManager.swift */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
-		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		A821565B90347BA9F5F5459B /* libPods-IssieVoice.a in Frameworks */ = {isa = PBXBuildFile; fileRef = CD990258182BBE6093CBFFDB /* libPods-IssieVoice.a */; };
 		F34FB5359FE4ACEFB3E6E672 /* libPods-IssieBoard.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D0BC014BDB6ED8BF30D5149 /* libPods-IssieBoard.a */; };
 /* End PBXBuildFile section */
@@ -200,7 +200,6 @@
 
 /* Begin PBXFileReference section */
 		13B07F961A680F5B00A75B9A /* IssieBoardNG.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = IssieBoardNG.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = IssieBoardNG/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = IssieBoardNG/Info.plist; sourceTree = "<group>"; };
 		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = IssieBoardNG/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		2D0BC014BDB6ED8BF30D5149 /* libPods-IssieBoard.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-IssieBoard.a"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -212,6 +211,8 @@
 		6A1E33732F2216F000035455 /* IssieBoardNG-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "IssieBoardNG-Bridging-Header.h"; sourceTree = "<group>"; };
 		6A1E33742F22170B00035455 /* KeyboardPreferencesModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KeyboardPreferencesModule.swift; path = IssieBoardNG/KeyboardPreferencesModule.swift; sourceTree = "<group>"; };
 		6A1E33762F22198A00035455 /* KeyboardModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardModels.swift; sourceTree = "<group>"; };
+		6A40D1D82F6A0DE7006F97AC /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = IssieBoardNG/Assets.xcassets; sourceTree = "<group>"; };
+		6A40D29F2F6A1176006F97AC /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		6A73B6882F24E985003898A5 /* KeyboardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardRenderer.swift; sourceTree = "<group>"; };
 		6A73B68B2F24E9B1003898A5 /* KeyboardPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KeyboardPreviewView.swift; path = IssieBoardNG/KeyboardPreviewView.swift; sourceTree = "<group>"; };
 		6A73B68C2F24E9B1003898A5 /* KeyboardPreviewViewManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = KeyboardPreviewViewManager.m; path = IssieBoardNG/KeyboardPreviewViewManager.m; sourceTree = "<group>"; };
@@ -249,7 +250,6 @@
 		6ASHARED0001000000035455 /* SharedAssets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = SharedAssets.xcassets; sourceTree = "<group>"; };
 		6AWORD00042F300100035455 /* WordCompletionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordCompletionManager.swift; sourceTree = "<group>"; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = IssieBoardNG/AppDelegate.swift; sourceTree = "<group>"; };
-		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = IssieBoardNG/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		8E0B30B84C1C3017D0B426A5 /* Pods-IssieVoice.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-IssieVoice.release.xcconfig"; path = "Target Support Files/Pods-IssieVoice/Pods-IssieVoice.release.xcconfig"; sourceTree = "<group>"; };
 		BA31A84859E1A6DBDFBC1935 /* Pods-IssieBoard.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-IssieBoard.release.xcconfig"; path = "Target Support Files/Pods-IssieBoard/Pods-IssieBoard.release.xcconfig"; sourceTree = "<group>"; };
 		CD990258182BBE6093CBFFDB /* libPods-IssieVoice.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-IssieVoice.a"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -366,11 +366,11 @@
 				6AAAEACE2F68BF1E00085361 /* V1Migration.swift */,
 				6AAAEAC92F68BAC100085361 /* V1DataModel.xcdatamodeld */,
 				6A1E336B2F220E8700035455 /* IssieBoardNG.entitlements */,
-				13B07FB51A68108700A75B9A /* Images.xcassets */,
+				6A40D1D82F6A0DE7006F97AC /* Assets.xcassets */,
 				761780EC2CA45674006654EE /* AppDelegate.swift */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
-				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
 				6ADAC3862F3E293000C85EBD /* IssieVoiceSplash.storyboard */,
+				6A40D29F2F6A1176006F97AC /* LaunchScreen.storyboard */,
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
 				6A1E33712F2216ED00035455 /* KeyboardPreferencesModule.m */,
 				6A73B68B2F24E9B1003898A5 /* KeyboardPreviewView.swift */,
@@ -680,12 +680,12 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
-				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
+				13B07FBF1A68108700A75B9A /* Assets.xcassets in Resources */,
 				6ASHARED0005000000035455 /* SharedAssets.xcassets in Resources */,
 				6A877C1E2F34DAB900888533 /* Gveret Levin AlefAlefAlef-Regular.ttf in Resources */,
 				5326AF4A4DECB80A70586DB4 /* PrivacyInfo.xcprivacy in Resources */,
 				6APREDEF012F69000000085361 /* predefined_rules_he.json in Resources */,
+				6A40D2A02F6A1176006F97AC /* LaunchScreen.storyboard in Resources */,
 				6APREDEF032F69000000085361 /* predefined_rules_en.json in Resources */,
 				6APREDEF052F69000000085361 /* predefined_rules_ar.json in Resources */,
 			);
@@ -698,7 +698,7 @@
 				6ADAC3652F3DDC6F00C85EBD /* he_50k.bin in Resources */,
 				6ADAC3672F3DDC9400C85EBD /* he_predictions.bin in Resources */,
 				6AFD743E2F3DB18B00EDBDAA /* en_50k.bin in Resources */,
-				6AA1FD082F3D26FA002BD212 /* Images.xcassets in Resources */,
+				6AA1FD082F3D26FA002BD212 /* Assets.xcassets in Resources */,
 				6ADAC3882F3E30F900C85EBD /* IssieVoiceSplash.storyboard in Resources */,
 				6AA1FD092F3D26FA002BD212 /* SharedAssets.xcassets in Resources */,
 				6ADAC3692F3DDD2900C85EBD /* en_predictions.bin in Resources */,
@@ -1136,7 +1136,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = IssieBoardNG/IssieBoardNG.entitlements;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = IssieBoardNG/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = IssieBoard;
@@ -1172,7 +1172,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = IssieBoardNG/IssieBoardNG.entitlements;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				INFOPLIST_FILE = IssieBoardNG/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = IssieBoard;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";

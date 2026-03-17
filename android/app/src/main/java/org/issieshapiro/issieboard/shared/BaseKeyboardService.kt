@@ -322,14 +322,15 @@ abstract class BaseKeyboardService : InputMethodService() {
         val imeOptions = info?.imeOptions ?: 0
         val actionId = imeOptions and EditorInfo.IME_MASK_ACTION
         
+        // Use "icon:" prefix with drawable resource names (Android equivalent of iOS "sf:" prefix with SF Symbols)
         val enterLabel = when (actionId) {
-            EditorInfo.IME_ACTION_SEARCH -> "Search"
-            EditorInfo.IME_ACTION_GO -> "Go"
-            EditorInfo.IME_ACTION_SEND -> "Send"
-            EditorInfo.IME_ACTION_NEXT -> "Next"
-            EditorInfo.IME_ACTION_DONE -> "Done"
-            EditorInfo.IME_ACTION_PREVIOUS -> "Previous"
-            else -> "↵"
+            EditorInfo.IME_ACTION_SEARCH -> "icon:ic_enter_search"
+            EditorInfo.IME_ACTION_GO -> "icon:ic_enter_go"
+            EditorInfo.IME_ACTION_SEND -> "icon:ic_enter_send"
+            EditorInfo.IME_ACTION_NEXT -> "icon:ic_enter_go"
+            EditorInfo.IME_ACTION_DONE -> "icon:ic_enter_done"
+            EditorInfo.IME_ACTION_PREVIOUS -> "icon:ic_enter_go"
+            else -> "icon:ic_enter_default"
         }
         
         // Determine field type for key filtering

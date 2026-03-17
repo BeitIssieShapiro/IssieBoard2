@@ -1300,29 +1300,38 @@ class KeyboardRenderer(private val context: Context) {
         // Determine if this is a special key that uses an icon instead of text
         val isNikkudKey = key.type.lowercase() == "nikkud"
         val isCloseKey = key.type.lowercase() == "close"
+        val isSettingsKey = key.type.lowercase() == "settings"
+
+        // Determine final text early (needed for icon: prefix detection)
+        val displayText = if (shiftState.isActive()) key.sCaption else key.caption
+        val finalText = when {
+            key.label.isNotEmpty() -> key.label
+            displayText.isNotEmpty() -> displayText
+            key.value.isNotEmpty() -> key.value
+            else -> getDefaultLabel(key.type, editorContext)
+        }
+
+        // Determine icon drawable name for special keys or icon:-prefixed labels (e.g. enter key actions)
+        // Port of iOS SF Symbol logic: settings -> gear, close -> keyboard_hide, "icon:" prefix -> drawable name
+        val iconDrawableName: String? = when {
+            isSettingsKey -> "ic_settings_gear"
+            isCloseKey -> "ic_keyboard_hide"
+            finalText.startsWith("icon:") -> finalText.removePrefix("icon:")
+            else -> null
+        }
+        val hasIcon = iconDrawableName != null || isNikkudKey
 
         // Create label
         val label = TextView(context).apply {
             gravity = Gravity.CENTER
-            
-            // Determine display text based on shift state
-            val displayText = if (shiftState.isActive()) key.sCaption else key.caption
-            
+
             // Log for first key to debug shift state
             if (key.value == "q") {
                 debugLog("🔤 Creating 'q' key: shiftState=$shiftState, shiftActive=${shiftState.isActive()}, caption='${key.caption}', sCaption='${key.sCaption}', displayText='$displayText'")
             }
-            
-            // Determine final text
-            val finalText = when {
-                key.label.isNotEmpty() -> key.label
-                displayText.isNotEmpty() -> displayText
-                key.value.isNotEmpty() -> key.value
-                else -> getDefaultLabel(key.type, editorContext)
-            }
 
-            // For nikkud and close keys, we'll use an ImageView instead of TextView - skip text setup
-            if (!isNikkudKey && !isCloseKey) {
+            // For icon keys, we'll use an ImageView instead of TextView - skip text setup
+            if (!hasIcon) {
                 text = finalText
 
             // Font size - use preset system (key preset overrides config preset)
@@ -1400,17 +1409,20 @@ class KeyboardRenderer(private val context: Context) {
             }
         }
         
-        // For nikkud and close keys, add ImageView with drawable instead of TextView
-        if (isNikkudKey || isCloseKey) {
+        // For icon keys (nikkud, close, settings, enter icons), add ImageView with drawable instead of TextView
+        // Port of iOS SF Symbol rendering logic for special keys and sf:-prefixed labels
+        if (hasIcon) {
             // Determine which drawable to use
-            val drawableResId = if (isCloseKey) {
-                context.resources.getIdentifier("ic_keyboard_hide", "drawable", context.packageName)
-            } else {
+            val drawableResId = if (isNikkudKey) {
+                // Nikkud keys use language-specific diacritical mark icons
                 when (currentKeyboardId) {
                     "he" -> context.resources.getIdentifier("ic_nikkud_hataf_kamatz", "drawable", context.packageName)
                     "ar" -> context.resources.getIdentifier("ic_nikkud_shadda", "drawable", context.packageName)
                     else -> context.resources.getIdentifier("ic_nikkud_hataf_kamatz", "drawable", context.packageName)
                 }
+            } else {
+                // All other icon keys: settings, close, enter actions (icon: prefix)
+                context.resources.getIdentifier(iconDrawableName, "drawable", context.packageName)
             }
 
             if (drawableResId != 0) {
@@ -1421,8 +1433,13 @@ class KeyboardRenderer(private val context: Context) {
                     scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
                 }
 
-                // Keyboard-hide icon is more complex, use larger size
-                val iconSizeDp = if (isCloseKey) 43 else 24
+                // Scale icon size: keyboard-hide is complex so use 180%, nikkud uses 24dp, others use 100%
+                // Port of iOS: key.type == "close" ? finalFontSize * 1.8 : finalFontSize
+                val iconSizeDp = when {
+                    isCloseKey -> 43
+                    isNikkudKey -> 24
+                    else -> 22  // Enter and settings icons: standard icon size
+                }
 
                 visualKeyView.addView(imageView, FrameLayout.LayoutParams(
                     dpToPx(iconSizeDp),
@@ -1432,6 +1449,18 @@ class KeyboardRenderer(private val context: Context) {
                 })
             } else {
                 // Fallback to text if drawable not found
+                // Set fallback text for icon keys that would otherwise be empty
+                if (label.text.isNullOrEmpty()) {
+                    label.text = when {
+                        isSettingsKey -> "⚙"
+                        isCloseKey -> "⬇"
+                        isNikkudKey -> "◌"
+                        key.type.lowercase() in listOf("enter", "action") -> "↵"
+                        else -> key.type
+                    }
+                    label.gravity = Gravity.CENTER
+                    label.setTextColor(if (key.textColor == Color.BLACK) Color.BLACK else key.textColor)
+                }
                 visualKeyView.addView(label, FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.MATCH_PARENT,
                     FrameLayout.LayoutParams.MATCH_PARENT
@@ -1768,10 +1797,10 @@ class KeyboardRenderer(private val context: Context) {
     private fun getDefaultLabel(type: String, editorContext: EditorContext?): String {
         return when (type.lowercase()) {
             "backspace" -> "⌫"
-            "enter", "action" -> editorContext?.enterLabel ?: "↵"
+            "enter", "action" -> editorContext?.enterLabel ?: "icon:ic_enter_default"
             "shift" -> if (shiftState == ShiftState.LOCKED) "⇪" else "⇧"
-            "settings" -> "⚙"
-            "close" -> "⬇"
+            "settings" -> "icon:ic_settings_gear"
+            "close" -> "icon:ic_keyboard_hide"
             "language" -> "<->"
             "next-keyboard" -> "🌐"
             "nikkud" -> when (currentKeyboardId) {

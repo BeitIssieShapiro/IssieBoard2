@@ -1415,29 +1415,33 @@ class KeyboardRenderer {
             finalFontSize = finalFontSize * currentScale
         }
 
-        // For settings and close keys, use SF Symbol images
-        if key.type.lowercased() == "settings" || key.type.lowercased() == "close" {
-            let symbolName = key.type.lowercased() == "settings" ? "gearshape.fill" : "keyboard.chevron.compact.down"
-            if let symbolImage = UIImage(systemName: symbolName) {
-                let imageView = UIImageView(image: symbolImage)
-                imageView.contentMode = .scaleAspectFit
-                imageView.tintColor = textColor  // Use key's text color
-                imageView.isUserInteractionEnabled = false
-                visualKeyView.addSubview(imageView)
-                imageView.translatesAutoresizingMaskIntoConstraints = false
+        // Determine SF Symbol name for special keys or sf:-prefixed labels (e.g. enter key actions)
+        let sfSymbolName: String? = {
+            let keyType = key.type.lowercased()
+            if keyType == "settings" { return "gearshape.fill" }
+            if keyType == "close" { return "keyboard.chevron.compact.down" }
+            if finalText.hasPrefix("sf:") { return String(finalText.dropFirst(3)) }
+            return nil
+        }()
 
-                // Scale icon size: gear is simple so use fontSize, keyboard-hide is complex so use 150%
-                let iconSize = key.type.lowercased() == "close" ? finalFontSize * 1.8 : finalFontSize
+        // Render SF Symbol icon if available
+        if let symbolName = sfSymbolName, let symbolImage = UIImage(systemName: symbolName) {
+            let imageView = UIImageView(image: symbolImage)
+            imageView.contentMode = .scaleAspectFit
+            imageView.tintColor = textColor
+            imageView.isUserInteractionEnabled = false
+            visualKeyView.addSubview(imageView)
+            imageView.translatesAutoresizingMaskIntoConstraints = false
 
-                NSLayoutConstraint.activate([
-                    imageView.centerXAnchor.constraint(equalTo: visualKeyView.centerXAnchor),
-                    imageView.centerYAnchor.constraint(equalTo: visualKeyView.centerYAnchor),
-                    imageView.widthAnchor.constraint(equalToConstant: iconSize),
-                    imageView.heightAnchor.constraint(equalToConstant: iconSize)
-                ])
-            } else {
-                label.text = finalText
-            }
+            // Scale icon size: keyboard-hide is complex so use 180%, others use 100%
+            let iconSize = key.type.lowercased() == "close" ? finalFontSize * 1.8 : finalFontSize
+
+            NSLayoutConstraint.activate([
+                imageView.centerXAnchor.constraint(equalTo: visualKeyView.centerXAnchor),
+                imageView.centerYAnchor.constraint(equalTo: visualKeyView.centerYAnchor),
+                imageView.widthAnchor.constraint(equalToConstant: iconSize),
+                imageView.heightAnchor.constraint(equalToConstant: iconSize)
+            ])
         } else if isNikkudKey {
             // For nikkud key, use SVG image for the diacritical mark icon
             // The SVG images are: NikkudHatafKamatz for Hebrew, NikkudShadda for Arabic
