@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
 import { KeyboardPreview } from '../../components/KeyboardPreview';
+import { useLocalization } from '../../localization';
 
 interface ClassicDetailViewProps {
     title: string;
@@ -17,12 +18,13 @@ const ClassicDetailView: React.FC<ClassicDetailViewProps> = ({
     language,
     children,
 }) => {
+    const { strings } = useLocalization();
     return (
         <SafeAreaView style={styles.container}>
             {/* Header with back button and title */}
             <View style={styles.header}>
                 <TouchableOpacity style={styles.backButton} onPress={onBack}>
-                    <Text allowFontScaling={false} style={styles.backText}>{'<'} Back</Text>
+                    <Text allowFontScaling={false} style={styles.backText}>{'<'} {strings.common.back}</Text>
                 </TouchableOpacity>
                 <Text allowFontScaling={false} style={styles.title}>{title}</Text>
                 <View style={styles.spacer} />

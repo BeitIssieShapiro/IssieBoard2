@@ -1,6 +1,7 @@
 import React, { useRef, useMemo } from 'react';
 import { View, Text, TouchableOpacity, Animated, Switch, StyleSheet, PanResponder, LayoutChangeEvent } from 'react-native';
 import { ClassicState, DivisionMode } from './classicProfileBridge';
+import { useLocalization } from '../../localization';
 
 export type SettingId =
     | 'language' | 'key-order' | 'reset'
@@ -41,10 +42,11 @@ const ClassicSectionsList: React.FC<ClassicSectionsListProps> = ({
     onDivisionModeChange,
     onMiddleToggle,
 }) => {
+    const { strings } = useLocalization();
     const isSections = classicState.divisionMode === 'sections';
     const groupLabels = classicState.divisionMode === 'rows'
-        ? ['Top Row', 'Middle Row', 'Bottom Row']
-        : ['Right Third', 'Middle Third', 'Left Third'];
+        ? [strings.classic.topRow, strings.classic.middleRow, strings.classic.bottomRow]
+        : [strings.classic.rightThird, strings.classic.middleThird, strings.classic.leftThird];
 
     const scrollY = useRef(new Animated.Value(0)).current;
     const offsetRef = useRef(0);
@@ -120,40 +122,40 @@ const ClassicSectionsList: React.FC<ClassicSectionsListProps> = ({
                                 allowFontScaling={false}
                                 style={[styles.langText, lang === currentLanguage && styles.langTextActive]}
                             >
-                                {lang === 'he' ? 'Hebrew' : lang === 'en' ? 'English' : 'Arabic'}
+                                {lang === 'he' ? strings.editor.languages.hebrew : lang === 'en' ? strings.editor.languages.english : strings.editor.languages.arabic}
                             </Text>
                         </TouchableOpacity>
                     ))}
                 </View>
 
                 {/* Main section */}
-                <SectionHeader title="Main Settings" />
-                <SettingRow icon="↻" title="Reset" onPress={() => onSelectSetting('reset')} />
-                <SettingRow icon="ABC" title="Key Order" onPress={() => onSelectSetting('key-order')} />
+                <SectionHeader title={strings.classic.mainSettings} />
+                <SettingRow icon="↻" title={strings.common.reset} onPress={() => onSelectSetting('reset')} />
+                <SettingRow icon="ABC" title={strings.classic.keyOrder} onPress={() => onSelectSetting('key-order')} />
 
                 {/* Main Colors */}
-                <SectionHeader title="Main Colors" />
-                <ColorRow title="Background Color" color={backgroundColor} onPress={() => onSelectSetting('bg-color')} />
-                <ColorRow title="Keys Color" color={keysBgColor} onPress={() => onSelectSetting('keys-color')} />
-                <ColorRow title="Text Color" color={textColor} onPress={() => onSelectSetting('text-color')} />
+                <SectionHeader title={strings.classic.mainColors} />
+                <ColorRow title={strings.classic.backgroundColor} color={backgroundColor} onPress={() => onSelectSetting('bg-color')} />
+                <ColorRow title={strings.classic.keysColor} color={keysBgColor} onPress={() => onSelectSetting('keys-color')} />
+                <ColorRow title={strings.classic.textColor} color={textColor} onPress={() => onSelectSetting('text-color')} />
 
                 {/* Action Keys */}
-                <SectionHeader title="Action Keys" />
-                <ColorRow title="Space Key Color" color={classicState.actionGroups.space?.style.bgColor} onPress={() => onSelectSetting('space-color')} />
-                <ColorRow title="Delete Key Color" color={classicState.actionGroups.delete?.style.bgColor} onPress={() => onSelectSetting('delete-color')} />
-                <ColorRow title="Enter Key Color" color={classicState.actionGroups.enter?.style.bgColor} onPress={() => onSelectSetting('enter-color')} />
-                <ColorRow title="Other Keys Color" color={classicState.actionGroups.other?.style.bgColor} onPress={() => onSelectSetting('other-color')} />
+                <SectionHeader title={strings.classic.actionKeys} />
+                <ColorRow title={strings.classic.spaceKeyColor} color={classicState.actionGroups.space?.style.bgColor} onPress={() => onSelectSetting('space-color')} />
+                <ColorRow title={strings.classic.deleteKeyColor} color={classicState.actionGroups.delete?.style.bgColor} onPress={() => onSelectSetting('delete-color')} />
+                <ColorRow title={strings.classic.enterKeyColor} color={classicState.actionGroups.enter?.style.bgColor} onPress={() => onSelectSetting('enter-color')} />
+                <ColorRow title={strings.classic.otherKeysColor} color={classicState.actionGroups.other?.style.bgColor} onPress={() => onSelectSetting('other-color')} />
 
                 {/* Nikkud - Hebrew only */}
                 {currentLanguage === 'he' && (
                     <>
-                        <SectionHeader title="Nikkud" />
-                        <SettingRow title="Nikkud Settings" onPress={() => onSelectSetting('nikkud')} />
+                        <SectionHeader title={strings.classic.nikkud} />
+                        <SettingRow title={strings.classic.nikkudSettings} onPress={() => onSelectSetting('nikkud')} />
                     </>
                 )}
 
                 {/* Division Mode - inline toggle */}
-                <SectionHeader title="Color Division" />
+                <SectionHeader title={strings.classic.colorDivision} />
                 <View style={styles.divisionToggle}>
                     <TouchableOpacity
                         style={[styles.divisionOption, classicState.divisionMode === 'rows' && styles.divisionOptionActive]}
@@ -163,7 +165,7 @@ const ClassicSectionsList: React.FC<ClassicSectionsListProps> = ({
                             allowFontScaling={false}
                             style={[styles.divisionOptionText, classicState.divisionMode === 'rows' && styles.divisionOptionTextActive]}
                         >
-                            By Rows
+                            {strings.classic.byRows}
                         </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -174,15 +176,15 @@ const ClassicSectionsList: React.FC<ClassicSectionsListProps> = ({
                             allowFontScaling={false}
                             style={[styles.divisionOptionText, classicState.divisionMode === 'sections' && styles.divisionOptionTextActive]}
                         >
-                            By Sections
+                            {strings.classic.bySections}
                         </Text>
                     </TouchableOpacity>
                 </View>
 
                 {/* Per-group colors */}
                 <SectionHeader title={`Group 1 (${groupLabels[0]})`} />
-                <ColorRow title="Keys Color" color={classicState.charsetGroups[0]?.style.bgColor} onPress={() => onSelectSetting('group1-keys-color')} />
-                <ColorRow title="Text Color" color={classicState.charsetGroups[0]?.style.color} onPress={() => onSelectSetting('group1-text-color')} />
+                <ColorRow title={strings.classic.keysColor} color={classicState.charsetGroups[0]?.style.bgColor} onPress={() => onSelectSetting('group1-keys-color')} />
+                <ColorRow title={strings.classic.textColor} color={classicState.charsetGroups[0]?.style.color} onPress={() => onSelectSetting('group1-text-color')} />
 
                 {isSections ? (
                     <>
@@ -192,13 +194,13 @@ const ClassicSectionsList: React.FC<ClassicSectionsListProps> = ({
                             onSwitchChange={onMiddleToggle}
                         />
                         <ColorRow
-                            title="Keys Color"
+                            title={strings.classic.keysColor}
                             color={classicState.charsetGroups[1]?.style.bgColor}
                             onPress={() => onSelectSetting('group2-keys-color')}
                             disabled={!classicState.threeColorMode}
                         />
                         <ColorRow
-                            title="Text Color"
+                            title={strings.classic.textColor}
                             color={classicState.charsetGroups[1]?.style.color}
                             onPress={() => onSelectSetting('group2-text-color')}
                             disabled={!classicState.threeColorMode}
@@ -207,29 +209,29 @@ const ClassicSectionsList: React.FC<ClassicSectionsListProps> = ({
                 ) : (
                     <>
                         <SectionHeader title={`Group 2 (${groupLabels[1]})`} />
-                        <ColorRow title="Keys Color" color={classicState.charsetGroups[1]?.style.bgColor} onPress={() => onSelectSetting('group2-keys-color')} />
-                        <ColorRow title="Text Color" color={classicState.charsetGroups[1]?.style.color} onPress={() => onSelectSetting('group2-text-color')} />
+                        <ColorRow title={strings.classic.keysColor} color={classicState.charsetGroups[1]?.style.bgColor} onPress={() => onSelectSetting('group2-keys-color')} />
+                        <ColorRow title={strings.classic.textColor} color={classicState.charsetGroups[1]?.style.color} onPress={() => onSelectSetting('group2-text-color')} />
                     </>
                 )}
 
                 <SectionHeader title={classicState.threeColorMode || !isSections ? `Group 3 (${groupLabels[2]})` : `Group 2 (${groupLabels[2]})`} />
-                <ColorRow title="Keys Color" color={classicState.charsetGroups[2]?.style.bgColor} onPress={() => onSelectSetting('group3-keys-color')} />
-                <ColorRow title="Text Color" color={classicState.charsetGroups[2]?.style.color} onPress={() => onSelectSetting('group3-text-color')} />
+                <ColorRow title={strings.classic.keysColor} color={classicState.charsetGroups[2]?.style.bgColor} onPress={() => onSelectSetting('group3-keys-color')} />
+                <ColorRow title={strings.classic.textColor} color={classicState.charsetGroups[2]?.style.color} onPress={() => onSelectSetting('group3-text-color')} />
 
                 {/* Special Keys */}
-                <SectionHeader title="Special Keys" />
-                <SettingRow title="Highlighted Characters" summary={classicState.specialKeysGroup?.members.join('') || 'None'} onPress={() => onSelectSetting('special-keys-text')} />
-                <ColorRow title="Keys Color" color={classicState.specialKeysGroup?.style.bgColor} onPress={() => onSelectSetting('special-keys-color')} />
-                <ColorRow title="Text Color" color={classicState.specialKeysGroup?.style.color} onPress={() => onSelectSetting('special-keys-text-color')} />
+                <SectionHeader title={strings.classic.specialKeys} />
+                <SettingRow title={strings.classic.highlightedCharacters} summary={classicState.specialKeysGroup?.members.join('') || strings.common.none} onPress={() => onSelectSetting('special-keys-text')} />
+                <ColorRow title={strings.classic.highlightKeysColor} color={classicState.specialKeysGroup?.style.bgColor} onPress={() => onSelectSetting('special-keys-color')} />
+                <ColorRow title={strings.classic.highlightTextColor} color={classicState.specialKeysGroup?.style.color} onPress={() => onSelectSetting('special-keys-text-color')} />
 
                 {/* Visible Keys */}
-                <SectionHeader title="Visible Keys" />
-                <SettingRow title="Visible Keys" summary={classicState.visibleKeysGroup?.members.join('') || 'All'} onPress={() => onSelectSetting('visible-keys-text')} />
+                <SectionHeader title={strings.classic.visibleKeys} />
+                <SettingRow title={strings.classic.visibleKeys} summary={classicState.visibleKeysGroup?.members.join('') || 'All'} onPress={() => onSelectSetting('visible-keys-text')} />
 
                 {/* Load */}
                 <View style={styles.saveRow}>
                     <TouchableOpacity style={styles.loadButton} onPress={() => onSelectSetting('my-issieboards')}>
-                        <Text allowFontScaling={false} style={styles.loadButtonText}>My IssieBoards</Text>
+                        <Text allowFontScaling={false} style={styles.loadButtonText}>{strings.editor.myKeyboards}</Text>
                     </TouchableOpacity>
                 </View>
 
