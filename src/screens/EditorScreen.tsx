@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -462,7 +462,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   onSwitchToClassic,
 }) => {
   const { strings } = useLocalization();
-  const LANGUAGES = getLanguages(strings);
+  const LANGUAGES = useMemo(() => getLanguages(strings), [strings]);
   const { state, setMode, setConfig, markDirty, dispatch } = useEditor();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [testText, setTestText] = useState('');
