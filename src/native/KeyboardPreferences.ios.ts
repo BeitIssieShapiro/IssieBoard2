@@ -33,6 +33,11 @@ export interface KeyboardDimensions {
   timestamp: number;
 }
 
+export interface KeyboardSetupStatus {
+  isAdded: boolean | null;      // null = detection unavailable
+  hasFullAccess: boolean | null; // null = keyboard never launched
+}
+
 export interface SetResult {
   success: boolean;
   [key: string]: any;
@@ -335,6 +340,17 @@ class KeyboardPreferences {
     );
 
     return subscription;
+  }
+
+  /**
+   * Get the keyboard setup status for a specific language
+   * Returns whether the keyboard is added in Settings and whether Full Access is enabled
+   */
+  async getKeyboardSetupStatus(language: string): Promise<KeyboardSetupStatus> {
+    if (!KeyboardPreferencesModule) {
+      return { isAdded: null, hasFullAccess: null };
+    }
+    return KeyboardPreferencesModule.getKeyboardSetupStatus(language);
   }
 }
 

@@ -13,6 +13,11 @@ export interface SetResult {
   [key: string]: any;
 }
 
+export interface KeyboardSetupStatus {
+  isAdded: boolean | null;
+  hasFullAccess: boolean | null;
+}
+
 /**
  * Android Keyboard Preferences Manager
  * 
@@ -265,6 +270,14 @@ class KeyboardPreferences {
     // TODO: Implement deep linking from keyboard to app on Android
     console.log('📱 [KeyboardPreferences Android] addLaunchKeyboardListener called (not implemented yet)');
     return { remove: () => {} };
+  }
+
+  /**
+   * Get the keyboard setup status for a specific language
+   * Android stub - always reports as configured since Android setup is different
+   */
+  async getKeyboardSetupStatus(language: string): Promise<KeyboardSetupStatus> {
+    return { isAdded: true, hasFullAccess: true };
   }
 }
 
