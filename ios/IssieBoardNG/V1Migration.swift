@@ -34,6 +34,21 @@ class V1Migration {
             return
         }
 
+        runMigration()
+    }
+
+    /// Force re-run the migration (for testing). Clears the completed flag first.
+    func forceMigrate() {
+        let defaults = UserDefaults(suiteName: KeyboardPreferences.appGroupIdentifier)
+        defaults?.removeObject(forKey: V1Migration.migrationCompletedKey)
+        defaults?.synchronize()
+        print("[V1Migration] Cleared migration flag, re-running...")
+        runMigration()
+    }
+
+    private func runMigration() {
+        let defaults = UserDefaults(suiteName: KeyboardPreferences.appGroupIdentifier)
+
         print("[V1Migration] Starting migration...")
 
         // 2. Find Core Data store
@@ -75,6 +90,13 @@ class V1Migration {
 
         for template in templates {
             let parsed = parseTemplate(template)
+
+            // Skip v1 built-in templates (e.g. "תבנית מוכנה 1 ברירת מחדל", "תבנית מוכנה 2", "תבנית מוכנה 3")
+            if parsed.name.hasPrefix("תבנית מוכנה") {
+                print("[V1Migration] Skipping built-in template: \(parsed.name)")
+                continue
+            }
+
             let languages = resolveLanguages(parsed.languagesRaw)
             let hasAtSuffix = parsed.languagesRaw.hasSuffix("@")
 
@@ -97,6 +119,7 @@ class V1Migration {
                 let styleGroups = buildStyleGroups(
                     profileId: profileId,
                     language: lang,
+                    keyboardId: keyboardId,
                     parsed: parsed
                 )
 
@@ -112,9 +135,10 @@ class V1Migration {
 
                 // Add to saved list
                 savedList.append([
-                    "id": profileId,
+                    "key": profileId,
                     "name": parsed.name,
-                    "language": lang
+                    "language": lang,
+                    "keyboardId": keyboardId
                 ])
 
                 // Track first profile per language as active
@@ -298,9 +322,9 @@ class V1Migration {
     }
 
     private func buildKeyboardId(language: String, hasAtSuffix: Bool) -> String {
-        // "@" suffix means ABC/alphabetical order — only affects Hebrew
-        if hasAtSuffix && language == "he" {
-            return "he_ordered"
+        // "@" suffix means ABC/alphabetical order
+        if hasAtSuffix {
+            return "\(language)_ordered"
         }
         return language
     }
@@ -363,16 +387,20 @@ class V1Migration {
     private func buildStyleGroups(
         profileId: String,
         language: String,
+        keyboardId: String,
         parsed: ParsedTemplate
     ) -> [[String: Any]] {
         var groups: [[String: Any]] = []
         var counter = 0
 
+        // All letter keys for this language (used to filter cross-language chars)
+        let languageKeys = allLetterKeys(language: language, keyboardId: keyboardId)
+
         // Determine division mode
         let isByRows = (parsed.rowOrColumn ?? "By Rows") == "By Rows"
 
         // Charset group info
-        let charsetGroupDefs = buildCharsetGroupDefs(language: language, isByRows: isByRows)
+        let charsetGroupDefs = buildCharsetGroupDefs(language: language, keyboardId: keyboardId, isByRows: isByRows)
 
         // Charset 1
         if let bgColor = parsed.charset1KeysColor, let textColor = parsed.charset1TextColor {
@@ -383,7 +411,8 @@ class V1Migration {
                 members: charsetGroupDefs[0].members,
                 bgColor: bgColor,
                 textColor: textColor,
-                active: true
+                active: true,
+                presetId: charsetGroupDefs[0].presetId
             ))
         }
 
@@ -397,7 +426,8 @@ class V1Migration {
                 members: charsetGroupDefs[1].members,
                 bgColor: bgColor,
                 textColor: textColor,
-                active: isActive
+                active: isActive,
+                presetId: charsetGroupDefs[1].presetId
             ))
         }
 
@@ -410,7 +440,8 @@ class V1Migration {
                 members: charsetGroupDefs[2].members,
                 bgColor: bgColor,
                 textColor: textColor,
-                active: true
+                active: true,
+                presetId: charsetGroupDefs[2].presetId
             ))
         }
 
@@ -423,7 +454,8 @@ class V1Migration {
                 members: ["space"],
                 bgColor: color,
                 textColor: nil,
-                active: true
+                active: true,
+                presetId: "space-key"
             ))
         }
 
@@ -435,7 +467,8 @@ class V1Migration {
                 members: ["backspace"],
                 bgColor: color,
                 textColor: nil,
-                active: true
+                active: true,
+                presetId: "delete-key"
             ))
         }
 
@@ -447,7 +480,8 @@ class V1Migration {
                 members: ["enter"],
                 bgColor: color,
                 textColor: nil,
-                active: true
+                active: true,
+                presetId: "enter-key"
             ))
         }
 
@@ -459,33 +493,47 @@ class V1Migration {
                 members: ["keyset", "next-keyboard", "settings", "close"],
                 bgColor: color,
                 textColor: nil,
-                active: true
+                active: true,
+                presetId: "other-keys"
             ))
         }
 
         // Special keys group (highlighted characters)
+        // Filter to only chars that exist on this language's keyboard.
+        // Skip if the chars exactly match a preset group (row/third) — that's a v1 default, not user config.
         if let specialText = parsed.specialKeysText, !specialText.isEmpty,
            let specialBg = parsed.specialKeysColor {
-            let members = specialText.map { String($0) }
-            groups.append(makeGroup(
-                profileId: profileId,
-                counter: &counter,
-                name: "Special Keys",
-                members: members,
-                bgColor: specialBg,
-                textColor: parsed.specialKeysTextColor,
-                active: true
-            ))
+            let allMembers = specialText.map { String($0) }
+            let members = allMembers.filter { languageKeys.contains($0) }
+            let membersSet = Set(members)
+            let isPresetDefault = presetGroupSets(language: language, keyboardId: keyboardId).contains(membersSet)
+            if !members.isEmpty && !isPresetDefault {
+                groups.append(makeGroup(
+                    profileId: profileId,
+                    counter: &counter,
+                    name: "Special Keys",
+                    members: members,
+                    bgColor: specialBg,
+                    textColor: parsed.specialKeysTextColor,
+                    active: true
+                ))
+            }
         }
 
         // Visible keys group
+        // Filter to only chars on this language's keyboard.
+        // If the result covers all keys, it means "show all" — skip the group entirely.
         if let visibleKeys = parsed.visibleKeys, !visibleKeys.isEmpty {
-            let members = visibleKeys.map { String($0) }
-            groups.append(makeVisibilityGroup(
-                profileId: profileId,
-                counter: &counter,
-                members: members
-            ))
+            let allMembers = visibleKeys.map { String($0) }
+            let members = allMembers.filter { languageKeys.contains($0) }
+            let coversAll = languageKeys.allSatisfy { members.contains($0) }
+            if !coversAll && !members.isEmpty {
+                groups.append(makeVisibilityGroup(
+                    profileId: profileId,
+                    counter: &counter,
+                    members: members
+                ))
+            }
         }
 
         return groups
@@ -498,9 +546,11 @@ class V1Migration {
         members: [String],
         bgColor: String,
         textColor: String?,
-        active: Bool
+        active: Bool,
+        presetId: String? = nil
     ) -> [String: Any] {
-        let id = "v1_migration_\(profileId)_\(counter)"
+        let idSuffix = presetId ?? "\(counter)"
+        let id = "v1_migration_\(profileId)_\(idSuffix)"
         counter += 1
 
         var style: [String: Any] = ["bgColor": bgColor]
@@ -508,7 +558,7 @@ class V1Migration {
             style["color"] = tc
         }
 
-        return [
+        var result: [String: Any] = [
             "id": id,
             "name": name,
             "members": members,
@@ -517,6 +567,12 @@ class V1Migration {
             "active": active,
             "isBuiltIn": false
         ]
+
+        if let pid = presetId {
+            result["presetId"] = pid
+        }
+
+        return result
     }
 
     private func makeVisibilityGroup(
@@ -524,7 +580,7 @@ class V1Migration {
         counter: inout Int,
         members: [String]
     ) -> [String: Any] {
-        let id = "v1_migration_\(profileId)_\(counter)"
+        let id = "v1_migration_\(profileId)_visible-keys"
         counter += 1
 
         return [
@@ -538,169 +594,118 @@ class V1Migration {
         ]
     }
 
+    // MARK: - Predefined Rules (loaded from bundled JSON)
+
+    private struct PredefinedRule {
+        let id: String
+        let name: String
+        let members: [String]
+        let orderedMembers: [String]?
+    }
+
+    private var rulesCache: [String: [PredefinedRule]] = [:]
+
+    private func loadRules(language: String) -> [PredefinedRule] {
+        if let cached = rulesCache[language] { return cached }
+
+        guard let url = Bundle.main.url(forResource: "predefined_rules_\(language)", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let rulesArray = json["rules"] as? [[String: Any]] else {
+            print("[V1Migration] WARNING: Could not load predefined_rules_\(language).json from bundle")
+            return []
+        }
+
+        let rules = rulesArray.compactMap { dict -> PredefinedRule? in
+            guard let id = dict["id"] as? String,
+                  let name = dict["name"] as? String,
+                  let members = dict["members"] as? [String] else { return nil }
+            let orderedMembers = dict["orderedMembers"] as? [String]
+            return PredefinedRule(id: id, name: name, members: members, orderedMembers: orderedMembers)
+        }
+
+        rulesCache[language] = rules
+        return rules
+    }
+
+    private func findRule(language: String, id: String) -> PredefinedRule? {
+        return loadRules(language: language).first { $0.id == id }
+    }
+
+    /// Resolve members for a rule, using orderedMembers when keyboardId ends with _ordered.
+    private func resolveMembers(rule: PredefinedRule, keyboardId: String) -> [String] {
+        if keyboardId.hasSuffix("_ordered"), let ordered = rule.orderedMembers {
+            return ordered
+        }
+        return rule.members
+    }
+
     // MARK: - Charset Group Definitions
 
     private struct CharsetGroupDef {
         let name: String
         let members: [String]
+        let presetId: String  // e.g. "top-row", "right-third" — must match classicProfileBridge patterns
     }
 
-    private func buildCharsetGroupDefs(language: String, isByRows: Bool) -> [CharsetGroupDef] {
+    private func buildCharsetGroupDefs(language: String, keyboardId: String, isByRows: Bool) -> [CharsetGroupDef] {
         if isByRows {
-            return buildRowGroupDefs(language: language)
+            return buildRowGroupDefs(language: language, keyboardId: keyboardId)
         } else {
-            return buildSectionGroupDefs(language: language)
+            return buildSectionGroupDefs(language: language, keyboardId: keyboardId)
         }
     }
 
-    private func buildRowGroupDefs(language: String) -> [CharsetGroupDef] {
-        let members = presetMembers(language: language)
-        let names = presetNames(language: language)
-        return [
-            CharsetGroupDef(name: names.topRow, members: members.topRow),
-            CharsetGroupDef(name: names.midRow, members: members.midRow),
-            CharsetGroupDef(name: names.bottomRow, members: members.bottomRow)
-        ]
+    private func buildRowGroupDefs(language: String, keyboardId: String) -> [CharsetGroupDef] {
+        let ids = ["top-row", "mid-row", "bottom-row"]
+        return ids.compactMap { id in
+            guard let rule = findRule(language: language, id: id) else { return nil }
+            return CharsetGroupDef(name: rule.name, members: resolveMembers(rule: rule, keyboardId: keyboardId), presetId: id)
+        }
     }
 
-    private func buildSectionGroupDefs(language: String) -> [CharsetGroupDef] {
-        let members = presetMembers(language: language)
-        let names = presetNames(language: language)
+    private func buildSectionGroupDefs(language: String, keyboardId: String) -> [CharsetGroupDef] {
         let isRTL = (language == "he" || language == "ar")
+        let orderedIds = isRTL
+            ? ["right-third", "mid-third", "left-third"]   // RTL: charset1=right, charset2=mid, charset3=left
+            : ["left-third", "mid-third", "right-third"]   // LTR: charset1=left, charset2=mid, charset3=right
 
-        if isRTL {
-            // RTL: charset1=right, charset2=mid, charset3=left
-            return [
-                CharsetGroupDef(name: names.rightThird, members: members.rightThird),
-                CharsetGroupDef(name: names.midThird, members: members.midThird),
-                CharsetGroupDef(name: names.leftThird, members: members.leftThird)
-            ]
-        } else {
-            // LTR: charset1=left, charset2=mid, charset3=right
-            return [
-                CharsetGroupDef(name: names.leftThird, members: members.leftThird),
-                CharsetGroupDef(name: names.midThird, members: members.midThird),
-                CharsetGroupDef(name: names.rightThird, members: members.rightThird)
-            ]
+        return orderedIds.compactMap { id in
+            guard let rule = findRule(language: language, id: id) else { return nil }
+            return CharsetGroupDef(name: rule.name, members: resolveMembers(rule: rule, keyboardId: keyboardId), presetId: id)
         }
     }
 
-    // MARK: - Preset Members (hardcoded to match assets/predefined-rules/*.json)
-
-    private struct PresetMembers {
-        let topRow: [String]
-        let midRow: [String]
-        let bottomRow: [String]
-        let leftThird: [String]
-        let midThird: [String]
-        let rightThird: [String]
-    }
-
-    private func presetMembers(language: String) -> PresetMembers {
-        switch language {
-        case "en":
-            return PresetMembers(
-                topRow: ["q","w","e","r","t","y","u","i","o","p","Q","W","E","R","T","Y","U","I","O","P"],
-                midRow: ["a","s","d","f","g","h","j","k","l","A","S","D","F","G","H","J","K","L"],
-                bottomRow: ["z","x","c","v","b","n","m","Z","X","C","V","B","N","M"],
-                leftThird: ["q","w","e","a","s","z","x","Q","W","E","A","S","Z","X"],
-                midThird: ["r","t","y","d","f","g","h","c","v","b","R","T","Y","D","F","G","H","C","V","B"],
-                rightThird: ["u","i","o","p","j","k","l","n","m","U","I","O","P","J","K","L","N","M"]
-            )
-        case "he":
-            return PresetMembers(
-                topRow: ["\u{05E7}","\u{05E8}","\u{05D0}","\u{05D8}","\u{05D5}","\u{05DF}","\u{05DD}","\u{05E4}"],
-                midRow: ["\u{05E9}","\u{05D3}","\u{05D2}","\u{05DB}","\u{05E2}","\u{05D9}","\u{05D7}","\u{05DC}","\u{05DA}","\u{05E3}"],
-                bottomRow: ["\u{05D6}","\u{05E1}","\u{05D1}","\u{05D4}","\u{05E0}","\u{05DE}","\u{05E6}","\u{05EA}","\u{05E5}"],
-                leftThird: ["\u{05E7}","\u{05E8}","\u{05D0}","\u{05E9}","\u{05D3}","\u{05D2}","\u{05DB}"],
-                midThird: ["\u{05D8}","\u{05D5}","\u{05E0}","\u{05DB}","\u{05E2}","\u{05D9}","\u{05DE}","\u{05D4}"],
-                rightThird: ["\u{05E4}","\u{05DD}","\u{05DF}","\u{05E3}","\u{05DA}","\u{05DC}","\u{05D7}","\u{05E5}","\u{05EA}","\u{05E6}"]
-            )
-        case "ar":
-            return PresetMembers(
-                topRow: ["\u{0636}","\u{0635}","\u{062B}","\u{0642}","\u{0641}","\u{063A}","\u{0639}","\u{0647}","\u{062E}","\u{062D}"],
-                midRow: ["\u{0634}","\u{0633}","\u{064A}","\u{0628}","\u{0644}","\u{0627}","\u{062A}","\u{0646}","\u{0645}"],
-                bottomRow: ["\u{0621}","\u{0624}","\u{0631}","\u{0649}","\u{0629}","\u{0648}","\u{0632}","\u{0638}"],
-                leftThird: ["\u{0636}","\u{0635}","\u{062B}","\u{0634}","\u{0633}","\u{064A}","\u{0621}","\u{0624}","\u{0631}"],
-                midThird: ["\u{0642}","\u{0641}","\u{063A}","\u{0639}","\u{0628}","\u{0644}","\u{0627}","\u{0649}","\u{0629}","\u{0648}"],
-                rightThird: ["\u{0647}","\u{062E}","\u{062D}","\u{062A}","\u{0646}","\u{0645}","\u{0632}","\u{0638}"]
-            )
-        default:
-            // Fallback to Hebrew
-            return presetMembers(language: "he")
+    /// All unique letter keys for a given language (union of all row rules).
+    private func allLetterKeys(language: String, keyboardId: String) -> Set<String> {
+        var keys = Set<String>()
+        for id in ["top-row", "mid-row", "bottom-row"] {
+            if let rule = findRule(language: language, id: id) {
+                for k in resolveMembers(rule: rule, keyboardId: keyboardId) { keys.insert(k) }
+            }
         }
+        return keys
     }
 
-    // MARK: - Preset Names (localized per language)
-
-    private struct PresetNames {
-        let topRow: String
-        let midRow: String
-        let bottomRow: String
-        let leftThird: String
-        let midThird: String
-        let rightThird: String
-        let spaceKey: String
-        let deleteKey: String
-        let enterKey: String
-        let otherKeys: String
-    }
-
-    private func presetNames(language: String) -> PresetNames {
-        switch language {
-        case "en":
-            return PresetNames(
-                topRow: "Top Row",
-                midRow: "Middle Row",
-                bottomRow: "Bottom Row",
-                leftThird: "Left Third",
-                midThird: "Middle Third",
-                rightThird: "Right Third",
-                spaceKey: "Space Key",
-                deleteKey: "Delete Key",
-                enterKey: "Enter Key",
-                otherKeys: "Other Keys"
-            )
-        case "he":
-            return PresetNames(
-                topRow: "\u{05E9}\u{05D5}\u{05E8}\u{05D4} \u{05E2}\u{05DC}\u{05D9}\u{05D5}\u{05E0}\u{05D4}",
-                midRow: "\u{05E9}\u{05D5}\u{05E8}\u{05D4} \u{05D0}\u{05DE}\u{05E6}\u{05E2}\u{05D9}\u{05EA}",
-                bottomRow: "\u{05E9}\u{05D5}\u{05E8}\u{05D4} \u{05EA}\u{05D7}\u{05EA}\u{05D5}\u{05E0}\u{05D4}",
-                leftThird: "\u{05E9}\u{05DC}\u{05D9}\u{05E9} \u{05E9}\u{05DE}\u{05D0}\u{05DC}",
-                midThird: "\u{05E9}\u{05DC}\u{05D9}\u{05E9} \u{05D0}\u{05DE}\u{05E6}\u{05E2}\u{05D9}",
-                rightThird: "\u{05E9}\u{05DC}\u{05D9}\u{05E9} \u{05D9}\u{05DE}\u{05D9}\u{05DF}",
-                spaceKey: "\u{05DE}\u{05E7}\u{05E9} \u{05D4}\u{05E8}\u{05D5}\u{05D5}\u{05D7}",
-                deleteKey: "\u{05DE}\u{05E7}\u{05E9} \u{05DE}\u{05D7}\u{05D9}\u{05E7}\u{05D4}",
-                enterKey: "\u{05DE}\u{05E7}\u{05E9} \u{05D9}\u{05E8}\u{05D9}\u{05D3}\u{05EA} \u{05E9}\u{05D5}\u{05E8}\u{05D4}",
-                otherKeys: "\u{05DE}\u{05E7}\u{05E9}\u{05D9}\u{05DD} \u{05E0}\u{05D5}\u{05E1}\u{05E4}\u{05D9}\u{05DD}"
-            )
-        case "ar":
-            return PresetNames(
-                topRow: "\u{0627}\u{0644}\u{0635}\u{0641} \u{0627}\u{0644}\u{0639}\u{0644}\u{0648}\u{064A}",
-                midRow: "\u{0627}\u{0644}\u{0635}\u{0641} \u{0627}\u{0644}\u{0623}\u{0648}\u{0633}\u{0637}",
-                bottomRow: "\u{0627}\u{0644}\u{0635}\u{0641} \u{0627}\u{0644}\u{0633}\u{0641}\u{0644}\u{064A}",
-                leftThird: "\u{0627}\u{0644}\u{062B}\u{0644}\u{062B} \u{0627}\u{0644}\u{0623}\u{064A}\u{0633}\u{0631}",
-                midThird: "\u{0627}\u{0644}\u{062B}\u{0644}\u{062B} \u{0627}\u{0644}\u{0623}\u{0648}\u{0633}\u{0637}",
-                rightThird: "\u{0627}\u{0644}\u{062B}\u{0644}\u{062B} \u{0627}\u{0644}\u{0623}\u{064A}\u{0645}\u{0646}",
-                spaceKey: "\u{0645}\u{0641}\u{062A}\u{0627}\u{062D} \u{0627}\u{0644}\u{0645}\u{0633}\u{0627}\u{0641}\u{0629}",
-                deleteKey: "\u{0645}\u{0641}\u{062A}\u{0627}\u{062D} \u{0627}\u{0644}\u{062D}\u{0630}\u{0641}",
-                enterKey: "\u{0645}\u{0641}\u{062A}\u{0627}\u{062D} \u{0627}\u{0644}\u{0625}\u{062F}\u{062E}\u{0627}\u{0644}",
-                otherKeys: "\u{0645}\u{0641}\u{0627}\u{062A}\u{064A}\u{062D} \u{0623}\u{062E}\u{0631}\u{0649}"
-            )
-        default:
-            return presetNames(language: "he")
+    /// All preset group member sets (rows and thirds) for detecting v1 defaults.
+    private func presetGroupSets(language: String, keyboardId: String) -> [Set<String>] {
+        let ids = ["top-row", "mid-row", "bottom-row", "left-third", "mid-third", "right-third"]
+        return ids.compactMap { id in
+            guard let rule = findRule(language: language, id: id) else { return nil }
+            return Set(resolveMembers(rule: rule, keyboardId: keyboardId))
         }
     }
 
     private func localizedActionKeyName(_ type: String, language: String) -> String {
-        let names = presetNames(language: language)
+        let ruleId: String
         switch type {
-        case "space":  return names.spaceKey
-        case "delete": return names.deleteKey
-        case "enter":  return names.enterKey
-        case "other":  return names.otherKeys
+        case "space":  ruleId = "space-key"
+        case "delete": ruleId = "delete-key"
+        case "enter":  ruleId = "enter-key"
+        case "other":  ruleId = "other-keys"
         default:       return type
         }
+        return findRule(language: language, id: ruleId)?.name ?? type
     }
 
     // MARK: - JSON Serialization

@@ -129,9 +129,7 @@ const ClassicSectionsList: React.FC<ClassicSectionsListProps> = ({
                 {/* Main section */}
                 <SectionHeader title="Main Settings" />
                 <SettingRow icon="↻" title="Reset" onPress={() => onSelectSetting('reset')} />
-                {currentLanguage === 'he' && (
-                    <SettingRow icon="ABC" title="Key Order" onPress={() => onSelectSetting('key-order')} />
-                )}
+                <SettingRow icon="ABC" title="Key Order" onPress={() => onSelectSetting('key-order')} />
 
                 {/* Main Colors */}
                 <SectionHeader title="Main Colors" />

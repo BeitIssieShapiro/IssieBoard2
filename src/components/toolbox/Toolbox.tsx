@@ -19,12 +19,21 @@ interface GroupTemplate {
   name: string;
   description: string;
   members: string[];
+  orderedMembers?: string[];
   style: {
     hidden?: boolean;
     visibilityMode?: 'default' | 'hide' | 'showOnly';
     bgColor?: string;
     color?: string;
   };
+}
+
+/** Resolve the correct members array based on keyboardId (e.g., he_ordered uses orderedMembers) */
+function resolveMembers(template: GroupTemplate, keyboardId?: string): string[] {
+  if (keyboardId?.endsWith('_ordered') && template.orderedMembers) {
+    return template.orderedMembers;
+  }
+  return template.members;
 }
 
 const TEMPLATES: Record<string, GroupTemplate[]> = {
@@ -254,8 +263,8 @@ export const Toolbox: React.FC<ToolboxProps> = ({
                     <Text allowFontScaling={false} style={styles.templateName}>{item.name}</Text>
                     <Text allowFontScaling={false} style={styles.templateDescription}>{item.description}</Text>
                     <Text allowFontScaling={false} style={styles.templateKeys}>
-                      {item.members.length} keys: {item.members.slice(0, 8).join(', ')}
-                      {item.members.length > 8 ? '...' : ''}
+                      {resolveMembers(item, currentKeyboardId).length} keys: {resolveMembers(item, currentKeyboardId).slice(0, 8).join(', ')}
+                      {resolveMembers(item, currentKeyboardId).length > 8 ? '...' : ''}
                     </Text>
                   </View>
                   <Text allowFontScaling={false} style={styles.templateArrow}>›</Text>
@@ -270,12 +279,13 @@ export const Toolbox: React.FC<ToolboxProps> = ({
       <AddStyleRuleModal
         visible={showStyleRuleModal}
         editingGroup={editingGroup}
-        initialSelectedKeys={editingGroup ? undefined : (templateData?.members || getSelectedKeyValues())}
+        initialSelectedKeys={editingGroup ? undefined : (templateData ? resolveMembers(templateData, currentKeyboardId) : getSelectedKeyValues())}
         initialName={templateData?.name}
         initialBgColor={templateData?.style.bgColor}
         initialTextColor={templateData?.style.color}
         initialVisibilityMode={templateData?.style.visibilityMode}
-        isPreset={!!templateData && !editingGroup} // Preset mode only when using template data and not editing
+        isPreset={!!(templateData && !editingGroup) || !!(editingGroup?.presetId)}
+        presetId={templateData && !editingGroup ? templateData.id : editingGroup?.presetId}
         profileName={profileName}
         onClose={handleCloseModal}
       />

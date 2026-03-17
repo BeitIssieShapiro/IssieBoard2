@@ -26,6 +26,7 @@ interface AddStyleRuleModalProps {
   initialTextColor?: string; // Pre-filled text color when creating from preset
   initialVisibilityMode?: VisibilityMode; // Pre-filled visibility mode when creating from preset
   isPreset?: boolean; // If true, keys are locked (only colors can be edited)
+  presetId?: string; // The predefined rule ID (e.g., "top-row") — stored on the group for auto-update on variant switch
   profileName?: string; // Current profile name for breadcrumb
   onClose: () => void;
 }
@@ -39,6 +40,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
   initialTextColor,
   initialVisibilityMode,
   isPreset = false,
+  presetId,
   profileName,
   onClose,
 }) => {
@@ -204,7 +206,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
       });
     } else {
       const name = ruleName.trim() || generateRuleName();
-      createGroupFromValues(name, selectedKeyValues, style);
+      createGroupFromValues(name, selectedKeyValues, style, true, presetId);
     }
 
     onClose();

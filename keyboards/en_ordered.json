@@ -1,0 +1,74 @@
+{
+  "id": "en_ordered",
+  "name": "English Ordered (ABC)",
+  "includeKeysets": ["123", "#+="],
+  "keysets": [
+    {
+      "id": "abc",
+      "rows": [
+        {
+          "keys": [
+            { "value": "a", "sValue": "A" },
+            { "value": "b", "sValue": "B" },
+            { "value": "c", "sValue": "C" },
+            { "value": "d", "sValue": "D" },
+            { "value": "e", "sValue": "E" },
+            { "value": "f", "sValue": "F" },
+            { "value": "g", "sValue": "G" },
+            { "value": "h", "sValue": "H" },
+            { "value": "i", "sValue": "I" },
+            { "type": "backspace", "width": 1.5, "alwaysInclude": true, "showOn": ["large-screen"] }
+          ]
+        },
+        {
+          "keys": [
+            { "hidden": true, "width": 0.5 },
+            { "value": "j", "sValue": "J" },
+            { "value": "k", "sValue": "K" },
+            { "value": "l", "sValue": "L" },
+            { "value": "m", "sValue": "M" },
+            { "value": "n", "sValue": "N" },
+            { "value": "o", "sValue": "O" },
+            { "value": "p", "sValue": "P" },
+            { "value": "q", "sValue": "Q" },
+            { "value": "r", "sValue": "R" },
+            { "type": "enter", "width": 2, "showOn": ["large-screen"] }
+          ]
+        },
+        {
+          "keys": [
+            { "type": "shift", "width": 1.5, "showOn": ["mobile"] },
+            { "type": "shift", "width": 1, "showOn": ["large-screen"] },
+            { "value": "s", "sValue": "S" },
+            { "value": "t", "sValue": "T" },
+            { "value": "u", "sValue": "U" },
+            { "value": "v", "sValue": "V" },
+            { "value": "w", "sValue": "W" },
+            { "value": "x", "sValue": "X" },
+            { "value": "y", "sValue": "Y" },
+            { "value": "z", "sValue": "Z" },
+            { "type": "backspace", "width": 1.5, "alwaysInclude": true, "showOn": ["mobile"] },
+            { "value": ",", "sValue": "!", "showOn": ["large-screen"] },
+            { "value": ".", "sValue": "?", "showOn": ["large-screen"] },
+            { "type": "shift", "width": 1.5, "showOn": ["large-screen"] }
+          ]
+        },
+        {
+          "alwaysInclude": true,
+          "keys": [
+            { "type": "keyset", "keysetValue": "123", "returnKeysetValue": "abc", "label": "123", "returnKeysetLabel": "ABC", "width": 1 },
+            { "type": "next-keyboard", "width": 1 },
+            { "type": "settings" },
+            { "hidden": true, "width": 0.5, "showOn": ["large-screen"] },
+            { "caption": "", "value": " ", "width": 3, "flex": true },
+            { "caption": "@", "value": "@", "width": 1, "showForField": ["email"] },
+            { "value": ".", "sValue": ",", "showOn": ["mobile"] },
+            { "type": "keyset", "keysetValue": "123", "returnKeysetValue": "abc", "label": "123", "returnKeysetLabel": "ABC", "width": 1, "showOn": ["large-screen"] },
+            { "type": "close", "label": "⌨️⏷", "fontSize": 29, "showOn": ["large-screen"] },
+            { "type": "enter", "showOn": ["mobile"] }
+          ]
+        }
+      ]
+    }
+  ]
+}

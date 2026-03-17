@@ -21,6 +21,8 @@ import enKeyboard from '../../keyboards/en.json';
 import heKeyboard from '../../keyboards/he.json';
 import heOrderedKeyboard from '../../keyboards/he_ordered.json';
 import arKeyboard from '../../keyboards/ar.json';
+import enOrderedKeyboard from '../../keyboards/en_ordered.json';
+import arOrderedKeyboard from '../../keyboards/ar_ordered.json';
 
 import { buildKeyboardConfig, SourceKeyboard, transformConfigForPreview } from '../utils/keyboardConfigMerger';
 
@@ -38,21 +40,24 @@ const PREDEFINED_RULES: Record<string, any> = {
 };
 
 /** Look up a preset's members and name from predefined rules for the given language */
-const getPresetInfo = (presetId: string, language: LanguageId): { name: string; members: string[] } | null => {
+const getPresetInfo = (presetId: string, language: LanguageId, keyboardId?: string): { name: string; members: string[] } | null => {
   const rules = PREDEFINED_RULES[language]?.rules;
   if (!rules) return null;
   const rule = rules.find((r: any) => r.id === presetId);
   if (!rule) return null;
-  return { name: rule.name, members: rule.members };
+  const members = (keyboardId?.endsWith('_ordered') && rule.orderedMembers) ? rule.orderedMembers : rule.members;
+  return { name: rule.name, members };
 };
 
 type LanguageId = 'he' | 'en' | 'ar';
 
 const KEYBOARDS: Record<string, any> = {
   'en': enKeyboard,
+  'en_ordered': enOrderedKeyboard,
   'he': heKeyboard,
   'he_ordered': heOrderedKeyboard,
   'ar': arKeyboard,
+  'ar_ordered': arOrderedKeyboard,
 };
 
 interface SavedProfileDefinition {
@@ -478,16 +483,26 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
     }
   }, [currentLanguage]);
 
-  // Handle key order change (Hebrew: standard vs ABC)
+  // Handle key order change (standard vs alphabetical/ordered)
   const handleKeyOrderChange = useCallback(async (ordered: boolean) => {
     if (!profileDef) return;
-    const newKeyboardId = ordered ? 'he_ordered' : 'he';
+    const newKeyboardId = ordered ? `${currentLanguage}_ordered` : currentLanguage;
     const updatedDef = { ...profileDef, keyboardId: newKeyboardId };
+
+    // Update preset group members to match the new keyboard variant
+    const updatedGroups = styleGroups.map(group => {
+      if (!group.presetId) return group;
+      const info = getPresetInfo(group.presetId, currentLanguage, newKeyboardId);
+      if (!info) return group;
+      return { ...group, members: info.members };
+    });
+
     setProfileDef(updatedDef);
     setCurrentKeyboardId(newKeyboardId);
-    refreshState(styleGroups, updatedDef);
-    await saveProfile(updatedDef, styleGroups);
-  }, [profileDef, styleGroups, refreshState, saveProfile]);
+    setStyleGroups(updatedGroups);
+    refreshState(updatedGroups, updatedDef);
+    await saveProfile(updatedDef, updatedGroups);
+  }, [profileDef, currentLanguage, styleGroups, refreshState, saveProfile]);
 
   // Handle division mode change (rows vs sections)
   // Deactivates current charset groups, activates the other set, preserves colors.
@@ -536,7 +551,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
           return g;
         });
       } else {
-        const info = getPresetInfo(presetId, currentLanguage);
+        const info = getPresetInfo(presetId, currentLanguage, currentKeyboardId);
         if (info) {
           updatedGroups.push({
             id: `v1_classic_${presetId}_${Date.now()}_${i}`,
@@ -593,7 +608,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
             return g;
           });
         } else {
-          const info = getPresetInfo(presetId, currentLanguage);
+          const info = getPresetInfo(presetId, currentLanguage, currentKeyboardId);
           if (info) {
             updatedGroups.push({
               id: `v1_classic_${presetId}_${Date.now()}_${i}`,
@@ -638,7 +653,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
             return g;
           });
         } else {
-          const info = getPresetInfo(presetId, currentLanguage);
+          const info = getPresetInfo(presetId, currentLanguage, currentKeyboardId);
           if (info) {
             updatedGroups.push({
               id: `v1_classic_${presetId}_${Date.now()}`,
@@ -861,7 +876,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
 
     // Helper to build createInfo from a preset ID
     const create = (presetId: string) => {
-      const info = getPresetInfo(presetId, currentLanguage);
+      const info = getPresetInfo(presetId, currentLanguage, currentKeyboardId);
       return info ? { presetId, name: info.name, members: info.members } : undefined;
     };
 
@@ -1036,7 +1051,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
       {/* Sections list — always mounted, never unmounted or hidden */}
       <View style={styles.sectionsLayer} pointerEvents={activeSetting ? 'none' : 'auto'}>
         <View style={styles.header}>
-          <Text allowFontScaling={false} style={styles.headerTitle}>Classic View</Text>
+          <Text allowFontScaling={false} style={styles.headerTitle}>IssieBoard Settings (classic)</Text>
           <TouchableOpacity style={styles.advancedButton} onPress={onSwitchToAdvanced}>
             <Text allowFontScaling={false} style={styles.advancedButtonText}>Advanced View</Text>
           </TouchableOpacity>
@@ -1071,19 +1086,19 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
           ) : activeSetting === 'key-order' ? (
             <View style={styles.pickerContainer}>
               <TouchableOpacity
-                style={[styles.pickerOption, currentKeyboardId === 'he' && styles.pickerOptionActive]}
+                style={[styles.pickerOption, currentKeyboardId === currentLanguage && styles.pickerOptionActive]}
                 onPress={() => handleKeyOrderChange(false)}
               >
-                <Text allowFontScaling={false} style={[styles.pickerOptionText, currentKeyboardId === 'he' && styles.pickerOptionTextActive]}>
+                <Text allowFontScaling={false} style={[styles.pickerOptionText, currentKeyboardId === currentLanguage && styles.pickerOptionTextActive]}>
                   Standard
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.pickerOption, currentKeyboardId === 'he_ordered' && styles.pickerOptionActive]}
+                style={[styles.pickerOption, currentKeyboardId === `${currentLanguage}_ordered` && styles.pickerOptionActive]}
                 onPress={() => handleKeyOrderChange(true)}
               >
-                <Text allowFontScaling={false} style={[styles.pickerOptionText, currentKeyboardId === 'he_ordered' && styles.pickerOptionTextActive]}>
-                  Ordered (ABC)
+                <Text allowFontScaling={false} style={[styles.pickerOptionText, currentKeyboardId === `${currentLanguage}_ordered` && styles.pickerOptionTextActive]}>
+                  Ordered ({currentLanguage === 'he' ? 'א-ב' : currentLanguage === 'ar' ? 'أبج' : 'ABC'})
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1117,6 +1132,8 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
                 onChangeText={handleSpecialKeysTextChange}
                 placeholder="Type characters..."
                 autoCorrect={false}
+                autoCapitalize="none"
+                spellCheck={false}
               />
             </View>
           ) : activeSetting === 'visible-keys-text' ? (
@@ -1130,6 +1147,8 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
                 onChangeText={handleVisibleKeysTextChange}
                 placeholder="Type characters..."
                 autoCorrect={false}
+                autoCapitalize="none"
+                spellCheck={false}
               />
             </View>
           ) : activeSetting === 'my-issieboards' ? (

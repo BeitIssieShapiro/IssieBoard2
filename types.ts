@@ -27,6 +27,7 @@ export interface StyleGroup {
     createdAt: string;               // ISO timestamp
     isBuiltIn?: boolean;             // System groups can't be deleted
     active?: boolean;                // If false, group is saved but not applied to preview (defaults to true)
+    presetId?: string;               // If set, this group was created from a predefined rule (e.g., "top-row") — members auto-update on keyboard variant switch
 }
 
 // Predefined Style Rule (from JSON files)

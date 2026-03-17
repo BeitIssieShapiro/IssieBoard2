@@ -32,9 +32,27 @@ import enKeyboard from '../../keyboards/en.json';
 import heKeyboard from '../../keyboards/he.json';
 import heOrderedKeyboard from '../../keyboards/he_ordered.json';
 import arKeyboard from '../../keyboards/ar.json';
+import enOrderedKeyboard from '../../keyboards/en_ordered.json';
+import arOrderedKeyboard from '../../keyboards/ar_ordered.json';
 
 // Import keyboard config merger utilities
 import { buildKeyboardConfig, SourceKeyboard, mergeCommonKeysets, getCommonKeysets } from '../utils/keyboardConfigMerger';
+
+// Import predefined rules for preset member resolution on keyboard variant switch
+import enRules from '../../assets/predefined-rules/en.json';
+import heRules from '../../assets/predefined-rules/he.json';
+import arRules from '../../assets/predefined-rules/ar.json';
+
+const PREDEFINED_RULES: Record<string, any> = { en: enRules, he: heRules, ar: arRules };
+
+/** Resolve preset members for a given presetId, language, and keyboardId */
+function resolvePresetMembers(presetId: string, language: string, keyboardId: string): string[] | null {
+  const rules = PREDEFINED_RULES[language]?.rules;
+  if (!rules) return null;
+  const rule = rules.find((r: any) => r.id === presetId);
+  if (!rule) return null;
+  return (keyboardId.endsWith('_ordered') && rule.orderedMembers) ? rule.orderedMembers : rule.members;
+}
 
 // Import built-in profile templates
 import {
@@ -80,6 +98,7 @@ const LANGUAGES: LanguageDefinition[] = [
     nativeName: 'English',
     keyboards: [
       { id: 'en', name: 'QWERTY' },
+      { id: 'en_ordered', name: 'Ordered (ABC)' },
     ],
   },
   {
@@ -88,6 +107,7 @@ const LANGUAGES: LanguageDefinition[] = [
     nativeName: 'العربية',
     keyboards: [
       { id: 'ar', name: 'Standard' },
+      { id: 'ar_ordered', name: 'Ordered (أبج)' },
     ],
   },
 ];
@@ -95,9 +115,11 @@ const LANGUAGES: LanguageDefinition[] = [
 // Available keyboards by ID
 const KEYBOARDS: Record<string, KeyboardDefinition> = {
   'en': enKeyboard,
+  'en_ordered': enOrderedKeyboard,
   'he': heKeyboard,
   'he_ordered': heOrderedKeyboard,
   'ar': arKeyboard,
+  'ar_ordered': arOrderedKeyboard,
 };
 
 /**
@@ -378,7 +400,6 @@ interface EditorScreenInnerProps {
   onLanguageChange: (language: LanguageId) => void;
   onKeyboardChange: (keyboardId: string) => void;
   onCreateNew: (name: string, language: LanguageId, keyboardId: string) => Promise<void>;
-  isV1User?: boolean;
   onSwitchToClassic?: () => void;
 }
 
@@ -430,7 +451,6 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   onLanguageChange,
   onKeyboardChange,
   onCreateNew,
-  isV1User,
   onSwitchToClassic,
 }) => {
   const { state, setMode, setConfig, markDirty, dispatch } = useEditor();
@@ -943,10 +963,16 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       settingsButtonEnabled: state.config.settingsButtonEnabled,
     };
     const newConfig = buildConfiguration(profileDef);
-    // Keep style groups when switching keyboard variant
-    // Style groups now store key values (e.g., "א") not position IDs,
-    // so they work correctly across different keyboard layouts
-    setConfig(newConfig, state.styleGroups);
+
+    // Update preset group members to match the new keyboard variant
+    const updatedGroups = state.styleGroups.map(group => {
+      if (!group.presetId) return group;
+      const newMembers = resolvePresetMembers(group.presetId, currentLanguage, newKeyboardId);
+      if (!newMembers) return group;
+      return { ...group, members: newMembers };
+    });
+
+    setConfig(newConfig, updatedGroups);
 
     // Mark as dirty after setConfig (since setConfig resets dirty flag)
     // We need to use setTimeout to ensure the markDirty runs after setConfig's state update
@@ -1377,11 +1403,12 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']}
         onRequestClose={() => setShowProfilePicker(false)}
       >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowProfilePicker(false)}
-        >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => setShowProfilePicker(false)}
+          />
           <View style={styles.profilePickerContainer}>
             <View style={styles.profilePickerHeader}>
               <Text allowFontScaling={false} style={styles.profilePickerTitle}>
@@ -1418,6 +1445,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
               <FlatList
                 data={profiles}
                 keyExtractor={item => item.id}
+                style={{flexShrink: 1}}
                 renderItem={({ item }) => (
                   <View
                     style={[
@@ -1478,7 +1506,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
               />
             )}
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
 
       {/* Language Selector - Matching mockup design */}
@@ -1512,6 +1540,38 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
             </TouchableOpacity>
           ))}
         </View>
+        {/* Classic View button - shown when onSwitchToClassic is provided */}
+        {onSwitchToClassic && (
+          <TouchableOpacity
+            style={styles.classicViewButton}
+            onPress={() => {
+              if (state.isDirty) {
+                Alert.alert(
+                  'Unsaved Changes',
+                  'You have unsaved changes. Save before switching to Classic View?',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Discard', style: 'destructive', onPress: onSwitchToClassic },
+                    { text: 'Save', onPress: async () => {
+                      const currentProfile = profiles.find(p => p.id === currentProfileId);
+                      if (currentProfile?.isBuiltIn) {
+                        afterSaveAsRef.current = onSwitchToClassic;
+                      }
+                      await handleSave();
+                      if (!currentProfile?.isBuiltIn) {
+                        onSwitchToClassic();
+                      }
+                    }},
+                  ]
+                );
+              } else {
+                onSwitchToClassic();
+              }
+            }}
+          >
+            <Text allowFontScaling={false} style={styles.classicViewButtonText}>Classic View</Text>
+          </TouchableOpacity>
+        )}
         {/* Close button for IssieVoice */}
         {appContext === 'issievoice' && onClose && (
           <TouchableOpacity
@@ -1575,41 +1635,6 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
                 )}
               </TouchableOpacity>
             </Animated.View>
-
-            {/* Classic View button - only for v1 migrated users */}
-            {isV1User && onSwitchToClassic && (
-              <TouchableOpacity
-                style={styles.classicViewButton}
-                onPress={() => {
-                  if (state.isDirty) {
-                    Alert.alert(
-                      'Unsaved Changes',
-                      'You have unsaved changes. Save before switching to Classic View?',
-                      [
-                        { text: 'Cancel', style: 'cancel' },
-                        { text: 'Discard', style: 'destructive', onPress: onSwitchToClassic },
-                        { text: 'Save', onPress: async () => {
-                          const currentProfile = profiles.find(p => p.id === currentProfileId);
-                          if (currentProfile?.isBuiltIn) {
-                            // Built-in profile: Save As modal will open; switch after completion
-                            afterSaveAsRef.current = onSwitchToClassic;
-                          }
-                          await handleSave();
-                          // For custom profiles, handleSave completes synchronously — switch now
-                          if (!currentProfile?.isBuiltIn) {
-                            onSwitchToClassic();
-                          }
-                        }},
-                      ]
-                    );
-                  } else {
-                    onSwitchToClassic();
-                  }
-                }}
-              >
-                <Text allowFontScaling={false} style={styles.classicViewButtonText}>Classic View</Text>
-              </TouchableOpacity>
-            )}
           </View>
 
           {/* Reset Button - Hidden but not deleted */}
@@ -1650,7 +1675,6 @@ interface EditorScreenProps {
   appContext?: AppContext;  // Which app is using the settings
   onBack?: () => void;       // Made optional for IssieVoice
   onClose?: () => void;      // Close callback for IssieVoice
-  isV1User?: boolean;        // True if user migrated from v1
   onSwitchToClassic?: () => void;  // Switch to classic editor view
 }
 
@@ -1660,7 +1684,6 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
   appContext = 'issieboard',
   onBack,
   onClose,
-  isV1User,
   onSwitchToClassic,
 }) => {
   const [loading, setLoading] = useState(true);
@@ -2199,7 +2222,6 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
         onLanguageChange={handleLanguageChange}
         onKeyboardChange={handleKeyboardChange}
         onCreateNew={handleCreateNew}
-        isV1User={isV1User}
         onSwitchToClassic={onSwitchToClassic}
       />
     </EditorProvider>
@@ -2467,8 +2489,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     borderRadius: 12,
     width: '80%',
-    maxHeight: '60%',
+    maxHeight: '70%',
     padding: 16,
+    flexShrink: 1,
   },
   profilePickerHeader: {
     flexDirection: 'row',
@@ -2807,7 +2830,8 @@ const styles = StyleSheet.create({
   profileButtonsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 0,
+    flexWrap: 'wrap',
+    gap: 6,
   },
   profileIcon: {
     fontSize: 28,
@@ -2830,7 +2854,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
-    marginLeft: 12,
     gap: 6,
   },
   exploreButtonIcon: {
@@ -2848,7 +2871,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
-    marginLeft: 12,
     minWidth: 80,
     gap: 6,
   },
@@ -2856,14 +2878,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#78909C',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 8,
-    marginLeft: 12,
   },
   classicViewButtonText: {
     color: '#FFF',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
   },
   profileSaveButtonIcon: {

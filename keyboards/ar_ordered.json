@@ -1,0 +1,71 @@
+{
+  "id": "ar_ordered",
+  "name": "Arabic Ordered (أبج)",
+  "includeKeysets": ["123", "#+="],
+  "diacritics": {
+    "appliesTo": ["ا", "ب", "ت", "ث", "ج", "ح", "خ", "د", "ذ", "ر", "ز", "س", "ش", "ص", "ض", "ط", "ظ", "ع", "غ", "ف", "ق", "ك", "ل", "م", "ن", "ه", "و", "ي", "ء", "ؤ", "ئ", "ة", "ى"],
+    "items": [
+      { "id": "plain", "mark": "", "name": "بدون" },
+      { "id": "fatha", "mark": "\u064E", "name": "فَتحة", "isAdvanced": false },
+      { "id": "kasra", "mark": "\u0650", "name": "كَسرة", "isAdvanced": false },
+      { "id": "damma", "mark": "\u064F", "name": "ضَمّة", "isAdvanced": false },
+      { "id": "sukun", "mark": "\u0652", "name": "سُكون", "excludeFor": ["ا"], "isAdvanced": false },
+      { "id": "tanwinFath", "mark": "\u064B", "name": "تنوين فتح", "isAdvanced": true },
+      { "id": "tanwinKasr", "mark": "\u064D", "name": "تنوين كسر", "isAdvanced": true },
+      { "id": "tanwinDamm", "mark": "\u064C", "name": "تنوين ضم", "isAdvanced": true },
+      { "id": "wasla", "mark": "\u0671", "name": "وصلة", "onlyFor": ["ا"], "isReplacement": true, "isAdvanced": true },
+      { "id": "hamzaAbove", "mark": "\u0623", "name": "همزة فوق", "onlyFor": ["ا"], "isReplacement": true, "isAdvanced": false },
+      { "id": "hamzaBelow", "mark": "\u0625", "name": "همزة تحت", "onlyFor": ["ا"], "isReplacement": true, "isAdvanced": false },
+      { "id": "madda", "mark": "\u0622", "name": "مدّة", "onlyFor": ["ا"], "isReplacement": true, "isAdvanced": false }
+    ],
+    "modifier": {
+      "id": "shadda",
+      "mark": "\u0651",
+      "name": "شَدّة",
+      "excludeFor": ["ا"],
+      "isAdvanced": false
+    }
+  },
+  "keysets": [
+    {
+      "id": "abc",
+      "rows": [
+        {
+          "keys": [
+            { "value": "ا" }, { "value": "ب" }, { "value": "ت" }, { "value": "ث" }, { "value": "ج" },
+            { "value": "ح" }, { "value": "خ" }, { "value": "د" }, { "value": "ذ" }, { "value": "ر" },
+            { "value": "ز" }, { "value": "س" }
+          ]
+        },
+        {
+          "keys": [
+            { "value": "ش" }, { "value": "ص" }, { "value": "ض" }, { "value": "ط" }, { "value": "ظ" },
+            { "value": "ع" }, { "value": "غ" }, { "value": "ف" }, { "value": "ق" }, { "value": "ك" },
+            { "value": "ل" }
+          ]
+        },
+        {
+          "keys": [
+            { "value": "م" }, { "value": "ن" }, { "value": "ه" }, { "value": "و" }, { "value": "ي" },
+            { "value": "ء" }, { "value": "ؤ" }, { "value": "ئ" }, { "value": "ة" }, { "value": "ى" },
+            { "value": "لا" },
+            { "type": "backspace", "width": 1.5, "alwaysInclude": true }
+          ]
+        },
+        {
+          "alwaysInclude": true,
+          "keys": [
+            { "type": "next-keyboard" },
+            { "type": "keyset", "keysetValue": "123", "returnKeysetValue": "abc", "label": "123", "returnKeysetLabel": "أبج", "width": 1.5 },
+            { "type": "settings" },
+            { "caption": "مسافة", "value": " ", "width": 4 },
+            { "value": ".", "sValue": "،" },
+            { "type": "nikkud" },
+            { "type": "close", "showOn": ["large-screen"] },
+            { "type": "enter" }
+          ]
+        }
+      ]
+    }
+  ]
+}

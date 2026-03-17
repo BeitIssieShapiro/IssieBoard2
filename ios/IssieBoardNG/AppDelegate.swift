@@ -21,8 +21,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     reactNativeDelegate = delegate
     reactNativeFactory = factory
 
-    // Migrate v1 templates to v2 profiles (one-time, idempotent)
-    V1Migration().migrateIfNeeded()
+    // TEMP: Force re-run migration to fix saved_list format (revert after testing)
+    V1Migration().forceMigrate()
 
     window = UIWindow(frame: UIScreen.main.bounds)
 

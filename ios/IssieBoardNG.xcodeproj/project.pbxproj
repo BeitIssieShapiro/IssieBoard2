@@ -47,6 +47,8 @@
 		6AA1FD092F3D26FA002BD212 /* SharedAssets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6ASHARED0001000000035455 /* SharedAssets.xcassets */; };
 		6AA1FD0A2F3D26FA002BD212 /* Gveret Levin AlefAlefAlef-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 6A877C1D2F34DAB900888533 /* Gveret Levin AlefAlefAlef-Regular.ttf */; };
 		6AA1FD0B2F3D26FA002BD212 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
+		6AAAEACB2F68BAC100085361 /* V1DataModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 6AAAEAC92F68BAC100085361 /* V1DataModel.xcdatamodeld */; };
+		6AAAEACF2F68BF1E00085361 /* V1Migration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AAAEACE2F68BF1E00085361 /* V1Migration.swift */; };
 		6ACC1E292F2B564800F1FA30 /* TrieEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ACC1E282F2B564800F1FA30 /* TrieEngine.swift */; };
 		6ACC1E2A2F2B564800F1FA30 /* TrieEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ACC1E282F2B564800F1FA30 /* TrieEngine.swift */; };
 		6ACC1E5D2F2CDE8300F1FA30 /* IssieBoardEn.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6ACC1E562F2CDE8300F1FA30 /* IssieBoardEn.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -144,6 +146,9 @@
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		A821565B90347BA9F5F5459B /* libPods-IssieVoice.a in Frameworks */ = {isa = PBXBuildFile; fileRef = CD990258182BBE6093CBFFDB /* libPods-IssieVoice.a */; };
 		F34FB5359FE4ACEFB3E6E672 /* libPods-IssieBoard.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D0BC014BDB6ED8BF30D5149 /* libPods-IssieBoard.a */; };
+		6APREDEF012F69000000085361 /* predefined_rules_he.json in Resources */ = {isa = PBXBuildFile; fileRef = 6APREDEF022F69000000085361 /* predefined_rules_he.json */; };
+		6APREDEF032F69000000085361 /* predefined_rules_en.json in Resources */ = {isa = PBXBuildFile; fileRef = 6APREDEF042F69000000085361 /* predefined_rules_en.json */; };
+		6APREDEF052F69000000085361 /* predefined_rules_ar.json in Resources */ = {isa = PBXBuildFile; fileRef = 6APREDEF062F69000000085361 /* predefined_rules_ar.json */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -214,6 +219,8 @@
 		6A877C1D2F34DAB900888533 /* Gveret Levin AlefAlefAlef-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Gveret Levin AlefAlefAlef-Regular.ttf"; path = "../assets/fonts/Gveret Levin AlefAlefAlef-Regular.ttf"; sourceTree = SOURCE_ROOT; };
 		6AA1FCB22F3CB103002BD212 /* WordPredictionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordPredictionEngine.swift; sourceTree = "<group>"; };
 		6AA1FD162F3D26FA002BD212 /* IssieVoice.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = IssieVoice.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6AAAEACA2F68BAC100085361 /* IssieBoard_NEW.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = IssieBoard_NEW.xcdatamodel; sourceTree = "<group>"; };
+		6AAAEACE2F68BF1E00085361 /* V1Migration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = V1Migration.swift; path = IssieBoardNG/V1Migration.swift; sourceTree = "<group>"; };
 		6ACC1DF72F2AB0A800F1FA30 /* IssieBoardNGTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = IssieBoardNGTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6ACC1E282F2B564800F1FA30 /* TrieEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrieEngine.swift; sourceTree = "<group>"; };
 		6ACC1E562F2CDE8300F1FA30 /* IssieBoardEn.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = IssieBoardEn.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -244,6 +251,9 @@
 		BA31A84859E1A6DBDFBC1935 /* Pods-IssieBoard.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-IssieBoard.release.xcconfig"; path = "Target Support Files/Pods-IssieBoard/Pods-IssieBoard.release.xcconfig"; sourceTree = "<group>"; };
 		CD990258182BBE6093CBFFDB /* libPods-IssieVoice.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-IssieVoice.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
+		6APREDEF022F69000000085361 /* predefined_rules_he.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = predefined_rules_he.json; path = IssieBoardNG/predefined_rules_he.json; sourceTree = "<group>"; };
+		6APREDEF042F69000000085361 /* predefined_rules_en.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = predefined_rules_en.json; path = IssieBoardNG/predefined_rules_en.json; sourceTree = "<group>"; };
+		6APREDEF062F69000000085361 /* predefined_rules_ar.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = predefined_rules_ar.json; path = IssieBoardNG/predefined_rules_ar.json; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -273,8 +283,6 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		6ACC1DF82F2AB0A900F1FA30 /* IssieBoardNGTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = IssieBoardNGTests;
 			sourceTree = "<group>";
 		};
@@ -355,6 +363,8 @@
 		13B07FAE1A68108700A75B9A /* IssieBoardNG */ = {
 			isa = PBXGroup;
 			children = (
+				6AAAEACE2F68BF1E00085361 /* V1Migration.swift */,
+				6AAAEAC92F68BAC100085361 /* V1DataModel.xcdatamodeld */,
 				6A1E336B2F220E8700035455 /* IssieBoardNG.entitlements */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				761780EC2CA45674006654EE /* AppDelegate.swift */,
@@ -372,6 +382,9 @@
 				6ADAC3642F3DDC6F00C85EBD /* he_50k.bin */,
 				6AFD743D2F3DB18B00EDBDAA /* en_50k.bin */,
 				6A1E33732F2216F000035455 /* IssieBoardNG-Bridging-Header.h */,
+				6APREDEF022F69000000085361 /* predefined_rules_he.json */,
+				6APREDEF042F69000000085361 /* predefined_rules_en.json */,
+				6APREDEF062F69000000085361 /* predefined_rules_ar.json */,
 			);
 			name = IssieBoardNG;
 			sourceTree = "<group>";
@@ -672,6 +685,9 @@
 				6ASHARED0005000000035455 /* SharedAssets.xcassets in Resources */,
 				6A877C1E2F34DAB900888533 /* Gveret Levin AlefAlefAlef-Regular.ttf in Resources */,
 				5326AF4A4DECB80A70586DB4 /* PrivacyInfo.xcprivacy in Resources */,
+				6APREDEF012F69000000085361 /* predefined_rules_he.json in Resources */,
+				6APREDEF032F69000000085361 /* predefined_rules_en.json in Resources */,
+				6APREDEF052F69000000085361 /* predefined_rules_ar.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -750,9 +766,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-IssieBoard/Pods-IssieBoard-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-IssieBoard/Pods-IssieBoard-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -845,9 +865,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-IssieVoice/Pods-IssieVoice-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-IssieVoice/Pods-IssieVoice-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -884,9 +908,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-IssieVoice/Pods-IssieVoice-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-IssieVoice/Pods-IssieVoice-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -901,9 +929,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-IssieBoard/Pods-IssieBoard-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-IssieBoard/Pods-IssieBoard-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -929,12 +961,14 @@
 				6ACC1F9B2F30AF8900F1FA30 /* WordSuggestionController.swift in Sources */,
 				6ADAC3832F3E0BE300C85EBD /* SystemTextDocumentProxy.swift in Sources */,
 				6A1E33702F220FCA00035455 /* KeyboardPreferences.swift in Sources */,
+				6AAAEACF2F68BF1E00085361 /* V1Migration.swift in Sources */,
 				6A1E33752F22170C00035455 /* KeyboardPreferencesModule.swift in Sources */,
 				6ADAC3782F3DF7A200C85EBD /* KeyboardEngine.swift in Sources */,
 				6A73B6892F24E985003898A5 /* KeyboardRenderer.swift in Sources */,
 				6ADAC36C2F3DF77D00C85EBD /* CustomTextDocumentProxy.swift in Sources */,
 				6AWORD00032F300100035455 /* WordCompletionManager.swift in Sources */,
 				6AA1FCB62F3CB103002BD212 /* WordPredictionEngine.swift in Sources */,
+				6AAAEACB2F68BAC100085361 /* V1DataModel.xcdatamodeld in Sources */,
 				6AKBNG00042F400100035455 /* KeyboardNeighbors.swift in Sources */,
 				6ACC1FA32F30B20000F1FA30 /* BackspaceHandler.swift in Sources */,
 				6ADAC36F2F3DF78D00C85EBD /* TextDocumentProxyProtocol.swift in Sources */,
@@ -1783,6 +1817,19 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCVersionGroup section */
+		6AAAEAC92F68BAC100085361 /* V1DataModel.xcdatamodeld */ = {
+			isa = XCVersionGroup;
+			children = (
+				6AAAEACA2F68BAC100085361 /* IssieBoard_NEW.xcdatamodel */,
+			);
+			currentVersion = 6AAAEACA2F68BAC100085361 /* IssieBoard_NEW.xcdatamodel */;
+			path = V1DataModel.xcdatamodeld;
+			sourceTree = "<group>";
+			versionGroupType = wrapper.xcdatamodel;
+		};
+/* End XCVersionGroup section */
 	};
 	rootObject = 83CBB9F71A601CBA00E9B192 /* Project object */;
 }

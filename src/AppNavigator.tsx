@@ -27,7 +27,9 @@ const keyboardToLanguage: Record<string, LanguageId> = {
   'he': 'he',
   'he_ordered': 'he',
   'en': 'en',
+  'en_ordered': 'en',
   'ar': 'ar',
+  'ar_ordered': 'ar',
 };
 
 export const AppNavigator: React.FC = () => {
@@ -92,8 +94,8 @@ export const AppNavigator: React.FC = () => {
             // Not a v1 user
           }
         }
-        // In DEV mode, always show the classic toggle so we can test without a real v1 install
-        const showClassicToggle = __DEV__ || v1User;
+        // TEMP: Always show classic toggle for testing (revert after testing)
+        const showClassicToggle = true;
         setIsV1User(showClassicToggle);
 
         // v1 users default to classic editor, others to advanced editor
@@ -206,8 +208,7 @@ export const AppNavigator: React.FC = () => {
         key={editorKey}
         profileId={profileId}
         initialLanguage={initialLanguage}
-        isV1User={isV1User}
-        onSwitchToClassic={handleSwitchToClassic}
+        onSwitchToClassic={isV1User ? handleSwitchToClassic : undefined}
       />
     </View>
   );
