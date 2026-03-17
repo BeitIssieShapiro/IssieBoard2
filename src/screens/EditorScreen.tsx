@@ -26,6 +26,7 @@ import { KeyboardConfig, ProfileDefinition, KeyboardDefinition, VisibilityMode }
 import AddProfileModal from '../../components/AddProfileModal';
 import SaveAsModal from '../../components/SaveAsModal';
 import { ActionButton } from '../components/shared/ActionButton';
+import { useLocalization } from '../localization';
 
 // Import keyboard files
 import enKeyboard from '../../keyboards/en.json';
@@ -82,34 +83,41 @@ interface LanguageDefinition {
   keyboards: { id: string; name: string }[];
 }
 
-const LANGUAGES: LanguageDefinition[] = [
+const getLanguages = (strings: { editor: { languages: { hebrew: string; english: string; arabic: string }; keyboardVariants: { standard: string; orderedHe: string; qwerty: string; orderedEn: string; orderedAr: string } } }): LanguageDefinition[] => [
   {
     id: 'he',
-    name: 'Hebrew',
+    name: strings.editor.languages.hebrew,
     nativeName: 'עברית',
     keyboards: [
-      { id: 'he', name: 'Standard' },
-      { id: 'he_ordered', name: 'Ordered (א-ב)' },
+      { id: 'he', name: strings.editor.keyboardVariants.standard },
+      { id: 'he_ordered', name: strings.editor.keyboardVariants.orderedHe },
     ],
   },
   {
     id: 'en',
-    name: 'English',
+    name: strings.editor.languages.english,
     nativeName: 'English',
     keyboards: [
-      { id: 'en', name: 'QWERTY' },
-      { id: 'en_ordered', name: 'Ordered (ABC)' },
+      { id: 'en', name: strings.editor.keyboardVariants.qwerty },
+      { id: 'en_ordered', name: strings.editor.keyboardVariants.orderedEn },
     ],
   },
   {
     id: 'ar',
-    name: 'Arabic',
+    name: strings.editor.languages.arabic,
     nativeName: 'العربية',
     keyboards: [
-      { id: 'ar', name: 'Standard' },
-      { id: 'ar_ordered', name: 'Ordered (أبج)' },
+      { id: 'ar', name: strings.editor.keyboardVariants.standard },
+      { id: 'ar_ordered', name: strings.editor.keyboardVariants.orderedAr },
     ],
   },
+];
+
+// Static language definitions for utility code that doesn't need localized display names
+const LANGUAGES_STATIC: { id: LanguageId; keyboards: { id: string }[] }[] = [
+  { id: 'he', keyboards: [{ id: 'he' }, { id: 'he_ordered' }] },
+  { id: 'en', keyboards: [{ id: 'en' }, { id: 'en_ordered' }] },
+  { id: 'ar', keyboards: [{ id: 'ar' }, { id: 'ar_ordered' }] },
 ];
 
 // Available keyboards by ID
@@ -453,6 +461,8 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   onCreateNew,
   onSwitchToClassic,
 }) => {
+  const { strings } = useLocalization();
+  const LANGUAGES = getLanguages(strings);
   const { state, setMode, setConfig, markDirty, dispatch } = useEditor();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [testText, setTestText] = useState('');
@@ -637,21 +647,21 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
 
         // Show confirmation dialog
         Alert.alert(
-          'Reset to Factory Defaults',
-          'This will clear all keyboard settings and profiles. Are you sure?',
+          strings.alerts.resetToFactory,
+          strings.alerts.clearAllSettings,
           [
             {
-              text: 'Cancel',
+              text: strings.common.cancel,
               style: 'cancel',
             },
             {
-              text: 'Reset',
+              text: strings.common.reset,
               style: 'destructive',
               onPress: async () => {
                 try {
                   const result = await KeyboardPreferences.clearAll();
                   if (result.success) {
-                    showToast('✓ Reset to factory defaults');
+                    showToast('✓ ' + strings.alerts.resetToFactory);
                     // Reload to factory defaults
                     const defaultKeyboardId = currentLanguageDef.keyboards[0].id;
                     const profileDef = createFactoryDefaultProfile(
@@ -665,11 +675,11 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
                     // Reload profiles list
                     await loadProfilesList();
                   } else {
-                    showToast('✗ Failed to reset');
+                    showToast('✗ ' + strings.common.error);
                   }
                 } catch (e) {
                   console.error('Reset error:', e);
-                  showToast('✗ Failed to reset');
+                  showToast('✗ ' + strings.common.error);
                 }
               },
             },
@@ -750,32 +760,32 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
           console.log(`📱 Template ${templateId} not found, using factory defaults`);
           const profileDef = createFactoryDefaultProfile(
             defaultProfileId,
-            'Default',
+            strings.common.default,
             newLanguage,
             firstKeyboardId
           );
           const newConfig = buildConfiguration(profileDef);
           setConfig(newConfig, []);
-          setCurrentProfileName('Default');
+          setCurrentProfileName(strings.common.default);
           setCurrentProfileId(defaultProfileId);
           setCurrentKeyboardId(firstKeyboardId);
-          onProfileChange(defaultProfileId, 'Default', newLanguage, firstKeyboardId);
+          onProfileChange(defaultProfileId, strings.common.default, newLanguage, firstKeyboardId);
         }
       } else {
         console.log(`📱 No ${effectiveActiveProfile} profile found, using factory defaults`);
         // No saved profile - use factory defaults
         const profileDef = createFactoryDefaultProfile(
           defaultProfileId,
-          'Default',
+          strings.common.default,
           newLanguage,
           firstKeyboardId
         );
         const newConfig = buildConfiguration(profileDef);
         setConfig(newConfig, []);
-        setCurrentProfileName('Default');
+        setCurrentProfileName(strings.common.default);
         setCurrentProfileId(defaultProfileId);
         setCurrentKeyboardId(firstKeyboardId);
-        onProfileChange(defaultProfileId, 'Default', newLanguage, firstKeyboardId);
+        onProfileChange(defaultProfileId, strings.common.default, newLanguage, firstKeyboardId);
       }
     }
 
@@ -822,12 +832,12 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     setSaving(true);
     try {
       await onSave(state.config, state.styleGroups);
-      showToast('✓ Saved successfully');
+      showToast('✓ ' + strings.alerts.profileSaved);
       // Mark as saved (not dirty) since we just saved
       dispatch({ type: 'MARK_SAVED' });
     } catch (error) {
       console.error('Save failed:', error);
-      showToast('✗ Save failed');
+      showToast('✗ ' + strings.alerts.failedToSaveProfile);
     } finally {
       setSaving(false);
     }
@@ -913,7 +923,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       setShowSaveAsModal(false);
 
       // Show success message
-      showToast(`✓ Saved as "${newName}" and set as active`);
+      showToast(`✓ ${strings.alerts.savedChangesTo} "${newName}"`);
 
       // Run pending action after Save As (e.g., switch to classic view)
       if (afterSaveAsRef.current) {
@@ -931,7 +941,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
 
       return true;
     } catch (error) {
-      showToast('✗ Failed to save profile');
+      showToast('✗ ' + strings.alerts.failedToSaveProfile);
       return false;
     }
   }, [state.config, state.styleGroups, currentLanguage, currentKeyboardId, setConfig, onProfileChange, dispatch, loadProfilesList, showToast]);
@@ -985,12 +995,12 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     // Check if there are unsaved changes
     if (state.isDirty) {
       Alert.alert(
-        'Unsaved Changes',
-        'You have unsaved changes. What would you like to do?',
+        strings.alerts.unsavedChanges,
+        strings.alerts.unsavedChangesMessage,
         [
-          { text: 'Cancel', style: 'cancel' },
+          { text: strings.common.cancel, style: 'cancel' },
           {
-            text: 'Discard',
+            text: strings.alerts.discard,
             style: 'destructive',
             onPress: () => {
               setShowProfilePicker(false);
@@ -998,7 +1008,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
             }
           },
           {
-            text: 'Save First',
+            text: strings.alerts.saveFirst,
             onPress: async () => {
               await handleSave();
               setShowProfilePicker(false);
@@ -1074,7 +1084,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       setCurrentKeyboardId(profile.keyboardId);
       onProfileChange(profile.id, profile.name, profile.language, profile.keyboardId);
     } else {
-      Alert.alert('Error', 'Failed to load profile');
+      Alert.alert(strings.common.error, strings.alerts.failedToLoadProfile);
     }
   }, [setConfig, onProfileChange]);
 
@@ -1084,9 +1094,9 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     setSettingActive(true);
     try {
       await onSetActive();
-      showToast('✓ Set as active keyboard');
+      showToast('✓ ' + strings.alerts.profileUpdated);
     } catch (error) {
-      showToast('✗ Failed to set active');
+      showToast('✗ ' + strings.alerts.failedToSwitchProfile);
     } finally {
       setSettingActive(false);
     }
@@ -1094,12 +1104,12 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
 
   const handleDiscard = useCallback(async () => {
     Alert.alert(
-      'Discard Changes',
-      'Are you sure you want to discard all unsaved changes?',
+      strings.alerts.discardChanges,
+      strings.alerts.discardChangesMessage,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: strings.common.cancel, style: 'cancel' },
         {
-          text: 'Discard',
+          text: strings.alerts.discard,
           style: 'destructive',
           onPress: async () => {
             // Reload the current profile from saved state
@@ -1107,7 +1117,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
             if (loaded) {
               const config = buildConfiguration(loaded.profileDef);
               setConfig(config, loaded.styleGroups);
-              showToast('✓ Changes discarded');
+              showToast('✓ ' + strings.alerts.editCancelled);
             } else {
               // Profile not saved yet - load factory defaults
               const langDef = LANGUAGES.find(l => l.id === currentLanguage);
@@ -1120,7 +1130,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
               );
               const config = buildConfiguration(profileDef);
               setConfig(config, []);
-              showToast('✓ Changes discarded');
+              showToast('✓ ' + strings.alerts.editCancelled);
             }
           }
         },
@@ -1130,23 +1140,23 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
 
   const handleClearConfig = useCallback(async () => {
     Alert.alert(
-      'Clear All Settings',
-      'This will clear all keyboard settings and profiles. The keyboard will use its bundled default config.',
+      strings.alerts.clearAll,
+      strings.alerts.clearAllSettings,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: strings.common.cancel, style: 'cancel' },
         {
-          text: 'Clear All',
+          text: strings.alerts.clearAll,
           style: 'destructive',
           onPress: async () => {
             try {
               const result = await KeyboardPreferences.clearAll();
               if (result.success) {
-                showToast('✓ All settings cleared');
+                showToast('✓ ' + strings.alerts.clearAll);
               } else {
-                showToast('✗ Failed to clear settings');
+                showToast('✗ ' + strings.common.error);
               }
             } catch (error) {
-              showToast('✗ Failed to clear settings');
+              showToast('✗ ' + strings.common.error);
             }
           }
         },
@@ -1157,28 +1167,28 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   const handleDeleteProfile = useCallback(async (profileToDelete: ProfileOption) => {
     // Don't allow deleting the default profile
     if (profileToDelete.isBuiltIn) {
-      Alert.alert('Cannot Delete', 'The default profile cannot be deleted.');
+      Alert.alert(strings.alerts.cannotDelete, strings.alerts.cannotDeleteDefault);
       return;
     }
 
     // Don't allow deleting the active profile
     if (profileToDelete.isSystemActive) {
-      Alert.alert('Cannot Delete', 'Cannot delete the active keyboard profile. Please activate a different profile first.');
+      Alert.alert(strings.alerts.cannotDelete, strings.alerts.cannotDeleteActive);
       return;
     }
 
     Alert.alert(
-      'Delete an IssieBoard',
-      `Are you sure you want to delete "${profileToDelete.name}"?`,
+      strings.alerts.deleteProfile,
+      strings.alerts.deleteConfirm.replace('{{name}}', profileToDelete.name),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: strings.common.cancel, style: 'cancel' },
         {
-          text: 'Delete',
+          text: strings.common.delete,
           style: 'destructive',
           onPress: async () => {
             try {
               await onDelete(profileToDelete.id, profileToDelete.name);
-              showToast(`✓ Deleted "${profileToDelete.name}"`);
+              showToast(`✓ ${strings.alerts.deleted} "${profileToDelete.name}"`);
               await loadProfilesList();
 
               // If we deleted the currently selected profile, switch to default
@@ -1195,7 +1205,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
                 }
               }
             } catch (error) {
-              showToast('✗ Failed to delete profile');
+              showToast('✗ ' + strings.alerts.failedToDeleteProfile);
             }
           }
         },
@@ -1205,7 +1215,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
 
   const handleDuplicate = useCallback(async () => {
     if (!duplicateName.trim()) {
-      Alert.alert('Error', 'Please enter a name for the new profile');
+      Alert.alert(strings.common.error, strings.alerts.enterProfileName);
       return;
     }
 
@@ -1268,11 +1278,11 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       // Mark as saved since we just saved
       dispatch({ type: 'MARK_SAVED' });
 
-      showToast(`✓ Created "${newName}"`);
+      showToast(`✓ ${strings.alerts.profileSaved} "${newName}"`);
       await loadProfilesList();
       setDuplicateName('');
     } catch (error) {
-      showToast('✗ Failed to duplicate profile');
+      showToast('✗ ' + strings.alerts.failedToSaveProfile);
     }
   }, [duplicateName, state.config, state.styleGroups, currentLanguage, currentKeyboardId, setConfig, onProfileChange, dispatch, showToast, loadProfilesList]);
 
@@ -1287,11 +1297,11 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       setCurrentProfileName(name);
       setCurrentLanguage(lang);
       setCurrentKeyboardId(kbId);
-      showToast(`✓ Created "${name}"`);
+      showToast(`✓ ${strings.alerts.profileSaved} "${name}"`);
       await loadProfilesList();
       return true;
     } catch (error) {
-      showToast('✗ Failed to create profile');
+      showToast('✗ ' + strings.alerts.failedToSaveProfile);
       return false;
     }
   }, [onCreateNew, showToast, loadProfilesList]);
@@ -1299,11 +1309,11 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   const handleSetActiveForProfile = useCallback(async (profile: ProfileOption) => {
     try {
       await onSetActiveForProfile(profile.id);
-      showToast(`✓ "${profile.name}" is now active`);
+      showToast(`✓ ${strings.status.switchedTo} "${profile.name}"`);
       await loadProfilesList();
     } catch (error) {
       console.error('Failed to set active profile:', error);
-      showToast('✗ Failed to set active');
+      showToast('✗ ' + strings.alerts.failedToSwitchProfile);
     }
   }, [onSetActiveForProfile, showToast, loadProfilesList]);
 
@@ -1362,13 +1372,13 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <View style={styles.duplicateModalContainer}>
-            <Text allowFontScaling={false} style={styles.duplicateModalTitle}>Duplicate Profile</Text>
+            <Text allowFontScaling={false} style={styles.duplicateModalTitle}>{strings.editor.duplicateProfile}</Text>
             <Text allowFontScaling={false} style={styles.duplicateModalSubtitle}>
-              Create a copy of "{currentProfileName}"
+              {strings.editor.duplicateProfile}: "{currentProfileName}"
             </Text>
             <TextInput
               style={styles.duplicateInput}
-              placeholder="New profile name..."
+              placeholder={strings.editor.newProfilePlaceholder}
               value={duplicateName}
               onChangeText={setDuplicateName}
               autoFocus
@@ -1381,13 +1391,13 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
                   setDuplicateName('');
                 }}
               >
-                <Text allowFontScaling={false} style={styles.duplicateCancelText}>Cancel</Text>
+                <Text allowFontScaling={false} style={styles.duplicateCancelText}>{strings.common.cancel}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.duplicateConfirmButton}
                 onPress={handleDuplicate}
               >
-                <Text allowFontScaling={false} style={styles.duplicateConfirmText}>Create</Text>
+                <Text allowFontScaling={false} style={styles.duplicateConfirmText}>{strings.common.create}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1413,13 +1423,13 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
             <View style={styles.profilePickerHeader}>
               <Text allowFontScaling={false} style={styles.profilePickerTitle}>
                 {appContext === 'issievoice'
-                  ? `My ${currentLanguageDef.name} Keyboards`
-                  : `My ${currentLanguageDef.name} IssieBoards`}
+                  ? `${strings.editor.myKeyboards} - ${currentLanguageDef.name}`
+                  : `${strings.editor.myKeyboards} - ${currentLanguageDef.name}`}
               </Text>
               <View style={styles.profilePickerHeaderActions}>
                 {/* Add New Profile Button */}
                 <ActionButton
-                  label="+ New"
+                  label={`+ ${strings.editor.newProfile}`}
                   color="green"
                   onPress={() => {
                     setShowProfilePicker(false);
@@ -1438,8 +1448,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
 
             {profiles.length === 0 ? (
               <Text allowFontScaling={false} style={styles.noProfilesText}>
-                No saved profiles for {currentLanguageDef.name}.
-                {'\n'}Create one to customize your keyboard.
+                {strings.alerts.profileNotFound} - {currentLanguageDef.name}
               </Text>
             ) : (
               <FlatList
@@ -1467,13 +1476,13 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
                         {/* Built-in badge */}
                         {item.isBuiltIn && (
                           <View style={styles.readOnlyBadge}>
-                            <Text allowFontScaling={false} style={styles.readOnlyBadgeText}>Built-in</Text>
+                            <Text allowFontScaling={false} style={styles.readOnlyBadgeText}>{strings.editor.builtIn}</Text>
                           </View>
                         )}
                         {/* Active badge */}
                         {item.isSystemActive && (
                           <View style={styles.systemActiveBadge}>
-                            <Text allowFontScaling={false} style={styles.systemActiveBadgeText}>⚡ Active</Text>
+                            <Text allowFontScaling={false} style={styles.systemActiveBadgeText}>⚡ {strings.profiles.current}</Text>
                           </View>
                         )}
                       </View>
@@ -1484,14 +1493,14 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
                       {/* Delete button - only for custom profiles */}
                       {!item.isBuiltIn && (
                         <ActionButton
-                          label="Delete"
+                          label={strings.common.delete}
                           color="red"
                           onPress={() => handleDeleteProfile(item)}
                         />
                       )}
                       {/* Select button - always show, makes it active and loads for editing */}
                       <ActionButton
-                        label="Select"
+                        label={strings.editor.select}
                         color="blue"
                         onPress={() => {
                           // First make it active
@@ -1515,10 +1524,10 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
           <Text style={styles.languageBarIcon}>⌨️</Text>
           <Text allowFontScaling={false} style={styles.languageBarTitleText}>
             {windowWidth < 700
-              ? 'Settings'
+              ? strings.editor.settings
               : appContext === 'issievoice'
-                ? 'IssieVoice Keyboard Settings'
-                : 'IssieBoard Settings'}
+                ? `IssieVoice ${strings.editor.settings}`
+                : `IssieBoard ${strings.editor.settings}`}
           </Text>
         </View>
         <View style={styles.languageTabs}>
@@ -1547,12 +1556,12 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
             onPress={() => {
               if (state.isDirty) {
                 Alert.alert(
-                  'Unsaved Changes',
-                  'You have unsaved changes. Save before switching to Classic View?',
+                  strings.alerts.unsavedChanges,
+                  strings.alerts.unsavedChangesMessage,
                   [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Discard', style: 'destructive', onPress: onSwitchToClassic },
-                    { text: 'Save', onPress: async () => {
+                    { text: strings.common.cancel, style: 'cancel' },
+                    { text: strings.alerts.discard, style: 'destructive', onPress: onSwitchToClassic },
+                    { text: strings.common.save, onPress: async () => {
                       const currentProfile = profiles.find(p => p.id === currentProfileId);
                       if (currentProfile?.isBuiltIn) {
                         afterSaveAsRef.current = onSwitchToClassic;
@@ -1569,7 +1578,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
               }
             }}
           >
-            <Text allowFontScaling={false} style={styles.classicViewButtonText}>Classic View</Text>
+            <Text allowFontScaling={false} style={styles.classicViewButtonText}>{strings.editor.classicView}</Text>
           </TouchableOpacity>
         )}
         {/* Close button for IssieVoice */}
@@ -1595,7 +1604,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
             <Text allowFontScaling={false} style={styles.profileIcon}>⌨️</Text>
             <View style={{ flexDirection: "row" }}>
               <Text allowFontScaling={false} style={styles.profileSectionLabel}>
-                {appContext === 'issievoice' ? 'Active Keyboard:' : 'Active IssieBoard:'}
+                {strings.profiles.current}
               </Text>
               <TouchableOpacity onPress={handleTitleTap} activeOpacity={1}>
                 <Text allowFontScaling={false} style={styles.profileName}>{currentProfileName}</Text>
@@ -1612,7 +1621,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
             >
               <Text allowFontScaling={false} style={styles.exploreButtonIcon}>📋</Text>
               <Text allowFontScaling={false} style={styles.exploreButtonText}>
-                {appContext === 'issievoice' ? 'My Keyboards' : 'My IssieBoards'}
+                {strings.editor.myKeyboards}
               </Text>
             </TouchableOpacity>
 
@@ -1629,7 +1638,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
                   <>
                     <Text allowFontScaling={false} style={styles.profileSaveButtonIcon}>💾</Text>
                     <Text allowFontScaling={false} style={styles.profileSaveButtonText}>
-                      {profiles.find(p => p.id === currentProfileId)?.isBuiltIn ? 'Save As...' : 'Save'}
+                      {profiles.find(p => p.id === currentProfileId)?.isBuiltIn ? `${strings.editor.saveAs}...` : strings.common.save}
                     </Text>
                   </>
                 )}
@@ -1686,6 +1695,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
   onClose,
   onSwitchToClassic,
 }) => {
+  const { strings } = useLocalization();
   const [loading, setLoading] = useState(true);
   const [initialConfig, setInitialConfig] = useState<KeyboardConfig | null>(null);
   const [initialStyleGroups, setInitialStyleGroups] = useState<any[]>([]);
@@ -1742,7 +1752,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
         setCurrentLanguage(savedLanguage);
 
         // Get the first keyboard for this language
-        const langDef = LANGUAGES.find(l => l.id === savedLanguage) || LANGUAGES[0];
+        const langDef = LANGUAGES_STATIC.find(l => l.id === savedLanguage) || LANGUAGES_STATIC[0];
         const defaultKeyboardId = langDef.keyboards[0].id;
 
         // Get active profile for this language and app context
@@ -1777,7 +1787,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
           // Create the profile definition (won't save until user saves)
           const profileDef = createFactoryDefaultProfile(
             defaultProfileId,
-            'Default',
+            strings.common.default,
             savedLanguage,
             defaultKeyboardId
           );
@@ -1786,7 +1796,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
           setInitialConfig(config);
           setInitialStyleGroups([]);
           setCurrentProfileId(defaultProfileId);
-          setProfileName('Default');
+          setProfileName(strings.common.default);
           setCurrentKeyboardId(defaultKeyboardId);
         }
 
@@ -2071,7 +2081,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
       if (templateId) {
         console.log(`📱 Built-in profile ${profileIdToActivate} not saved yet, loading from template: ${templateId}`);
         // Get the first keyboard for this language
-        const langDef = LANGUAGES.find(l => l.id === currentLanguage);
+        const langDef = LANGUAGES_STATIC.find(l => l.id === currentLanguage);
         const firstKeyboardId = langDef?.keyboards[0]?.id || currentLanguage;
 
         const template = getBuiltInProfileTemplate(templateId);
@@ -2125,7 +2135,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
           // Template not found - fallback to factory defaults
           const profileDef = createFactoryDefaultProfile(
             profileIdToActivate,
-            'Default',
+            strings.common.default,
             currentLanguage,
             firstKeyboardId
           );
@@ -2197,7 +2207,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#2196F3" />
-        <Text allowFontScaling={false} style={styles.loadingText}>Loading...</Text>
+        <Text allowFontScaling={false} style={styles.loadingText}>{strings.common.loading}</Text>
       </View>
     );
   }
