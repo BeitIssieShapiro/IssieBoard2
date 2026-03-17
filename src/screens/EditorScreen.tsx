@@ -623,7 +623,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     }
 
     setProfiles(profileList);
-  }, [currentLanguage, activeKeyboardProfileId]);
+  }, [currentLanguage, activeKeyboardProfileId, LANGUAGES]);
 
   // Load profiles when language changes
   useEffect(() => {
@@ -697,7 +697,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         return newTapCount; // Return incremented count
       }
     });
-  }, [tapTimeout, currentLanguageDef, currentProfileId, currentProfileName, currentLanguage, setConfig, showToast, loadProfilesList]);
+  }, [tapTimeout, currentLanguageDef, currentProfileId, currentProfileName, currentLanguage, setConfig, showToast, loadProfilesList, strings.alerts.clearAllSettings, strings.alerts.resetToFactory, strings.common.cancel, strings.common.error, strings.common.reset]);
 
   // Handle language change - try to load the ACTIVE profile for that language
   const handleLanguageChange = useCallback(async (newLanguage: LanguageId) => {
@@ -790,7 +790,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     }
 
     onLanguageChange(newLanguage);
-  }, [setConfig, onLanguageChange, onProfileChange, appContext]);
+  }, [setConfig, onLanguageChange, onProfileChange, appContext, LANGUAGES, strings.common.default]);
 
   // Listen for launch keyboard events from native (Darwin notification)
   useEffect(() => {
@@ -841,7 +841,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     } finally {
       setSaving(false);
     }
-  }, [state.config, state.styleGroups, onSave, showToast, currentProfileId, profiles, dispatch]);
+  }, [state.config, state.styleGroups, onSave, showToast, currentProfileId, profiles, dispatch, strings.alerts.profileSaved, strings.alerts.failedToSaveProfile]);
 
   const handleSaveAs = useCallback(async (newName: string): Promise<boolean> => {
     try {
@@ -944,7 +944,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       showToast('✗ ' + strings.alerts.failedToSaveProfile);
       return false;
     }
-  }, [state.config, state.styleGroups, currentLanguage, currentKeyboardId, setConfig, onProfileChange, dispatch, loadProfilesList, showToast]);
+  }, [state.config, state.styleGroups, currentLanguage, currentKeyboardId, setConfig, onProfileChange, dispatch, loadProfilesList, showToast, appContext, onClose, strings.alerts.failedToSaveProfile, strings.alerts.savedChangesTo]);
 
   const handleKeyboardChange = useCallback((newKeyboardId: string) => {
     console.log(`📱 handleKeyboardChange: switching to ${newKeyboardId}, keeping profile ${currentProfileId}`);
@@ -1022,7 +1022,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
 
     setShowProfilePicker(false);
     loadProfileInternal(profile);
-  }, [state.isDirty, handleSave]);
+  }, [state.isDirty, handleSave, strings.alerts.discard, strings.alerts.saveFirst, strings.alerts.unsavedChanges, strings.alerts.unsavedChangesMessage, strings.common.cancel]);
 
   const loadProfileInternal = useCallback(async (profile: ProfileOption) => {
     const loaded = await loadProfileById(profile.id);
@@ -1086,7 +1086,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     } else {
       Alert.alert(strings.common.error, strings.alerts.failedToLoadProfile);
     }
-  }, [setConfig, onProfileChange]);
+  }, [setConfig, onProfileChange, strings.common.error, strings.alerts.failedToLoadProfile]);
 
   // Update handleLoadProfile's dependency now that loadProfileInternal exists
 
@@ -1100,7 +1100,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     } finally {
       setSettingActive(false);
     }
-  }, [onSetActive, showToast]);
+  }, [onSetActive, showToast, strings.alerts.profileUpdated, strings.alerts.failedToSwitchProfile]);
 
   const handleDiscard = useCallback(async () => {
     Alert.alert(
@@ -1136,7 +1136,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         },
       ]
     );
-  }, [currentProfileId, currentLanguage, currentProfileName, setConfig, showToast]);
+  }, [currentProfileId, currentLanguage, currentProfileName, setConfig, showToast, LANGUAGES, strings.alerts.discard, strings.alerts.discardChanges, strings.alerts.discardChangesMessage, strings.alerts.editCancelled, strings.common.cancel]);
 
   const handleClearConfig = useCallback(async () => {
     Alert.alert(
@@ -1162,7 +1162,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         },
       ]
     );
-  }, [showToast]);
+  }, [showToast, strings.alerts.clearAll, strings.alerts.clearAllSettings, strings.common.cancel, strings.common.error]);
 
   const handleDeleteProfile = useCallback(async (profileToDelete: ProfileOption) => {
     // Don't allow deleting the default profile
@@ -1211,7 +1211,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         },
       ]
     );
-  }, [currentProfileId, currentLanguage, onDelete, showToast, loadProfilesList, setConfig, onProfileChange]);
+  }, [currentProfileId, currentLanguage, onDelete, showToast, loadProfilesList, setConfig, onProfileChange, strings.alerts.cannotDelete, strings.alerts.cannotDeleteActive, strings.alerts.cannotDeleteDefault, strings.alerts.deleteConfirm, strings.alerts.deleteProfile, strings.alerts.deleted, strings.alerts.failedToDeleteProfile, strings.common.cancel, strings.common.delete]);
 
   const handleDuplicate = useCallback(async () => {
     if (!duplicateName.trim()) {
@@ -1284,7 +1284,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     } catch (error) {
       showToast('✗ ' + strings.alerts.failedToSaveProfile);
     }
-  }, [duplicateName, state.config, state.styleGroups, currentLanguage, currentKeyboardId, setConfig, onProfileChange, dispatch, showToast, loadProfilesList]);
+  }, [duplicateName, state.config, state.styleGroups, currentLanguage, currentKeyboardId, setConfig, onProfileChange, dispatch, showToast, loadProfilesList, strings.alerts.enterProfileName, strings.alerts.failedToSaveProfile, strings.alerts.profileSaved, strings.common.error]);
 
   const handleCreateNewProfile = useCallback(async (name: string, lang: LanguageId, kbId: string): Promise<boolean> => {
     setShowAddProfileModal(false);
@@ -1304,7 +1304,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       showToast('✗ ' + strings.alerts.failedToSaveProfile);
       return false;
     }
-  }, [onCreateNew, showToast, loadProfilesList]);
+  }, [onCreateNew, showToast, loadProfilesList, strings.alerts.failedToSaveProfile, strings.alerts.profileSaved]);
 
   const handleSetActiveForProfile = useCallback(async (profile: ProfileOption) => {
     try {
@@ -1315,7 +1315,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       console.error('Failed to set active profile:', error);
       showToast('✗ ' + strings.alerts.failedToSwitchProfile);
     }
-  }, [onSetActiveForProfile, showToast, loadProfilesList]);
+  }, [onSetActiveForProfile, showToast, loadProfilesList, strings.alerts.failedToSwitchProfile, strings.status.switchedTo]);
 
   const handleTestInput = useCallback((char: string) => {
     if (char === '\b' || char === 'backspace') {
@@ -1822,7 +1822,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
     };
 
     loadInitial();
-  }, [propProfileId, propInitialLanguage, appContext]);
+  }, [propProfileId, propInitialLanguage, appContext, strings.common.default]);
 
   const handleSave = useCallback(async (config: KeyboardConfig, styleGroups: any[]) => {
     // Always use the current profile ID (which should always be set)
@@ -2157,7 +2157,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
     await KeyboardPreferences.setProfile(profileIdToActivate, activeProfileKey);
     setActiveKeyboardProfileId(profileIdToActivate);
     console.log(`✅ Set ${profileIdToActivate} as active profile for ${currentLanguage} (${appContext})`);
-  }, [currentLanguage, appContext]);
+  }, [currentLanguage, appContext, strings.common.default]);
 
   const handleCreateNew = useCallback(async (name: string, language: LanguageId, keyboardId: string) => {
     const newProfileId = `custom_${Date.now()}`;

@@ -52,7 +52,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
   const [keyboardConfig, setKeyboardConfig] = useState<string>('');
   const [kbSuggestions, setKbSuggestions] = useState<string[]>([]);
   const [keyboardHeight, setKeyboardHeight] = useState(350);
-  const [currentLanguage, setCurrentLanguage] = useState<'en' | 'he'>(deviceLanguage);
+  const [currentLanguage, setCurrentLanguage] = useState<'en' | 'he'>(deviceLanguage === 'ar' ? 'he' : deviceLanguage);
   const [languageMode, setLanguageMode] = useState<'en-only' | 'he-only' | 'detect'>('detect');
   const [englishVoice, setEnglishVoice] = useState<string | undefined>(undefined);
   const [hebrewVoice, setHebrewVoice] = useState<string | undefined>(undefined);
