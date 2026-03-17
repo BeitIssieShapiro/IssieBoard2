@@ -40,6 +40,7 @@
         },
         {
           "keys": [
+            { "width": 0.5, "hidden": true},
             { "value": "ش" }, { "value": "س" }, { "value": "ي" }, { "value": "ب" }, { "value": "ل" }, 
             { "value": "ا" }, { "value": "ت" }, { "value": "ن" }, { "value": "م" }, { "value": "ك" }, 
             { "value": "ط" }
@@ -59,7 +60,7 @@
             { "type": "next-keyboard"},
             { "type": "keyset", "keysetValue": "123", "returnKeysetValue": "abc", "label": "123", "returnKeysetLabel": "أبج", "width": 1.5  },
             { "type": "settings" },
-            { "caption": "مسافة", "value": " ", "width": 4 },
+            { "caption": "مسافة", "value": " ", "width": 4, "flex": true},
             { "value": ".", "sValue": "،" },
             { "type": "nikkud" },
             { "type": "close" , "showOn": [ "large-screen" ] },

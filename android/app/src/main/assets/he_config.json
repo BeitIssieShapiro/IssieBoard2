@@ -343,7 +343,7 @@
             },
             {
               "hidden": true,
-              "width": 0.5,
+              "width": 0.25,
               "showOn": [
                 "large-screen"
               ]
@@ -356,6 +356,13 @@
               "value": " ",
               "width": 4,
               "flex": true
+            },
+            {
+              "hidden": true,
+              "width": 0.5,
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "type": "nikkud"
@@ -502,7 +509,7 @@
             },
             {
               "hidden": true,
-              "width": 0.5,
+              "width": 0.25,
               "showOn": [
                 "large-screen"
               ]
@@ -515,6 +522,13 @@
               "value": " ",
               "width": 4,
               "flex": true
+            },
+            {
+              "hidden": true,
+              "width": 0.5,
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "type": "nikkud"
@@ -663,7 +677,7 @@
             },
             {
               "hidden": true,
-              "width": 0.5,
+              "width": 0.25,
               "showOn": [
                 "large-screen"
               ]
@@ -676,6 +690,13 @@
               "value": " ",
               "width": 4,
               "flex": true
+            },
+            {
+              "hidden": true,
+              "width": 0.5,
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "type": "nikkud"

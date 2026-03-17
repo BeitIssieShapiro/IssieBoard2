@@ -933,14 +933,18 @@ class KeyboardRenderer(private val context: Context) {
         // Get current field type for showForField filtering
         val fieldType = editorContext?.fieldType
         
-        // FIRST PASS: Calculate hidden width and count flex keys
-        // We redistribute:
-        // 1. showForField hidden keys (field type conditional)
-        // 2. showOn hidden SPACERS (hidden=true with showOn filter - these are layout tools)
-        // We DON'T redistribute showOn hidden REAL keys (they're in baseline, create fixed gaps)
+        // FIRST PASS: Calculate hidden width, count flex keys, and sum visible row width
+        // We redistribute width from:
+        // 1. Keys hidden by showForField (these ARE in baseline)
+        // 2. next-keyboard when showGlobeButton is false (this IS in baseline)
+        // 3. language when hasOnlyOneLanguage is true (this IS in baseline)
+        // 4. The gap between this row's visible width and the baseline (widest row)
+        // showOn-hidden keys are NOT in baseline, so they don't add to hiddenWidth directly,
+        // but the row may be narrower than baseline, and flex keys should absorb that gap.
         var hiddenWidthToRedistribute = 0.0
         var flexKeyCount = 0
-        
+        var visibleRowWidth = 0.0
+
         for (key in row.keys) {
             val parsedKey = ParsedKey.from(key, groups, getDefaultTextColor(), getDefaultKeyBgColor())
 
@@ -956,36 +960,40 @@ class KeyboardRenderer(private val context: Context) {
                 hiddenWidthToRedistribute += parsedKey.width
                 continue
             }
-            
+
             // Skip nikkud key if disabled
             if (keyType == "nikkud" && isNikkudDisabled) {
                 continue
             }
-            
-            // Check keys hidden by showOn filter (screen size)
+
+            // Skip keys hidden by showOn filter - these are NOT in baseline, so don't count them
             if (!key.shouldShow(isLargeScreen)) {
-                // For showOn hidden keys:
-                // - If it's a spacer (parsedKey.hidden), redistribute its width (layout tool)
-                // - If it's a real key, don't redistribute (it's in baseline, creates fixed gap)
-                if (parsedKey.hidden) {
-                    hiddenWidthToRedistribute += parsedKey.width
-                }
                 continue
             }
-            
+
             // Check if key is hidden due to showForField filter (field type)
             if (!key.shouldShow(fieldType)) {
                 // Always redistribute showForField hidden widths
                 hiddenWidthToRedistribute += parsedKey.width
                 continue
             }
-            
+
             // Count flex keys
             if (key.flex == true) {
                 flexKeyCount++
             }
+
+            // Sum visible row width (including offsets)
+            visibleRowWidth += parsedKey.width + parsedKey.offset
         }
-        
+
+        // Add the gap between this row's visible width and the baseline to redistribution
+        // This ensures flex keys fill the remaining space when a row is narrower than the widest row
+        val rowGap = baselineWidth.toDouble() - visibleRowWidth - hiddenWidthToRedistribute
+        if (rowGap > 0 && flexKeyCount > 0) {
+            hiddenWidthToRedistribute += rowGap
+        }
+
         // Calculate extra width per flex key
         val extraWidthPerFlexKey = if (flexKeyCount > 0) {
             hiddenWidthToRedistribute / flexKeyCount
@@ -1289,6 +1297,10 @@ class KeyboardRenderer(private val context: Context) {
             }
         }
         
+        // Determine if this is a special key that uses an icon instead of text
+        val isNikkudKey = key.type.lowercase() == "nikkud"
+        val isCloseKey = key.type.lowercase() == "close"
+
         // Create label
         val label = TextView(context).apply {
             gravity = Gravity.CENTER
@@ -1309,9 +1321,8 @@ class KeyboardRenderer(private val context: Context) {
                 else -> getDefaultLabel(key.type, editorContext)
             }
 
-            // For nikkud key, we'll use an ImageView instead of TextView - skip text setup
-            val isNikkudKey = key.type.lowercase() == "nikkud"
-            if (!isNikkudKey) {
+            // For nikkud and close keys, we'll use an ImageView instead of TextView - skip text setup
+            if (!isNikkudKey && !isCloseKey) {
                 text = finalText
 
             // Font size - use preset system (key preset overrides config preset)
@@ -1389,16 +1400,19 @@ class KeyboardRenderer(private val context: Context) {
             }
         }
         
-        // For nikkud key, add ImageView with SVG drawable instead of TextView
-        val isNikkudKey = key.type.lowercase() == "nikkud"
-        if (isNikkudKey) {
-            // Determine which drawable to use based on keyboard language
-            val drawableResId = when (currentKeyboardId) {
-                "he" -> context.resources.getIdentifier("ic_nikkud_hataf_kamatz", "drawable", context.packageName)
-                "ar" -> context.resources.getIdentifier("ic_nikkud_shadda", "drawable", context.packageName)
-                else -> context.resources.getIdentifier("ic_nikkud_hataf_kamatz", "drawable", context.packageName)
+        // For nikkud and close keys, add ImageView with drawable instead of TextView
+        if (isNikkudKey || isCloseKey) {
+            // Determine which drawable to use
+            val drawableResId = if (isCloseKey) {
+                context.resources.getIdentifier("ic_keyboard_hide", "drawable", context.packageName)
+            } else {
+                when (currentKeyboardId) {
+                    "he" -> context.resources.getIdentifier("ic_nikkud_hataf_kamatz", "drawable", context.packageName)
+                    "ar" -> context.resources.getIdentifier("ic_nikkud_shadda", "drawable", context.packageName)
+                    else -> context.resources.getIdentifier("ic_nikkud_hataf_kamatz", "drawable", context.packageName)
+                }
             }
-            
+
             if (drawableResId != 0) {
                 val imageView = android.widget.ImageView(context).apply {
                     setImageResource(drawableResId)
@@ -1406,18 +1420,18 @@ class KeyboardRenderer(private val context: Context) {
                     setColorFilter(if (key.textColor == Color.BLACK) Color.BLACK else key.textColor)
                     scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
                 }
-                
+
+                // Keyboard-hide icon is more complex, use larger size
+                val iconSizeDp = if (isCloseKey) 43 else 24
+
                 visualKeyView.addView(imageView, FrameLayout.LayoutParams(
-                    dpToPx(24),
-                    dpToPx(24)
+                    dpToPx(iconSizeDp),
+                    dpToPx(iconSizeDp)
                 ).apply {
                     gravity = Gravity.CENTER
                 })
-                
-                debugLog("🎨 Added nikkud ImageView with drawable: ${if (currentKeyboardId == "he") "hataf_kamatz" else "shadda"}")
             } else {
                 // Fallback to text if drawable not found
-                debugLog("⚠️ Nikkud drawable not found, falling back to text")
                 visualKeyView.addView(label, FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.MATCH_PARENT,
                     FrameLayout.LayoutParams.MATCH_PARENT

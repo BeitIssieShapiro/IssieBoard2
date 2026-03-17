@@ -927,22 +927,25 @@ class KeyboardRenderer {
         // Get current field type for showForField filtering
         let fieldType = editorContext?.fieldType
         
-        // FIRST PASS: Calculate hidden width to redistribute and count flex keys
+        // FIRST PASS: Calculate hidden width to redistribute, count flex keys, and sum visible row width
         // We redistribute width from:
         // 1. Keys hidden by showForField (these ARE in baseline)
         // 2. next-keyboard when showGlobeButton is false (this IS in baseline)
         // 3. language when hasOnlyOneLanguage is true (this IS in baseline)
-        // We do NOT redistribute from showOn-hidden keys (these are NOT in baseline)
+        // 4. The gap between this row's visible width and the baseline (widest row)
+        // showOn-hidden keys are NOT in baseline, so they don't add to hiddenWidth directly,
+        // but the row may be narrower than baseline, and flex keys should absorb that gap.
         var hiddenWidthToRedistribute: Double = 0
         var flexKeyCount = 0
-        
+        var visibleRowWidth: Double = 0
+
         for key in row.keys {
             let parsedKey = ParsedKey(from: key, groups: groups,
                                      defaultTextColor: getDefaultTextColor(),
                                      defaultBgColor: getDefaultKeyBgColor())
-            
+
             let keyType = parsedKey.type.lowercased()
-            
+
             // Check for hidden language/next-keyboard keys - these ARE in baseline, so redistribute
             // In preview mode, show all keys defined in config (let config decide)
             if keyType == "language" && hasOnlyOneLanguage && !isPreviewMode {
@@ -953,31 +956,41 @@ class KeyboardRenderer {
                 hiddenWidthToRedistribute += parsedKey.width
                 continue
             }
-            
+
             // Check for hidden nikkud key - this IS in baseline, so redistribute
             if keyType == "nikkud" && isNikkudDisabled {
                 hiddenWidthToRedistribute += parsedKey.width
                 continue
             }
-            
+
             // Skip keys hidden by showOn filter - these are NOT in baseline, so don't count them
             if !key.shouldShow(isLargeScreen: isLargeScreen) {
                 continue
             }
-            
+
             // Check if key is hidden due to showForField filter (field type)
             // These keys ARE in baseline, so we need to redistribute their width
             if !key.shouldShow(forFieldType: fieldType) {
                 hiddenWidthToRedistribute += parsedKey.width
                 continue
             }
-            
+
             // Count flex keys (only visible flex keys)
             if key.flex == true {
                 flexKeyCount += 1
             }
+
+            // Sum visible row width (including offsets)
+            visibleRowWidth += parsedKey.width + parsedKey.offset
         }
-        
+
+        // Add the gap between this row's visible width and the baseline to redistribution
+        // This ensures flex keys fill the remaining space when a row is narrower than the widest row
+        let rowGap = Double(baselineWidth) - visibleRowWidth - hiddenWidthToRedistribute
+        if rowGap > 0 && flexKeyCount > 0 {
+            hiddenWidthToRedistribute += rowGap
+        }
+
         // Calculate extra width per flex key
         let extraWidthPerFlexKey: Double = flexKeyCount > 0 ? hiddenWidthToRedistribute / Double(flexKeyCount) : 0
         
@@ -1402,21 +1415,19 @@ class KeyboardRenderer {
             finalFontSize = finalFontSize * currentScale
         }
 
-        // For settings key, use SF Symbol image
-        if key.type.lowercased() == "settings" {
-            if let gearImage = UIImage(systemName: "gearshape.fill") {
-                let imageView = UIImageView(image: gearImage)
+        // For settings and close keys, use SF Symbol images
+        if key.type.lowercased() == "settings" || key.type.lowercased() == "close" {
+            let symbolName = key.type.lowercased() == "settings" ? "gearshape.fill" : "keyboard.chevron.compact.down"
+            if let symbolImage = UIImage(systemName: symbolName) {
+                let imageView = UIImageView(image: symbolImage)
                 imageView.contentMode = .scaleAspectFit
                 imageView.tintColor = textColor  // Use key's text color
                 imageView.isUserInteractionEnabled = false
                 visualKeyView.addSubview(imageView)
                 imageView.translatesAutoresizingMaskIntoConstraints = false
 
-                // Scale icon size based on fontSize - make icon same size as font (100%)
-                // At fontSize 48: icon = 48pt
-                // At fontSize 37: icon = 37pt
-                let iconSize = finalFontSize
-                print("⚙️ Settings icon: finalFontSize=\(finalFontSize), iconSize=\(iconSize)")
+                // Scale icon size: gear is simple so use fontSize, keyboard-hide is complex so use 150%
+                let iconSize = key.type.lowercased() == "close" ? finalFontSize * 1.8 : finalFontSize
 
                 NSLayoutConstraint.activate([
                     imageView.centerXAnchor.constraint(equalTo: visualKeyView.centerXAnchor),

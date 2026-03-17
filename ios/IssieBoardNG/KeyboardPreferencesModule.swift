@@ -275,7 +275,7 @@ class KeyboardPreferencesModule: RCTEventEmitter {
 
         // Check full access status from App Group shared preferences
         let fullAccessValue = preferences.getString(forKey: "fullAccess_\(language)")
-        var hasFullAccess: Any = NSNull()
+        var hasFullAccess: Any = NSNull() 
         if fullAccessValue == "true" {
             hasFullAccess = true
         } else if fullAccessValue == "false" {

@@ -179,7 +179,7 @@
             },
             {
               "hidden": true,
-              "width": 0.5,
+              "width": 0.25,
               "showOn": [
                 "large-screen"
               ]
@@ -192,6 +192,13 @@
               "value": " ",
               "width": 4,
               "flex": true
+            },
+            {
+              "hidden": true,
+              "width": 0.5,
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "type": "nikkud"
@@ -338,7 +345,7 @@
             },
             {
               "hidden": true,
-              "width": 0.5,
+              "width": 0.25,
               "showOn": [
                 "large-screen"
               ]
@@ -351,6 +358,13 @@
               "value": " ",
               "width": 4,
               "flex": true
+            },
+            {
+              "hidden": true,
+              "width": 0.5,
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "type": "nikkud"
@@ -499,7 +513,7 @@
             },
             {
               "hidden": true,
-              "width": 0.5,
+              "width": 0.25,
               "showOn": [
                 "large-screen"
               ]
@@ -512,6 +526,13 @@
               "value": " ",
               "width": 4,
               "flex": true
+            },
+            {
+              "hidden": true,
+              "width": 0.5,
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "type": "nikkud"
@@ -1202,6 +1223,10 @@
         {
           "keys": [
             {
+              "width": 0.5,
+              "hidden": true
+            },
+            {
               "value": "ش"
             },
             {
@@ -1297,7 +1322,8 @@
             {
               "caption": "مسافة",
               "value": " ",
-              "width": 4
+              "width": 4,
+              "flex": true
             },
             {
               "value": ".",
@@ -1446,7 +1472,8 @@
             {
               "caption": "مسافة",
               "value": " ",
-              "width": 4
+              "width": 4,
+              "flex": true
             },
             {
               "value": ".",
@@ -1597,7 +1624,8 @@
             {
               "caption": "مسافة",
               "value": " ",
-              "width": 4
+              "width": 4,
+              "flex": true
             },
             {
               "value": ".",
