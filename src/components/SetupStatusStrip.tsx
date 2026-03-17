@@ -4,15 +4,18 @@ import { useLocalization } from '../localization';
 
 interface SetupStatusStripProps {
   isAdded: boolean | null;
+  languageName: string;
 }
 
-export const SetupStatusStrip: React.FC<SetupStatusStripProps> = ({ isAdded }) => {
+export const SetupStatusStrip: React.FC<SetupStatusStripProps> = ({ isAdded, languageName }) => {
   const { strings } = useLocalization();
 
   // Only show when keyboard is definitively NOT added
   if (isAdded !== false) {
     return null;
   }
+
+  const stripText = strings.setup.keyboardNotAdded.replace('{{language}}', languageName);
 
   const showInstructions = () => {
     const message = [
@@ -32,12 +35,12 @@ export const SetupStatusStrip: React.FC<SetupStatusStripProps> = ({ isAdded }) =
       onPress={showInstructions}
       activeOpacity={0.8}
       accessibilityRole="button"
-      accessibilityLabel={strings.setup.keyboardNotAdded}
+      accessibilityLabel={stripText}
       accessibilityHint={strings.setup.tapForInstructions}
     >
       <Text allowFontScaling={false} style={styles.icon}>&#x26A0;&#xFE0F;</Text>
       <Text allowFontScaling={false} style={styles.text}>
-        {strings.setup.keyboardNotAdded}
+        {stripText}
       </Text>
     </TouchableOpacity>
   );

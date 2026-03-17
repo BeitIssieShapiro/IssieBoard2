@@ -1620,7 +1620,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
 
       {/* Keyboard Setup Status */}
       {appContext !== 'issievoice' && (
-        <SetupStatusStrip isAdded={setupStatus.isAdded} />
+        <SetupStatusStrip isAdded={setupStatus.isAdded} languageName={currentLanguageDef.name} />
       )}
 
       {/* Profile Selection Row */}
@@ -2350,11 +2350,11 @@ const styles = StyleSheet.create({
   },
   setupBadgeDot: {
     position: 'absolute' as const,
-    top: 2,
-    right: 2,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    top: -2,
+    right: -2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
     backgroundColor: '#F59E0B',
   },
   closeButton: {

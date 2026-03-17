@@ -577,7 +577,7 @@ const en: Strings = {
     a11yHidden: 'Toggle visibility: currently hidden',
   },
   setup: {
-    keyboardNotAdded: 'IssieBoard keyboard is not added yet. Tap for setup instructions.',
+    keyboardNotAdded: 'IssieBoard keyboard for {{language}} is not added yet. Tap for setup instructions.',
     tapForInstructions: 'Tap for instructions',
     setupInstructionsTitle: 'Setup Instructions',
     setupStep1: '1. Open the Settings app',
@@ -873,7 +873,7 @@ const he: Strings = {
     a11yHidden: 'החלף נראות: מוסתר כעת',
   },
   setup: {
-    keyboardNotAdded: 'מקלדת IssieBoard עדיין לא הוגדרה. לחצו להוראות הגדרה.',
+    keyboardNotAdded: 'מקלדת IssieBoard ל{{language}} עדיין לא הוגדרה. לחצו להוראות הגדרה.',
     tapForInstructions: 'לחצו להוראות',
     setupInstructionsTitle: 'הוראות הגדרה',
     setupStep1: '1. פתחו את אפליקציית ההגדרות',
@@ -1169,7 +1169,7 @@ const ar: Strings = {
     a11yHidden: 'تبديل الرؤية: مخفي حاليًا',
   },
   setup: {
-    keyboardNotAdded: 'لم تتم إضافة لوحة مفاتيح IssieBoard بعد. اضغط لتعليمات الإعداد.',
+    keyboardNotAdded: 'لم تتم إضافة لوحة مفاتيح IssieBoard لـ{{language}} بعد. اضغط لتعليمات الإعداد.',
     tapForInstructions: 'اضغط للتعليمات',
     setupInstructionsTitle: 'تعليمات الإعداد',
     setupStep1: '1. افتح تطبيق الإعدادات',
