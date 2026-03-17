@@ -14,6 +14,7 @@ import { View, StyleSheet, Linking } from 'react-native';
 import { EditorScreen } from './screens/EditorScreen';
 import { ClassicEditorScreen } from './screens/ClassicEditorScreen';
 import KeyboardPreferences from './native/KeyboardPreferences';
+import { LocalizationProvider } from './localization';
 
 type LanguageId = 'he' | 'en' | 'ar';
 
@@ -189,27 +190,31 @@ export const AppNavigator: React.FC = () => {
 
   if (currentScreen.type === 'classic') {
     return (
-      <View style={styles.container}>
-        <ClassicEditorScreen
-          key={editorKey}
-          initialLanguage={initialLanguage}
-          onSwitchToAdvanced={handleSwitchToAdvanced}
-        />
-      </View>
+      <LocalizationProvider>
+        <View style={styles.container}>
+          <ClassicEditorScreen
+            key={editorKey}
+            initialLanguage={initialLanguage}
+            onSwitchToAdvanced={handleSwitchToAdvanced}
+          />
+        </View>
+      </LocalizationProvider>
     );
   }
 
   const profileId = currentScreen.type === 'editor' ? currentScreen.profileId : undefined;
 
   return (
-    <View style={styles.container}>
-      <EditorScreen
-        key={editorKey}
-        profileId={profileId}
-        initialLanguage={initialLanguage}
-        onSwitchToClassic={isV1User ? handleSwitchToClassic : undefined}
-      />
-    </View>
+    <LocalizationProvider>
+      <View style={styles.container}>
+        <EditorScreen
+          key={editorKey}
+          profileId={profileId}
+          initialLanguage={initialLanguage}
+          onSwitchToClassic={isV1User ? handleSwitchToClassic : undefined}
+        />
+      </View>
+    </LocalizationProvider>
   );
 };
 
