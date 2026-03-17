@@ -289,6 +289,7 @@ export interface Strings {
     setupStep3: string;
     setupStep4: string;
     setupStep5: string;
+    setupStep6: string;
     fullAccessTitle: string;
     fullAccessStep1: string;
     fullAccessStep2: string;
@@ -584,7 +585,8 @@ const en: Strings = {
     setupStep2: '2. Go to General > Keyboard > Keyboards',
     setupStep3: '3. Tap "Add New Keyboard..."',
     setupStep4: '4. Find and select "IssieBoard"',
-    setupStep5: '5. Enable "Allow Full Access" for full functionality',
+    setupStep5: '5. Toggle on the language you want (e.g. "IssieBoard - English")',
+    setupStep6: '6. Tap the > arrow and enable "Allow Full Access"',
     fullAccessTitle: 'Enable Full Access',
     fullAccessStep1: '1. Open Settings > General > Keyboard > Keyboards',
     fullAccessStep2: '2. Tap "IssieBoard"',
@@ -880,7 +882,8 @@ const he: Strings = {
     setupStep2: '2. עברו אל כללי > מקלדת > מקלדות',
     setupStep3: '3. לחצו על "הוסף מקלדת חדשה..."',
     setupStep4: '4. מצאו ובחרו "IssieBoard"',
-    setupStep5: '5. הפעילו "גישה מלאה" לפונקציונליות מלאה',
+    setupStep5: '5. הפעילו את השפה הרצויה (למשל "IssieBoard - עברית")',
+    setupStep6: '6. לחצו על החץ > והפעילו "גישה מלאה"',
     fullAccessTitle: 'הפעלת גישה מלאה',
     fullAccessStep1: '1. פתחו הגדרות > כללי > מקלדת > מקלדות',
     fullAccessStep2: '2. לחצו על "IssieBoard"',
@@ -1176,7 +1179,8 @@ const ar: Strings = {
     setupStep2: '2. انتقل إلى عام > لوحة المفاتيح > لوحات المفاتيح',
     setupStep3: '3. اضغط على "إضافة لوحة مفاتيح جديدة..."',
     setupStep4: '4. ابحث عن "IssieBoard" واختره',
-    setupStep5: '5. فعّل "السماح بالوصول الكامل" للوظائف الكاملة',
+    setupStep5: '5. فعّل اللغة المطلوبة (مثلاً "IssieBoard - العربية")',
+    setupStep6: '6. اضغط على السهم > وفعّل "السماح بالوصول الكامل"',
     fullAccessTitle: 'تفعيل الوصول الكامل',
     fullAccessStep1: '1. افتح الإعدادات > عام > لوحة المفاتيح > لوحات المفاتيح',
     fullAccessStep2: '2. اضغط على "IssieBoard"',

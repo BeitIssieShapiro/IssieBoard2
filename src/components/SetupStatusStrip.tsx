@@ -24,6 +24,7 @@ export const SetupStatusStrip: React.FC<SetupStatusStripProps> = ({ isAdded, lan
       strings.setup.setupStep3,
       strings.setup.setupStep4,
       strings.setup.setupStep5,
+      strings.setup.setupStep6,
     ].join('\n');
 
     Alert.alert(strings.setup.setupInstructionsTitle, message);
