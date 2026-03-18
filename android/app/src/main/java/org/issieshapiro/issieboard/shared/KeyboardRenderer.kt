@@ -1581,12 +1581,12 @@ class KeyboardRenderer(private val context: Context) {
                     true
                 }
             }
-        } else if (keyType == "settings" || keyType == "close") {
-            // Settings and close buttons: selectable in selection mode, functional otherwise
+        } else if (keyType == "settings" || keyType == "close" || keyType == "nikkud") {
+            // Settings, close, and nikkud buttons: selectable in selection mode, functional otherwise
             if (isSelectionMode) {
                 // In selection mode: tap to select for styling
                 buttonContainer.setOnClickListener {
-                    debugLog("⚙️ Settings/Close clicked in selection mode")
+                    debugLog("⚙️ Settings/Close/Nikkud clicked in selection mode")
                     onKeyLongPress?.invoke(key)
                 }
             } else {
@@ -1831,6 +1831,12 @@ class KeyboardRenderer(private val context: Context) {
             }
             
             "nikkud" -> {
+                // In selection mode, emit key press for selection
+                if (onKeyLongPress != null) {
+                    debugLog("   → Selection mode: emitting key press for nikkud")
+                    onKeyPress?.invoke(key)
+                    return
+                }
                 debugLog("   → Handling NIKKUD")
                 nikkudActive = !nikkudActive
                 // Update only the nikkud key's background color without full re-render

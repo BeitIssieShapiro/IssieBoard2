@@ -5,6 +5,7 @@ Android Bugs:
 
 
 old app compatability:
+---------------------
 
 
 11-March - IssieVoice

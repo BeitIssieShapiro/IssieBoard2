@@ -134,7 +134,7 @@
       "id": "other-keys",
       "name": "مفاتيح أخرى",
       "description": "مفاتيح تغيير الوضع والكرة الأرضية والإغلاق",
-      "members": ["keyset", "next-keyboard", "settings", "close"],
+      "members": ["keyset", "next-keyboard", "settings", "close", "nikkud"],
       "style": {
         "bgColor": "#4DD0E1",
         "color": "#000000"

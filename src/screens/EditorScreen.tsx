@@ -1489,7 +1489,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
             activeOpacity={1}
             onPress={() => setShowProfilePicker(false)}
           />
-          <View style={styles.profilePickerContainer}>
+          <View style={[styles.profilePickerContainer, windowWidth < 700 && styles.profilePickerContainerSmall]}>
             <View style={styles.profilePickerHeader}>
               <Text allowFontScaling={false} style={styles.profilePickerTitle}>
                 {appContext === 'issievoice'
@@ -1529,10 +1529,11 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
                   <View
                     style={[
                       styles.profileOption,
+                      windowWidth < 700 && styles.profileOptionSmall,
                       item.id === currentProfileId && styles.profileOptionActive,
                     ]}
                   >
-                    <View style={styles.profileOptionInfo}>
+                    <View style={[styles.profileOptionInfo, windowWidth < 700 && styles.profileOptionInfoSmall]}>
                       <View style={styles.profileNameRow}>
                         {/* Built-in icon */}
                         {item.isBuiltIn && (
@@ -2611,6 +2612,9 @@ const styles = StyleSheet.create({
     padding: 16,
     flexShrink: 1,
   },
+  profilePickerContainerSmall: {
+    width: '95%',
+  },
   profilePickerHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2638,6 +2642,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#EEE',
   },
+  profileOptionSmall: {
+    flexWrap: 'wrap',
+  },
   profileOptionActive: {
     backgroundColor: '#E3F2FD',
   },
@@ -2651,6 +2658,10 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'flex-start',
     flex: 1,
+  },
+  profileOptionInfoSmall: {
+    width: '100%',
+    marginBottom: 8,
   },
   profileNameRow: {
     flexDirection: 'row',

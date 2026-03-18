@@ -2045,6 +2045,12 @@ class KeyboardRenderer {
             handleShiftTap()
             
         case "nikkud":
+            // In selection mode, emit key press for selection
+            if onKeyLongPress != nil {
+                print("   → Selection mode: emitting key press for nikkud")
+                onKeyPress?(key)
+                return
+            }
             // Nikkud toggle behavior:
             // - When inactive: requires 0.5 sec long-press to activate (prevent accidental activation)
             // - When active: normal tap to deactivate

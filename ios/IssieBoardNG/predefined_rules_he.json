@@ -50,7 +50,7 @@
       "id": "right-half",
       "name": "חצי ימין",
       "description": "מקשים בצד ימין",
-      "members": ["פ", "ם", "ן", "ף", "ך", "ל", "ח", "ץ", "ת", "צ", "ו","י", "נ","מ"],
+      "members": ["פ", "ם", "ן", "ף", "ך", "ל", "ח", "ץ", "ת", "צ", "ו","י", "נ","מ", "כ"],
       "orderedMembers": ["ד", "ג", "ב", "א", "ל", "ך", "כ", "י", "צ", "ף", "פ", "ע"],
       "style": {
         "bgColor": "#F3E5F5",
@@ -61,7 +61,7 @@
       "id": "left-third",
       "name": "שליש שמאל",
       "description": "שליש שמאלי של המקשים",
-      "members": ["ק", "ר", "א", "ש", "ד", "ג","כ", "ב", "ס", "ז"],
+      "members": ["ק", "ר", "א", "ש", "ד", "ג", "ב", "ס", "ז"],
       "orderedMembers": ["ט", "ח", "ז", "ס", "ן", "נ", "ת", "ש", "ר"],
       "style": {
         "bgColor": "#E0F2F1",
@@ -134,7 +134,7 @@
       "id": "other-keys",
       "name": "מקשים נוספים",
       "description": "מקשים לשינוי מצב, גלובוס, סגירה",
-      "members": ["keyset", "next-keyboard", "settings", "close"],
+      "members": ["keyset", "next-keyboard", "settings", "close", "nikkud"],
       "style": {
         "bgColor": "#4DD0E1",
         "color": "#000000"

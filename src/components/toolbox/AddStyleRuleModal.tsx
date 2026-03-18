@@ -155,14 +155,14 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
       return;
     }
 
-    // Skip keyset and nikkud keys on regular tap - they should only be selectable via long-press
-    if (type === 'keyset' || type === 'nikkud') {
+    // Skip keyset keys on regular tap - they should only be selectable via long-press
+    if (type === 'keyset') {
       return;
     }
 
-    // For special keys (enter, shift, backspace, space), use the type as the value for storage
+    // For special keys (enter, shift, backspace, space, nikkud), use the type as the value for storage
     // This ensures they can be selected and styled consistently
-    const specialKeyTypes = ['enter', 'shift', 'backspace', 'space', 'settings', 'close'];
+    const specialKeyTypes = ['enter', 'shift', 'backspace', 'space', 'settings', 'close', 'nikkud'];
     const keyValue = specialKeyTypes.includes(type) ? type : (value || type);
 
     if (!keyValue) return;

@@ -134,7 +134,7 @@
       "id": "other-keys",
       "name": "Other Keys",
       "description": "Mode change, globe, dismiss keys",
-      "members": ["keyset", "next-keyboard", "settings", "close"],
+      "members": ["keyset", "next-keyboard", "settings", "close", "nikkud"],
       "style": {
         "bgColor": "#4DD0E1",
         "color": "#000000"

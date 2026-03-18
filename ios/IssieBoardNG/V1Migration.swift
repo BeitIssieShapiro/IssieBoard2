@@ -490,7 +490,7 @@ class V1Migration {
                 profileId: profileId,
                 counter: &counter,
                 name: localizedActionKeyName("other", language: language),
-                members: ["keyset", "next-keyboard", "settings", "close"],
+                members: ["keyset", "next-keyboard", "settings", "close", "nikkud"],
                 bgColor: color,
                 textColor: nil,
                 active: true,

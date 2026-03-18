@@ -40,7 +40,7 @@ const getNextKeysetId = (
 };
 import { KeyboardConfig } from '../../../types';
 import { filterSettingsButton, transformConfigForPreview } from '../../utils/keyboardConfigMerger';
-import { useSafeAreaFrame, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface InteractiveCanvasProps {
   onTestInput?: (text: string) => void;
