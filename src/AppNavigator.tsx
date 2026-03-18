@@ -99,8 +99,12 @@ export const AppNavigator: React.FC = () => {
         const showClassicToggle = true //__DEV__ || v1User;
         setIsV1User(showClassicToggle);
 
-        // v1 users default to classic editor, others to advanced editor
-        if (v1User) {
+        // Check last used view mode
+        const lastViewMode = await KeyboardPreferences.getProfile('last_view_mode');
+        if (lastViewMode === 'classic' || lastViewMode === 'advanced') {
+          setCurrentScreen({ type: lastViewMode === 'classic' ? 'classic' : 'editor' });
+        } else if (v1User) {
+          // First launch for v1 users: default to classic
           setCurrentScreen({ type: 'classic' });
         } else {
           setCurrentScreen({ type: 'editor' });
@@ -177,11 +181,13 @@ export const AppNavigator: React.FC = () => {
   const handleSwitchToClassic = useCallback(() => {
     setCurrentScreen({ type: 'classic' });
     setEditorKey(prev => prev + 1);
+    KeyboardPreferences.setProfile('classic', 'last_view_mode');
   }, []);
 
   const handleSwitchToAdvanced = useCallback(() => {
     setCurrentScreen({ type: 'editor' });
     setEditorKey(prev => prev + 1);
+    KeyboardPreferences.setProfile('advanced', 'last_view_mode');
   }, []);
 
   // Don't render until initial settings are loaded
