@@ -451,7 +451,7 @@ class V1Migration {
                 profileId: profileId,
                 counter: &counter,
                 name: localizedActionKeyName("space", language: language),
-                members: ["space"],
+                members: [" "],
                 bgColor: color,
                 textColor: nil,
                 active: true,

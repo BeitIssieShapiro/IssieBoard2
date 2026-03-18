@@ -83,7 +83,7 @@ interface SavedProfileDefinition {
 }
 
 // Convert StyleGroups to group config format for keyboard config
-// showOnly groups are placed first so that later styling groups can override their template
+// showOnly groups are placed first; transformConfigForPreview then appends inverse groups at the end
 const convertStyleGroupsToGroupConfig = (
   styleGroups: StyleGroup[]
 ) => {

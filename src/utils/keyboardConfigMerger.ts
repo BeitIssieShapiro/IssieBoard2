@@ -459,7 +459,9 @@ export function transformConfigForPreview(config: {
   }
 
   // 2+3. Transform groups
+  // Inverse groups (for showOnly) must be placed LAST so they aren't overridden by later styling groups
   const transformedGroups: typeof config.groups = [];
+  const inverseGroups: typeof config.groups = [];
   for (const group of config.groups!) {
     const visMode = group.template.visibilityMode;
 
@@ -478,11 +480,14 @@ export function transformConfigForPreview(config: {
         template: { ...restTemplate },
       });
 
-      // Add inverse group: all keys NOT in the showOnly set get opacity: 0
+      // Collect inverse group to append at the end
+      // Exclude special/essential keys — they should always remain visible (matching native renderer logic)
+      const essentialKeys = new Set([' ', 'backspace', 'enter', 'next-keyboard', 'settings',
+        'shift', 'keyset', 'nikkud', 'close', 'language']);
       const showOnlySet = new Set(group.items);
-      const inverseKeys = Array.from(allKeyValues).filter(k => !showOnlySet.has(k));
+      const inverseKeys = Array.from(allKeyValues).filter(k => !showOnlySet.has(k) && !essentialKeys.has(k));
       if (inverseKeys.length > 0) {
-        transformedGroups.push({
+        inverseGroups.push({
           name: `_${group.name}_inverse_`,
           items: inverseKeys,
           template: { color: '', bgColor: '', opacity: 0 },
@@ -497,6 +502,8 @@ export function transformConfigForPreview(config: {
       });
     }
   }
+  // Append inverse groups last so opacity:0 isn't overridden by styling groups
+  transformedGroups.push(...inverseGroups);
 
   return { ...config, keysets: transformedKeysets, groups: transformedGroups };
 }

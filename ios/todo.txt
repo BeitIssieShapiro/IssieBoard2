@@ -5,13 +5,12 @@ Android Bugs:
 
 
 old app compatability:
-- go/search -> tranlsated
-
 
 
 11-March - IssieVoice
 --------
 - icon and caption not only in favorites
+- highlighted keys color - green is twice
 
 
 

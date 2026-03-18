@@ -40,6 +40,7 @@ const getNextKeysetId = (
 };
 import { KeyboardConfig } from '../../../types';
 import { filterSettingsButton, transformConfigForPreview } from '../../utils/keyboardConfigMerger';
+import { useSafeAreaFrame, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface InteractiveCanvasProps {
   onTestInput?: (text: string) => void;
@@ -58,6 +59,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
   const { strings } = useLocalization();
   const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets()
 
   // Get language display name from keyboard ID
   const languageDisplayName = useMemo(() => {
@@ -189,6 +191,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
   console.log("📐 [InteractiveCanvas] Render - keyboardHeight:", keyboardHeight, "containerHeight:", height, "windowWidth:", windowWidth);
 
   const isLandscape = windowWidth > windowHeight;
+  const windowAvailableWidth = windowWidth - insets.left - insets.right
 
   return (
     <View style={{ flexDirection: isLandscape ? "row" : "column", minHeight: height + 20 }}>
@@ -205,20 +208,19 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
 
       {/* Keyboard Preview */}
       <View style={{
-        width: isLandscape ? windowWidth * 0.7 : windowWidth * 0.95,
+        width: isLandscape ? windowAvailableWidth * 0.8 : '100%',
         alignItems: 'center',
         justifyContent:"center",
         height: Math.max(height, keyboardHeight) - 50,
         marginTop: isLandscape ? 10 : 0,
-        marginHorizontal:  10,
       }}>
         <KeyboardPreview
-          key={`editor-preview-${windowWidth}`}
+          key={`editor-preview-${windowAvailableWidth}`}
           style={[
             styles.preview,
             {
               height: Math.max(height - 40, keyboardHeight),  // Container height (what we're willing to allocate)
-              width: isLandscape ? windowWidth * 0.7 : windowWidth * 0.95,
+              width: isLandscape ? windowAvailableWidth * 0.78 : '100%',
             }
           ]}
           configJson={configJson}
@@ -240,14 +242,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 5,
-    height: 25,
+    height: 40,
   },
   previewHeaderLandscape: {
     margin: 5,
     marginStart: 16,
     flexDirection: 'column',
     alignItems: 'flex-start',
-    width: "25%",
+    width: "15%",
   },
 
   previewLabel: {

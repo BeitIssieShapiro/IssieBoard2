@@ -1597,8 +1597,8 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       </Modal>
 
       {/* Language Selector - Matching mockup design */}
-      <View style={styles.languageBar}>
-        <View style={styles.languageBarTitle}>
+      <View style={[styles.languageBar, windowWidth < 700 && styles.languageBarSmall]}>
+        <View style={[styles.languageBarTitle, windowWidth < 700 && styles.languageBarTitleSmall]}>
           <Text style={styles.languageBarIcon}>⌨️</Text>
           <Text allowFontScaling={false} style={styles.languageBarTitleText}>
             {windowWidth < 700
@@ -2369,10 +2369,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
+  languageBarSmall: {
+    flexWrap: 'wrap',
+    gap: 8,
+  },
   languageBarTitle: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  languageBarTitleSmall: {
+    width: '100%',
   },
   languageBarIcon: {
     fontSize: 20,

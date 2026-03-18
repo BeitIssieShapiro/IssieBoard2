@@ -84,6 +84,10 @@ const styles = StyleSheet.create({
     },
     preview: {
         height: 250,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: '#C6C6C8',
+        borderRadius: 8,
+        overflow: 'hidden',
     },
     content: {
         flex: 1,
