@@ -155,6 +155,28 @@ class KeyboardRenderer(private val context: Context) {
     // Preview mode flag - when true, shows all keys from config (no filtering by system keyboard count)
     private var isPreviewMode: Boolean = false
 
+    /** Calculate available screen height in dp, subtracting system bar insets (status bar + navigation bar).
+     *  This matches iOS behavior which uses safe area height. */
+    private fun getAvailableScreenHeightDp(): Float {
+        val displayMetrics = context.resources.displayMetrics
+        val fullHeightDp = displayMetrics.heightPixels.toFloat() / displayMetrics.density
+
+        var insetsHeight = 0
+        // Status bar height
+        val statusBarId = context.resources.getIdentifier("status_bar_height", "dimen", "android")
+        if (statusBarId > 0) {
+            insetsHeight += context.resources.getDimensionPixelSize(statusBarId)
+        }
+        // Navigation bar height
+        val navBarId = context.resources.getIdentifier("navigation_bar_height", "dimen", "android")
+        if (navBarId > 0) {
+            insetsHeight += context.resources.getDimensionPixelSize(navBarId)
+        }
+        val insetsHeightDp = insetsHeight.toFloat() / displayMetrics.density
+        debugLog("📐 [getAvailableScreenHeightDp] full=${fullHeightDp}dp, insets=${insetsHeightDp}dp, available=${fullHeightDp - insetsHeightDp}dp")
+        return fullHeightDp - insetsHeightDp
+    }
+
     // UI Constants - same for preview and keyboard
     // Dynamic row height: uses adaptive calculation based on screen size and preset
     private val rowHeight: Int
@@ -168,7 +190,7 @@ class KeyboardRenderer(private val context: Context) {
             // Get screen dimensions in dp
             val displayMetrics = context.resources.displayMetrics
             val screenWidthDp = displayMetrics.widthPixels.toFloat() / displayMetrics.density
-            val screenHeightDp = displayMetrics.heightPixels.toFloat() / displayMetrics.density
+            val screenHeightDp = getAvailableScreenHeightDp()
 
             debugLog("📐 [rowHeight] screenDp: ${screenWidthDp}x${screenHeightDp}, preset: ${preset.value}")
 
@@ -375,10 +397,10 @@ class KeyboardRenderer(private val context: Context) {
         val preset = KeyboardHeightPreset.from(config.heightPreset)
         val fontPreset = FontSizePreset.from(config.fontSizePreset)
 
-        // Get screen dimensions in dp
+        // Get screen dimensions in dp (available height subtracts system bars, matching iOS safe area behavior)
         val displayMetrics = context.resources.displayMetrics
         val screenWidthDp = displayMetrics.widthPixels.toFloat() / displayMetrics.density
-        val screenHeightDp = displayMetrics.heightPixels.toFloat() / displayMetrics.density
+        val screenHeightDp = getAvailableScreenHeightDp()
 
         // Create dimensions calculator with the passed config's presets
         val dimensions = KeyboardDimensions(
@@ -869,8 +891,8 @@ class KeyboardRenderer(private val context: Context) {
                 
                 // Check if key is hidden via group "hide" visibility mode
                 val keyValue = key.value ?: key.type ?: ""
-                val keyType = key.type ?: ""
-                val isHiddenByGroup = (groups[keyValue] ?: groups[keyType])?.effectiveVisibilityMode == VisibilityMode.HIDE
+                val rawKeyType = key.type ?: ""
+                val isHiddenByGroup = (groups[keyValue] ?: groups[rawKeyType])?.effectiveVisibilityMode == VisibilityMode.HIDE
                 
                 // Don't count group-hidden keys OR spacer keys (parsedKey.hidden) in baseline
                 // Spacers take up space in layout but shouldn't affect the baseline calculation
@@ -1343,10 +1365,10 @@ class KeyboardRenderer(private val context: Context) {
             val fontPreset = FontSizePreset.from(fontPresetString)
             val heightPreset = KeyboardHeightPreset.from(config?.heightPreset)
 
-            // Get screen dimensions in dp
+            // Get screen dimensions in dp (available height subtracts system bars, matching iOS safe area behavior)
             val displayMetrics = context.resources.displayMetrics
             val screenWidthDp = displayMetrics.widthPixels.toFloat() / displayMetrics.density
-            val screenHeightDp = displayMetrics.heightPixels.toFloat() / displayMetrics.density
+            val screenHeightDp = getAvailableScreenHeightDp()
 
             // Create dimensions calculator
             val dimensions = KeyboardDimensions(
