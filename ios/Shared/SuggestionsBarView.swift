@@ -24,15 +24,21 @@ class SuggestionsBarView {
     let fontSize: CGFloat = 22  // Reduced proportionally from 26
     
     // MARK: - State
-    
+
     /// Currently displayed suggestions
     private(set) var currentSuggestions: [String] = []
-    
+
     /// Index of suggestion to highlight (for fuzzy matches)
     private(set) var highlightIndex: Int?
-    
+
     /// Current keyboard ID for RTL detection
     var currentKeyboardId: String?
+
+    /// Custom background color from keyboard config
+    var customBackgroundColor: UIColor?
+
+    /// Custom text color from keyboard config
+    var customTextColor: UIColor?
     
     // MARK: - UI Reference
     
@@ -54,7 +60,7 @@ class SuggestionsBarView {
     /// - Returns: The configured UIView
     func createBar(width: CGFloat, height: CGFloat? = nil) -> UIView {
         let bar = UIView()
-        bar.backgroundColor = UIColor.systemGray5
+        bar.backgroundColor = customBackgroundColor ?? UIColor.systemGray5
         let actualHeight = height ?? barHeight
         bar.frame = CGRect(x: 0, y: 0, width: width, height: actualHeight)
         bar.tag = 888  // Tag to identify suggestions bar
@@ -147,7 +153,7 @@ class SuggestionsBarView {
                 button.layer.cornerRadius = 6
             } else {
                 button.backgroundColor = .clear
-                button.setTitleColor(.label, for: .normal)
+                button.setTitleColor(customTextColor ?? .label, for: .normal)
             }
             button.setTitleColor(.secondaryLabel, for: .highlighted)
             
@@ -175,7 +181,7 @@ class SuggestionsBarView {
             // Add divider after each cell except the last
             if index < suggestionCount - 1 {
                 let divider = UIView()
-                divider.backgroundColor = UIColor.systemGray3
+                divider.backgroundColor = (customTextColor ?? UIColor.systemGray3).withAlphaComponent(0.3)
                 
                 let dividerX: CGFloat
                 if isRTL {

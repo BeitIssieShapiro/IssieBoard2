@@ -58,22 +58,27 @@ class NikkudPickerController {
     private let keyCornerRadius: CGFloat = 5
     
     // MARK: - State
-    
+
     /// Current letter being edited in nikkud picker
     private var currentLetter: String = ""
-    
+
     /// Modifier toggle states
     /// Key: modifier ID, Value: selected option ID (nil = off)
     private var modifierStates: [String: String?] = [:]
-    
+
     /// Reference to the container view
     private weak var container: UIView?
-    
+
     /// Current keyboard configuration
     private var config: KeyboardConfig?
-    
+
     /// Current keyboard ID
     private var currentKeyboardId: String?
+
+    /// Key styling from keyboard config
+    private var keyRowHeight: CGFloat = 50
+    private var keyFontSize: CGFloat = 24
+    private var keyFontWeight: UIFont.Weight = .heavy
     
     // MARK: - Initialization
     
@@ -84,10 +89,14 @@ class NikkudPickerController {
     // MARK: - Configuration
     
     /// Set the configuration for diacritics lookup
-    func configure(config: KeyboardConfig?, keyboardId: String?, container: UIView?) {
+    func configure(config: KeyboardConfig?, keyboardId: String?, container: UIView?,
+                   rowHeight: CGFloat = 50, fontSize: CGFloat = 24, fontWeight: UIFont.Weight = .heavy) {
         self.config = config
         self.currentKeyboardId = keyboardId
         self.container = container
+        self.keyRowHeight = rowHeight
+        self.keyFontSize = fontSize
+        self.keyFontWeight = fontWeight
     }
     
     /// Get the current letter being edited
@@ -244,7 +253,7 @@ class NikkudPickerController {
         ])
         
         // Layout constants
-        let buttonSize: CGFloat = 50
+        let buttonSize: CGFloat = keyRowHeight
         let spacing: CGFloat = 10
         let padding: CGFloat = 16
         let maxAvailableWidth = container.bounds.width * 0.85
@@ -252,7 +261,7 @@ class NikkudPickerController {
         let totalSpacing = spacing * CGFloat(itemsPerRow - 1) + 2 * padding
         let calculatedButtonSize = (maxAvailableWidth - totalSpacing) / CGFloat(itemsPerRow)
         let finalButtonSize = min(buttonSize, calculatedButtonSize)
-        
+
         // Create picker container
         let picker = UIView()
         picker.backgroundColor = UIColor.systemGray6
@@ -261,23 +270,23 @@ class NikkudPickerController {
         picker.layer.shadowOffset = CGSize(width: 0, height: 4)
         picker.layer.shadowOpacity = 0.3
         picker.layer.shadowRadius = 8
-        
+
         let flexContainer = UIView()
         picker.addSubview(flexContainer)
-        
+
         var rows: [[UIButton]] = [[]]
-        
+
         for (index, option) in nikkudOptions.enumerated() {
             let value = option.value
             let caption = option.caption ?? value
-            
+
             if index > 0 && index % itemsPerRow == 0 {
                 rows.append([])
             }
-            
+
             let button = UIButton(type: .system)
             button.setTitle(caption, for: .normal)
-            button.titleLabel?.font = UIFont.systemFont(ofSize: 24)
+            button.titleLabel?.font = UIFont.systemFont(ofSize: keyFontSize, weight: keyFontWeight)
             button.titleLabel?.adjustsFontSizeToFitWidth = true
             button.titleLabel?.minimumScaleFactor = 0.5
             button.backgroundColor = UIColor.systemBackground
@@ -375,7 +384,7 @@ class NikkudPickerController {
         ])
         
         // Layout constants
-        let buttonSize: CGFloat = 50
+        let buttonSize: CGFloat = keyRowHeight
         let spacing: CGFloat = 10
         let padding: CGFloat = 16
         let topPadding: CGFloat = 40
@@ -386,7 +395,7 @@ class NikkudPickerController {
         let totalSpacing = spacing * CGFloat(itemsPerRow - 1) + 2 * padding
         let calculatedButtonSize = (maxAvailableWidth - totalSpacing) / CGFloat(itemsPerRow)
         let finalButtonSize = min(buttonSize, calculatedButtonSize)
-        
+
         // Create picker container
         let picker = UIView()
         picker.backgroundColor = UIColor.systemGray6
@@ -395,23 +404,23 @@ class NikkudPickerController {
         picker.layer.shadowOffset = CGSize(width: 0, height: 4)
         picker.layer.shadowOpacity = 0.3
         picker.layer.shadowRadius = 8
-        
+
         let flexContainer = UIView()
         picker.addSubview(flexContainer)
-        
+
         var rows: [[UIButton]] = [[]]
-        
+
         for (index, option) in nikkudOptions.enumerated() {
             let value = option.value
             let caption = option.caption ?? value
-            
+
             if index > 0 && index % itemsPerRow == 0 {
                 rows.append([])
             }
-            
+
             let button = UIButton(type: .system)
             button.setTitle(caption, for: .normal)
-            button.titleLabel?.font = UIFont.systemFont(ofSize: 24)
+            button.titleLabel?.font = UIFont.systemFont(ofSize: keyFontSize, weight: keyFontWeight)
             button.titleLabel?.adjustsFontSizeToFitWidth = true
             button.titleLabel?.minimumScaleFactor = 0.5
             button.backgroundColor = UIColor.systemBackground
@@ -565,7 +574,7 @@ class NikkudPickerController {
     private func createModifierKeyButton(title: String, isSelected: Bool, size: CGFloat) -> UIButton {
         let button = UIButton(type: .system)
         button.setTitle(title, for: .normal)
-        button.titleLabel?.font = UIFont.systemFont(ofSize: 20, weight: .medium)
+        button.titleLabel?.font = UIFont.systemFont(ofSize: keyFontSize * 0.85, weight: keyFontWeight)
         button.titleLabel?.adjustsFontSizeToFitWidth = true
         button.titleLabel?.minimumScaleFactor = 0.6
         

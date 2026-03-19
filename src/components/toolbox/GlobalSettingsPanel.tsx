@@ -70,7 +70,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
   const currentFontName = state.config.fontName;
   const currentFontSizePreset = state.config.fontSizePreset || 'normal';
   const currentHeightPreset = state.config.heightPreset || 'normal';
-  const currentFontWeight = state.config.fontWeight || 'heavy'; // Default to heavy
+  const currentFontWeight = state.config.fontWeight || 'regular'; // Default to regular
   const currentKeyGap = state.config.keyGap || 3;
   const settingsButtonEnabled = state.config.settingsButtonEnabled !== false;
 

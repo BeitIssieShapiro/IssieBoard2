@@ -1,6 +1,23 @@
 import UIKit
 
 /**
+ * Gesture recognizer delegate that prevents the keyset slide gesture from
+ * beginning unless the initial touch is on a keyset key.
+ * This avoids the cancel-and-re-enable cycle that disrupts button-level
+ * long-press gestures (backspace, nikkud).
+ */
+private class KeysetSlideGestureDelegate: NSObject, UIGestureRecognizerDelegate {
+    weak var renderer: KeyboardRenderer?
+
+    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        guard let renderer = renderer,
+              let container = gestureRecognizer.view else { return false }
+        let point = gestureRecognizer.location(in: container)
+        return renderer.isKeysetKeyAt(point: point, in: container)
+    }
+}
+
+/**
  * Custom container view that properly handles hit testing with transforms
  * When scaled down, the view's bounds are larger than the visible content
  * We need to ensure touches pass through to the transformed subviews
@@ -132,6 +149,7 @@ class KeyboardRenderer {
     private var keysetSlideCurrentButton: UIButton?
     private var keysetSlideDidMove: Bool = false
     private var keysetSlideGestureRecognizer: UILongPressGestureRecognizer?
+    private var keysetSlideGestureDelegate: KeysetSlideGestureDelegate?
     
     // Callback for keyset changes (so controller can save to preferences)
     var onKeysetChanged: ((String) -> Void)?
@@ -218,6 +236,55 @@ class KeyboardRenderer {
 
         return calculatedRowHeight
     }
+
+    /// Computed base font size following the same preset logic as key rendering
+    private var baseFontSize: CGFloat {
+        guard let container = container else { return 24 }
+
+        let configFontSizePreset = (UIDevice.current.userInterfaceIdiom == .pad ? config?.fontSizePreset_large : nil) ?? config?.fontSizePreset
+        let fontPreset = FontSizePreset(rawValue: configFontSizePreset ?? "normal") ?? .normal
+        let heightPreset = KeyboardHeightPreset(rawValue: (UIDevice.current.userInterfaceIdiom == .pad ? config?.heightPreset_large : nil) ?? config?.heightPreset ?? "normal") ?? .normal
+
+        let screenBounds: CGRect
+        if let windowScene = container.window?.windowScene {
+            screenBounds = windowScene.screen.bounds
+        } else {
+            screenBounds = UIScreen.main.bounds
+        }
+        let safeAreaInsets = container.window?.safeAreaInsets ?? .zero
+        let availableHeight = screenBounds.height - safeAreaInsets.top - safeAreaInsets.bottom
+
+        let dimensions = KeyboardDimensions(
+            screenWidth: container.bounds.width,
+            screenHeight: availableHeight,
+            deviceType: .current,
+            heightPreset: heightPreset,
+            fontSizePreset: fontPreset
+        )
+
+        let hasSuggestions = wordSuggestionsOverrideEnabled ?? wordSuggestionsEnabled
+        let rh = dimensions.calculateRowHeight(numberOfRows: 4, hasSuggestions: hasSuggestions)
+        return dimensions.calculateFontSize(rowHeight: rh)
+    }
+
+    /// Computed font weight from config
+    private var configFontWeight: UIFont.Weight {
+        let weightString = (UIDevice.current.userInterfaceIdiom == .pad ? config?.fontWeight_large : nil) ?? config?.fontWeight
+        guard let weightString = weightString else { return .regular }
+        switch weightString.lowercased() {
+        case "ultralight": return .ultraLight
+        case "thin": return .thin
+        case "light": return .light
+        case "regular": return .regular
+        case "medium": return .medium
+        case "semibold": return .semibold
+        case "bold": return .bold
+        case "heavy": return .heavy
+        case "black": return .black
+        default: return .regular
+        }
+    }
+
     private let keySpacing: CGFloat = 0       // No spacing between key tap areas
     private let keyInternalPadding: CGFloat = 3  // Visual gap between keys (internal margin)
     private let keyVerticalPadding: CGFloat = 5  // Vertical padding for visual gap between rows (2px more than horizontal)
@@ -598,11 +665,16 @@ class KeyboardRenderer {
 
         // Install keyset slide gesture on container (once)
         if !isPreviewMode && keysetSlideGestureRecognizer == nil {
+            let delegate = KeysetSlideGestureDelegate()
+            delegate.renderer = self
+            keysetSlideGestureDelegate = delegate
+
             let gesture = UILongPressGestureRecognizer(target: self, action: #selector(keysetSlideGesture(_:)))
             gesture.minimumPressDuration = 0.15
             gesture.allowableMovement = .greatestFiniteMagnitude
             gesture.cancelsTouchesInView = false
             gesture.delaysTouchesBegan = false
+            gesture.delegate = delegate
             container.addGestureRecognizer(gesture)
             keysetSlideGestureRecognizer = gesture
         }
@@ -682,6 +754,24 @@ class KeyboardRenderer {
         var topOffset: CGFloat = 0  // Start at 0 to push suggestions bar to very top
 
         if wordSuggestionsEnabled && !isPreviewMode {
+            // Pass keyboard colors to suggestions bar
+            if let bgColorString = config.backgroundColor,
+               !bgColorString.isEmpty,
+               bgColorString.lowercased() != "default",
+               let bgColor = UIColor(hexString: bgColorString) {
+                suggestionsBarView.customBackgroundColor = bgColor
+            } else {
+                suggestionsBarView.customBackgroundColor = nil
+            }
+            if let textColorString = config.textColor,
+               !textColorString.isEmpty,
+               textColorString.lowercased() != "default",
+               let textColor = UIColor(hexString: textColorString) {
+                suggestionsBarView.customTextColor = textColor
+            } else {
+                suggestionsBarView.customTextColor = nil
+            }
+
             // Real keyboard - show native suggestions bar at the very top
             let bar = suggestionsBarView.createBar(width: container.bounds.width * currentScale, height: scaledSuggestionsBarHeight)
             container.addSubview(bar)
@@ -1323,8 +1413,6 @@ class KeyboardRenderer {
         var bgColor = key.backgroundColor
         if key.type.lowercased() == "shift" && shiftState.isActive() {
             bgColor = .systemGreen
-        } else if key.type.lowercased() == "nikkud" && nikkudActive {
-            bgColor = .systemYellow
         } else if bgColor == .white {
             // Use a darker shade for regular keys in dark mode, similar to system keyboard
             bgColor = UIColor { traitCollection in
@@ -1346,6 +1434,12 @@ class KeyboardRenderer {
         // Selection highlight for edit mode
         if isSelected {
             visualKeyView.layer.borderWidth = 3.0
+            visualKeyView.layer.borderColor = UIColor.systemBlue.cgColor
+        }
+
+        // Nikkud active indicator - rounded border instead of yellow background
+        if key.type.lowercased() == "nikkud" && nikkudActive {
+            visualKeyView.layer.borderWidth = 2.5
             visualKeyView.layer.borderColor = UIColor.systemBlue.cgColor
         }
         
@@ -1526,19 +1620,19 @@ class KeyboardRenderer {
         let fontWeight: UIFont.Weight = {
             let weightString = (UIDevice.current.userInterfaceIdiom == .pad ? config?.fontWeight_large : nil) ?? config?.fontWeight
             guard let weightString = weightString else {
-                return .heavy  // Default to heavy
+                return .regular  // Default to regular
             }
             switch weightString.lowercased() {
             case "ultralight": return .ultraLight
             case "thin": return .thin
             case "light": return .light
-            case "regular": return .regular
+            case "normal", "regular": return .regular
             case "medium": return .medium
             case "semibold": return .semibold
             case "bold": return .bold
             case "heavy": return .heavy
             case "black": return .black
-            default: return .heavy  // Default to heavy for unknown values
+            default: return .regular  // Default to regular for unknown values
             }
         }()
         
@@ -1904,8 +1998,6 @@ class KeyboardRenderer {
         var bgColor = key.backgroundColor
         if key.type.lowercased() == "shift" && shiftState.isActive() {
             bgColor = .systemGreen
-        } else if key.type.lowercased() == "nikkud" && nikkudActive {
-            bgColor = .systemYellow
         } else if bgColor == .white {
             // Use adaptive color for dark mode
             bgColor = UIColor { traitCollection in
@@ -2040,16 +2132,11 @@ class KeyboardRenderer {
 
         switch gesture.state {
         case .began:
-            // Check if the initial touch landed on a keyset button
+            // Delegate already ensures we're on a keyset key
             let point = gesture.location(in: container)
             guard let button = findKeyButton(at: point, in: container),
                   let keyInfo = decodeKeyInfo(button.accessibilityIdentifier),
-                  let key = parseKeyFromInfo(keyInfo),
-                  key.type.lowercased() == "keyset",
-                  !key.keysetValue.isEmpty else {
-                // Not on a keyset key — cancel the gesture
-                gesture.isEnabled = false
-                gesture.isEnabled = true
+                  let key = parseKeyFromInfo(keyInfo) else {
                 return
             }
 
@@ -2142,6 +2229,16 @@ class KeyboardRenderer {
         default:
             break
         }
+    }
+
+    /// Check if the point is on a keyset key (used by gesture delegate)
+    func isKeysetKeyAt(point: CGPoint, in view: UIView) -> Bool {
+        guard let button = findKeyButton(at: point, in: view),
+              let keyInfo = decodeKeyInfo(button.accessibilityIdentifier),
+              let key = parseKeyFromInfo(keyInfo) else {
+            return false
+        }
+        return key.type.lowercased() == "keyset" && !key.keysetValue.isEmpty
     }
 
     /// Find the UIButton key at a given point within the container
@@ -2510,13 +2607,15 @@ class KeyboardRenderer {
     /// Check if diacritics popup should be shown for this key (delegates to NikkudPickerController)
     private func shouldShowDiacriticsPopup(for key: ParsedKey) -> Bool {
         // Configure the picker with current state
-        nikkudPickerController.configure(config: config, keyboardId: currentKeyboardId, container: container)
+        nikkudPickerController.configure(config: config, keyboardId: currentKeyboardId, container: container,
+                                         rowHeight: rowHeight, fontSize: baseFontSize, fontWeight: configFontWeight)
         return nikkudPickerController.shouldShowDiacriticsPopup(for: key)
     }
     
     /// Get diacritics for a key (delegates to NikkudPickerController)
     private func getDiacriticsForKey(_ key: ParsedKey) -> [NikkudOption] {
-        nikkudPickerController.configure(config: config, keyboardId: currentKeyboardId, container: container)
+        nikkudPickerController.configure(config: config, keyboardId: currentKeyboardId, container: container,
+                                         rowHeight: rowHeight, fontSize: baseFontSize, fontWeight: configFontWeight)
         return nikkudPickerController.getDiacriticsForKey(key)
     }
     
@@ -2548,7 +2647,8 @@ class KeyboardRenderer {
             )
             let parsedKey = ParsedKey(from: tempKey, groups: [:], defaultTextColor: .black, defaultBgColor: .white)
             
-            nikkudPickerController.configure(config: config, keyboardId: currentKeyboardId, container: container)
+            nikkudPickerController.configure(config: config, keyboardId: currentKeyboardId, container: container,
+                                         rowHeight: rowHeight, fontSize: baseFontSize, fontWeight: configFontWeight)
             nikkudPickerController.showPicker(for: parsedKey, anchorView: anchorView)
         }
     }
@@ -2560,7 +2660,8 @@ class KeyboardRenderer {
     
     /// Internal method for showing nikkud picker - delegates to controller
     private func showNikkudPickerInternal(forLetter letter: String, anchorView: UIView) {
-        nikkudPickerController.configure(config: config, keyboardId: currentKeyboardId, container: container)
+        nikkudPickerController.configure(config: config, keyboardId: currentKeyboardId, container: container,
+                                         rowHeight: rowHeight, fontSize: baseFontSize, fontWeight: configFontWeight)
         nikkudPickerController.refreshIfOpen(anchorView: anchorView)
     }
     

@@ -37,7 +37,7 @@ export const BUILT_IN_PROFILES: BuiltInProfileTemplate[] = [
       backgroundColor: 'default',  // Transparent/liquid glass effect on iOS
       fontSizePreset: 'normal',    // Normal font size
       heightPreset: 'normal',      // Normal keyboard height
-      fontWeight: 'heavy',
+      fontWeight: 'regular',
       keyGap: 3,
       wordSuggestionsEnabled: true,
       autoCorrectEnabled: false,
@@ -57,7 +57,7 @@ export const BUILT_IN_PROFILES: BuiltInProfileTemplate[] = [
       textColor: '#0000FF',         // Blue text
       fontSizePreset: 'normal',     // Normal font size
       heightPreset: 'normal',       // Normal keyboard height
-      fontWeight: 'heavy',
+      fontWeight: 'regular',
       keyGap: 3,
       wordSuggestionsEnabled: true,
       autoCorrectEnabled: false,

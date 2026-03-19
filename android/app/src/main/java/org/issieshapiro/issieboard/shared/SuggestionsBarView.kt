@@ -48,7 +48,13 @@ class SuggestionsBarView(private val context: Context) {
     
     /** Current keyboard ID for RTL detection */
     var currentKeyboardId: String? = null
-    
+
+    /** Custom background color from keyboard config (null = use default) */
+    var customBackgroundColor: Int? = null
+
+    /** Custom text color from keyboard config (null = use default) */
+    var customTextColor: Int? = null
+
     // MARK: - UI Reference
     
     /** The suggestions bar view */
@@ -72,7 +78,7 @@ class SuggestionsBarView(private val context: Context) {
         val actualHeight = height ?: barHeight
         val bar = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
-            setBackgroundColor(Color.parseColor("#E8E8E8"))  // systemGray5 equivalent
+            setBackgroundColor(customBackgroundColor ?: Color.parseColor("#E8E8E8"))  // customBackgroundColor or systemGray5 equivalent
             // Use FrameLayout.LayoutParams since we're being added to a FrameLayout
             layoutParams = FrameLayout.LayoutParams(width, actualHeight).apply {
                 gravity = Gravity.TOP
@@ -194,7 +200,7 @@ class SuggestionsBarView(private val context: Context) {
                     setTextColor(Color.parseColor("#2196F3"))  // systemBlue
                 } else {
                     setBackgroundColor(Color.TRANSPARENT)
-                    setTextColor(Color.BLACK)
+                    setTextColor(customTextColor ?: Color.BLACK)
                 }
                 
                 // Store suggestion for retrieval on tap
@@ -218,7 +224,15 @@ class SuggestionsBarView(private val context: Context) {
             // Add divider after each cell except the last
             if (displayIndex < suggestionCount - 1) {
                 val divider = View(context).apply {
-                    setBackgroundColor(Color.parseColor("#C7C7CC"))  // systemGray3 equivalent
+                    // Use customTextColor with 0.3 alpha, or systemGray3 equivalent at 0.3 alpha
+                    val baseColor = customTextColor ?: Color.parseColor("#C7C7CC")
+                    val dividerColor = Color.argb(
+                        (0.3f * 255).toInt(),
+                        Color.red(baseColor),
+                        Color.green(baseColor),
+                        Color.blue(baseColor)
+                    )
+                    setBackgroundColor(dividerColor)
                 }
                 val dividerParams = LinearLayout.LayoutParams(dividerWidth, (barViewHeight * 0.6).toInt())
                 dividerParams.topMargin = (barViewHeight * 0.2).toInt()

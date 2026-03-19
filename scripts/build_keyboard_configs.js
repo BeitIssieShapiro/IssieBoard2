@@ -30,7 +30,7 @@ const path = require('path');
 
 // Per-variant build defaults
 const DEFAULTS = {
-  mobile: { heightPreset: 'normal', keyGap: 2, fontWeight: 'normal', fontSize: null },
+  mobile: { heightPreset: 'normal', keyGap: 2, fontWeight: 'regular', fontSize: null },
   large:  { heightPreset: 'x-tall', keyGap: 4, fontWeight: 'heavy', fontSize: "large" }
 };
 // Default height preset: "compact", "normal", "tall", "x-tall"

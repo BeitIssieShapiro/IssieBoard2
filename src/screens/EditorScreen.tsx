@@ -2072,7 +2072,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
         keyboardId: currentKeyboardId,
         backgroundColor: 'default',
         groups: [],
-        fontWeight: 'heavy',
+        fontWeight: 'regular',
       };
     }
 

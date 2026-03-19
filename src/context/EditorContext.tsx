@@ -502,7 +502,7 @@ const createInitialState = (
     groups: [],
     keyboards: [],
     defaultKeyboard: 'en',
-    fontWeight: 'heavy', // Default to heavy font weight
+    fontWeight: 'regular', // Default to regular font weight for mobile
     fontSizePreset: 'normal',
     heightPreset: 'normal',
   },

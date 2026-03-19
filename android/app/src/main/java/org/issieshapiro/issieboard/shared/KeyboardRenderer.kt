@@ -290,7 +290,36 @@ class KeyboardRenderer(private val context: Context) {
     /** Scaled key vertical padding (visual gap between rows) */
     private val scaledKeyVerticalPadding: Int
         get() = (dpToPx(5) * effectiveDimensionScale).toInt()
-    
+
+    /** Computed base font size following the same preset logic as key rendering */
+    private val baseFontSize: Float
+        get() {
+            val fontPresetString = if (isLargeScreen) config?.fontSizePresetLarge ?: config?.fontSizePreset else config?.fontSizePreset
+            val fontPreset = FontSizePreset.from(fontPresetString)
+            val heightPresetString = if (isLargeScreen) config?.heightPresetLarge ?: config?.heightPreset else config?.heightPreset
+            val heightPreset = KeyboardHeightPreset.from(heightPresetString)
+
+            val displayMetrics = context.resources.displayMetrics
+            val screenWidthDp = displayMetrics.widthPixels.toFloat() / displayMetrics.density
+            val screenHeightDp = getAvailableScreenHeightDp()
+
+            val dimensions = KeyboardDimensions(
+                screenWidth = screenWidthDp,
+                screenHeight = screenHeightDp,
+                deviceType = DeviceType.current(context),
+                heightPreset = heightPreset,
+                fontSizePreset = fontPreset
+            )
+
+            val hasSuggestions = wordSuggestionsOverrideEnabled ?: wordSuggestionsEnabled
+            val rh = dimensions.calculateRowHeight(numberOfRows = 4, hasSuggestions = hasSuggestions)
+            return dimensions.calculateFontSize(rowHeight = rh)
+        }
+
+    /** Computed font weight from config (as Typeface constant) */
+    private val configFontWeight: Int
+        get() = getFontWeight()
+
     // MARK: - Modular Helper Classes
     
     /** Handles long-press backspace logic */
@@ -304,17 +333,17 @@ class KeyboardRenderer(private val context: Context) {
     
     // MARK: - Helper Methods for Default Colors
 
-    /** Get font weight from config string, fallback to BOLD for heavy */
+    /** Get font weight from config string, fallback to NORMAL for regular */
     private fun getFontWeight(): Int {
         val weightString = if (isLargeScreen) config?.fontWeightLarge ?: config?.fontWeight else config?.fontWeight
         return when (weightString?.lowercase()) {
             "ultralight", "thin" -> Typeface.NORMAL  // Android doesn't have ultra-light
             "light" -> Typeface.NORMAL
-            "regular" -> Typeface.NORMAL
+            "normal", "regular" -> Typeface.NORMAL
             "medium" -> Typeface.NORMAL
             "semibold", "bold" -> Typeface.BOLD
             "heavy", "black" -> Typeface.BOLD  // Android BOLD is closest to heavy
-            else -> Typeface.BOLD  // Default to BOLD (matches iOS heavy)
+            else -> Typeface.NORMAL  // Default to NORMAL (matches iOS regular)
         }
     }
 
@@ -673,6 +702,20 @@ class KeyboardRenderer(private val context: Context) {
 
         // Show suggestions bar in real keyboard, hide in preview (preview sends to React Native)
         if (wordSuggestionsEnabled && !isPreviewMode) {
+            // Pass keyboard colors to suggestions bar
+            val bgColorString = config.backgroundColor
+            if (!bgColorString.isNullOrEmpty() && bgColorString.lowercase() != "default") {
+                suggestionsBarView.customBackgroundColor = parseColor(bgColorString)
+            } else {
+                suggestionsBarView.customBackgroundColor = null
+            }
+            val textColorString = config.textColor
+            if (!textColorString.isNullOrEmpty() && textColorString.lowercase() != "default") {
+                suggestionsBarView.customTextColor = parseColor(textColorString)
+            } else {
+                suggestionsBarView.customTextColor = null
+            }
+
             // Real keyboard - show native suggestions bar
             suggestionsBarView.currentKeyboardId = currentKeyboardId
 
@@ -1323,10 +1366,8 @@ class KeyboardRenderer(private val context: Context) {
                 // Handle special key states
                 if (key.type.lowercase() == "shift" && shiftState.isActive()) {
                     bgColor = Color.parseColor("#4CAF50")  // systemGreen
-                } else if (key.type.lowercase() == "nikkud" && nikkudActive) {
-                    bgColor = Color.parseColor("#FFEB3B")  // systemYellow
                 }
-                
+
                 setColor(bgColor)
                 cornerRadius = scaledCornerRadius
             }
@@ -1345,6 +1386,12 @@ class KeyboardRenderer(private val context: Context) {
             if (isSelected) {
                 val selectedBg = background as? GradientDrawable
                 selectedBg?.setStroke(dpToPx(3), Color.parseColor("#2196F3"))
+            }
+
+            // Nikkud active indicator - rounded border instead of yellow background
+            if (key.type.lowercase() == "nikkud" && nikkudActive) {
+                val nikkudBg = background as? GradientDrawable
+                nikkudBg?.setStroke(dpToPx(3), Color.parseColor("#2196F3"))  // systemBlue border (2.5pt iOS ~ 3dp Android)
             }
         }
         
@@ -2091,13 +2138,15 @@ class KeyboardRenderer(private val context: Context) {
     
     private fun shouldShowDiacriticsPopup(key: ParsedKey): Boolean {
         // Use overlayContainer for nikkud picker (must be FrameLayout for overlay to work)
-        nikkudPickerController.configure(config, currentKeyboardId, overlayContainer)
+        nikkudPickerController.configure(config, currentKeyboardId, overlayContainer,
+            rowHeight = rowHeight, fontSize = baseFontSize, fontWeight = configFontWeight)
         return nikkudPickerController.shouldShowDiacriticsPopup(key)
     }
-    
+
     private fun getDiacriticsForKey(key: ParsedKey): List<NikkudOption> {
         // Use overlayContainer for nikkud picker (must be FrameLayout for overlay to work)
-        nikkudPickerController.configure(config, currentKeyboardId, overlayContainer)
+        nikkudPickerController.configure(config, currentKeyboardId, overlayContainer,
+            rowHeight = rowHeight, fontSize = baseFontSize, fontWeight = configFontWeight)
         return nikkudPickerController.getDiacriticsForKey(key)
     }
     
@@ -2125,7 +2174,8 @@ class KeyboardRenderer(private val context: Context) {
         val parsedKey = ParsedKey.from(tempKey, emptyMap(), getDefaultTextColor(), getDefaultKeyBgColor())
         
         // Use overlayContainer for nikkud picker (must be FrameLayout for overlay to work)
-        nikkudPickerController.configure(config, currentKeyboardId, overlayContainer)
+        nikkudPickerController.configure(config, currentKeyboardId, overlayContainer,
+            rowHeight = rowHeight, fontSize = baseFontSize, fontWeight = configFontWeight)
         nikkudPickerController.showPicker(parsedKey, anchorView)
     }
     
@@ -2257,25 +2307,26 @@ class KeyboardRenderer(private val context: Context) {
     
     // MARK: - Visual Updates (without full re-render)
     
-    /** Update only the nikkud key's background color without full re-render */
+    /** Update only the nikkud key's visual indicator without full re-render */
     private fun updateNikkudKeyVisual(keyView: View) {
         debugLog("🎨 updateNikkudKeyVisual: nikkudActive=$nikkudActive")
-        
+
         // keyView is the button container (FrameLayout)
         // The visual key is the first child (also a FrameLayout with background)
         val container = keyView as? ViewGroup ?: return
         val visualKeyView = container.getChildAt(0) as? ViewGroup ?: return
-        
+
         val bgDrawable = visualKeyView.background as? GradientDrawable
         if (bgDrawable != null) {
-            val newColor = if (nikkudActive) {
-                Color.parseColor("#FFEB3B")  // systemYellow
+            if (nikkudActive) {
+                // Blue border when active (matching iOS systemBlue)
+                bgDrawable.setStroke(dpToPx(3), Color.parseColor("#2196F3"))
             } else {
-                Color.WHITE
+                // Remove border when inactive
+                bgDrawable.setStroke(0, Color.TRANSPARENT)
             }
-            bgDrawable.setColor(newColor)
             visualKeyView.invalidate()
-            debugLog("🎨 Updated nikkud key background to: ${if (nikkudActive) "yellow" else "white"}")
+            debugLog("🎨 Updated nikkud key indicator to: ${if (nikkudActive) "blue border" else "no border"}")
         }
     }
     
