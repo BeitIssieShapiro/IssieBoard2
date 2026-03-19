@@ -149,16 +149,25 @@ class KeyboardRenderer(private val context: Context) {
     // Layout tracking to prevent infinite loops
     private var lastRenderedWidth: Int = 0
     
-    // Screen size detection for showOn filtering
+    // Screen size detection for showOn filtering and large-screen variant selection
     private val isLargeScreen: Boolean
         get() {
-            val screenLayout = context.resources.configuration.screenLayout
-            val screenSize = screenLayout and android.content.res.Configuration.SCREENLAYOUT_SIZE_MASK
-            // SCREENLAYOUT_SIZE_LARGE or SCREENLAYOUT_SIZE_XLARGE = tablet
-            val isLarge = screenSize >= android.content.res.Configuration.SCREENLAYOUT_SIZE_LARGE
-            debugLog("📱 isLargeScreen check: screenSize=$screenSize, LARGE=${android.content.res.Configuration.SCREENLAYOUT_SIZE_LARGE}, isLarge=$isLarge")
+            val screenWidthDp = context.resources.configuration.screenWidthDp
+            val isLarge = screenWidthDp >= 600
+            debugLog("📱 isLargeScreen check: screenWidthDp=$screenWidthDp, isLarge=$isLarge")
             return isLarge
         }
+
+    /// Resolve a keyset ID to its large-screen variant if running on tablet
+    /// and the `_large` variant exists in the config.
+    internal fun resolveKeysetId(baseId: String): String {
+        if (!isLargeScreen) return baseId
+        val largeId = "${baseId}_large"
+        if (config?.keysets?.any { it.id == largeId } == true) {
+            return largeId
+        }
+        return baseId
+    }
 
     // Preview mode flag - when true, shows all keys from config (no filtering by system keyboard count)
     private var isPreviewMode: Boolean = false
@@ -190,10 +199,12 @@ class KeyboardRenderer(private val context: Context) {
     private val rowHeight: Int
         get() {
             // Get height preset from config (defaults to .normal)
-            val preset = KeyboardHeightPreset.from(config?.heightPreset)
+            val presetString = if (isLargeScreen) config?.heightPresetLarge ?: config?.heightPreset else config?.heightPreset
+            val preset = KeyboardHeightPreset.from(presetString)
 
             // Get font size preset from config (defaults to .normal)
-            val fontPreset = FontSizePreset.from(config?.fontSizePreset)
+            val fontPresetString = if (isLargeScreen) config?.fontSizePresetLarge ?: config?.fontSizePreset else config?.fontSizePreset
+            val fontPreset = FontSizePreset.from(fontPresetString)
 
             // Get screen dimensions in dp
             val displayMetrics = context.resources.displayMetrics
@@ -235,7 +246,8 @@ class KeyboardRenderer(private val context: Context) {
 
     // Get key gap from config or use default
     private fun getKeyGap(): Int {
-        return config?.keyGap?.let { dpToPx(it) } ?: dpToPx(3)
+        val gap = if (isLargeScreen) config?.keyGapLarge ?: config?.keyGap ?: 3 else config?.keyGap ?: 3
+        return dpToPx(gap)
     }
 
     // Suggestions bar view reference for updates
@@ -294,7 +306,8 @@ class KeyboardRenderer(private val context: Context) {
 
     /** Get font weight from config string, fallback to BOLD for heavy */
     private fun getFontWeight(): Int {
-        return when (config?.fontWeight?.lowercase()) {
+        val weightString = if (isLargeScreen) config?.fontWeightLarge ?: config?.fontWeight else config?.fontWeight
+        return when (weightString?.lowercase()) {
             "ultralight", "thin" -> Typeface.NORMAL  // Android doesn't have ultra-light
             "light" -> Typeface.NORMAL
             "regular" -> Typeface.NORMAL
@@ -402,8 +415,10 @@ class KeyboardRenderer(private val context: Context) {
         val keyset = config.keysets.find { it.id == keysetId } ?: return dpToPx(216)
 
         // Calculate row height using the dimension system
-        val preset = KeyboardHeightPreset.from(config.heightPreset)
-        val fontPreset = FontSizePreset.from(config.fontSizePreset)
+        val presetString = if (isLargeScreen) config.heightPresetLarge ?: config.heightPreset else config.heightPreset
+        val preset = KeyboardHeightPreset.from(presetString)
+        val fontPresetString = if (isLargeScreen) config.fontSizePresetLarge ?: config.fontSizePreset else config.fontSizePreset
+        val fontPreset = FontSizePreset.from(fontPresetString)
 
         // Get screen dimensions in dp (available height subtracts system bars, matching iOS safe area behavior)
         val displayMetrics = context.resources.displayMetrics
@@ -577,6 +592,9 @@ class KeyboardRenderer(private val context: Context) {
         if (this.currentKeysetId == "abc" && currentKeysetId != "abc") {
             this.currentKeysetId = currentKeysetId
         }
+
+        // Resolve to large-screen keyset variant on tablet if available
+        this.currentKeysetId = resolveKeysetId(this.currentKeysetId)
         
         // Derive currentKeyboardId from keyset ID
         val keyboards = config.keyboards
@@ -1372,9 +1390,10 @@ class KeyboardRenderer(private val context: Context) {
             val isMultiChar = finalText.length > 1
 
             // Determine which font preset to use: key's preset > config's preset > "normal"
-            val fontPresetString = key.fontSizePreset ?: config?.fontSizePreset ?: "normal"
+            val fontPresetString = key.fontSizePreset ?: (if (isLargeScreen) config?.fontSizePresetLarge ?: config?.fontSizePreset else config?.fontSizePreset) ?: "normal"
             val fontPreset = FontSizePreset.from(fontPresetString)
-            val heightPreset = KeyboardHeightPreset.from(config?.heightPreset)
+            val heightPresetString = if (isLargeScreen) config?.heightPresetLarge ?: config?.heightPreset else config?.heightPreset
+            val heightPreset = KeyboardHeightPreset.from(heightPresetString)
 
             // Get screen dimensions in dp (available height subtracts system bars, matching iOS safe area behavior)
             val displayMetrics = context.resources.displayMetrics

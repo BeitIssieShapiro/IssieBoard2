@@ -23,6 +23,12 @@ struct KeyboardConfig: Codable {
     let keyGap: Double?  // Gap between keys in points (default: 3)
     let fontWeight: String?  // Font weight: "ultraLight", "thin", "light", "regular", "medium", "semibold", "bold", "heavy", "black" (default: "regular")
 
+    // Large-screen variant overrides (used on iPad)
+    let heightPreset_large: String?
+    let keyGap_large: Double?
+    let fontWeight_large: String?
+    let fontSizePreset_large: String?
+
     enum CodingKeys: String, CodingKey {
         case backgroundColor
         case keysBgColor
@@ -42,6 +48,10 @@ struct KeyboardConfig: Codable {
         case heightPreset
         case keyGap
         case fontWeight
+        case heightPreset_large
+        case keyGap_large
+        case fontWeight_large
+        case fontSizePreset_large
     }
     
     /// Check if word suggestions are enabled (defaults to true if not specified)

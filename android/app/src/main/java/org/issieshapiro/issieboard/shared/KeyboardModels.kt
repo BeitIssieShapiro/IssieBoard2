@@ -30,7 +30,12 @@ data class KeyboardConfig(
     val keyGap: Int? = null,  // Gap between keys in dp (default: 3dp)
     val fontSizePreset: String? = null,  // Font size preset: "xs", "small", "normal", "large", "xl" (default: "normal")
     val heightPreset: String? = null,  // Keyboard height preset: "compact", "normal", "tall", "x-tall" (default: "normal")
-    val fontWeight: String? = null  // Font weight: "ultraLight", "thin", "light", "regular", "medium", "semibold", "bold", "heavy", "black" (default: "heavy")
+    val fontWeight: String? = null,  // Font weight: "ultraLight", "thin", "light", "regular", "medium", "semibold", "bold", "heavy", "black" (default: "heavy")
+    // Large-screen variant overrides (used on tablets)
+    val heightPresetLarge: String? = null,
+    val keyGapLarge: Int? = null,
+    val fontWeightLarge: String? = null,
+    val fontSizePresetLarge: String? = null
 ) {
     /** Check if word suggestions are enabled (defaults to true if not specified) */
     val isWordSuggestionsEnabled: Boolean

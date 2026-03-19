@@ -147,7 +147,18 @@ class KeyboardRenderer {
         // iPad or large screen detection
         return UIDevice.current.userInterfaceIdiom == .pad
     }
-    
+
+    /// Resolve a keyset ID to its large-screen variant if running on iPad
+    /// and the `_large` variant exists in the config.
+    func resolveKeysetId(_ baseId: String) -> String {
+        guard isLargeScreen else { return baseId }
+        let largeId = baseId + "_large"
+        if config?.keysets.contains(where: { $0.id == largeId }) == true {
+            return largeId
+        }
+        return baseId
+    }
+
     // UI Constants - same for preview and keyboard
     // Dynamic row height: uses adaptive calculation based on screen size and preset
     private var rowHeight: CGFloat {
@@ -157,7 +168,7 @@ class KeyboardRenderer {
 
         // Get height preset from config (defaults to .normal)
         let preset: KeyboardHeightPreset
-        if let presetString = config?.heightPreset {
+        if let presetString = (UIDevice.current.userInterfaceIdiom == .pad ? config?.heightPreset_large : nil) ?? config?.heightPreset {
             preset = KeyboardHeightPreset(rawValue: presetString) ?? .normal
         } else {
             preset = .normal
@@ -183,7 +194,7 @@ class KeyboardRenderer {
 
         // Get font size preset from config (defaults to .normal)
         let fontPreset: FontSizePreset
-        if let presetString = config?.fontSizePreset {
+        if let presetString = (UIDevice.current.userInterfaceIdiom == .pad ? config?.fontSizePreset_large : nil) ?? config?.fontSizePreset {
             fontPreset = FontSizePreset(rawValue: presetString) ?? .normal
         } else {
             fontPreset = .normal
@@ -393,8 +404,8 @@ class KeyboardRenderer {
         }
 
         // Calculate row height using the passed config (not self.config)
-        let preset = KeyboardHeightPreset(rawValue: config.heightPreset ?? "normal") ?? .normal
-        let fontPreset = FontSizePreset(rawValue: config.fontSizePreset ?? "normal") ?? .normal
+        let preset = KeyboardHeightPreset(rawValue: (UIDevice.current.userInterfaceIdiom == .pad ? config.heightPreset_large : nil) ?? config.heightPreset ?? "normal") ?? .normal
+        let fontPreset = FontSizePreset(rawValue: (UIDevice.current.userInterfaceIdiom == .pad ? config.fontSizePreset_large : nil) ?? config.fontSizePreset ?? "normal") ?? .normal
 
         // Get screen dimensions
         let screenBounds: CGRect
@@ -600,7 +611,10 @@ class KeyboardRenderer {
         if self.currentKeysetId == "abc" && currentKeysetId != "abc" {
             self.currentKeysetId = currentKeysetId
         }
-        
+
+        // Resolve to large-screen keyset variant on iPad if available
+        self.currentKeysetId = resolveKeysetId(self.currentKeysetId)
+
         // Derive currentKeyboardId from keyset ID (e.g., "he_abc" -> "he", "abc" -> first keyboard)
         // IMPORTANT: Reset currentKeyboardId before searching - this ensures it updates when switching languages
         if let keyboards = config.keyboards, !keyboards.isEmpty {
@@ -1389,10 +1403,11 @@ class KeyboardRenderer {
 
         var finalFontSize: CGFloat
 
-        // Determine which font preset to use: key's preset > config's preset > "normal"
-        let fontPresetString = key.fontSizePreset ?? config?.fontSizePreset ?? "normal"
+        // Determine which font preset to use: key's preset > config's preset (with large variant) > "normal"
+        let configFontSizePreset = (UIDevice.current.userInterfaceIdiom == .pad ? config?.fontSizePreset_large : nil) ?? config?.fontSizePreset
+        let fontPresetString = key.fontSizePreset ?? configFontSizePreset ?? "normal"
         let fontPreset = FontSizePreset(rawValue: fontPresetString) ?? .normal
-        let heightPreset = KeyboardHeightPreset(rawValue: config?.heightPreset ?? "normal") ?? .normal
+        let heightPreset = KeyboardHeightPreset(rawValue: (UIDevice.current.userInterfaceIdiom == .pad ? config?.heightPreset_large : nil) ?? config?.heightPreset ?? "normal") ?? .normal
 
         // Get screen dimensions
         let screenBounds: CGRect
@@ -1509,7 +1524,8 @@ class KeyboardRenderer {
 
         // Get font weight from config or use default
         let fontWeight: UIFont.Weight = {
-            guard let weightString = config?.fontWeight else {
+            let weightString = (UIDevice.current.userInterfaceIdiom == .pad ? config?.fontWeight_large : nil) ?? config?.fontWeight
+            guard let weightString = weightString else {
                 return .heavy  // Default to heavy
             }
             switch weightString.lowercased() {
@@ -1573,7 +1589,8 @@ class KeyboardRenderer {
         }
 
         // Get key gap from config or use defaults
-        let horizontalGap = (CGFloat(config?.keyGap ?? 3)) * currentScale
+        let gap = (UIDevice.current.userInterfaceIdiom == .pad ? config?.keyGap_large : nil) ?? config?.keyGap ?? 3
+        let horizontalGap = (CGFloat(gap)) * currentScale
         let verticalGap = (horizontalGap / currentScale + 2) * currentScale  // Vertical padding is slightly larger (2px more than horizontal)
 
         // Add visual key view to button (with padding for visual gap)

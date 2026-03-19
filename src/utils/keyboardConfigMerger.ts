@@ -1,15 +1,16 @@
 /**
  * Keyboard Config Merger
- * 
+ *
  * Shared utilities for merging keyboard configurations.
  * Used by:
- * - Build script (scripts/build_ios_keyboard_configs.js) to generate default configs
+ * - Build script (scripts/build_keyboard_configs.js) to generate default configs
  * - Settings app to build configs when editing profiles
- * 
+ *
  * This module handles:
  * - Loading and merging common keysets with language-specific keysets
  * - Filtering keys by language (using forLanguages property)
- * - Applying alwaysInclude keys and rows
+ * - Structural template injection (backspace, enter, shift, space, etc.)
+ * - Producing two variants per keyset: mobile (base ID) and large-screen (_large suffix)
  */
 
 // Import common keysets - this works in both Node.js and React Native
@@ -33,17 +34,21 @@ export interface KeyboardKey {
   returnKeysetLabel?: string;
   nikkud?: Array<{ value: string; caption?: string }>;
   forLanguages?: string[];
-  alwaysInclude?: boolean;
+  ifHasDiacritics?: boolean;
+  showForField?: string[];
+  flex?: boolean;
+  fontSize?: number;
 }
 
 export interface KeyboardRow {
   keys: KeyboardKey[];
-  alwaysInclude?: boolean;
 }
 
 export interface Keyset {
   id: string;
   rows: KeyboardRow[];
+  mobileRows?: Record<string, KeyboardRow>;
+  largeRows?: Record<string, KeyboardRow>;
 }
 
 export interface DiacriticsItem {
@@ -71,11 +76,18 @@ export interface Diacritics {
   modifier?: DiacriticsModifier;
 }
 
+export interface KeyboardLabels {
+  abcLabel?: string;
+  symbolsLabel?: string;
+  spaceCaption?: string;
+}
+
 export interface SourceKeyboard {
   id: string;
   name: string;
   includeKeysets?: string[];
   diacritics?: Diacritics;
+  labels?: KeyboardLabels;
   keysets: Keyset[];
   defaultKeyset?: string;
 }
@@ -92,12 +104,20 @@ export interface KeyboardConfig {
   groups: any[];
 }
 
+// ============================================
+// COMMON KEYSETS ACCESS
+// ============================================
+
 /**
  * Get common keysets from the common.js module
  */
 export function getCommonKeysets(): Keyset[] {
   return commonKeysets.keysets || [];
 }
+
+// ============================================
+// LANGUAGE FILTERING
+// ============================================
 
 /**
  * Filter keys by language
@@ -114,8 +134,9 @@ export function filterKeysByLanguage(keys: KeyboardKey[], language: string): Key
     })
     .map(key => {
       // Remove forLanguages from the output (it's build-time only)
-      const { forLanguages, ...keyWithoutForLanguages } = key;
-      return keyWithoutForLanguages;
+      const result = { ...key };
+      delete result.forLanguages;
+      return result;
     });
 }
 
@@ -127,26 +148,26 @@ export function filterSettingsButton(keys: KeyboardKey[], settingsButtonEnabled:
   if (settingsButtonEnabled) {
     return keys;
   }
-  
+
   // Find the settings button and space key
   const settingsKey = keys.find(key => key.type === 'settings');
   const settingsWidth = settingsKey?.width || 1;
-  
+
   // Filter out settings button and adjust space width
   return keys.map(key => {
     // Remove settings button
     if (key.type === 'settings') {
       return null;
     }
-    
+
     // Add settings button width to space key
-    if (key.value === ' ' || key.caption === 'space' || key.caption === 'רווח' || key.caption === 'مسافة') {
+    if (key.value === ' ' || key.caption === 'space' || key.caption === '\u05E8\u05D5\u05D5\u05D7' || key.caption === '\u0645\u0633\u0627\u0641\u0629') {
       return {
         ...key,
         width: (key.width || 1) + settingsWidth,
       };
     }
-    
+
     return key;
   }).filter((key): key is KeyboardKey => key !== null);
 }
@@ -161,140 +182,327 @@ export function filterRowsByLanguage(rows: KeyboardRow[], language: string): Key
   }));
 }
 
-/**
- * Find the alwaysInclude row from the abc keyset
- */
-export function findAlwaysIncludeRow(sourceKeyboard: SourceKeyboard): KeyboardRow | null {
-  const abcKeyset = sourceKeyboard.keysets?.find(ks => ks.id === 'abc');
-  if (!abcKeyset) return null;
-
-  return abcKeyset.rows?.find(row => row.alwaysInclude === true) || null;
-}
+// ============================================
+// STRUCTURAL FILTERING
+// ============================================
 
 /**
- * Find alwaysInclude keys from non-alwaysInclude rows in the abc keyset
- * Returns keys that should be prepended/appended to the last content row
+ * Filter structural keys by language and diacritics availability.
+ * Strips forLanguages and ifHasDiacritics from output.
  */
-export function findAlwaysIncludeKeys(sourceKeyboard: SourceKeyboard): {
-  prependKeys: KeyboardKey[];
-  appendKeys: KeyboardKey[];
-} {
-  const abcKeyset = sourceKeyboard.keysets?.find(ks => ks.id === 'abc');
-  if (!abcKeyset) return { prependKeys: [], appendKeys: [] };
-
-  const prependKeys: KeyboardKey[] = [];
-  const appendKeys: KeyboardKey[] = [];
-
-  (abcKeyset.rows || []).forEach(row => {
-    // Skip rows that are themselves alwaysInclude
-    if (row.alwaysInclude) return;
-
-    const keys = row.keys || [];
-    keys.forEach((key, keyIndex) => {
-      if (key.alwaysInclude) {
-        // Clone the key without the alwaysInclude property
-        const { alwaysInclude, ...keyWithoutFlag } = key;
-
-        if (keyIndex === 0) {
-          // Key is first in the row - prepend to last content row
-          prependKeys.push(keyWithoutFlag);
-        } else if (keyIndex === keys.length - 1) {
-          // Key is last in the row - append to last content row
-          appendKeys.push(keyWithoutFlag);
-        }
-        // Keys in the middle are ignored
-      }
-    });
+export function filterStructuralKeys(
+  keys: KeyboardKey[],
+  language: string,
+  hasDiacritics: boolean
+): KeyboardKey[] {
+  return keys.filter(key => {
+    if (key.forLanguages && !key.forLanguages.includes(language)) {
+      return false;
+    }
+    if (key.ifHasDiacritics && !hasDiacritics) {
+      return false;
+    }
+    return true;
+  }).map(key => {
+    const clean = { ...key };
+    delete clean.forLanguages;
+    delete clean.ifHasDiacritics;
+    return clean;
   });
-
-  return { prependKeys, appendKeys };
 }
 
+// ============================================
+// VARIANT ROW RESOLUTION
+// ============================================
+
 /**
- * Apply alwaysInclude keys to a keyset's rows
- * - prependKeys: prepend to the beginning of the LAST row
- * - appendKeys: append to the end of the LAST row
+ * Resolve the correct rows for a given variant.
+ * Checks for mobileRows/largeRows overrides on the keyset.
+ * Returns deep-copied rows array.
  */
-export function applyAlwaysIncludeKeys(
-  rows: KeyboardRow[],
-  prependKeys: KeyboardKey[],
-  appendKeys: KeyboardKey[]
+export function resolveRowsForVariant(
+  keyset: Keyset,
+  variant: 'mobile' | 'large'
 ): KeyboardRow[] {
-  if (rows.length === 0) return rows;
+  const baseRows = keyset.rows || [];
 
-  return rows.map((row, index) => {
-    // Only apply to the last row
-    if (index !== rows.length - 1) {
-      return row;
-    }
+  if (variant === 'large' && keyset.largeRows) {
+    return baseRows.map((row, index) => {
+      const override = keyset.largeRows![String(index)];
+      if (override) {
+        return JSON.parse(JSON.stringify(override));
+      }
+      return JSON.parse(JSON.stringify(row));
+    });
+  }
 
-    let newKeys = [...row.keys];
+  if (variant === 'mobile' && keyset.mobileRows) {
+    return baseRows.map((row, index) => {
+      const override = keyset.mobileRows![String(index)];
+      if (override) {
+        return JSON.parse(JSON.stringify(override));
+      }
+      return JSON.parse(JSON.stringify(row));
+    });
+  }
 
-    // Prepend keys to the start
-    for (const key of prependKeys) {
-      newKeys = [key, ...newKeys];
-    }
+  // No overrides, deep copy base rows
+  return JSON.parse(JSON.stringify(baseRows));
+}
 
-    // Append keys to the end
-    for (const key of appendKeys) {
-      newKeys = [...newKeys, key];
-    }
+// ============================================
+// ROW INJECTIONS
+// ============================================
 
-    return {
-      ...row,
-      keys: newKeys,
-    };
-  });
+interface RowInjection {
+  prepend?: KeyboardKey[];
+  append?: KeyboardKey[];
+}
+
+interface KeysetOverride {
+  firstRow?: RowInjection;
+  secondRow?: RowInjection;
+  lastRow?: RowInjection;
+}
+
+interface StructuralVariant {
+  firstRow?: RowInjection;
+  secondRow?: RowInjection;
+  lastRow?: RowInjection;
+  keysetOverrides?: Record<string, KeysetOverride>;
+  bottomRow?: KeyboardKey[];
 }
 
 /**
- * Clean alwaysInclude flags from keys in a row
+ * Apply row injections from the structural variant template.
+ * If keysetOverrides has an entry for the given keysetId, those row injections
+ * REPLACE the default injections entirely.
+ * Resolves firstRow/secondRow/lastRow references and applies prepend/append.
  */
-function cleanAlwaysIncludeFlags(keys: KeyboardKey[]): KeyboardKey[] {
+export function applyRowInjections(
+  rows: KeyboardRow[],
+  variantTemplate: StructuralVariant,
+  language: string,
+  hasDiacritics: boolean,
+  keysetId?: string
+): KeyboardRow[] {
+  if (!rows || rows.length === 0) return rows;
+
+  // Resolve which row injections to use: per-keyset override or defaults
+  const injections: Pick<StructuralVariant, 'firstRow' | 'secondRow' | 'lastRow'> =
+    (keysetId && variantTemplate.keysetOverrides && variantTemplate.keysetOverrides[keysetId])
+      || variantTemplate;
+
+  const result = rows.map(row => ({ ...row, keys: [...row.keys] }));
+
+  const injectionMap: Record<string, number> = {
+    firstRow: 0,
+    secondRow: 1,
+    lastRow: result.length - 1,
+  };
+
+  for (const [rowRef, rowIndex] of Object.entries(injectionMap)) {
+    const injection = injections[rowRef as keyof typeof injections] as RowInjection | undefined;
+    if (!injection || rowIndex < 0 || rowIndex >= result.length) continue;
+
+    if (injection.prepend) {
+      const filtered = filterStructuralKeys(injection.prepend, language, hasDiacritics);
+      result[rowIndex].keys = [...filtered, ...result[rowIndex].keys];
+    }
+    if (injection.append) {
+      const filtered = filterStructuralKeys(injection.append, language, hasDiacritics);
+      result[rowIndex].keys = [...result[rowIndex].keys, ...filtered];
+    }
+  }
+
+  return result;
+}
+
+// ============================================
+// KEYSET REFERENCE SUFFIXING
+// ============================================
+
+/**
+ * Add suffix (e.g., _large) to keysetValue/returnKeysetValue on keyset-type keys.
+ * Used for large variant content rows.
+ */
+export function suffixKeysetReferences(keys: KeyboardKey[], suffix: string): KeyboardKey[] {
   return keys.map(key => {
-    const { alwaysInclude, ...keyWithoutFlag } = key;
-    return keyWithoutFlag;
+    const newKey = { ...key };
+    if (newKey.keysetValue) {
+      newKey.keysetValue = newKey.keysetValue + suffix;
+    }
+    if (newKey.returnKeysetValue) {
+      newKey.returnKeysetValue = newKey.returnKeysetValue + suffix;
+    }
+    return newKey;
   });
 }
 
+// ============================================
+// KEYSET TOGGLE RESOLUTION
+// ============================================
+
 /**
- * Transform a keyset button key for a different target keyset
- * When the alwaysInclude row's keyset button is used on a non-abc keyset (like "123" or "#+="),
- * we need to update it to point BACK to the abc keyset with the return label.
- * 
- * The original button on abc keyset has: keysetValue="123", label="123", returnKeysetValue="abc", returnKeysetLabel="אבג"
- * 
- * When copied to ANY non-abc keyset, we want:
- * - keysetValue="abc" (always return to abc)
- * - label=returnKeysetLabel (e.g., "אבג")
- * - returnKeysetValue=targetKeysetId (so pressing again can go back)
- * - returnKeysetLabel=original label
+ * Resolve keyset toggle button properties based on the target keyset and variant.
  */
-function transformKeysetButtonForTarget(key: KeyboardKey, targetKeysetId: string): KeyboardKey {
-  // Only transform keyset type buttons
-  if (key.type !== 'keyset') {
-    return key;
-  }
-
-  // If target is 'abc', no transformation needed (button is correct as-is)
+function resolveKeysetToggle(
+  targetKeysetId: string,
+  labels: KeyboardLabels,
+  suffix: string
+): Partial<KeyboardKey> {
   if (targetKeysetId === 'abc') {
-    return key;
+    return {
+      keysetValue: '123' + suffix,
+      label: labels.symbolsLabel,
+      returnKeysetValue: 'abc' + suffix,
+      returnKeysetLabel: labels.abcLabel,
+    };
   }
 
-  // For any non-abc keyset, transform the button to point back to abc
-  // This handles both "123" and "#+=" keysets
+  if (targetKeysetId === '123') {
+    return {
+      keysetValue: 'abc' + suffix,
+      label: labels.abcLabel,
+      returnKeysetValue: '123' + suffix,
+      returnKeysetLabel: labels.symbolsLabel,
+    };
+  }
+
+  if (targetKeysetId === '#+=') {
+    return {
+      keysetValue: 'abc' + suffix,
+      label: labels.abcLabel,
+      returnKeysetValue: '#+=' + suffix,
+      returnKeysetLabel: '#+=',
+    };
+  }
+
+  // Fallback for unknown keyset IDs
   return {
-    ...key,
-    keysetValue: key.returnKeysetValue || 'abc',  // Always point back to abc
-    label: key.returnKeysetLabel || key.returnKeysetValue || 'abc',  // Show return label (e.g., "אבג")
-    // Set up for reverse navigation (if user presses again on abc)
-    returnKeysetValue: targetKeysetId,  // Point to the current keyset
-    returnKeysetLabel: key.label || targetKeysetId,  // Show the current keyset's label
+    keysetValue: 'abc' + suffix,
+    label: labels.abcLabel,
+    returnKeysetValue: targetKeysetId + suffix,
+    returnKeysetLabel: targetKeysetId,
   };
 }
 
+// ============================================
+// BOTTOM ROW BUILDING
+// ============================================
+
 /**
- * Merge common keysets with language-specific configuration
+ * Build the bottom row from the structural template.
+ * Resolves special key types:
+ * - { type: "space" } -> space key with labels
+ * - { type: "keyset" } -> keyset toggle button with variant-aware IDs
+ * - Other keys pass through after filtering
+ */
+export function buildBottomRow(
+  template: KeyboardKey[],
+  language: string,
+  hasDiacritics: boolean,
+  labels: KeyboardLabels,
+  targetKeysetId: string,
+  variant: 'mobile' | 'large'
+): KeyboardRow {
+  const suffix = variant === 'large' ? '_large' : '';
+  const filtered = filterStructuralKeys(template, language, hasDiacritics);
+
+  const keys = filtered.map(key => {
+    // Resolve space type
+    if (key.type === 'space') {
+      const rest = { ...key };
+      delete rest.type;
+      return {
+        caption: labels.spaceCaption || '',
+        value: ' ',
+        width: 1,
+        flex: true,
+        ...rest,
+      };
+    }
+
+    // Resolve keyset type
+    if (key.type === 'keyset') {
+      const rest = { ...key };
+      delete rest.type;
+      const resolved = resolveKeysetToggle(targetKeysetId, labels, suffix);
+      return {
+        type: 'keyset' as const,
+        ...rest,
+        ...resolved,
+      };
+    }
+
+    // Other keys pass through
+    return key;
+  });
+
+  return { keys };
+}
+
+// ============================================
+// KEYSET VARIANT BUILDING
+// ============================================
+
+/**
+ * Build a single keyset variant (mobile or large).
+ * This is the main pipeline:
+ * 1. resolveRowsForVariant
+ * 2. filterRowsByLanguage
+ * 3. applyRowInjections
+ * 4. If large: suffixKeysetReferences on content rows
+ * 5. buildBottomRow and append
+ * 6. Return { id, rows }
+ */
+export function buildKeysetVariant(
+  keyset: Keyset,
+  variant: 'mobile' | 'large',
+  structural: { mobile: StructuralVariant; large: StructuralVariant },
+  language: string,
+  hasDiacritics: boolean,
+  labels: KeyboardLabels
+): Keyset {
+  const suffix = variant === 'large' ? '_large' : '';
+  const variantTemplate = structural[variant] || {};
+
+  // 1. Resolve rows for variant (handles mobileRows/largeRows overrides)
+  let rows = resolveRowsForVariant(keyset, variant);
+
+  // 2. Filter by language
+  rows = filterRowsByLanguage(rows, language);
+
+  // 3. Apply row injections (prepend/append structural keys)
+  rows = applyRowInjections(rows, variantTemplate, language, hasDiacritics, keyset.id);
+
+  // 4. If large variant: suffix keyset references in content rows
+  if (variant === 'large') {
+    rows = rows.map(row => ({
+      ...row,
+      keys: suffixKeysetReferences(row.keys, suffix),
+    }));
+  }
+
+  // 5. Build bottom row and append
+  const bottomRowTemplate = variantTemplate.bottomRow || [];
+  const bottomRow = buildBottomRow(bottomRowTemplate, language, hasDiacritics, labels, keyset.id, variant);
+  rows.push(bottomRow);
+
+  // 6. Return variant keyset
+  return {
+    id: keyset.id + suffix,
+    rows,
+  };
+}
+
+// ============================================
+// MERGE COMMON KEYSETS
+// ============================================
+
+/**
+ * Merge common keysets with language-specific configuration.
+ * Produces two variants per common keyset (mobile + large).
  */
 export function mergeCommonKeysets(
   sourceKeyboard: SourceKeyboard,
@@ -302,9 +510,14 @@ export function mergeCommonKeysets(
   commonKeysetsParam?: Keyset[]
 ): Keyset[] {
   const includeKeysets = sourceKeyboard.includeKeysets || [];
-  const alwaysIncludeRow = findAlwaysIncludeRow(sourceKeyboard);
-  const { prependKeys, appendKeys } = findAlwaysIncludeKeys(sourceKeyboard);
   const keysets = commonKeysetsParam || getCommonKeysets();
+  const hasDiacritics = !!sourceKeyboard.diacritics;
+  const labels: KeyboardLabels = sourceKeyboard.labels || {
+    abcLabel: 'ABC',
+    symbolsLabel: '123',
+    spaceCaption: '',
+  };
+  const structural = commonKeysets.structural;
 
   const mergedKeysets: Keyset[] = [];
 
@@ -315,77 +528,60 @@ export function mergeCommonKeysets(
       continue;
     }
 
-    // Filter keys by language
-    let filteredRows = filterRowsByLanguage(commonKeyset.rows, language);
-
-    // Apply alwaysInclude keys (prepend/append) to rows
-    filteredRows = applyAlwaysIncludeKeys(filteredRows, prependKeys, appendKeys);
-
-    // Create merged keyset
-    const mergedKeyset: Keyset = {
-      id: commonKeyset.id,
-      rows: [...filteredRows],
-    };
-
-    // Append alwaysInclude row if found
-    if (alwaysIncludeRow) {
-      // Clone the row without the alwaysInclude property
-      const { alwaysInclude, ...bottomRowProps } = alwaysIncludeRow;
-      
-      // Transform keys for the target keyset:
-      // 1. Remove alwaysInclude flags
-      // 2. Transform keyset buttons to point back to the original keyset
-      const transformedKeys = bottomRowProps.keys.map(key => {
-        const { alwaysInclude: keyFlag, ...keyWithoutFlag } = key;
-        // Transform keyset buttons to show return label and point back to abc
-        return transformKeysetButtonForTarget(keyWithoutFlag, keysetId);
-      });
-      
-      mergedKeyset.rows.push({ ...bottomRowProps, keys: transformedKeys });
-    }
-
-    mergedKeysets.push(mergedKeyset);
+    // Mobile variant
+    mergedKeysets.push(
+      buildKeysetVariant(commonKeyset, 'mobile', structural, language, hasDiacritics, labels)
+    );
+    // Large variant
+    mergedKeysets.push(
+      buildKeysetVariant(commonKeyset, 'large', structural, language, hasDiacritics, labels)
+    );
   }
 
   return mergedKeysets;
 }
 
-/**
- * Process a keyset to remove alwaysInclude properties from output
- */
-export function processKeyset(keyset: Keyset): Keyset {
-  return {
-    ...keyset,
-    rows: keyset.rows.map(row => {
-      const { alwaysInclude, ...rowWithoutAlwaysInclude } = row;
-      return {
-        ...rowWithoutAlwaysInclude,
-        keys: cleanAlwaysIncludeFlags(row.keys),
-      };
-    }),
-  };
-}
+// ============================================
+// BUILD KEYBOARD CONFIG
+// ============================================
 
 /**
- * Build a complete keyboard config from source keyboard definition
+ * Build a complete keyboard config from source keyboard definition.
+ * For each keyset (language abc + common 123/#+=), calls buildKeysetVariant
+ * twice (mobile + large), producing two variants per keyset.
  */
 export function buildKeyboardConfig(
   sourceKeyboard: SourceKeyboard,
   language: string
 ): KeyboardConfig {
-  // Start with language-specific keysets
-  let allKeysets: Keyset[] = [];
+  const hasDiacritics = !!sourceKeyboard.diacritics;
+  const labels: KeyboardLabels = sourceKeyboard.labels || {
+    abcLabel: 'ABC',
+    symbolsLabel: '123',
+    spaceCaption: '',
+  };
+  const structural = commonKeysets.structural;
 
-  // Process language-specific keysets (abc, etc.)
+  const allKeysets: Keyset[] = [];
+
+  // Process language-specific keysets (e.g., abc)
   if (sourceKeyboard.keysets && Array.isArray(sourceKeyboard.keysets)) {
-    allKeysets = sourceKeyboard.keysets.map(keyset => processKeyset(keyset));
+    for (const keyset of sourceKeyboard.keysets) {
+      // Mobile variant
+      allKeysets.push(
+        buildKeysetVariant(keyset, 'mobile', structural, language, hasDiacritics, labels)
+      );
+      // Large variant
+      allKeysets.push(
+        buildKeysetVariant(keyset, 'large', structural, language, hasDiacritics, labels)
+      );
+    }
   }
 
   // Merge common keysets if includeKeysets is specified
   if (sourceKeyboard.includeKeysets && sourceKeyboard.includeKeysets.length > 0) {
     const mergedCommonKeysets = mergeCommonKeysets(sourceKeyboard, language);
-    const processedMergedKeysets = mergedCommonKeysets.map(keyset => processKeyset(keyset));
-    allKeysets = [...allKeysets, ...processedMergedKeysets];
+    allKeysets.push(...mergedCommonKeysets);
   }
 
   const config: KeyboardConfig = {
@@ -406,6 +602,10 @@ export function buildKeyboardConfig(
 
   return config;
 }
+
+// ============================================
+// PREVIEW TRANSFORM (RUNTIME FEATURE)
+// ============================================
 
 /**
  * Transform a keyboard config for main preview display.

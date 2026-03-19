@@ -331,6 +331,9 @@ class BaseKeyboardViewController: UIInputViewController {
             initialKeyset = config.defaultKeyset ?? "abc"
         }
 
+        // Resolve to large-screen keyset variant on iPad if available
+        initialKeyset = keyboardEngine.renderer.resolveKeysetId(initialKeyset)
+
         keyboardEngine.renderer.renderKeyboard(
             in: keyboardView,
             config: config,

@@ -294,6 +294,9 @@ abstract class BaseKeyboardService : InputMethodService() {
         } else {
             initialKeyset = loadSavedKeyset() ?: config.defaultKeyset ?: "abc"
         }
+
+        // Resolve to large-screen keyset variant on tablet if available
+        initialKeyset = renderer?.resolveKeysetId(initialKeyset) ?: initialKeyset
         
         renderer?.renderKeyboard(
             container = container,

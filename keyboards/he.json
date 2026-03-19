@@ -2,6 +2,11 @@
   "id": "he",
   "name": "Hebrew",
   "includeKeysets": ["123", "#+="],
+  "labels": {
+    "abcLabel": "אבג",
+    "symbolsLabel": "123",
+    "spaceCaption": ""
+  },
   "diacritics": {
     "appliesTo": ["א", "ב", "ג", "ד", "ה", "ו", "ז", "ח", "ט", "י", "כ", "ך", "ל", "מ", "ם", "נ", "ן", "ס", "ע", "פ", "ף", "צ", "ץ", "ק", "ר", "ש", "ת"],
     "items": [
@@ -44,9 +49,7 @@
       "rows": [
         {
           "keys": [
-            { "width": 0.5, "hidden": true, "showOn": ["mobile"]},
-            { "value": ",", "showOn": ["large-screen"] },
-            { "value": ".", "showOn": ["large-screen"] },
+            { "hidden": true, "width": 0.5 },
             { "value": "ק" },
             { "value": "ר" },
             { "value": "א" },
@@ -54,14 +57,11 @@
             { "value": "ו" },
             { "value": "ן" },
             { "value": "ם" },
-            { "value": "פ" },
-            { "width": 0.25, "hidden": true},
-            { "type": "backspace", "width": 1.5, "alwaysInclude": true }
+            { "value": "פ" }
           ]
         },
         {
           "keys": [
-            { "width": 0.5, "hidden": true, "showOn": ["large-screen"]},
             { "value": "ש" },
             { "value": "ד" },
             { "value": "ג" },
@@ -76,8 +76,6 @@
         },
         {
           "keys": [
-            { "width": 0.5, "hidden": true, "showOn": ["mobile"]},
-            { "width": 1, "hidden": true, "showOn": ["large-screen"]},
             { "value": "ז" },
             { "value": "ס" },
             { "value": "ב" },
@@ -86,25 +84,26 @@
             { "value": "מ" },
             { "value": "צ" },
             { "value": "ת" },
-            { "value": "ץ" },
-            { "type": "enter", "width": 1.5, "showOn": [ "large-screen" ] }
-          ]
-        },
-        {
-          "alwaysInclude": true,
-          "keys": [
-            { "type": "next-keyboard" },
-            { "type": "keyset", "keysetValue": "123", "returnKeysetValue": "abc", "label": "123", "returnKeysetLabel": "אבג", "width": 1.5 },
-            { "hidden":true, "width": 0.25, "showOn": [ "large-screen" ] },
-            { "type": "settings" },
-            { "caption": "", "value": " ", "width": 4, "flex": true },
-            { "hidden":true, "width": 0.5, "showOn": [ "large-screen" ] },
-            { "type": "nikkud" },
-            { "type": "close" , "label": "⌨️⏷", "fontSize": 29, "showOn": [ "large-screen" ] },
-            { "type": "enter", "width": 1.5, "showOn": [ "mobile" ] }
+            { "value": "ץ" }
           ]
         }
-      ]
+      ],
+      "largeRows": {
+        "0": {
+          "keys": [
+            { "value": "," },
+            { "value": "." },
+            { "value": "ק" },
+            { "value": "ר" },
+            { "value": "א" },
+            { "value": "ט" },
+            { "value": "ו" },
+            { "value": "ן" },
+            { "value": "ם" },
+            { "value": "פ" }
+          ]
+        }
+      }
     }
   ]
 }
