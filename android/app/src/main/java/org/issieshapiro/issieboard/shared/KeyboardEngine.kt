@@ -315,59 +315,64 @@ class KeyboardEngine(
     private fun handleSpaceKey() {
         val now = Date()
 
-        // Check for auto-capitalize "i" to "I"
-        val beforeText = textProxy.documentContextBeforeInput
-        if (beforeText != null && beforeText.endsWith("i")) {
-            val textBeforeI = beforeText.dropLast(1)
-            if (textBeforeI.isEmpty() || textBeforeI.last().isWhitespace()) {
-                textProxy.deleteBackward()
-                textProxy.insertText("I ")
-                lastSpaceTime = now
-                handleSuggestionsAfterSpace()
-                autoShiftAfterPunctuation()
-                return
-            }
-        }
-
-        // Check for fuzzy auto-replace (handleSpace returns replacement if auto-correct triggered)
-        val currentWord = suggestionController.currentWord
-        val replacement = suggestionController.handleSpace()
-
-        if (replacement != null) {
-            // Auto-correct triggered - delete typed word and insert replacement with space
-            repeat(currentWord.length) {
-                textProxy.deleteBackward()
-            }
-            textProxy.insertText("$replacement ")
-            lastSpaceTime = now
-            autoShiftAfterPunctuation()
-            return
-        }
-
-        // Double-space shortcut for period
-        val lastTime = lastSpaceTime
-        if (lastTime != null && (now.time - lastTime.time) < doubleSpaceThreshold) {
-            val beforeText2 = textProxy.documentContextBeforeInput
-            if (beforeText2 != null && beforeText2.endsWith(" ")) {
-                val textBeforeSpace = beforeText2.dropLast(1)
-                val charBeforeSpace = textBeforeSpace.lastOrNull()
-
-                if (charBeforeSpace != ' ' && charBeforeSpace != '.') {
+        // Kotlin equivalent of Swift's defer { autoReturnFromSpecialChars() }
+        try {
+            // Check for auto-capitalize "i" to "I"
+            val beforeText = textProxy.documentContextBeforeInput
+            if (beforeText != null && beforeText.endsWith("i")) {
+                val textBeforeI = beforeText.dropLast(1)
+                if (textBeforeI.isEmpty() || textBeforeI.last().isWhitespace()) {
                     textProxy.deleteBackward()
-                    textProxy.insertText(". ")
-                    lastSpaceTime = null
-                    // After ". " show defaults (new sentence)
-                    suggestionController.showDefaults()
+                    textProxy.insertText("I ")
+                    lastSpaceTime = now
+                    handleSuggestionsAfterSpace()
                     autoShiftAfterPunctuation()
                     return
                 }
             }
-        }
 
-        // Normal space (handleSpace already called above, which switched to prediction mode)
-        textProxy.insertText(" ")
-        lastSpaceTime = now
-        autoShiftAfterPunctuation()
+            // Check for fuzzy auto-replace (handleSpace returns replacement if auto-correct triggered)
+            val currentWord = suggestionController.currentWord
+            val replacement = suggestionController.handleSpace()
+
+            if (replacement != null) {
+                // Auto-correct triggered - delete typed word and insert replacement with space
+                repeat(currentWord.length) {
+                    textProxy.deleteBackward()
+                }
+                textProxy.insertText("$replacement ")
+                lastSpaceTime = now
+                autoShiftAfterPunctuation()
+                return
+            }
+
+            // Double-space shortcut for period
+            val lastTime = lastSpaceTime
+            if (lastTime != null && (now.time - lastTime.time) < doubleSpaceThreshold) {
+                val beforeText2 = textProxy.documentContextBeforeInput
+                if (beforeText2 != null && beforeText2.endsWith(" ")) {
+                    val textBeforeSpace = beforeText2.dropLast(1)
+                    val charBeforeSpace = textBeforeSpace.lastOrNull()
+
+                    if (charBeforeSpace != ' ' && charBeforeSpace != '.') {
+                        textProxy.deleteBackward()
+                        textProxy.insertText(". ")
+                        lastSpaceTime = null
+                        // After ". " show defaults (new sentence)
+                        suggestionController.showDefaults()
+                        autoShiftAfterPunctuation()
+                        return
+                    }
+                }
+            }
+
+            // Normal space (handleSpace already called above, which switched to prediction mode)
+            textProxy.insertText(" ")
+            lastSpaceTime = now
+            autoShiftAfterPunctuation()
+        } finally {
+            autoReturnFromSpecialChars()
+        }
     }
 
     /** Determine what suggestions to show after space is inserted */
@@ -449,17 +454,14 @@ class KeyboardEngine(
     }
 
     /** Auto-return from special characters keyboard (123/#+=) to main keyboard (abc) after space */
-    fun autoReturnFromSpecialChars(config: KeyboardConfig) {
+    fun autoReturnFromSpecialChars() {
         val currentKeyset = renderer.currentKeysetId
 
         // Check if we're on a special characters keyset
         if (currentKeyset == "123" || currentKeyset == "#+=") {
-            // Switch back to abc keyset
-            if (config.keysets.any { it.id == "abc" }) {
-                Log.d(TAG, "Auto-returning from $currentKeyset to abc")
-                renderer.currentKeysetId = "abc"
-                onRenderKeyboard?.invoke()
-            }
+            debugLog("Auto-returning from $currentKeyset to abc")
+            renderer.currentKeysetId = "abc"
+            onRenderKeyboard?.invoke()
         }
     }
 

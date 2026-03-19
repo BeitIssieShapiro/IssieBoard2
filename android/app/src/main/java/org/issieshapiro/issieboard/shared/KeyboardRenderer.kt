@@ -33,7 +33,7 @@ import kotlin.math.min
 private class TransformAwareContainer(context: Context) : LinearLayout(context) {
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
         if (event.action == MotionEvent.ACTION_DOWN) {
-            debugLog("🔍 Touch DOWN: x=${event.x}, y=${event.y}")
+            debugLog("Touch DOWN: x=${event.x}, y=${event.y}")
         }
         return super.dispatchTouchEvent(event)
     }
@@ -119,9 +119,17 @@ class KeyboardRenderer(private val context: Context) {
     
     // Container reference - renderer owns the rendering
     private var container: ViewGroup? = null
-    
+
     // Overlay container reference (for nikkud picker - must be a FrameLayout)
     private var overlayContainer: ViewGroup? = null
+
+    // Keyset slide gesture state ("peek and slide" from 123 key)
+    private var isKeysetSlideActive: Boolean = false
+    private var keysetSlideOriginKeyset: String = ""
+    private var keysetSlideCurrentButton: View? = null
+    private var keysetSlideDidMove: Boolean = false
+    // Reference to the active rows container for finding keys during slide
+    private var activeRowsContainer: ViewGroup? = null
     
     // Callback for keyset changes (so controller can save to preferences)
     var onKeysetChanged: ((String) -> Unit)? = null
@@ -590,7 +598,7 @@ class KeyboardRenderer(private val context: Context) {
         // Clear existing views, but preserve nikkud picker overlay if present
         for (i in container.childCount - 1 downTo 0) {
             val child = container.getChildAt(i)
-            if (child.tag != 999) {
+            if (child.tag != 999 && child.tag != KEYSET_SLIDE_OVERLAY_TAG) {
                 container.removeViewAt(i)
             }
         }
@@ -718,6 +726,9 @@ class KeyboardRenderer(private val context: Context) {
         }
         debugLog("📐 Adding rows container to parent")
         container.addView(rowsContainer)
+
+        // Store reference to rows container for keyset slide gesture
+        activeRowsContainer = rowsContainer
 
         // Render each row
         // Calculate available width for keys
@@ -1508,6 +1519,9 @@ class KeyboardRenderer(private val context: Context) {
             setMargins(horizontalGap, verticalGap, horizontalGap, verticalGap)
         })
 
+        // Tag visual key view for highlight/unhighlight (port of iOS tag = 8888)
+        visualKeyView.tag = VISUAL_KEY_TAG
+
         // Check if we're in selection/preview mode (edit mode in modal)
         val isSelectionMode = onKeyLongPress != null
         
@@ -1521,24 +1535,16 @@ class KeyboardRenderer(private val context: Context) {
                     debugLog("⌫ Backspace clicked in selection mode")
                     handleKeyClick(key, it)
                 }
-                
-                // Add touch feedback
+
+                // Add touch feedback (alpha highlight, port of iOS highlightKey/unhighlightKey)
                 buttonContainer.setOnTouchListener { _, event ->
                     when (event.action) {
                         MotionEvent.ACTION_DOWN -> {
-                            visualKeyView.animate()
-                                .scaleX(0.95f)
-                                .scaleY(0.95f)
-                                .setDuration(100)
-                                .start()
+                            highlightKey(buttonContainer)
                             false
                         }
                         MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                            visualKeyView.animate()
-                                .scaleX(1.0f)
-                                .scaleY(1.0f)
-                                .setDuration(100)
-                                .start()
+                            unhighlightKey(buttonContainer)
                             false
                         }
                         else -> false
@@ -1547,27 +1553,19 @@ class KeyboardRenderer(private val context: Context) {
             } else {
                 // Normal keyboard mode: backspace with long-press support
                 var isLongPressing = false
-                
+
                 buttonContainer.setOnTouchListener { v, event ->
                     when (event.action) {
                         MotionEvent.ACTION_DOWN -> {
                             debugLog("⌫ Backspace touch DOWN")
                             isLongPressing = false
-                            visualKeyView.animate()
-                                .scaleX(0.95f)
-                                .scaleY(0.95f)
-                                .setDuration(100)
-                                .start()
+                            highlightKey(buttonContainer)
                             false
                         }
                         MotionEvent.ACTION_UP -> {
                             debugLog("⌫ Backspace touch UP, wasLongPress=$isLongPressing")
-                            visualKeyView.animate()
-                                .scaleX(1.0f)
-                                .scaleY(1.0f)
-                                .setDuration(100)
-                                .start()
-                            
+                            unhighlightKey(buttonContainer)
+
                             if (isLongPressing) {
                                 backspaceHandler.handleTouchUp()
                                 true
@@ -1577,11 +1575,7 @@ class KeyboardRenderer(private val context: Context) {
                         }
                         MotionEvent.ACTION_CANCEL -> {
                             debugLog("⌫ Backspace touch CANCEL")
-                            visualKeyView.animate()
-                                .scaleX(1.0f)
-                                .scaleY(1.0f)
-                                .setDuration(100)
-                                .start()
+                            unhighlightKey(buttonContainer)
                             backspaceHandler.handleTouchUp()
                             true
                         }
@@ -1618,23 +1612,15 @@ class KeyboardRenderer(private val context: Context) {
                 }
             }
 
-            // Add touch feedback
+            // Add touch feedback (alpha highlight)
             buttonContainer.setOnTouchListener { _, event ->
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
-                        visualKeyView.animate()
-                            .scaleX(0.95f)
-                            .scaleY(0.95f)
-                            .setDuration(100)
-                            .start()
+                        highlightKey(buttonContainer)
                         false
                     }
                     MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                        visualKeyView.animate()
-                            .scaleX(1.0f)
-                            .scaleY(1.0f)
-                            .setDuration(100)
-                            .start()
+                        unhighlightKey(buttonContainer)
                         false
                     }
                     else -> false
@@ -1655,60 +1641,34 @@ class KeyboardRenderer(private val context: Context) {
                 handleKeyClick(key, it)
             }
             
-            // Add touch feedback
+            // Add touch feedback (alpha highlight)
             buttonContainer.setOnTouchListener { _, event ->
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
-                        visualKeyView.animate()
-                            .scaleX(0.95f)
-                            .scaleY(0.95f)
-                            .setDuration(100)
-                            .start()
+                        highlightKey(buttonContainer)
                         false
                     }
                     MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                        visualKeyView.animate()
-                            .scaleX(1.0f)
-                            .scaleY(1.0f)
-                            .setDuration(100)
-                            .start()
+                        unhighlightKey(buttonContainer)
                         false
                     }
                     else -> false
                 }
             }
         } else {
-            // Add touch feedback for all other keys
-            var originalScaleX = 1.0f
-            var originalScaleY = 1.0f
-            
+            // Add touch feedback for all other keys (alpha highlight)
             buttonContainer.setOnTouchListener { v, event ->
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
-                        // Animate press
-                        visualKeyView.animate()
-                            .scaleX(0.95f)
-                            .scaleY(0.95f)
-                            .setDuration(100)
-                            .start()
+                        highlightKey(buttonContainer)
                         false // Let other handlers process
                     }
                     MotionEvent.ACTION_UP -> {
-                        // Animate release
-                        visualKeyView.animate()
-                            .scaleX(1.0f)
-                            .scaleY(1.0f)
-                            .setDuration(100)
-                            .start()
+                        unhighlightKey(buttonContainer)
                         false // Let click listener handle
                     }
                     MotionEvent.ACTION_CANCEL -> {
-                        // Restore on cancel
-                        visualKeyView.animate()
-                            .scaleX(1.0f)
-                            .scaleY(1.0f)
-                            .setDuration(100)
-                            .start()
+                        unhighlightKey(buttonContainer)
                         false
                     }
                     else -> false
@@ -1802,10 +1762,46 @@ class KeyboardRenderer(private val context: Context) {
                 }
             } else if (keyType == "keyset") {
                 // Keyset: long-press for edit mode selection
-                buttonContainer.setOnLongClickListener {
-                    debugLog("🔑 Key long-pressed for selection: type='${key.type}'")
-                    onKeyLongPress?.invoke(key)
-                    true
+                if (isSelectionMode) {
+                    buttonContainer.setOnLongClickListener {
+                        debugLog("Key long-pressed for selection: type='${key.type}'")
+                        onKeyLongPress?.invoke(key)
+                        true
+                    }
+                } else if (!isPreviewMode && key.keysetValue.isNotEmpty()) {
+                    // Normal keyboard mode: add keyset slide gesture (0.15s long-press)
+                    // Port of iOS keysetSlideGesture with minimumPressDuration = 0.15
+                    var slideTimer: android.os.Handler? = null
+                    var slideRunnable: Runnable? = null
+
+                    buttonContainer.setOnTouchListener { _, event ->
+                        when (event.action) {
+                            MotionEvent.ACTION_DOWN -> {
+                                highlightKey(buttonContainer)
+                                // Start 0.15s timer for keyset slide activation
+                                slideTimer = android.os.Handler(android.os.Looper.getMainLooper())
+                                slideRunnable = Runnable {
+                                    // Activate keyset slide
+                                    debugLog("Keyset slide activated on '${key.keysetValue}'")
+                                    keysetSlideOriginKeyset = currentKeysetId
+                                    isKeysetSlideActive = true
+                                    keysetSlideDidMove = false
+                                    keysetSlideCurrentButton = null
+                                    switchKeyset(key.keysetValue)
+                                    // After re-render, add slide overlay
+                                    addKeysetSlideOverlay()
+                                }
+                                slideTimer?.postDelayed(slideRunnable!!, 150)
+                                false
+                            }
+                            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                                unhighlightKey(buttonContainer)
+                                slideTimer?.removeCallbacks(slideRunnable ?: return@setOnTouchListener false)
+                                false
+                            }
+                            else -> false
+                        }
+                    }
                 }
             }
         }
@@ -1836,6 +1832,9 @@ class KeyboardRenderer(private val context: Context) {
     }
     
     fun handleKeyClick(key: ParsedKey, keyView: View) {
+        // Ignore tap if keyset slide gesture took over (port of iOS isKeysetSlideActive guard)
+        if (isKeysetSlideActive) return
+
         alwaysLog("🔑 Key clicked: type='${key.type}', value='${key.value}'")
         debugLog("🔑 Key clicked: type='${key.type}', value='${key.value}'")
         
@@ -1969,6 +1968,65 @@ class KeyboardRenderer(private val context: Context) {
         renderKeyboard(container, config, currentKeysetId, editorContext, overlayContainer)
     }
     
+    /** Decode key info from JSON string (port of iOS decodeKeyInfo) */
+    private fun decodeKeyInfo(identifier: String?): JSONObject? {
+        if (identifier.isNullOrEmpty()) return null
+        return try {
+            JSONObject(identifier)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /** Parse a ParsedKey from decoded key info JSON (port of iOS parseKeyFromInfo) */
+    private fun parseKeyFromInfo(info: JSONObject): ParsedKey? {
+        val type = info.optString("type", "")
+        val value = info.optString("value", "")
+        val sValue = info.optString("sValue", "")
+        val keysetValue = info.optString("keysetValue", "")
+        val returnKeysetValue = info.optString("returnKeysetValue", "")
+        val returnKeysetLabel = info.optString("returnKeysetLabel", "")
+        val label = info.optString("label", "")
+
+        var nikkudOptions: List<NikkudOption> = emptyList()
+        val nikkudArray = info.optJSONArray("nikkud")
+        if (nikkudArray != null) {
+            val options = mutableListOf<NikkudOption>()
+            for (i in 0 until nikkudArray.length()) {
+                val dict = nikkudArray.optJSONObject(i)
+                if (dict != null) {
+                    val nValue = dict.optString("value", "")
+                    if (nValue.isNotEmpty()) {
+                        options.add(NikkudOption(
+                            value = nValue,
+                            caption = dict.optString("caption", nValue)
+                        ))
+                    }
+                }
+            }
+            nikkudOptions = options
+        }
+
+        // Create a Key object and use the existing ParsedKey factory
+        val key = Key(
+            value = value,
+            sValue = sValue,
+            caption = value,
+            sCaption = sValue,
+            type = type,
+            width = 1.0,
+            offset = 0.0,
+            hidden = false,
+            label = label,
+            keysetValue = keysetValue,
+            returnKeysetValue = returnKeysetValue,
+            returnKeysetLabel = returnKeysetLabel,
+            nikkud = if (nikkudOptions.isEmpty()) null else nikkudOptions
+        )
+
+        return ParsedKey.from(key, emptyMap(), Color.BLACK, Color.WHITE)
+    }
+
     private fun encodeKeyInfo(key: ParsedKey): String {
         return try {
             val obj = JSONObject()
@@ -2304,8 +2362,226 @@ class KeyboardRenderer(private val context: Context) {
         return cursorMoveMode
     }
     
+    // MARK: - Key Press Highlight (port of iOS highlightKey/unhighlightKey)
+
+    /** Dim the visual key view to indicate a press (port of iOS highlightKey) */
+    private fun highlightKey(button: View) {
+        val visualKey = button.findViewWithTag<View>(VISUAL_KEY_TAG)
+        visualKey?.alpha = 0.3f
+    }
+
+    /** Restore the visual key view opacity (port of iOS unhighlightKey) */
+    private fun unhighlightKey(button: View) {
+        val visualKey = button.findViewWithTag<View>(VISUAL_KEY_TAG)
+        visualKey?.alpha = 1.0f
+    }
+
+    // MARK: - Keyset Slide Gesture ("Peek and Slide")
+    //
+    // Port of iOS keysetSlideGesture. On iOS, a UILongPressGestureRecognizer on the container
+    // tracks the finger across views even after re-render. On Android, touch events are tied
+    // to the originating view, so after re-render the ongoing touch is lost.
+    //
+    // Current Android implementation:
+    // - Hold 0.15s on a keyset key to quick-switch (instead of requiring full tap)
+    // - The isKeysetSlideActive guard prevents handleKeyClick from double-firing
+    // - Sliding finger over new keyset's keys highlights them via overlay
+    // - On release: if finger moved to a character key, type it and return to original keyset
+
+    /**
+     * Add a transparent overlay to the container to track finger movement during keyset slide.
+     * Since Android's touch model ties events to originating views, we use a full-screen overlay
+     * that will receive the NEXT touch sequence (user lifts and re-touches) or we poll pointer
+     * position using a handler.
+     *
+     * Port of iOS keysetSlideGesture .changed / .ended / .cancelled states.
+     */
+    @SuppressLint("ClickableViewAccessibility")
+    private fun addKeysetSlideOverlay() {
+        val container = container ?: return
+        // Remove any existing overlay
+        removeKeysetSlideOverlay()
+
+        val overlay = FrameLayout(context).apply {
+            tag = KEYSET_SLIDE_OVERLAY_TAG
+            setBackgroundColor(Color.TRANSPARENT)
+            isClickable = true  // Consume clicks
+            isFocusable = true
+        }
+
+        // Make overlay cover the entire container
+        val params = if (container is LinearLayout) {
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.MATCH_PARENT
+            )
+        } else {
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+        }
+        container.addView(overlay, params)
+
+        overlay.setOnTouchListener { _, event ->
+            handleKeysetSlideOverlayTouch(event)
+        }
+    }
+
+    /** Remove the keyset slide overlay */
+    private fun removeKeysetSlideOverlay() {
+        val container = container ?: return
+        container.findViewWithTag<View>(KEYSET_SLIDE_OVERLAY_TAG)?.let {
+            container.removeView(it)
+        }
+    }
+
+    /**
+     * Handle touch events on the keyset slide overlay.
+     * Tracks finger movement, highlights keys, and handles release.
+     */
+    private fun handleKeysetSlideOverlayTouch(event: MotionEvent): Boolean {
+        if (!isKeysetSlideActive) {
+            removeKeysetSlideOverlay()
+            return false
+        }
+
+        val rowsContainer = activeRowsContainer ?: return false
+
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
+                // Convert overlay coordinates to rows container coordinates
+                val loc = IntArray(2)
+                rowsContainer.getLocationInWindow(loc)
+                val overlayLoc = IntArray(2)
+                (container ?: return false).getLocationInWindow(overlayLoc)
+
+                val xInRows = event.x + overlayLoc[0] - loc[0]
+                val yInRows = event.y + overlayLoc[1] - loc[1]
+
+                val hitButton = findKeyButton(xInRows, yInRows, rowsContainer)
+
+                if (hitButton !== keysetSlideCurrentButton) {
+                    if (hitButton != null) {
+                        keysetSlideDidMove = true
+                    }
+
+                    // Clear previous highlight
+                    keysetSlideCurrentButton?.let { prev ->
+                        unhighlightKey(prev)
+                    }
+
+                    keysetSlideCurrentButton = hitButton
+
+                    // Highlight new key
+                    if (hitButton != null) {
+                        highlightKey(hitButton)
+                    }
+                }
+                return true
+            }
+
+            MotionEvent.ACTION_UP -> {
+                isKeysetSlideActive = false
+
+                // Clear highlight
+                keysetSlideCurrentButton?.let { btn ->
+                    unhighlightKey(btn)
+                }
+
+                // Remove the overlay
+                removeKeysetSlideOverlay()
+
+                // If user didn't slide to another key, just stay on new keyset (normal switch)
+                if (!keysetSlideDidMove) {
+                    keysetSlideCurrentButton = null
+                    keysetSlideOriginKeyset = ""
+                    return true
+                }
+
+                // If finger ended on a typeable key, fire it and return to original keyset
+                keysetSlideCurrentButton?.let { btn ->
+                    val keyInfo = decodeKeyInfo(btn.tag as? String)
+                    val key = if (keyInfo != null) parseKeyFromInfo(keyInfo) else null
+                    if (key != null) {
+                        val keyType = key.type.lowercase()
+                        val specialTypes = setOf(
+                            "keyset", "shift", "backspace", "next-keyboard",
+                            "settings", "close", "nikkud", "language", "event"
+                        )
+                        if (!specialTypes.contains(keyType)) {
+                            handleKeyClick(key, btn)
+                        }
+                    }
+                }
+
+                keysetSlideCurrentButton = null
+                // Return to the original keyset
+                if (keysetSlideOriginKeyset.isNotEmpty()) {
+                    switchKeyset(keysetSlideOriginKeyset)
+                    keysetSlideOriginKeyset = ""
+                }
+
+                return true
+            }
+
+            MotionEvent.ACTION_CANCEL -> {
+                isKeysetSlideActive = false
+
+                keysetSlideCurrentButton?.let { btn ->
+                    unhighlightKey(btn)
+                }
+                keysetSlideCurrentButton = null
+
+                removeKeysetSlideOverlay()
+
+                if (keysetSlideOriginKeyset.isNotEmpty()) {
+                    switchKeyset(keysetSlideOriginKeyset)
+                    keysetSlideOriginKeyset = ""
+                }
+
+                return true
+            }
+        }
+        return true
+    }
+
+    /**
+     * Find the key button at a given point within the container.
+     * Recursively searches the view hierarchy for a View with a non-null tag (encoded key info).
+     * Port of iOS findKeyButton(at:in:)
+     */
+    private fun findKeyButton(x: Float, y: Float, view: View): View? {
+        if (view is ViewGroup) {
+            for (i in view.childCount - 1 downTo 0) {
+                val child = view.getChildAt(i)
+                // Convert point to child's coordinate space
+                val childX = x - child.left
+                val childY = y - child.top
+                if (childX >= 0 && childX < child.width && childY >= 0 && childY < child.height) {
+                    // Check if this child has key info tag (it's a key button)
+                    val tag = child.tag
+                    if (tag is String && tag.startsWith("{")) {
+                        return child
+                    }
+                    // Recurse into child
+                    val found = findKeyButton(childX, childY, child)
+                    if (found != null) return found
+                }
+            }
+        }
+        return null
+    }
+
     // MARK: - Utility
-    
+
+    companion object {
+        /** Tag for the visual key view inside each button container (port of iOS tag = 8888) */
+        private const val VISUAL_KEY_TAG = 8888
+        /** Tag for the keyset slide overlay view */
+        private const val KEYSET_SLIDE_OVERLAY_TAG = 7777
+    }
+
     private fun dpToPx(dp: Int): Int {
         return TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_DIP,
