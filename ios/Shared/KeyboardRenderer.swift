@@ -125,6 +125,13 @@ class KeyboardRenderer {
     
     // Container reference - renderer owns the rendering
     private weak var container: UIView?
+
+    // Keyset slide gesture state ("peek and slide" from 123 key)
+    private var isKeysetSlideActive: Bool = false
+    private var keysetSlideOriginKeyset: String = ""
+    private var keysetSlideCurrentButton: UIButton?
+    private var keysetSlideDidMove: Bool = false
+    private var keysetSlideGestureRecognizer: UILongPressGestureRecognizer?
     
     // Callback for keyset changes (so controller can save to preferences)
     var onKeysetChanged: ((String) -> Void)?
@@ -577,6 +584,17 @@ class KeyboardRenderer {
         self.container = container
         self.config = config
         self.editorContext = editorContext
+
+        // Install keyset slide gesture on container (once)
+        if !isPreviewMode && keysetSlideGestureRecognizer == nil {
+            let gesture = UILongPressGestureRecognizer(target: self, action: #selector(keysetSlideGesture(_:)))
+            gesture.minimumPressDuration = 0.15
+            gesture.allowableMovement = .greatestFiniteMagnitude
+            gesture.cancelsTouchesInView = false
+            gesture.delaysTouchesBegan = false
+            container.addGestureRecognizer(gesture)
+            keysetSlideGestureRecognizer = gesture
+        }
         
         // Only set currentKeysetId from parameter if renderer hasn't been initialized yet
         if self.currentKeysetId == "abc" && currentKeysetId != "abc" {
@@ -1265,8 +1283,16 @@ class KeyboardRenderer {
                 longPressGesture.minimumPressDuration = 0.5
                 button.addGestureRecognizer(longPressGesture)
             }
-            // Add long-press gesture for keyset and nikkud keys (for selection in edit mode)
-            else if keyType == "keyset" || keyType == "nikkud" {
+            // Keyset keys: keep long-press for selection in edit mode only
+            else if keyType == "keyset" {
+                if isSelectionMode {
+                    let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(keyLongPressed(_:)))
+                    longPressGesture.minimumPressDuration = 0.5
+                    button.addGestureRecognizer(longPressGesture)
+                }
+            }
+            // Add long-press gesture for nikkud keys (for selection in edit mode)
+            else if keyType == "nikkud" {
                 let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(keyLongPressed(_:)))
                 longPressGesture.minimumPressDuration = 0.5
                 button.addGestureRecognizer(longPressGesture)
@@ -1552,6 +1578,7 @@ class KeyboardRenderer {
 
         // Add visual key view to button (with padding for visual gap)
         button.addSubview(visualKeyView)
+        visualKeyView.tag = 8888
         visualKeyView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             visualKeyView.topAnchor.constraint(equalTo: button.topAnchor, constant: verticalGap),
@@ -1627,11 +1654,14 @@ class KeyboardRenderer {
     }
     
     @objc private func keyTapped(_ sender: UIButton) {
+        // Ignore tap if keyset slide gesture took over
+        if isKeysetSlideActive { return }
+
         guard let keyInfo = decodeKeyInfo(sender.accessibilityIdentifier),
               let key = parseKeyFromInfo(keyInfo) else {
             return
         }
-        
+
         // Handle key clicks internally, like Android does
         handleKeyClick(key, keyView: sender)
     }
@@ -1802,17 +1832,20 @@ class KeyboardRenderer {
               let key = parseKeyFromInfo(keyInfo) else {
             return
         }
-        
+
+        highlightKey(on: sender)
         showKeyPopup(for: key, on: sender)
     }
-    
+
     /// Hide popup bubble when touch ends
     @objc private func keyTouchUp(_ sender: UIButton) {
+        unhighlightKey(on: sender)
         hideKeyPopup(on: sender)
     }
-    
+
     /// Hide popup bubble when touch is cancelled
     @objc private func keyTouchCancelled(_ sender: UIButton) {
+        unhighlightKey(on: sender)
         hideKeyPopup(on: sender)
     }
     
@@ -1964,6 +1997,152 @@ class KeyboardRenderer {
     private func hideKeyPopup(on button: UIButton) {
         // Remove popup from the container where we added it
         container?.viewWithTag(9999)?.removeFromSuperview()
+    }
+
+    /// Dim the visual key view to indicate a press
+    private func highlightKey(on button: UIButton) {
+        if let visualKey = button.viewWithTag(8888) {
+            visualKey.alpha = 0.3
+        }
+    }
+
+    /// Restore the visual key view opacity
+    private func unhighlightKey(on button: UIButton) {
+        if let visualKey = button.viewWithTag(8888) {
+            visualKey.alpha = 1.0
+        }
+    }
+
+    // MARK: - Keyset Slide Gesture ("Peek and Slide")
+
+    /// Handle slide gesture on keyset keys (e.g., 123).
+    /// Touch-and-hold on a keyset key switches to the target keyset; sliding over keys shows their bubble;
+    /// releasing on a key types it and returns to the original keyset.
+    @objc private func keysetSlideGesture(_ gesture: UILongPressGestureRecognizer) {
+        guard let container = container else { return }
+
+        switch gesture.state {
+        case .began:
+            // Check if the initial touch landed on a keyset button
+            let point = gesture.location(in: container)
+            guard let button = findKeyButton(at: point, in: container),
+                  let keyInfo = decodeKeyInfo(button.accessibilityIdentifier),
+                  let key = parseKeyFromInfo(keyInfo),
+                  key.type.lowercased() == "keyset",
+                  !key.keysetValue.isEmpty else {
+                // Not on a keyset key — cancel the gesture
+                gesture.isEnabled = false
+                gesture.isEnabled = true
+                return
+            }
+
+            // Remember where we came from and switch to the target keyset
+            keysetSlideOriginKeyset = currentKeysetId
+            isKeysetSlideActive = true
+            keysetSlideDidMove = false
+            keysetSlideCurrentButton = nil
+            switchKeyset(key.keysetValue)
+
+        case .changed:
+            guard isKeysetSlideActive else { return }
+            let point = gesture.location(in: container)
+            let hitButton = findKeyButton(at: point, in: container)
+
+            // Track if user has moved to a different key than the keyset button
+            if hitButton !== keysetSlideCurrentButton {
+                if hitButton != nil {
+                    keysetSlideDidMove = true
+                }
+
+                // Clear previous highlight and bubble
+                if let prev = keysetSlideCurrentButton {
+                    unhighlightKey(on: prev)
+                    hideKeyPopup(on: prev)
+                }
+
+                keysetSlideCurrentButton = hitButton
+
+                // Highlight and show bubble on new key
+                if let btn = hitButton,
+                   let keyInfo = decodeKeyInfo(btn.accessibilityIdentifier),
+                   let key = parseKeyFromInfo(keyInfo) {
+                    highlightKey(on: btn)
+                    showKeyPopup(for: key, on: btn)
+                }
+            }
+
+        case .ended:
+            guard isKeysetSlideActive else { return }
+            isKeysetSlideActive = false
+
+            // Clear highlight and bubble
+            if let btn = keysetSlideCurrentButton {
+                unhighlightKey(on: btn)
+                hideKeyPopup(on: btn)
+            }
+
+            // If user didn't slide to another key, just stay on the new keyset (normal switch)
+            guard keysetSlideDidMove else {
+                keysetSlideCurrentButton = nil
+                keysetSlideOriginKeyset = ""
+                return
+            }
+
+            // If finger ended on a typeable key, fire it and return to original keyset
+            if let btn = keysetSlideCurrentButton,
+               let keyInfo = decodeKeyInfo(btn.accessibilityIdentifier),
+               let key = parseKeyFromInfo(keyInfo) {
+                let keyType = key.type.lowercased()
+                let specialTypes: Set<String> = [
+                    "keyset", "shift", "backspace", "next-keyboard",
+                    "settings", "close", "nikkud", "language", "event"
+                ]
+                if !specialTypes.contains(keyType) {
+                    handleKeyClick(key, keyView: btn)
+                }
+            }
+
+            keysetSlideCurrentButton = nil
+            // Return to the original keyset
+            if !keysetSlideOriginKeyset.isEmpty {
+                switchKeyset(keysetSlideOriginKeyset)
+                keysetSlideOriginKeyset = ""
+            }
+
+        case .cancelled, .failed:
+            guard isKeysetSlideActive else { return }
+            isKeysetSlideActive = false
+            if let btn = keysetSlideCurrentButton {
+                unhighlightKey(on: btn)
+                hideKeyPopup(on: btn)
+            }
+            keysetSlideCurrentButton = nil
+            if !keysetSlideOriginKeyset.isEmpty {
+                switchKeyset(keysetSlideOriginKeyset)
+                keysetSlideOriginKeyset = ""
+            }
+
+        default:
+            break
+        }
+    }
+
+    /// Find the UIButton key at a given point within the container
+    private func findKeyButton(at point: CGPoint, in view: UIView) -> UIButton? {
+        for subview in view.subviews {
+            if let button = subview as? UIButton,
+               button.accessibilityIdentifier != nil,
+               button.frame.contains(point) {
+                return button
+            }
+            // Recurse into row containers
+            let pointInSubview = view.convert(point, to: subview)
+            if subview.bounds.contains(pointInSubview),
+               let found = findKeyButton(at: pointInSubview, in: subview) {
+                return found
+            }
+        }
+        return nil
     }
     
     /// Create a bubble path that connects to the button below

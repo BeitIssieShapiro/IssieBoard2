@@ -347,6 +347,8 @@ class KeyboardEngine {
     private func handleSpaceKey() {
         let now = Date()
 
+        defer { autoReturnFromSpecialChars() }
+
         // Check for auto-capitalize "i" to "I"
         if let beforeText = textProxy.documentContextBeforeInput,
            beforeText.hasSuffix("i") {
@@ -490,17 +492,14 @@ class KeyboardEngine {
     }
 
     /// Auto-return from special characters keyboard (123/#+=) to main keyboard (abc) after space
-    func autoReturnFromSpecialChars(config: KeyboardConfig) {
+    func autoReturnFromSpecialChars() {
         let currentKeyset = renderer.currentKeysetId
 
         // Check if we're on a special characters keyset
         if currentKeyset == "123" || currentKeyset == "#+=" {
-            // Switch back to abc keyset
-            if config.keysets.contains(where: { $0.id == "abc" }) {
-                debugLog("🔄 Auto-returning from \(currentKeyset) to abc")
-                renderer.currentKeysetId = "abc"
-                onRenderKeyboard?()
-            }
+            debugLog("🔄 Auto-returning from \(currentKeyset) to abc")
+            renderer.currentKeysetId = "abc"
+            onRenderKeyboard?()
         }
     }
 }

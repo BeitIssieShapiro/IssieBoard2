@@ -467,8 +467,7 @@ class BaseKeyboardViewController: UIInputViewController {
     /// Auto-return from special characters keyboard (123/#+=) to main keyboard (abc) after space
     /// Behavior 2: If user is on 123 or #+= keyboard, return to abc after typing special char + space
     private func autoReturnFromSpecialChars() {
-        guard let config = parsedConfig else { return }
-        keyboardEngine.autoReturnFromSpecialChars(config: config)
+        keyboardEngine.autoReturnFromSpecialChars()
     }
     
     // MARK: - Globe Button

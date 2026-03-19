@@ -4,11 +4,19 @@ Android Bugs:
 - 
 
 
+todo - IssieBoard:
+----
+V- special signs should return to abc after 1 click 
+- click and drag 123 to select special-sign/number 
+
+
+
+
 old app compatability:
 ---------------------
 
 
-11-March - IssieVoice
+todo - IssieVoice
 --------
 - icon and caption not only in favorites
 - highlighted keys color - green is twice

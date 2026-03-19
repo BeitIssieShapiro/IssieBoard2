@@ -82,6 +82,13 @@ dict/heb_news_*
 dict/eng_news_*
 dict/ara_news_*
 
+# Auto-generated keyboard config files (from npm run build:keyboards)
+ios/IssieBoardEn/default_config.json
+ios/IssieBoardHe/default_config.json
+ios/IssieBoardAr/default_config.json
+android/app/src/main/assets/*_config.json
+android/app/src/main/assets/default_config.json
+
 # Android release files
 android/app/*.keystore
 !android/app/debug.keystore
