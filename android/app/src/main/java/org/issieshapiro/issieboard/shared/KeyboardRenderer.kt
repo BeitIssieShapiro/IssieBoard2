@@ -762,6 +762,7 @@ class KeyboardRenderer(private val context: Context) {
 
         val rowsContainer = TransformAwareContainer(context).apply {
             orientation = LinearLayout.VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_LTR  // Force LTR so rows render correctly on RTL devices
             gravity = android.view.Gravity.CENTER_HORIZONTAL  // Center rows horizontally
             setBackgroundColor(Color.TRANSPARENT)  // Transparent to show keyboard background
             clipChildren = false

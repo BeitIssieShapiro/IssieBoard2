@@ -843,7 +843,12 @@ class KeyboardContainerView(context: Context) : android.widget.LinearLayout(cont
     
     init {
         orientation = VERTICAL
-        
+
+        // Force LTR layout direction so keyboard rows render correctly
+        // even when device language is RTL (e.g. Hebrew, Arabic).
+        // The keyboard JSON config already defines correct key order.
+        layoutDirection = android.view.View.LAYOUT_DIRECTION_LTR
+
         // Use WRAP_CONTENT like the old working SimpleKeyboardService
         layoutParams = android.view.ViewGroup.LayoutParams(
             android.view.ViewGroup.LayoutParams.MATCH_PARENT,
