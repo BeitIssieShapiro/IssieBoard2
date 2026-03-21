@@ -33,6 +33,8 @@ import arRules from '../../assets/predefined-rules/ar.json';
 import { BUILT_IN_PROFILES, isBuiltInProfileId, extractTemplateId, getBuiltInProfileTemplate } from '../data/builtInProfiles';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalization } from '../localization';
+import { AboutScreen } from '../components/AboutScreen';
+import { ISSIEBOARD_ABOUT } from '../components/about-content';
 
 const PREDEFINED_RULES: Record<string, any> = {
   'en': enRules,
@@ -204,6 +206,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
   const [styleGroups, setStyleGroups] = useState<StyleGroup[]>([]);
   const [classicState, setClassicState] = useState<ClassicState | null>(null);
   const [configJson, setConfigJson] = useState<string>('');
+  const [showAbout, setShowAbout] = useState(false);
 
   // Navigation state: null = sections list, SettingId = detail view for that setting
   const [activeSetting, setActiveSetting] = useState<SettingId | null>(null);
@@ -1054,9 +1057,18 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
       <View style={styles.sectionsLayer} pointerEvents={activeSetting ? 'none' : 'auto'}>
         <View style={styles.header}>
           <Text allowFontScaling={false} style={styles.headerTitle}>{strings.editor.classicView}</Text>
-          <TouchableOpacity style={styles.advancedButton} onPress={onSwitchToAdvanced}>
-            <Text allowFontScaling={false} style={styles.advancedButtonText}>{strings.editor.backToNewsettings}</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity
+              style={styles.aboutButton}
+              onPress={() => setShowAbout(true)}
+              accessibilityLabel="About"
+            >
+              <Text allowFontScaling={false} style={styles.aboutButtonText}>ℹ️</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.advancedButton} onPress={onSwitchToAdvanced}>
+              <Text allowFontScaling={false} style={styles.advancedButtonText}>{strings.editor.backToNewsettings}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         <ClassicSectionsList
           classicState={classicState}
@@ -1172,6 +1184,13 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
         </ClassicDetailView>
         </View>
       )}
+      {showAbout && (
+        <AboutScreen
+          appName="IssieBoard"
+          onClose={() => setShowAbout(false)}
+          paragraphs={ISSIEBOARD_ABOUT}
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -1218,6 +1237,15 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 14,
     fontWeight: '600',
+  },
+  aboutButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  aboutButtonText: {
+    fontSize: 22,
   },
   errorText: {
     fontSize: 16,

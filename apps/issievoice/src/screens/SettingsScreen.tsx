@@ -10,6 +10,8 @@ import {
 import {useTTS} from '../context/TTSContext';
 import {useLocalization} from '../context/LocalizationContext';
 import {colors, sizes} from '../constants';
+import { AboutScreen } from '../../../../src/components/AboutScreen';
+import { ISSIEVOICE_ABOUT } from '../../../../src/components/about-content';
 
 interface SettingsScreenProps {
   navigation: any;
@@ -18,6 +20,7 @@ interface SettingsScreenProps {
 const SettingsScreen: React.FC<SettingsScreenProps> = ({navigation}) => {
   const {settings, updateSettings} = useTTS();
   const {strings} = useLocalization();
+  const [showAbout, setShowAbout] = useState(false);
 
   const handleRateChange = async (rate: number) => {
     await updateSettings({rate});
@@ -105,15 +108,23 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({navigation}) => {
           </View>
         </View>
 
-        {/* Info Section */}
-        <View style={styles.infoSection}>
-          <Text style={styles.infoTitle}>{strings.settings.aboutTitle}</Text>
-          <Text style={styles.infoText}>
-            {strings.settings.aboutDescription}
-          </Text>
-          <Text style={styles.infoText}>{strings.settings.version} 1.0.0</Text>
-        </View>
+        {/* About row */}
+        <TouchableOpacity
+          style={styles.aboutRow}
+          onPress={() => setShowAbout(true)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.aboutRowText}>{strings.settings.aboutTitle}</Text>
+          <Text style={styles.aboutRowArrow}>›</Text>
+        </TouchableOpacity>
       </ScrollView>
+      {showAbout && (
+        <AboutScreen
+          appName="IssieVoice"
+          onClose={() => setShowAbout(false)}
+          paragraphs={ISSIEVOICE_ABOUT}
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -186,21 +197,25 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '600',
   },
-  infoSection: {
+  aboutRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     padding: sizes.spacing.lg,
     marginTop: sizes.spacing.xl,
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: colors.borderLight,
   },
-  infoTitle: {
+  aboutRowText: {
     fontSize: sizes.fontSize.large,
     fontWeight: '600',
-    color: colors.text,
-    marginBottom: sizes.spacing.md,
+    color: colors.primary,
   },
-  infoText: {
-    fontSize: sizes.fontSize.medium,
+  aboutRowArrow: {
+    fontSize: 24,
     color: colors.textSecondary,
-    lineHeight: sizes.fontSize.medium * 1.5,
-    marginBottom: sizes.spacing.sm,
   },
 });
 

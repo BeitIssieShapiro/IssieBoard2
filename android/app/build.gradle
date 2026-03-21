@@ -170,8 +170,12 @@ dependencies {
     // Unit testing dependencies
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20231013")
+
+    implementation platform('com.google.firebase:firebase-bom:34.11.0')
 }
 
 // Apply shared signing configuration from issie-shared
 // This must be AFTER the android { } block
 apply from: "../../../issie-shared/android/keys/apply-signing.gradle"
+
+apply plugin: 'com.google.gms.google-services:4.4.4'

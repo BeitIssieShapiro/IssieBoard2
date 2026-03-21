@@ -12,12 +12,19 @@ import {TextProvider} from './src/context/TextContext';
 import {TTSProvider} from './src/context/TTSContext';
 import {LocalizationProvider} from './src/context/LocalizationContext';
 import {NotificationProvider} from './src/context/NotificationContext';
+import { initializeFirebase } from '../../src/firebase-config';
+import { loadLanguage, LANGUAGE_SETTINGS } from '@beitissieshapiro/issie-shared';
 
 ScreenSizer.setup();
 
 const Stack = createStackNavigator();
 
 const App = () => {
+  React.useEffect(() => {
+    initializeFirebase();
+    loadLanguage(LANGUAGE_SETTINGS.hebrew);
+  }, []);
+
   return (
     <SafeAreaProvider>
       <LocalizationProvider>

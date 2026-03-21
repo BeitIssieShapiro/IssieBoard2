@@ -40,6 +40,10 @@
 	<key>UIAppFonts</key>
 	<array>
 		<string>Gveret Levin AlefAlefAlef-Regular.ttf</string>
+		<string>AntDesign.ttf</string>
+		<string>Ionicons.ttf</string>
+		<string>MaterialIcons.ttf</string>
+		<string>MaterialDesignIcons.ttf</string>
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>IssieVoiceSplash</string>

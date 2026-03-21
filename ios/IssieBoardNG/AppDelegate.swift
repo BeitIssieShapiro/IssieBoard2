@@ -2,6 +2,8 @@ import UIKit
 import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
+import RNFBAppCheck
+import FirebaseCore
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -22,6 +24,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     reactNativeFactory = factory
 
     V1Migration().migrateIfNeeded()
+
+    RNFBAppCheckModule.sharedInstance()
+    FirebaseApp.configure()
 
     window = UIWindow(frame: UIScreen.main.bounds)
 

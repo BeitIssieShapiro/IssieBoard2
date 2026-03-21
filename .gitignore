@@ -97,5 +97,6 @@ android/app/*.jks
 # Signing and credentials now centralized in issie-shared
 releases/
 .claude
+.env
 
 release-admin-creds.json

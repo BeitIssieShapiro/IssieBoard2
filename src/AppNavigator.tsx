@@ -16,6 +16,8 @@ import { ClassicEditorScreen } from './screens/ClassicEditorScreen';
 import KeyboardPreferences from './native/KeyboardPreferences';
 import { LocalizationProvider } from './localization';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { initializeFirebase } from './firebase-config';
+import { loadLanguage, LANGUAGE_SETTINGS } from '@beitissieshapiro/issie-shared';
 
 type LanguageId = 'he' | 'en' | 'ar';
 
@@ -42,6 +44,11 @@ export const AppNavigator: React.FC = () => {
   const [isV1User, setIsV1User] = useState(false);
   // Key to force EditorScreen to remount when opened from keyboard
   const [editorKey, setEditorKey] = useState(0);
+
+  // Initialize Firebase
+  useEffect(() => {
+    initializeFirebase();
+  }, []);
 
   // Load initial language from preferences (set by keyboard when opening settings)
   useEffect(() => {
@@ -109,6 +116,8 @@ export const AppNavigator: React.FC = () => {
         } else {
           setCurrentScreen({ type: 'editor' });
         }
+        // Initialize issie-shared language for FeedbackDialog
+        loadLanguage(LANGUAGE_SETTINGS.hebrew);
       } catch (error) {
         console.warn('Failed to load initial settings:', error);
         // Fallback to advanced editor on error

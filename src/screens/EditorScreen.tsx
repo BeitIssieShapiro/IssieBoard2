@@ -28,6 +28,8 @@ import { ActionButton } from '../components/shared/ActionButton';
 import { useLocalization } from '../localization';
 import { useKeyboardSetupStatus } from '../hooks/useKeyboardSetupStatus';
 import { SetupStatusStrip } from '../components/SetupStatusStrip';
+import { AboutScreen } from '../components/AboutScreen';
+import { ISSIEBOARD_ABOUT, ISSIEVOICE_ABOUT } from '../components/about-content';
 
 // Import keyboard files
 import enKeyboard from '../../keyboards/en.json';
@@ -476,6 +478,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   const [duplicateName, setDuplicateName] = useState('');
   const [profiles, setProfiles] = useState<ProfileOption[]>([]);
   const [showAddProfileModal, setShowAddProfileModal] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
   const [currentProfileName, setCurrentProfileName] = useState(profileName);
   const [currentProfileId, setCurrentProfileId] = useState(profileId);
   const [currentLanguage, setCurrentLanguage] = useState<LanguageId>(language);
@@ -1636,6 +1639,14 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
             </TouchableOpacity>
           ))}
         </View>
+        {/* About button */}
+        <TouchableOpacity
+          style={styles.aboutButton}
+          onPress={() => setShowAbout(true)}
+          accessibilityLabel="About"
+        >
+          <Text allowFontScaling={false} style={styles.aboutButtonText}>ℹ️</Text>
+        </TouchableOpacity>
         {/* Classic View button - shown when onSwitchToClassic is provided */}
         {onSwitchToClassic && (
           <TouchableOpacity
@@ -1768,6 +1779,13 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
           />
         </View>
       </KeyboardAvoidingView>
+      {showAbout && (
+        <AboutScreen
+          appName={appContext === 'issievoice' ? 'IssieVoice' : 'IssieBoard'}
+          onClose={() => setShowAbout(false)}
+          paragraphs={appContext === 'issievoice' ? ISSIEVOICE_ABOUT : ISSIEBOARD_ABOUT}
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -3011,6 +3029,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
+  },
+  aboutButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  aboutButtonText: {
+    fontSize: 22,
   },
   classicViewButtonText: {
     color: '#FFF',
