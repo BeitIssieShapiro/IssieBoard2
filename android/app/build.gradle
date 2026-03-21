@@ -178,4 +178,4 @@ dependencies {
 // This must be AFTER the android { } block
 apply from: "../../../issie-shared/android/keys/apply-signing.gradle"
 
-apply plugin: 'com.google.gms.google-services:4.4.4'
+apply plugin: 'com.google.gms.google-services'
