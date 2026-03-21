@@ -68,8 +68,8 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
       setSelectedId(null);
     }
 
-    // Navigate to BrowseScreen in select mode
-    navigation.navigate('Browse', { mode: 'select' });
+    // Navigate to BrowseScreen
+    navigation.navigate('Browse');
   };
 
   const handleFavoritePress = (item: { favorite: Favorite; sentence: SavedSentence }) => {
@@ -153,7 +153,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
               <Text style={styles.toolbarButtonText}>{strings.favorites.moveLeft}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.toolbarButton} onPress={handleDelete}>
-              <Text style={[styles.toolbarButtonText, styles.deleteText]}>{strings.common.delete}</Text>
+              <Text style={[styles.toolbarButtonText, styles.deleteText]}>{strings.favorites.remove}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.toolbarButton} onPress={handleMoveRight}>
               <Text style={styles.toolbarButtonText}>{strings.favorites.moveRight}</Text>
@@ -167,8 +167,8 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
         <View style={styles.innerContainer}>
           <View style={styles.favoritesGrid}>
             {favorites.map((item) => {
-              const caption = item.favorite.caption || getFirstWord(item.sentence.text);
-              const icon = item.favorite.icon;
+              const caption = item.sentence.caption || getFirstWord(item.sentence.text);
+              const icon = item.sentence.icon;
               const isSelected = selectedId === item.favorite.id;
               const itemHeight = isMobile ? height / 4 : height / 2; // Subtract padding for non-mobile
 

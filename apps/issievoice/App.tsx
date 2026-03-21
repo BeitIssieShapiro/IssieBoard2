@@ -7,6 +7,7 @@ import MainScreen from './src/screens/MainScreen';
 import BrowseScreen from './src/screens/BrowseScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import {EditorScreen} from '../../src/screens/EditorScreen';
+import {LocalizationProvider as EditorLocalizationProvider} from '../../src/localization';
 import {TextProvider} from './src/context/TextContext';
 import {TTSProvider} from './src/context/TTSContext';
 import {LocalizationProvider} from './src/context/LocalizationContext';
@@ -41,12 +42,14 @@ const App = () => {
                       <Stack.Screen name="Settings" component={SettingsScreen} />
                       <Stack.Screen name="KeyboardSettings">
                         {(props: any) => (
-                          <EditorScreen
-                            {...props}
-                            appContext="issievoice"
-                            initialLanguage={props.route.params?.initialLanguage}
-                            onClose={() => props.navigation.goBack()}
-                          />
+                          <EditorLocalizationProvider>
+                            <EditorScreen
+                              {...props}
+                              appContext="issievoice"
+                              initialLanguage={props.route.params?.initialLanguage}
+                              onClose={() => props.navigation.goBack()}
+                            />
+                          </EditorLocalizationProvider>
                         )}
                       </Stack.Screen>
                     </Stack.Navigator>
@@ -64,12 +67,14 @@ const App = () => {
                     <Stack.Screen name="Settings" component={SettingsScreen} />
                     <Stack.Screen name="KeyboardSettings">
                       {(props) => (
-                        <EditorScreen
-                          {...props}
-                          appContext="issievoice"
-                          initialLanguage={props.route.params?.initialLanguage}
-                          onClose={() => props.navigation.goBack()}
-                        />
+                        <EditorLocalizationProvider>
+                          <EditorScreen
+                            {...props}
+                            appContext="issievoice"
+                            initialLanguage={props.route.params?.initialLanguage}
+                            onClose={() => props.navigation.goBack()}
+                          />
+                        </EditorLocalizationProvider>
                       )}
                     </Stack.Screen>
                   </Stack.Navigator>

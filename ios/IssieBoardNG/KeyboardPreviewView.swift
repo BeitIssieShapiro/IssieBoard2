@@ -303,10 +303,14 @@ class KeyboardPreviewView: UIView {
 
                     print("📱 KeyboardPreviewView: Language changed to '\(lang)'")
 
-                    // Update language in keyboard engine if in input mode
+                    // Reset renderer's keyset to default when language changes
+                    // so it doesn't try to use a stale keyset ID from the old config
                     if let engine = keyboardEngine {
+                        engine.renderer.currentKeysetId = "abc"
                         engine.suggestionController.setLanguage(lang)
                         WordCompletionManager.shared.setLanguage(lang)
+                    } else if let renderer = configModeRenderer {
+                        renderer.currentKeysetId = "abc"
                     }
                 }
             }

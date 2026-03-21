@@ -42,15 +42,17 @@ export interface Strings {
   favorites: {
     moveLeft: string;
     moveRight: string;
-    selectFavorite: string;
-    customize: string;
+    editCaptionIcon: string;
     caption: string;
     captionPlaceholder: string;
     captionHint: string;
     icon: string;
     iconHint: string;
     addedToFavorites: string;
-    favoriteUpdated: string;
+    remove: string;
+    removedFromFavorites: string;
+    captionIconPromptTitle: string;
+    captionIconPromptMessage: string;
   };
   settings: {
     title: string;
@@ -129,15 +131,17 @@ const en: Strings = {
   favorites: {
     moveLeft: '← Move Left',
     moveRight: 'Move Right →',
-    selectFavorite: 'Select Favorite',
-    customize: 'Customize Favorite',
+    editCaptionIcon: 'Caption & Icon',
     caption: 'Caption',
     captionPlaceholder: 'Enter caption...',
-    captionHint: 'Short label shown under the button',
+    captionHint: 'Short label shown on the button',
     icon: 'Icon',
-    iconHint: 'Emoji or symbol for this favorite',
+    iconHint: 'Emoji or symbol for this sentence',
     addedToFavorites: 'Added to favorites',
-    favoriteUpdated: 'Favorite updated',
+    remove: 'Remove',
+    removedFromFavorites: 'Removed from favorites',
+    captionIconPromptTitle: 'Set Caption & Icon?',
+    captionIconPromptMessage: 'Would you like to set a caption and icon for this favorite?',
   },
   settings: {
     title: 'Settings',
@@ -216,15 +220,17 @@ const he: Strings = {
   favorites: {
     moveLeft: 'הזז שמאלה ←',
     moveRight: '→ הזז ימינה',
-    selectFavorite: 'בחר מועדף',
-    customize: 'התאם מועדף',
+    editCaptionIcon: 'כיתוב וסמל',
     caption: 'כיתוב',
     captionPlaceholder: 'הזן כיתוב...',
-    captionHint: 'תווית קצרה מתחת לכפתור',
+    captionHint: 'תווית קצרה על הכפתור',
     icon: 'סמל',
-    iconHint: 'אימוג\'י או סמל למועדף זה',
+    iconHint: 'אימוג\'י או סמל למשפט זה',
     addedToFavorites: 'נוסף למועדפים',
-    favoriteUpdated: 'המועדף עודכן',
+    remove: 'הסר',
+    removedFromFavorites: 'הוסר מהמועדפים',
+    captionIconPromptTitle: 'להגדיר כיתוב וסמל?',
+    captionIconPromptMessage: 'האם תרצה להגדיר כיתוב וסמל למועדף זה?',
   },
   settings: {
     title: 'הגדרות',
@@ -303,15 +309,17 @@ const ar: Strings = {
   favorites: {
     moveLeft: '← تحريك لليسار',
     moveRight: 'تحريك لليمين →',
-    selectFavorite: 'اختر المفضلة',
-    customize: 'تخصيص المفضلة',
+    editCaptionIcon: 'التسمية والأيقونة',
     caption: 'التسمية',
     captionPlaceholder: 'أدخل التسمية...',
-    captionHint: 'تسمية قصيرة تظهر تحت الزر',
+    captionHint: 'تسمية قصيرة على الزر',
     icon: 'الأيقونة',
-    iconHint: 'رمز تعبيري أو رمز لهذه المفضلة',
+    iconHint: 'رمز تعبيري أو رمز لهذه الجملة',
     addedToFavorites: 'تمت الإضافة إلى المفضلة',
-    favoriteUpdated: 'تم تحديث المفضلة',
+    remove: 'إزالة',
+    removedFromFavorites: 'تمت الإزالة من المفضلة',
+    captionIconPromptTitle: 'تعيين التسمية والأيقونة؟',
+    captionIconPromptMessage: 'هل تريد تعيين تسمية وأيقونة لهذه المفضلة؟',
   },
   settings: {
     title: 'الإعدادات',

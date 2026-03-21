@@ -1175,9 +1175,10 @@ class KeyboardRenderer {
 
             // In preview mode, render hidden keys with opacity instead of fully hiding them
             // This allows users to see and select keys that will be hidden
-            let shouldRenderWithOpacity = isKeyHidden && isPreviewMode
+            // Exception: base hidden spacers (hidden: true) are always fully hidden - they're layout gaps
+            let shouldRenderWithOpacity = isKeyHidden && isPreviewMode && !parsedKey.hidden
 
-            if isKeyHidden && !isPreviewMode {
+            if isKeyHidden && !shouldRenderWithOpacity {
                 // Fully hidden - skip rendering (only when NOT in preview mode)
                 let hiddenWidth = (CGFloat(parsedKey.width) / baselineWidth) * availableWidth
                 currentX += hiddenWidth

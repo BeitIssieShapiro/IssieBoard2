@@ -13,6 +13,7 @@
 		6A1E33722F2216ED00035455 /* KeyboardPreferencesModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 6A1E33712F2216ED00035455 /* KeyboardPreferencesModule.m */; };
 		6A1E33752F22170C00035455 /* KeyboardPreferencesModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A1E33742F22170B00035455 /* KeyboardPreferencesModule.swift */; };
 		6A1E33772F22198A00035455 /* KeyboardModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A1E33762F22198A00035455 /* KeyboardModels.swift */; };
+		6A265A882F6ED71600C08AE6 /* V1Migration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AAAEACE2F68BF1E00085361 /* V1Migration.swift */; };
 		6A40D2A02F6A1176006F97AC /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6A40D29F2F6A1176006F97AC /* LaunchScreen.storyboard */; };
 		6A73B6892F24E985003898A5 /* KeyboardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A73B6882F24E985003898A5 /* KeyboardRenderer.swift */; };
 		6A73B68E2F24E9B1003898A5 /* KeyboardPreviewViewManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A73B68D2F24E9B1003898A5 /* KeyboardPreviewViewManager.swift */; };
@@ -986,6 +987,7 @@
 				6AA1FCF32F3D26FA002BD212 /* DebugLog.swift in Sources */,
 				6AA1FCF42F3D26FA002BD212 /* KeyboardPreviewViewManager.swift in Sources */,
 				6AA1FCF52F3D26FA002BD212 /* KeyboardPreviewViewManager.m in Sources */,
+				6A265A882F6ED71600C08AE6 /* V1Migration.swift in Sources */,
 				6AA1FCF62F3D26FA002BD212 /* KeyboardPreviewView.swift in Sources */,
 				6AA1FCF72F3D26FA002BD212 /* BaseKeyboardViewController.swift in Sources */,
 				6AA1FCF82F3D26FA002BD212 /* TrieEngine.swift in Sources */,

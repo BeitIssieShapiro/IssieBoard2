@@ -5,7 +5,7 @@ import { View, TouchableOpacity, StyleSheet } from 'react-native';
 const V1_COLORS = [
     '#800080', '#4B0082', '#8B00FF', '#DDA0DD', '#FF00FF', '#7B68EE',
     '#0000FF', '#000080', '#0066FF', '#00FFFF', '#87CEEB', '#98FFE0',
-    '#006400', '#00FF00', '#00FF00', '#FFFF00', '#F0E68C', '#FFA500',
+    '#006400', '#00FF00', '#7CFC00', '#FFFF00', '#F0E68C', '#FFA500',
     '#FF8C00', '#FF0000', '#8B0000', '#808000', '#D2B48C', '#FFDAB9',
     '#FFB6C1', '#FFFFFF', '#C0C0C0', '#808080', '#696969', '#000000',
 ];

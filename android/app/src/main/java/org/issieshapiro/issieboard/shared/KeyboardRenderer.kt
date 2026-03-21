@@ -1154,10 +1154,10 @@ class KeyboardRenderer(private val context: Context) {
             val isKeyHidden = isKeyHiddenByVisibility(parsedKey, keyValue, showOnlyKeys, groups)
 
             // In preview mode, render hidden keys with opacity instead of fully hiding them
-            // This allows users to see and select keys that will be hidden
-            val shouldRenderWithOpacity = isKeyHidden && isPreviewMode
+            // Exception: base hidden spacers (hidden: true) are always fully hidden - they're layout gaps
+            val shouldRenderWithOpacity = isKeyHidden && isPreviewMode && !parsedKey.hidden
 
-            if (isKeyHidden && !isPreviewMode) {
+            if (isKeyHidden && !shouldRenderWithOpacity) {
                 // Fully hidden - skip rendering (only when NOT in preview mode)
                 // Hidden key by showOnly/hide rules - ADD SPACER to preserve key positions
                 // These keys ARE counted in the baseline, so we need to create the gap

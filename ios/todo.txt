@@ -6,9 +6,12 @@ Android Bugs:
 
 todo - IssieBoard:
 ----
-V- special signs should return to abc after 1 click 
-- click and drag 123 to select special-sign/number 
+Android:
+  - x is invisible in Nikkud
 
+- not offer suggestion for certain input type? then ommit the header row?
+- URL/email no auto-shift
+- Globe icon color
 
 
 
@@ -18,9 +21,6 @@ old app compatability:
 
 todo - IssieVoice
 --------
-- icon and caption not only in favorites
-- highlighted keys color - green is twice
-
 
 
 2-March
@@ -38,7 +38,6 @@ V- key group from template: read-only, simplified, has also the profile-name at 
 
 
 Bugs:
-- not offer suggestion for certain input type? then ommit the header row?
 
 V- when selecting text (all text) backspace does not delete it
 X- long press on globus - show list [not possible in ios]
@@ -64,16 +63,13 @@ V- verify, that after he.json change, and applying profile change, he.json takes
 V- slide cursor
 
 
-- URL/email no auto-shift
 
 
-Android:
-- x is invisible in Nikkud
 
 feedback:
-- kb for iPad: higher buttons
+V- kb for iPad: higher buttons
 V- word prediction
-- nikkud and settings button (svg) should take color from key color
+V- nikkud and settings button (svg) should take color from key color
 
 -good.
 now last change: In Preview only, in shift mode (not a locked shift), do not turn off shift when clicking something . because I want to be able to select few keys under shift

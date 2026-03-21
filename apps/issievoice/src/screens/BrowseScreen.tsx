@@ -19,32 +19,23 @@ import {useNotification} from '../context/NotificationContext';
 import SavedSentencesManager, {
   SavedSentence,
 } from '../services/SavedSentencesManager';
-import FavoritesManager, {Favorite} from '../services/FavoritesManager';
+import FavoritesManager from '../services/FavoritesManager';
 import {colors, sizes} from '../constants';
 import EmojiPicker, { en, he } from 'rn-emoji-keyboard';
 import { SafeAreaView, useSafeAreaFrame } from 'react-native-safe-area-context';
 
 interface BrowseScreenProps {
   navigation: any;
-  route?: {
-    params?: {
-      mode?: 'browse' | 'select';
-    };
-  };
 }
 
-const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation, route}) => {
-  const mode = route?.params?.mode || 'browse';
+const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation}) => {
   const [sentences, setSentences] = useState<SavedSentence[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredSentences, setFilteredSentences] = useState<SavedSentence[]>(
-    [],
-  );
+  const [filteredSentences, setFilteredSentences] = useState<SavedSentence[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
-  const [favoritesMap, setFavoritesMap] = useState<Map<string, Favorite>>(new Map());
-  const [editingFavorite, setEditingFavorite] = useState<SavedSentence | null>(null);
-  const [favoriteCaption, setFavoriteCaption] = useState('');
-  const [favoriteIcon, setFavoriteIcon] = useState('');
+  const [editingSentence, setEditingSentence] = useState<SavedSentence | null>(null);
+  const [editCaption, setEditCaption] = useState('');
+  const [editIcon, setEditIcon] = useState('');
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const {setText, currentText} = useText();
   const {speak} = useTTS();
@@ -92,67 +83,62 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation, route}) => {
   const loadFavorites = async () => {
     const favs = await FavoritesManager.getFavorites();
     setFavoriteIds(new Set(favs.map(f => f.id)));
-    // Create a map for quick lookup of favorite details
-    const map = new Map<string, Favorite>();
-    favs.forEach(f => map.set(f.id, f));
-    setFavoritesMap(map);
   };
 
-  const handleSelectForFavorite = async (sentence: SavedSentence) => {
-    await FavoritesManager.addFavorite(sentence.id);
+  const handleToggleFavorite = async (sentence: SavedSentence) => {
+    const isNowFavorite = await FavoritesManager.toggleFavorite(sentence.id);
     await loadFavorites();
-    showNotification(strings.favorites.addedToFavorites, 'success');
-    navigation.goBack();
-  };
 
-  const handleEditFavorite = async (sentence: SavedSentence) => {
-    const favorite = await FavoritesManager.getFavorite(sentence.id);
-    setEditingFavorite(sentence);
-    setFavoriteCaption(favorite?.caption || '');
-    setFavoriteIcon(favorite?.icon || '');
-  };
-
-  const handleSaveFavorite = async () => {
-    if (!editingFavorite) return;
-
-    const isAlreadyFavorite = favoriteIds.has(editingFavorite.id);
-
-    if (isAlreadyFavorite) {
-      await FavoritesManager.updateFavorite(
-        editingFavorite.id,
-        favoriteCaption.trim() || undefined,
-        favoriteIcon.trim() || undefined
-      );
-      showNotification(strings.favorites.favoriteUpdated, 'success');
-    } else {
-      await FavoritesManager.addFavorite(
-        editingFavorite.id,
-        favoriteCaption.trim() || undefined,
-        favoriteIcon.trim() || undefined
-      );
-      await loadFavorites();
+    if (isNowFavorite) {
+      // If sentence has no caption/icon, prompt user to set them
+      if (!sentence.caption && !sentence.icon) {
+        Alert.alert(
+          strings.favorites.captionIconPromptTitle,
+          strings.favorites.captionIconPromptMessage,
+          [
+            {text: strings.common.no, style: 'cancel'},
+            {
+              text: strings.common.yes,
+              onPress: () => handleEditCaptionIcon(sentence),
+            },
+          ],
+        );
+      }
       showNotification(strings.favorites.addedToFavorites, 'success');
+    } else {
+      showNotification(strings.favorites.removedFromFavorites, 'success');
     }
+  };
 
-    setEditingFavorite(null);
-    setFavoriteCaption('');
-    setFavoriteIcon('');
+  const handleEditCaptionIcon = (sentence: SavedSentence) => {
+    setEditingSentence(sentence);
+    setEditCaption(sentence.caption || '');
+    setEditIcon(sentence.icon || '');
+  };
 
-    // Go back to main screen after saving
-    navigation.goBack();
+  const handleSaveCaptionIcon = async () => {
+    if (!editingSentence) return;
+
+    await SavedSentencesManager.updateSentence(editingSentence.id, {
+      caption: editCaption.trim() || undefined,
+      icon: editIcon.trim() || undefined,
+    });
+
+    setEditingSentence(null);
+    setEditCaption('');
+    setEditIcon('');
+    await loadSentences();
   };
 
   const handleCancelEdit = () => {
-    setEditingFavorite(null);
-    setFavoriteCaption('');
-    setFavoriteIcon('');
+    setEditingSentence(null);
+    setEditCaption('');
+    setEditIcon('');
   };
 
   const handleEmojiPick = (emoji: any) => {
-    console.log('🎯 Emoji picked:', emoji.emoji);
-    setFavoriteIcon(emoji.emoji);
+    setEditIcon(emoji.emoji);
     setIsEmojiPickerOpen(false);
-    // Don't need to do anything else - edit modal will reappear
   };
 
   const handleReplaceText = (sentence: SavedSentence) => {
@@ -197,25 +183,24 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation, route}) => {
   };
 
   const renderSentenceItem = ({item}: {item: SavedSentence}) => {
-    const isAlreadyFavorite = favoriteIds.has(item.id);
-    const favoriteData = favoritesMap.get(item.id);
-    const hasCustomFavorite = favoriteData && (favoriteData.icon || favoriteData.caption);
+    const isFavorite = favoriteIds.has(item.id);
+    const hasCustomDisplay = item.icon || item.caption;
 
     return (
       <View style={[styles.sentenceItem, isLandscape && styles.sentenceItemLandscape]}>
         <TouchableOpacity
           style={styles.sentenceTextContainer}
-          onPress={() => mode === 'select' ? handleEditFavorite(item) : handleReplaceText(item)}
+          onPress={() => handleReplaceText(item)}
           activeOpacity={0.7}>
 
-          {/* Show favorite icon/caption prominently if it exists */}
-          {hasCustomFavorite && (
+          {/* Show icon/caption prominently if set */}
+          {hasCustomDisplay && (
             <View style={styles.favoriteHeaderContainer}>
-              {favoriteData.icon && (
-                <Text style={styles.favoriteHeaderIcon}>{favoriteData.icon}</Text>
+              {item.icon && (
+                <Text style={styles.favoriteHeaderIcon}>{item.icon}</Text>
               )}
               <Text style={styles.favoriteHeaderText}>
-                {favoriteData.caption || getFirstWord(item.text)}
+                {item.caption || getFirstWord(item.text)}
               </Text>
             </View>
           )}
@@ -223,7 +208,7 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation, route}) => {
           {/* Full sentence text */}
           <Text style={[
             styles.sentenceText,
-            hasCustomFavorite && styles.sentenceTextSecondary
+            hasCustomDisplay && styles.sentenceTextSecondary
           ]} numberOfLines={2}>
             {item.text}
           </Text>
@@ -233,57 +218,42 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation, route}) => {
         </TouchableOpacity>
 
         <View style={styles.actionButtons}>
-          {mode === 'select' ? (
-            <>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.addFavoriteButton, isAlreadyFavorite && styles.addFavoriteButtonDisabled]}
-                onPress={() => handleSelectForFavorite(item)}
-                activeOpacity={0.7}
-                disabled={isAlreadyFavorite}>
-                <Text style={styles.actionButtonText}>
-                  {isAlreadyFavorite ? '✓' : '⭐'}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.editFavoriteButton]}
-                onPress={() => handleEditFavorite(item)}
-                activeOpacity={0.7}>
-                <Text style={styles.actionButtonText}>✏️⭐</Text>
-              </TouchableOpacity>
-            </>
-          ) : (
-            <>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.insertButton]}
-                onPress={() => handleInsertText(item)}
-                activeOpacity={0.7}>
-                <Text style={styles.actionButtonText}>➕</Text>
-              </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.editButton]}
+            onPress={() => handleEditCaptionIcon(item)}
+            activeOpacity={0.7}>
+            <Text style={styles.actionButtonText}>✏️</Text>
+          </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.actionButton, styles.speakButton]}
-                onPress={() => handleSpeakPress(item)}
-                activeOpacity={0.7}>
-                <Text style={styles.actionButtonText}>🗣️</Text>
-              </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.insertButton]}
+            onPress={() => handleInsertText(item)}
+            activeOpacity={0.7}>
+            <Text style={styles.actionButtonText}>➕</Text>
+          </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.actionButton, styles.addFavoriteButton, isAlreadyFavorite && styles.addFavoriteButtonDisabled]}
-                onPress={() => handleEditFavorite(item)}
-                activeOpacity={0.7}>
-                <Text style={styles.actionButtonText}>
-                  {isAlreadyFavorite ? '⭐' : '⭐'}
-                </Text>
-              </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.speakButton]}
+            onPress={() => handleSpeakPress(item)}
+            activeOpacity={0.7}>
+            <Text style={styles.actionButtonText}>🗣️</Text>
+          </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.actionButton, styles.deleteButton]}
-                onPress={() => handleDeletePress(item)}
-                activeOpacity={0.7}>
-                <Text style={styles.actionButtonText}>🗑️</Text>
-              </TouchableOpacity>
-            </>
-          )}
+          <TouchableOpacity
+            style={[styles.actionButton, styles.addFavoriteButton, isFavorite && styles.addFavoriteButtonActive]}
+            onPress={() => handleToggleFavorite(item)}
+            activeOpacity={0.7}>
+            <Text style={styles.actionButtonText}>
+              {isFavorite ? '⭐' : '☆'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionButton, styles.deleteButton]}
+            onPress={() => handleDeletePress(item)}
+            activeOpacity={0.7}>
+            <Text style={styles.actionButtonText}>🗑️</Text>
+          </TouchableOpacity>
         </View>
       </View>
     );
@@ -321,23 +291,21 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation, route}) => {
           <Text style={styles.backButtonText}>{strings.common.back}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
-          {mode === 'select' ? strings.favorites.selectFavorite : strings.browse.savedSentences}
+          {strings.browse.savedSentences}
         </Text>
-        {mode === 'browse' && (
-          <TouchableOpacity
-            style={styles.clearAllButton}
-            onPress={handleClearAll}
-            disabled={sentences.length === 0}
-            activeOpacity={0.7}>
-            <Text
-              style={[
-                styles.clearAllButtonText,
-                sentences.length === 0 && styles.clearAllButtonTextDisabled,
-              ]}>
-              {strings.browse.clearAll}
-            </Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          style={styles.clearAllButton}
+          onPress={handleClearAll}
+          disabled={sentences.length === 0}
+          activeOpacity={0.7}>
+          <Text
+            style={[
+              styles.clearAllButtonText,
+              sentences.length === 0 && styles.clearAllButtonTextDisabled,
+            ]}>
+            {strings.browse.clearAll}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* Search Bar */}
@@ -379,8 +347,8 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation, route}) => {
         </View>
       )}
 
-      {/* Edit Favorite Overlay (not a real modal) */}
-      {editingFavorite !== null && (
+      {/* Edit Caption/Icon Overlay */}
+      {editingSentence !== null && (
         <View style={styles.modalOverlay}>
           <TouchableOpacity
             style={styles.modalOverlayTouchable}
@@ -398,7 +366,7 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation, route}) => {
                   onPress={(e) => e.stopPropagation()}>
                   <View style={styles.editModalContent}>
                     <Text style={styles.editModalTitle}>
-                      {strings.favorites.customize}
+                      {strings.favorites.editCaptionIcon}
                     </Text>
 
                     {/* Caption Input */}
@@ -406,8 +374,8 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation, route}) => {
                       <Text style={styles.inputLabel}>{strings.favorites.caption}</Text>
                       <TextInput
                         style={styles.textInputField}
-                        value={favoriteCaption}
-                        onChangeText={setFavoriteCaption}
+                        value={editCaption}
+                        onChangeText={setEditCaption}
                         placeholder={strings.favorites.captionPlaceholder}
                         placeholderTextColor={colors.textLight}
                         maxLength={20}
@@ -422,14 +390,10 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation, route}) => {
                       <Text style={styles.inputLabel}>{strings.favorites.icon}</Text>
                       <TouchableOpacity
                         style={styles.iconPreviewButton}
-                        onPress={() => {
-                          console.log('🎯 Icon preview button pressed');
-                          setIsEmojiPickerOpen(true);
-                          console.log('🎯 Emoji picker state set to true');
-                        }}
+                        onPress={() => setIsEmojiPickerOpen(true)}
                         activeOpacity={0.7}>
                         <Text style={styles.iconPreviewText}>
-                          {favoriteIcon || '+'}
+                          {editIcon || '+'}
                         </Text>
                       </TouchableOpacity>
                       <Text style={styles.inputHint}>
@@ -447,7 +411,7 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation, route}) => {
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={[styles.editModalButton, styles.saveButton]}
-                        onPress={handleSaveFavorite}
+                        onPress={handleSaveCaptionIcon}
                         activeOpacity={0.7}>
                         <Text style={styles.editModalButtonText}>{strings.common.save}</Text>
                       </TouchableOpacity>
@@ -464,10 +428,7 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation, route}) => {
       <EmojiPicker
         onEmojiSelected={handleEmojiPick}
         open={isEmojiPickerOpen}
-        onClose={() => {
-          console.log('🎯 Emoji picker closing');
-          setIsEmojiPickerOpen(false);
-        }}
+        onClose={() => setIsEmojiPickerOpen(false)}
         allowMultipleSelections={false}
         emojiSize={48}
         defaultHeight="50%"
@@ -595,10 +556,6 @@ const styles = StyleSheet.create({
     fontSize: sizes.fontSize.small,
     color: colors.textSecondary,
   },
-  sentenceTextDisabled: {
-    color: colors.textLight,
-    opacity: 0.5,
-  },
   categoryText: {
     fontSize: sizes.fontSize.small,
     color: colors.textSecondary,
@@ -618,6 +575,9 @@ const styles = StyleSheet.create({
   insertButton: {
     backgroundColor: '#9C27B0', // Purple for insert
   },
+  editButton: {
+    backgroundColor: '#9C27B0', // Purple for edit
+  },
   speakButton: {
     backgroundColor: colors.speak,
   },
@@ -628,21 +588,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFB300', // Amber for add to favorites
     width: sizes.touchTarget.medium,
   },
-  addFavoriteButtonDisabled: {
+  addFavoriteButtonActive: {
     backgroundColor: colors.success,
-    opacity: 0.6,
-  },
-  editFavoriteButton: {
-    backgroundColor: '#9C27B0', // Purple for edit
-    width: sizes.touchTarget.medium,
-  },
-  selectButton: {
-    backgroundColor: '#FFB300', // Amber for select/favorite
-    width: sizes.touchTarget.medium,
-  },
-  selectButtonDisabled: {
-    backgroundColor: colors.success,
-    opacity: 0.6,
   },
   actionButtonText: {
     fontSize: sizes.fontSize.large,

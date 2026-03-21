@@ -307,6 +307,10 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
         val lang = language ?: "en"
         debugLog("🔧 setLanguage called with: $lang")
 
+        // Reset renderer's keyset to default when language changes
+        // so it doesn't try to use a stale keyset ID from the old config
+        renderer?.currentKeysetId = "abc"
+
         // Update suggestion controller language
         suggestionController?.setLanguage(lang)
     }
