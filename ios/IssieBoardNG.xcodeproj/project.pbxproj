@@ -14,6 +14,7 @@
 		6A1E33752F22170C00035455 /* KeyboardPreferencesModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A1E33742F22170B00035455 /* KeyboardPreferencesModule.swift */; };
 		6A1E33772F22198A00035455 /* KeyboardModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A1E33762F22198A00035455 /* KeyboardModels.swift */; };
 		6A265A882F6ED71600C08AE6 /* V1Migration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AAAEACE2F68BF1E00085361 /* V1Migration.swift */; };
+		6A265A8B2F6F017700C08AE6 /* IssieVoiceSplash.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6A265A892F6F002900C08AE6 /* IssieVoiceSplash.storyboard */; };
 		6A40D2A02F6A1176006F97AC /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6A40D29F2F6A1176006F97AC /* LaunchScreen.storyboard */; };
 		6A73B6892F24E985003898A5 /* KeyboardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A73B6882F24E985003898A5 /* KeyboardRenderer.swift */; };
 		6A73B68E2F24E9B1003898A5 /* KeyboardPreviewViewManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A73B68D2F24E9B1003898A5 /* KeyboardPreviewViewManager.swift */; };
@@ -133,7 +134,6 @@
 		6ADAC3832F3E0BE300C85EBD /* SystemTextDocumentProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ADAC37F2F3E0B8700C85EBD /* SystemTextDocumentProxy.swift */; };
 		6ADAC3842F3E0BE300C85EBD /* SystemTextDocumentProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ADAC37F2F3E0B8700C85EBD /* SystemTextDocumentProxy.swift */; };
 		6ADAC3852F3E0BE300C85EBD /* SystemTextDocumentProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ADAC37F2F3E0B8700C85EBD /* SystemTextDocumentProxy.swift */; };
-		6ADAC3882F3E30F900C85EBD /* IssieVoiceSplash.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6ADAC3862F3E293000C85EBD /* IssieVoiceSplash.storyboard */; };
 		6AFD743E2F3DB18B00EDBDAA /* en_50k.bin in Resources */ = {isa = PBXBuildFile; fileRef = 6AFD743D2F3DB18B00EDBDAA /* en_50k.bin */; };
 		6AKBNG00012F400100035455 /* KeyboardNeighbors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AKBNG00002F400100035455 /* KeyboardNeighbors.swift */; };
 		6AKBNG00022F400100035455 /* KeyboardNeighbors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AKBNG00002F400100035455 /* KeyboardNeighbors.swift */; };
@@ -212,6 +212,7 @@
 		6A1E33732F2216F000035455 /* IssieBoardNG-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "IssieBoardNG-Bridging-Header.h"; sourceTree = "<group>"; };
 		6A1E33742F22170B00035455 /* KeyboardPreferencesModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KeyboardPreferencesModule.swift; path = IssieBoardNG/KeyboardPreferencesModule.swift; sourceTree = "<group>"; };
 		6A1E33762F22198A00035455 /* KeyboardModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardModels.swift; sourceTree = "<group>"; };
+		6A265A892F6F002900C08AE6 /* IssieVoiceSplash.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = IssieVoiceSplash.storyboard; sourceTree = "<group>"; };
 		6A40D1D82F6A0DE7006F97AC /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = IssieBoardNG/Assets.xcassets; sourceTree = "<group>"; };
 		6A40D29F2F6A1176006F97AC /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		6A73B6882F24E985003898A5 /* KeyboardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardRenderer.swift; sourceTree = "<group>"; };
@@ -241,7 +242,6 @@
 		6ADAC36E2F3DF78D00C85EBD /* TextDocumentProxyProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextDocumentProxyProtocol.swift; sourceTree = "<group>"; };
 		6ADAC3722F3DF7A200C85EBD /* KeyboardEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardEngine.swift; sourceTree = "<group>"; };
 		6ADAC37F2F3E0B8700C85EBD /* SystemTextDocumentProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemTextDocumentProxy.swift; sourceTree = "<group>"; };
-		6ADAC3862F3E293000C85EBD /* IssieVoiceSplash.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = IssieVoiceSplash.storyboard; sourceTree = "<group>"; };
 		6AFD743D2F3DB18B00EDBDAA /* en_50k.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = en_50k.bin; sourceTree = "<group>"; };
 		6AFD74402F3DB21C00EDBDAA /* IssieVoice-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "IssieVoice-Info.plist"; sourceTree = "<group>"; };
 		6AKBNG00002F400100035455 /* KeyboardNeighbors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardNeighbors.swift; sourceTree = "<group>"; };
@@ -370,8 +370,8 @@
 				6A40D1D82F6A0DE7006F97AC /* Assets.xcassets */,
 				761780EC2CA45674006654EE /* AppDelegate.swift */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
-				6ADAC3862F3E293000C85EBD /* IssieVoiceSplash.storyboard */,
 				6A40D29F2F6A1176006F97AC /* LaunchScreen.storyboard */,
+				6A265A892F6F002900C08AE6 /* IssieVoiceSplash.storyboard */,
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
 				6A1E33712F2216ED00035455 /* KeyboardPreferencesModule.m */,
 				6A73B68B2F24E9B1003898A5 /* KeyboardPreviewView.swift */,
@@ -700,7 +700,7 @@
 				6ADAC3672F3DDC9400C85EBD /* he_predictions.bin in Resources */,
 				6AFD743E2F3DB18B00EDBDAA /* en_50k.bin in Resources */,
 				6AA1FD082F3D26FA002BD212 /* Assets.xcassets in Resources */,
-				6ADAC3882F3E30F900C85EBD /* IssieVoiceSplash.storyboard in Resources */,
+				6A265A8B2F6F017700C08AE6 /* IssieVoiceSplash.storyboard in Resources */,
 				6AA1FD092F3D26FA002BD212 /* SharedAssets.xcassets in Resources */,
 				6ADAC3692F3DDD2900C85EBD /* en_predictions.bin in Resources */,
 				6AA1FD0A2F3D26FA002BD212 /* Gveret Levin AlefAlefAlef-Regular.ttf in Resources */,
@@ -1209,7 +1209,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = IssieBoardNG/IssieBoardNG.entitlements;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = "IssieVoice/IssieVoice-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = IssieVoice;
@@ -1246,7 +1246,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = IssieBoardNG/IssieBoardNG.entitlements;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				INFOPLIST_FILE = "IssieVoice/IssieVoice-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = IssieVoice;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
