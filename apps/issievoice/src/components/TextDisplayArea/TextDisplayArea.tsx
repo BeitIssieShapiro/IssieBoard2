@@ -5,8 +5,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   Text,
+  ScrollView,
 } from 'react-native';
 import { useText } from '../../context/TextContext';
+import { useTTS } from '../../context/TTSContext';
 import { colors, sizes } from '../../constants';
 import { useLocalization } from '../../context/LocalizationContext';
 import { detectTextDirection } from '../../utils/textDirection';
@@ -18,6 +20,7 @@ interface TextDisplayAreaProps {
 
 const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1000 }) => {
   const { setText } = useText();
+  const { isSpeaking, spokenRange } = useTTS();
   const { strings, isRTL, language } = useLocalization();
   const textInputRef = useRef<TextInput>(null);
 
@@ -48,6 +51,26 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1
     setText('');
   };
 
+  // Build highlighted text segments when speaking
+  const renderHighlightedText = () => {
+    if (!spokenRange || !text) {
+      return <Text style={[styles.highlightText, { fontSize, lineHeight }, isTextRTL && styles.textInputRTL]}>{text}</Text>;
+    }
+
+    const { location, length } = spokenRange;
+    const before = text.substring(0, location);
+    const highlighted = text.substring(location, location + length);
+    const after = text.substring(location + length);
+
+    return (
+      <Text style={[styles.highlightText, { fontSize, lineHeight }, isTextRTL && styles.textInputRTL]}>
+        {before}
+        <Text style={styles.highlightedWord}>{highlighted}</Text>
+        {after}
+      </Text>
+    );
+  };
+
   return (
     <View style={[styles.container, { height:"100%" }]}>
       <TextInput
@@ -56,6 +79,7 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1
           styles.textInput,
           { fontSize, lineHeight, height: '100%' },
           isTextRTL && styles.textInputRTL,
+          isSpeaking && styles.hiddenTextInput,
         ]}
         value={text}
         onChangeText={(newText) => {
@@ -73,6 +97,11 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1
         // @ts-ignore - writingDirection exists but not in types
         writingDirection={textDirection}
       />
+      {isSpeaking && text.length > 0 && (
+        <ScrollView style={styles.highlightOverlay} pointerEvents="none">
+          {renderHighlightedText()}
+        </ScrollView>
+      )}
       {text.length > 0 && (
         <TouchableOpacity
           style={[styles.clearButton, isRTL ? styles.clearButtonLeft : styles.clearButtonRight]}
@@ -133,6 +162,30 @@ const styles = StyleSheet.create({
     color: colors.textLight,
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  hiddenTextInput: {
+    color: 'transparent',
+  },
+  highlightOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  highlightText: {
+    color: colors.text,
+    textAlignVertical: 'top',
+    textAlign: 'left',
+    // iOS TextInput has ~4px extra internal content inset vs Text
+    paddingTop: 17,
+    paddingLeft: 8,
+    paddingRight: 40,
+  },
+  highlightedWord: {
+    backgroundColor: '#FFD700',
+    color: '#000000',
+    borderRadius: 4,
   },
 });
 

@@ -2,10 +2,16 @@ import React, {createContext, useContext, useEffect, useState, ReactNode} from '
 import TTS, {TTSSettings} from '../services/TextToSpeech';
 import {NativeModules, Platform} from 'react-native';
 
+interface SpokenRange {
+  location: number;
+  length: number;
+}
+
 interface TTSContextType {
   speak: (text: string, languageMode?: 'en-only' | 'he-only' | 'detect', englishVoice?: string, hebrewVoice?: string) => Promise<void>;
   stop: () => Promise<void>;
   isSpeaking: boolean;
+  spokenRange: SpokenRange | null;
   settings: TTSSettings;
   updateSettings: (settings: Partial<TTSSettings>) => Promise<void>;
   setLanguage: (lang: string) => Promise<void>;
@@ -34,6 +40,7 @@ const getDeviceLanguage = (): string => {
 
 export const TTSProvider = ({children}: {children: ReactNode}) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [spokenRange, setSpokenRange] = useState<SpokenRange | null>(null);
   const [settings, setSettings] = useState<TTSSettings>({
     rate: 0.5,
     pitch: 1.0,
@@ -57,7 +64,13 @@ export const TTSProvider = ({children}: {children: ReactNode}) => {
 
     // Set up listeners
     TTS.onTtsStart(() => setIsSpeaking(true));
-    TTS.onTtsFinish(() => setIsSpeaking(false));
+    TTS.onTtsFinish(() => {
+      setIsSpeaking(false);
+      setSpokenRange(null);
+    });
+    TTS.onTtsProgress((event) => {
+      setSpokenRange({location: event.location, length: event.length});
+    });
 
     return () => {
       TTS.removeAllListeners();
@@ -120,6 +133,7 @@ export const TTSProvider = ({children}: {children: ReactNode}) => {
     try {
       await TTS.stop();
       setIsSpeaking(false);
+      setSpokenRange(null);
     } catch (error) {
       console.error('Failed to stop:', error);
     }
@@ -178,7 +192,7 @@ export const TTSProvider = ({children}: {children: ReactNode}) => {
   };
 
   return (
-    <TTSContext.Provider value={{speak, stop, isSpeaking, settings, updateSettings, setLanguage, getAvailableVoices, setVoice}}>
+    <TTSContext.Provider value={{speak, stop, isSpeaking, spokenRange, settings, updateSettings, setLanguage, getAvailableVoices, setVoice}}>
       {children}
     </TTSContext.Provider>
   );

@@ -94,9 +94,14 @@ class TextToSpeechService {
     Tts.addEventListener('tts-start', callback);
   }
 
+  onTtsProgress(callback: (event: {location: number; length: number}) => void): void {
+    Tts.addEventListener('tts-progress', callback);
+  }
+
   removeAllListeners(): void {
     Tts.removeAllListeners('tts-finish');
     Tts.removeAllListeners('tts-start');
+    Tts.removeAllListeners('tts-progress');
   }
 }
 

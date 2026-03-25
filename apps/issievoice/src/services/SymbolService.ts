@@ -35,6 +35,12 @@ class SymbolServiceClass {
     const toFetch: string[] = [];
 
     for (const word of words) {
+      // Skip quoted words (literal completions from keyboard)
+      if (word.startsWith('"') && word.endsWith('"')) {
+        result.set(word, null);
+        continue;
+      }
+
       const normalized = word.toLowerCase().trim();
       if (!normalized) continue;
 

@@ -62,10 +62,11 @@ const SuggestionsBar: React.FC<SuggestionsBarProps> = ({
   // At smaller widths: reduce font size proportionally
   const baseHeightFontSize = buttonHeight * 0.5; // Base size from height
   const widthScaleFactor = Math.min(1, screenWidth / 1000); // Scale down on smaller screens
-  const fontSize = Math.max(18, baseHeightFontSize * widthScaleFactor); // Minimum 16px
+  const baseFontSize = Math.max(18, baseHeightFontSize * widthScaleFactor); // Minimum 18px
 
   const showSymbols = height >= 120;
   const imageSize = showSymbols ? Math.floor(buttonHeight * 0.55) : 0;
+  const fontSize = showSymbols ? Math.max(12, baseFontSize * 0.55) : baseFontSize;
 
   const handleSuggestionPress = (suggestion: string) => {
     // Strip quotes if the suggestion is wrapped in quotes (literal word)
