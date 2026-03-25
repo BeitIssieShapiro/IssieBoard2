@@ -19,6 +19,7 @@ import { KeyboardPreview, KeyPressEvent } from '../../../../src/components/Keybo
 import { buildKeyboardConfig } from '../../../../src/utils/keyboardConfigMerger';
 import { colors, sizes } from '../constants';
 import KeyboardPreferences from '../../../../src/native/KeyboardPreferences';
+import { symbolService } from '../services/SymbolService';
 import { IVButton } from '../components/ActionBar/SpeakButton';
 
 interface MainScreenProps {
@@ -53,6 +54,9 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
   const [keyboardConfig, setKeyboardConfig] = useState<string>('');
   const [keyboardBgColor, setKeyboardBgColor] = useState<string>('#D1D1D1');
   const [kbSuggestions, setKbSuggestions] = useState<string[]>([]);
+  const [symbolUrls, setSymbolUrls] = useState<Map<string, string | null>>(new Map());
+  const symbolDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const suggestionsRef = useRef<string[]>([]);
   const [keyboardHeight, setKeyboardHeight] = useState(350);
   const [currentLanguage, setCurrentLanguage] = useState<'en' | 'he'>(deviceLanguage === 'ar' ? 'he' : deviceLanguage);
   const [languageMode, setLanguageMode] = useState<'en-only' | 'he-only' | 'detect'>('detect');
@@ -62,6 +66,17 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
   const [favoritesReloadTrigger, setFavoritesReloadTrigger] = useState(0);
   const keyboardConfigRef = useRef<any>(null);
   const keyboardHeightRef = useRef<number>(350);
+
+  // Load symbol cache and clean up debounce on unmount
+  useEffect(() => {
+    symbolService.loadCache();
+    return () => {
+      // Clean up debounce timeout on unmount
+      if (symbolDebounceRef.current) {
+        clearTimeout(symbolDebounceRef.current);
+      }
+    };
+  }, []);
 
   // Get window dimensions using useSafeAreaFrame (works with ScreenSizer)
   const frame = useSafeAreaFrame();
@@ -521,6 +536,23 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
     const suggestions = event.nativeEvent.suggestions || [];
     console.log('🔮 KB Suggestions received:', suggestions);
     setKbSuggestions(suggestions);
+    suggestionsRef.current = suggestions;
+
+    // Debounce symbol lookups
+    if (symbolDebounceRef.current) {
+      clearTimeout(symbolDebounceRef.current);
+    }
+    symbolDebounceRef.current = setTimeout(async () => {
+      if (suggestions.length === 0) {
+        setSymbolUrls(new Map());
+        return;
+      }
+      const urls = await symbolService.getSymbolUrls(suggestions);
+      // Only update if suggestions haven't changed
+      if (suggestionsRef.current === suggestions) {
+        setSymbolUrls(urls);
+      }
+    }, 300);
   };
 
   // Handle suggestion press from the SuggestionsBar
@@ -623,6 +655,8 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
 
   const isMobile = frame.width < 600;
   const buttonColumnWidth = isMobile ? availableHeight * .175  : availableHeight * .225;
+  const suggestionsHeight = isLandscape ? availableHeight * 0.22 : availableHeight * 0.18;
+  const minSymbolHeight = availableHeight * 0.4 >= 120 ? 120 : suggestionsHeight;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -677,9 +711,10 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
           <SuggestionsBar
             currentText={currentText}
             kbSuggestions={kbSuggestions}
+            symbolUrls={symbolUrls}
             language={currentLanguage}
             onSuggestionPress={handleSuggestionFromBar}
-            height={isLandscape ? availableHeight * 0.15 : availableHeight * 0.1}
+            height={Math.max(minSymbolHeight, suggestionsHeight)}
             screenWidth={frame.width}
           />
 
