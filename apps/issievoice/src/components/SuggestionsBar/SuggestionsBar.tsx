@@ -2,6 +2,7 @@ import React from 'react';
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -14,6 +15,7 @@ interface SuggestionsBarProps {
   kbSuggestions?: string[];
   language?: 'en' | 'he';
   onSuggestionPress?: (suggestion: string) => void;
+  symbolUrls?: Map<string, string | null>;
   height?: number; // Optional responsive height
   screenWidth?: number; // Optional screen width for responsive scaling
 }
@@ -42,6 +44,7 @@ const SuggestionsBar: React.FC<SuggestionsBarProps> = ({
   kbSuggestions = [],
   language = 'en',
   onSuggestionPress,
+  symbolUrls = new Map(),
   height = 70, // Default height
   screenWidth = 1000, // Default screen width
 }) => {
@@ -60,6 +63,9 @@ const SuggestionsBar: React.FC<SuggestionsBarProps> = ({
   const baseHeightFontSize = buttonHeight * 0.5; // Base size from height
   const widthScaleFactor = Math.min(1, screenWidth / 1000); // Scale down on smaller screens
   const fontSize = Math.max(18, baseHeightFontSize * widthScaleFactor); // Minimum 16px
+
+  const showSymbols = height >= 120;
+  const imageSize = showSymbols ? Math.floor(buttonHeight * 0.55) : 0;
 
   const handleSuggestionPress = (suggestion: string) => {
     // Strip quotes if the suggestion is wrapped in quotes (literal word)
@@ -105,17 +111,40 @@ const SuggestionsBar: React.FC<SuggestionsBarProps> = ({
         style={[{ flexDirection: "row", height, padding:5, borderBottomWidth:1, borderBottomColor:"lightgrey" },
         isRTL && styles.rtlScrollContent
         ]}>
-        {displaySuggestions.map((suggestion, index) => (
-          <TouchableOpacity
-            key={`${suggestion}-${index}`}
-            style={[styles.suggestionButton]}
-            onPress={() => handleSuggestionPress(suggestion)}
-            activeOpacity={0.7}>
-            <Text style={[styles.suggestionText, { fontSize:fontSize }, isMobile && {fontSize:fontSize*.8, lineHeight:12}]} numberOfLines={1}>
-              {suggestion}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        {displaySuggestions.map((suggestion, index) => {
+          const symbolUrl = symbolUrls.get(suggestion);
+          return (
+            <TouchableOpacity
+              key={`${suggestion}-${index}`}
+              style={[styles.suggestionButton, showSymbols && { minWidth: 85 }]}
+              onPress={() => handleSuggestionPress(suggestion)}
+              activeOpacity={0.7}>
+              {showSymbols && symbolUrl && (
+                <Image
+                  source={{ uri: symbolUrl }}
+                  style={{
+                    width: imageSize,
+                    height: imageSize,
+                    borderRadius: 4,
+                    marginBottom: 2,
+                  }}
+                  resizeMode="contain"
+                  accessibilityLabel={suggestion}
+                  accessibilityRole="image"
+                />
+              )}
+              <Text
+                style={[
+                  styles.suggestionText,
+                  { fontSize },
+                  isMobile && { fontSize: fontSize * 0.8, lineHeight: 12 },
+                ]}
+                numberOfLines={1}>
+                {suggestion}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
     </View>
   );
