@@ -5,7 +5,7 @@ import {
   Image,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
+  Pressable,
 } from 'react-native';
 import { useText } from '../../context/TextContext';
 import { colors, sizes } from '../../constants';
@@ -99,27 +99,36 @@ const SuggestionsBar: React.FC<SuggestionsBarProps> = ({
   };
 
   if (kbSuggestions.length === 0) {
-    // Instead of returning null, return an empty bar with the same height
-    return <View style={[styles.container, { height }]} />;
+    return null;
   }
 
   // For RTL, reverse the suggestions order so first suggestion appears on the right
   const displaySuggestions = isRTL ? [...kbSuggestions].reverse() : kbSuggestions;
 
   return (
-    <View style={[{ height }, isRTL && styles.containerRTL]}>
-      <View
-        style={[{ flexDirection: "row", height, padding:5, borderBottomWidth:1, borderBottomColor:"lightgrey" },
-        isRTL && styles.rtlScrollContent
+    <View style={[styles.container, isRTL && styles.containerRTL]}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={[
+          styles.scrollContent,
+          isRTL && styles.rtlScrollContent,
         ]}>
         {displaySuggestions.map((suggestion, index) => {
           const symbolUrl = symbolUrls.get(suggestion);
           return (
-            <TouchableOpacity
+            <Pressable
               key={`${suggestion}-${index}`}
-              style={[styles.suggestionButton, showSymbols && { minWidth: 85 }]}
-              onPress={() => handleSuggestionPress(suggestion)}
-              activeOpacity={0.7}>
+              style={({ pressed }) => [
+                styles.suggestionButton,
+                showSymbols && { minWidth: 85 },
+                pressed && { opacity: 0.7 },
+              ]}
+              onTouchEnd={(e) => {
+                e.stopPropagation();
+                handleSuggestionPress(suggestion);
+              }}
+              >
               {showSymbols && symbolUrl && (
                 <Image
                   source={{ uri: symbolUrl }}
@@ -143,48 +152,45 @@ const SuggestionsBar: React.FC<SuggestionsBarProps> = ({
                 numberOfLines={1}>
                 {suggestion}
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           );
         })}
-      </View>
+      </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.surfaceDark,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
   },
   containerRTL: {
-    // Align scroll view to the right for RTL
     alignItems: 'flex-end',
   },
   scrollContent: {
-    paddingHorizontal: sizes.spacing.md,
-    paddingVertical: sizes.spacing.sm,
-    gap: sizes.spacing.md,
-    alignItems: 'center',
+    paddingHorizontal: sizes.spacing.sm,
+    gap: sizes.spacing.sm,
+    alignItems: 'flex-end',
     flexDirection: 'row',
   },
   rtlScrollContent: {
-    // Keep row direction but justify content to end for RTL
     justifyContent: 'flex-end',
   },
   suggestionButton: {
     minWidth: 60,
-    paddingHorizontal: sizes.spacing.md,
-    paddingVertical: sizes.spacing.sm,
-    marginHorizontal: sizes.spacing.xs,
-    backgroundColor: colors.primary,
-    borderRadius: sizes.borderRadius.medium,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginHorizontal: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.3)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.08)',
   },
   suggestionText: {
-    color: '#FFFFFF',
+    color: colors.primary,
     fontWeight: '600',
     textAlign: 'center',
   },

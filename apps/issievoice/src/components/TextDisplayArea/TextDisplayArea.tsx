@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useMemo } from 'react';
+import React, { useRef, useEffect, useMemo, useState } from 'react';
 import {
   View,
   TextInput,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Text,
   ScrollView,
+  InputAccessoryView,
 } from 'react-native';
 import { useText } from '../../context/TextContext';
 import { useTTS } from '../../context/TTSContext';
@@ -19,10 +20,11 @@ interface TextDisplayAreaProps {
 }
 
 const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1000 }) => {
-  const { setText } = useText();
+  const { setText, cursorPosition, setCursorPosition, pendingSelection, clearPendingSelection } = useText();
   const { isSpeaking, spokenRange } = useTTS();
   const { strings, isRTL, language } = useLocalization();
   const textInputRef = useRef<TextInput>(null);
+  const [selection, setSelection] = useState<{ start: number; end: number } | undefined>(undefined);
 
   // Dynamically detect text direction based on content
   // If text is empty, use the current language direction
@@ -42,10 +44,21 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1
   const fontSize = Math.max(20, baseFontSize * scaleFactor);
   const lineHeight = fontSize * 1.5;
 
-  // Log whenever text prop changes
+  // Re-focus after text changes from our custom keyboard
   useEffect(() => {
-    console.log('📺 TextDisplayArea received text:', text, 'length:', text.length, 'direction:', textDirection);
-  }, [text, textDirection]);
+    textInputRef.current?.focus();
+  }, [text]);
+
+  // Apply pending selection (e.g. after suggestion press) then release control
+  useEffect(() => {
+    if (pendingSelection !== null) {
+      setSelection({ start: pendingSelection, end: pendingSelection });
+      clearPendingSelection();
+      // Release controlled selection after it's applied
+      const timer = setTimeout(() => setSelection(undefined), 50);
+      return () => clearTimeout(timer);
+    }
+  }, [pendingSelection]);
 
   const handleClear = () => {
     setText('');
@@ -86,17 +99,28 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1
           console.log('⌨️ External keyboard input detected:', newText);
           setText(newText);
         }}
+        onSelectionChange={(e) => {
+          if (pendingSelection === null) {
+            setCursorPosition(e.nativeEvent.selection.start);
+          }
+        }}
         multiline={true}
         editable={true}
         autoFocus
         placeholder={strings.textDisplay.placeholder}
         placeholderTextColor={colors.textLight}
-        inputAccessoryViewID="customKeyboard"
+        inputAccessoryViewID="emptyAccessory"
         showSoftInputOnFocus={false}
         caretHidden={false}
+        autoCorrect={false}
+        spellCheck={false}
+        selection={selection}
         // @ts-ignore - writingDirection exists but not in types
         writingDirection={textDirection}
       />
+      <InputAccessoryView nativeID="emptyAccessory">
+        <View />
+      </InputAccessoryView>
       {isSpeaking && text.length > 0 && (
         <ScrollView style={styles.highlightOverlay} pointerEvents="none">
           {renderHighlightedText()}

@@ -47,7 +47,7 @@ const clearAllKey = {
 };
 
 const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
-  const { currentText, setText, clearText } = useText();
+  const { currentText, setText, cursorPosition, setCursorPosition } = useText();
   const { speak, setLanguage: setTTSLanguage } = useTTS();
   const { language: deviceLanguage, strings } = useLocalization();
   const { showNotification } = useNotification();
@@ -446,10 +446,31 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
 
     // Handle text_changed event from KeyboardEngine (new architecture)
     if (type === 'text_changed') {
-      // KeyboardEngine handles all text operations internally
-      // Just update React Native state to match
-      console.log('📝 Text changed by KeyboardEngine:', value);
-      setText(value);
+      // The native engine manages its own text buffer (always appends at end).
+      // Compute the delta and apply it at the cursor position instead.
+      const engineText = value;
+      const pos = cursorPosition;
+      const before = currentText.slice(0, pos);
+      const after = currentText.slice(pos);
+
+      if (engineText.length > currentText.length) {
+        // Character(s) added — find what was inserted
+        // The engine appends at end, so the new chars are at the tail
+        const inserted = engineText.slice(currentText.length);
+        const newText = before + inserted + after;
+        setCursorPosition(pos + inserted.length);
+        setText(newText);
+      } else if (engineText.length < currentText.length) {
+        // Character(s) deleted (backspace)
+        const deletedCount = currentText.length - engineText.length;
+        const deleteFrom = Math.max(0, pos - deletedCount);
+        const newText = currentText.slice(0, deleteFrom) + after;
+        setCursorPosition(deleteFrom);
+        setText(newText);
+      } else {
+        // Same length — could be a replacement, just use engine text
+        setText(engineText);
+      }
       return;
     }
 
@@ -472,27 +493,26 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
     }
 
     // Legacy event handling (for config mode or old implementation)
-    // Handle based on type, but if type is empty, check value
+    // Insert at cursor position
+    const pos = cursorPosition;
+    const before = currentText.slice(0, pos);
+    const after = currentText.slice(pos);
+
     if (type === 'backspace' || value === '\u0008' || value === '⌫') {
-      // Backspace
-      const shortened = currentText.slice(0, -1);
-      console.log('⌫ Backspace, new text:', shortened);
-      setText(shortened);
+      if (pos > 0) {
+        const newText = currentText.slice(0, pos - 1) + after;
+        setCursorPosition(pos - 1);
+        setText(newText);
+      }
     } else if (type === 'enter' || value === '\n') {
-      // Enter/Return
-      const withNewline = currentText + '\n';
-      console.log('↵ Enter added');
-      setText(withNewline);
+      setText(before + '\n' + after);
+      setCursorPosition(pos + 1);
     } else if (value === ' ') {
-      // Space
-      const withSpace = currentText + ' ';
-      console.log('␣ Space added, new text:', withSpace);
-      setText(withSpace);
+      setText(before + ' ' + after);
+      setCursorPosition(pos + 1);
     } else if (value && value.length > 0) {
-      // Any other character (type might be empty, so we check value)
-      const newText = currentText + value;
-      console.log('📝 Adding character, new text:', newText);
-      setText(newText);
+      setText(before + value + after);
+      setCursorPosition(pos + value.length);
     } else {
       console.log('❓ Unhandled key:', { type, value, label });
     }
@@ -556,47 +576,26 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
   };
 
   // Handle suggestion press from the SuggestionsBar
-  // This simulates typing to keep the keyboard in sync
   const handleSuggestionFromBar = (suggestion: string) => {
-    console.log('💡 Suggestion selected from bar:', suggestion);
+    const pos = cursorPosition;
 
-    // Check if we're in prediction mode (text ends with whitespace) or completion mode
-    const endsWithSpace = /\s$/.test(currentText);
-
-    if (endsWithSpace) {
-      // PREDICTION MODE: Text ends with space, just append the predicted word + space
-      console.log('📝 Prediction mode: appending word');
-      const newText = currentText + suggestion + ' ';
-      setText(newText);
-    } else {
-      // COMPLETION MODE: Replace the partial word with the full word + space
-      console.log('📝 Completion mode: replacing partial word');
-
-      // Find the partial word to replace
-      const trimmed = currentText.trimEnd();
-      let lastSpaceIndex = -1;
-      for (let i = trimmed.length - 1; i >= 0; i--) {
-        if (/\s/.test(trimmed[i])) {
-          lastSpaceIndex = i;
-          break;
-        }
-      }
-
-      // Calculate how many characters to delete (the partial word)
-      const partialWordLength = lastSpaceIndex === -1
-        ? trimmed.length
-        : trimmed.length - lastSpaceIndex - 1;
-
-      // Remove the partial word
-      let textAfterDeletion = currentText;
-      for (let i = 0; i < partialWordLength; i++) {
-        textAfterDeletion = textAfterDeletion.slice(0, -1);
-      }
-
-      // Add the full suggestion + space
-      const newText = textAfterDeletion + suggestion + ' ';
-      setText(newText);
+    // Find the word boundaries around the cursor
+    let wordStart = pos;
+    while (wordStart > 0 && !/\s/.test(currentText[wordStart - 1])) {
+      wordStart--;
     }
+    let wordEnd = pos;
+    while (wordEnd < currentText.length && !/\s/.test(currentText[wordEnd])) {
+      wordEnd++;
+    }
+
+    // Replace the entire word at cursor with suggestion + space
+    const before = currentText.slice(0, wordStart);
+    const after = currentText.slice(wordEnd);
+    const newText = before + suggestion + ' ' + after;
+    const newCursor = wordStart + suggestion.length + 1;
+    setCursorPosition(newCursor);
+    setText(newText);
   };
 
   // Handle favorite press - speak the text
@@ -706,8 +705,20 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
               </TouchableOpacity>
             </View>
           </View>
+        </View>
 
-          {/* Suggestions Bar */}
+        {/* Favorites Bar - Below top section, Above Keyboard */}
+        <FavoritesBar
+          onFavoritePress={handleFavoritePress}
+          height={Math.min(availableHeight * 0.4, isLandscape ? availableHeight * 0.4 : 150)}
+          navigation={navigation}
+          reloadTrigger={favoritesReloadTrigger}
+          screenWidth={frame.width}
+        />
+
+        {/* Unified Keyboard + Suggestions Container */}
+        <View style={[styles.keyboardWrapper, { backgroundColor: keyboardBgColor }]}>
+          {/* Suggestions Bar - seamlessly integrated */}
           <SuggestionsBar
             currentText={currentText}
             kbSuggestions={kbSuggestions}
@@ -718,40 +729,26 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
             screenWidth={frame.width}
           />
 
-
-        </View>
-
-        {/* Favorites Bar - Below Suggestions, Above Keyboard */}
-        <FavoritesBar
-          onFavoritePress={handleFavoritePress}
-          height={Math.min(availableHeight * 0.4, isLandscape ? availableHeight * 0.4 : 150)}
-          navigation={navigation}
-          reloadTrigger={favoritesReloadTrigger}
-          screenWidth={frame.width}
-        />
-
-        {/* IssieBoard Custom Keyboard - Bottom */}
-        <View style={[styles.keyboardContainer, { bottom: 0, height: keyboardHeight }]}>
-          <KeyboardPreview
-            style={[styles.keyboard, { height: keyboardHeight }]}
-            configJson={keyboardConfig}
-            language={currentLanguage}
-            text={currentText}
-            onKeyPress={handleKeyPress}
-            onSuggestionsChange={handleSuggestionsChange}
-            onOpenSettings={handleOpenSettings}
-            onHeightChange={(e) => {
-              const newHeight = e.nativeEvent.height - 40;
-              console.log('⌨️ Keyboard reported height:', e.nativeEvent.height, '→ setting container to:', newHeight);
-              // Update both ref and state
-              keyboardHeightRef.current = newHeight;
-              setKeyboardHeight(newHeight);
-            }}
-          />
+          {/* IssieBoard Custom Keyboard */}
+          <View style={{ height: keyboardHeight }}>
+            <KeyboardPreview
+              style={[styles.keyboard, { height: keyboardHeight }]}
+              configJson={keyboardConfig}
+              language={currentLanguage}
+              text={currentText}
+              onKeyPress={handleKeyPress}
+              onSuggestionsChange={handleSuggestionsChange}
+              onOpenSettings={handleOpenSettings}
+              onHeightChange={(e) => {
+                const newHeight = e.nativeEvent.height - 40;
+                console.log('⌨️ Keyboard reported height:', e.nativeEvent.height, '→ setting container to:', newHeight);
+                keyboardHeightRef.current = newHeight;
+                setKeyboardHeight(newHeight);
+              }}
+            />
+          </View>
         </View>
       </View>
-      <View style={{zIndex: 0, position:"absolute", bottom: 0, height: 100, width:"100%", backgroundColor: keyboardBgColor}} />
-
     </SafeAreaView>
 
   );
@@ -776,18 +773,17 @@ const styles = StyleSheet.create({
   topButtonText: {
     fontSize: 32,
   },
-  scrollableContent: {
-    // Remove flex, use fixed height instead
-  },
-  keyboardContainer: {
-    position: "absolute", width: "100%",
-    backgroundColor: colors.surface,
+  keyboardWrapper: {
+    borderRadius: 12,
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    right: 8,
+    padding: 8,
+    boxShadow: '4px 4px 20px rgba(0, 0, 0, 0.4)',
   },
   keyboard: {
     flex: 1,
-  },
-  actionsContainer: {
-    width: '100%',
   },
 });
 
