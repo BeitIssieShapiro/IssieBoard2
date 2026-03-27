@@ -9,6 +9,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FeedbackDialog } from '@beitissieshapiro/issie-shared';
 import { getVersion, getBuildNumber } from 'react-native-device-info';
+import { cardShadow, subtleShadow } from '../styles/shadows';
+
+const ACCENT = '#2563EB';
 
 const languages = [
   { code: 'he', label: 'עברית', dir: 'rtl' as const },
@@ -33,66 +36,56 @@ export function AboutScreen({ appName, onClose, paragraphs }: AboutScreenProps) 
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Title bar */}
-      <View style={styles.titleBar}>
+      {/* Title row: title + feedback button + close button */}
+      <View style={styles.titleRow}>
         <Text allowFontScaling={false} style={styles.title}>
           {lang === 'he' ? 'אודות' : lang === 'ar' ? 'حول' : 'About'} {appName}
         </Text>
+        <View style={{ flex: 1 }} />
+        <TouchableOpacity
+          style={styles.feedbackButton}
+          onPress={() => setShowFeedbackDialog(true)}
+          activeOpacity={0.7}>
+          <Text allowFontScaling={false} style={styles.feedbackButtonText}>
+            {lang === 'he' ? 'משוב' : lang === 'ar' ? 'ملاحظات' : 'Feedback'}
+          </Text>
+        </TouchableOpacity>
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
           <Text allowFontScaling={false} style={styles.closeButtonText}>✕</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Language toggle */}
-      <View style={styles.toggleRow}>
-        {languages.map(l => (
-          <TouchableOpacity
-            key={l.code}
-            style={[
-              styles.toggleButton,
-              lang === l.code && styles.toggleButtonActive,
-            ]}
-            onPress={() => setLang(l.code)}
-          >
-            <Text
-              allowFontScaling={false}
-              style={[
-                styles.toggleText,
-                lang === l.code && styles.toggleTextActive,
-              ]}
-            >
-              {l.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Feedback button */}
-      <View style={styles.feedbackContainer}>
-        <TouchableOpacity
-          style={styles.feedbackButton}
-          onPress={() => setShowFeedbackDialog(true)}
-          activeOpacity={0.7}
-        >
-          <Text allowFontScaling={false} style={styles.feedbackButtonText}>
-            {lang === 'he' ? '💬 משוב משתמש' : lang === 'ar' ? '💬 ملاحظات المستخدم' : '💬 User Feedback'}
-          </Text>
-        </TouchableOpacity>
+      {/* Language tabs */}
+      <View style={styles.langRow}>
+        {languages.map(l => {
+          const isActive = lang === l.code;
+          return (
+            <TouchableOpacity
+              key={l.code}
+              style={[styles.langTab, isActive && styles.langTabActive]}
+              onPress={() => setLang(l.code)}
+              activeOpacity={0.7}>
+              <Text
+                allowFontScaling={false}
+                style={[styles.langTabText, isActive && styles.langTabTextActive]}>
+                {l.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {/* Content */}
       <ScrollView
         style={styles.content}
-        contentContainerStyle={{ paddingBottom: 40 }}
-      >
+        contentContainerStyle={{ paddingBottom: 40 }}>
         {(paragraphs[lang] || paragraphs['en'] || []).map((text, index) => (
           <Text
             key={index}
             style={[
               styles.paragraph,
               { writingDirection: currentLang.dir },
-            ]}
-          >
+            ]}>
             {text}
           </Text>
         ))}
@@ -112,88 +105,83 @@ export function AboutScreen({ appName, onClose, paragraphs }: AboutScreenProps) 
   );
 }
 
-const ACCENT_COLOR = '#2196F3';
-
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#EFF6FF',
     zIndex: 1000,
   },
-  titleBar: {
+  titleRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
   },
   title: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: ACCENT_COLOR,
-  },
-  closeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#F0F0F0',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 18,
-    color: '#666',
-    fontWeight: 'bold',
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    backgroundColor: 'white',
-  },
-  toggleButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: ACCENT_COLOR,
-  },
-  toggleButtonActive: {
-    backgroundColor: ACCENT_COLOR,
-  },
-  toggleText: {
-    fontSize: 18,
-    color: ACCENT_COLOR,
-  },
-  toggleTextActive: {
-    color: 'white',
-  },
-  feedbackContainer: {
-    alignItems: 'center',
-    paddingVertical: 16,
-    backgroundColor: 'white',
+    color: ACCENT,
   },
   feedbackButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 24,
-    borderRadius: 25,
-    backgroundColor: ACCENT_COLOR,
+    backgroundColor: ACCENT,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
   },
   feedbackButtonText: {
-    fontSize: 18,
-    color: 'white',
+    fontSize: 14,
     fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  closeButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...subtleShadow,
+  },
+  closeButtonText: {
+    fontSize: 16,
+    color: '#6B7280',
+    fontWeight: 'bold',
+  },
+  langRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingBottom: 8,
+    gap: 8,
+  },
+  langTab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: '#F1F5F9',
+    minWidth: 90,
+    justifyContent: 'center',
+    ...subtleShadow,
+  },
+  langTabActive: {
+    backgroundColor: ACCENT,
+    ...cardShadow,
+  },
+  langTabText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#333',
+  },
+  langTabTextActive: {
+    color: '#FFFFFF',
   },
   content: {
     flex: 1,
     paddingHorizontal: 30,
-    paddingTop: 20,
+    paddingTop: 12,
   },
   paragraph: {
     fontSize: 20,
