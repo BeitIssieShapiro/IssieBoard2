@@ -18,6 +18,7 @@ import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 import KeyboardPreferences from '../../../../src/native/KeyboardPreferences';
 import { AboutScreen } from '../../../../src/components/AboutScreen';
 import { ISSIEBOARD_ABOUT, ISSIEVOICE_ABOUT } from '../../../../src/components/about-content';
+import { cardShadow } from '../../../../src/styles/shadows';
 
 const KEYBOARD_TABS = ['general', 'keys-groups', 'nikkud', 'features', 'advanced'];
 
@@ -73,6 +74,7 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
   // Voice settings state (only for issievoice mode)
   const [englishVoice, setEnglishVoice] = useState<string | undefined>(undefined);
   const [hebrewVoice, setHebrewVoice] = useState<string | undefined>(undefined);
+  const [arabicVoice, setArabicVoice] = useState<string | undefined>(undefined);
 
   // Load saved voice settings on mount (only for issievoice)
   useEffect(() => {
@@ -82,17 +84,22 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
       if (savedEnVoice) setEnglishVoice(savedEnVoice);
       const savedHeVoice = await KeyboardPreferences.getProfile('issievoice_hebrewVoice');
       if (savedHeVoice) setHebrewVoice(savedHeVoice);
+      const savedArVoice = await KeyboardPreferences.getProfile('issievoice_arabicVoice');
+      if (savedArVoice) setArabicVoice(savedArVoice);
     };
     loadVoiceSettings();
   }, []);
 
-  const handleVoiceChange = async (language: 'en' | 'he', voiceId: string) => {
+  const handleVoiceChange = async (language: 'en' | 'he' | 'ar', voiceId: string) => {
     if (language === 'en') {
       setEnglishVoice(voiceId);
       await KeyboardPreferences.setProfile(voiceId, 'issievoice_englishVoice');
-    } else {
+    } else if (language === 'he') {
       setHebrewVoice(voiceId);
       await KeyboardPreferences.setProfile(voiceId, 'issievoice_hebrewVoice');
+    } else {
+      setArabicVoice(voiceId);
+      await KeyboardPreferences.setProfile(voiceId, 'issievoice_arabicVoice');
     }
   };
 
@@ -129,11 +136,14 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
   const renderContent = () => {
     if (!isKeyboardOnly && activeTab === 'voice') {
       return (
-        <VoiceSettingsPanel
-          englishVoice={englishVoice}
-          hebrewVoice={hebrewVoice}
-          onVoiceChange={handleVoiceChange}
-        />
+        <View style={styles.voicePanel}>
+          <VoiceSettingsPanel
+            englishVoice={englishVoice}
+            hebrewVoice={hebrewVoice}
+            arabicVoice={arabicVoice}
+            onVoiceChange={handleVoiceChange}
+          />
+        </View>
       );
     }
 
@@ -293,6 +303,16 @@ const styles = StyleSheet.create({
   },
   detailArea: {
     flex: 1,
+  },
+  voicePanel: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    marginHorizontal: 12,
+    marginTop: 8,
+    marginBottom: 12,
+    ...cardShadow,
+    overflow: 'hidden',
   },
 });
 

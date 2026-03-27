@@ -78,6 +78,7 @@ export interface Strings {
     autoDetectDesc: string;
     hebrewVoice: string;
     englishVoice: string;
+    arabicVoice: string;
     current: string;
     none: string;
   };
@@ -167,6 +168,7 @@ const en: Strings = {
     autoDetectDesc: 'Automatically detect language',
     hebrewVoice: 'Hebrew Voice',
     englishVoice: 'English Voice',
+    arabicVoice: 'Arabic Voice',
     current: 'Current:',
     none: 'None',
   },
@@ -256,6 +258,7 @@ const he: Strings = {
     autoDetectDesc: 'זיהוי שפה אוטומטי',
     hebrewVoice: 'קול עברית',
     englishVoice: 'קול אנגלית',
+    arabicVoice: 'קול ערבית',
     current: 'נוכחי:',
     none: 'ללא',
   },
@@ -345,6 +348,7 @@ const ar: Strings = {
     autoDetectDesc: 'كشف اللغة تلقائياً',
     hebrewVoice: 'الصوت العبري',
     englishVoice: 'الصوت الإنجليزي',
+    arabicVoice: 'الصوت العربي',
     current: 'الحالي:',
     none: 'لا شيء',
   },

@@ -11,6 +11,8 @@ import {useTTS} from '../../context/TTSContext';
 import {useLocalization} from '../../context/LocalizationContext';
 import {colors, sizes} from '../../constants';
 import TTS from '../../services/TextToSpeech';
+import {ButtonGroupRow} from '../../../../../src/components/shared/ButtonGroupRow';
+import {subtleShadow} from '../../../../../src/styles/shadows';
 
 interface Voice {
   id: string;
@@ -21,22 +23,36 @@ interface Voice {
 export interface VoiceSettingsPanelProps {
   englishVoice?: string;
   hebrewVoice?: string;
-  onVoiceChange: (language: 'en' | 'he', voiceId: string) => void;
+  arabicVoice?: string;
+  onVoiceChange: (language: 'en' | 'he' | 'ar', voiceId: string) => void;
 }
+
+const TEST_TEXTS: Record<string, string> = {
+  he: '\u05E9\u05DC\u05D5\u05DD',
+  ar: '\u0645\u0631\u062D\u0628\u0627',
+  en: 'Hello',
+};
+
+const getTestText = (langPrefix: string) => {
+  if (langPrefix.startsWith('he')) return TEST_TEXTS.he;
+  if (langPrefix.startsWith('ar')) return TEST_TEXTS.ar;
+  return TEST_TEXTS.en;
+};
 
 const VoiceSettingsPanel: React.FC<VoiceSettingsPanelProps> = ({
   englishVoice,
   hebrewVoice,
+  arabicVoice,
   onVoiceChange,
 }) => {
-  const {speak, settings, updateSettings, getAvailableVoices} = useTTS();
+  const {settings, updateSettings, getAvailableVoices} = useTTS();
   const {strings} = useLocalization();
 
   const [englishVoices, setEnglishVoices] = useState<Voice[]>([]);
   const [hebrewVoices, setHebrewVoices] = useState<Voice[]>([]);
+  const [arabicVoices, setArabicVoices] = useState<Voice[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hebrewVoicesExpanded, setHebrewVoicesExpanded] = useState(false);
-  const [englishVoicesExpanded, setEnglishVoicesExpanded] = useState(false);
+  const [expandedPicker, setExpandedPicker] = useState<'en' | 'he' | 'ar' | null>(null);
 
   useEffect(() => {
     loadVoices();
@@ -46,16 +62,9 @@ const VoiceSettingsPanel: React.FC<VoiceSettingsPanelProps> = ({
     setLoading(true);
     try {
       const availableVoices = await getAvailableVoices();
-
-      const enVoices = availableVoices.filter((voice: Voice) =>
-        voice.language.startsWith('en'),
-      );
-      const heVoices = availableVoices.filter((voice: Voice) =>
-        voice.language.startsWith('he'),
-      );
-
-      setEnglishVoices(enVoices);
-      setHebrewVoices(heVoices);
+      setEnglishVoices(availableVoices.filter((v: Voice) => v.language.startsWith('en')));
+      setHebrewVoices(availableVoices.filter((v: Voice) => v.language.startsWith('he')));
+      setArabicVoices(availableVoices.filter((v: Voice) => v.language.startsWith('ar')));
     } catch (error) {
       console.error('Failed to load voices:', error);
     } finally {
@@ -63,201 +72,174 @@ const VoiceSettingsPanel: React.FC<VoiceSettingsPanelProps> = ({
     }
   };
 
-  const handleTestVoice = useCallback(async () => {
-    try {
-      const hasHebrew = settings.language === 'he-IL';
-      const testText = hasHebrew ? '\u05E9\u05DC\u05D5\u05DD, \u05D6\u05D4 \u05DE\u05D1\u05D7\u05DF' : 'Hello, this is a test';
-      await speak(testText);
-    } catch (error) {
-      console.error('Failed to test voice:', error);
-    }
-  }, [speak, settings.language]);
-
   const handleRateChange = useCallback(
-    async (rate: number) => {
-      await updateSettings({rate});
+    async (id: string) => {
+      const rateMap: Record<string, number> = {slow: 0.3, normal: 0.5, fast: 0.7};
+      await updateSettings({rate: rateMap[id]});
     },
     [updateSettings],
   );
 
   const handlePitchChange = useCallback(
-    async (pitch: number) => {
-      await updateSettings({pitch});
+    async (id: string) => {
+      const pitchMap: Record<string, number> = {low: 0.8, normal: 1.0, high: 1.2};
+      await updateSettings({pitch: pitchMap[id]});
     },
     [updateSettings],
   );
 
   const handleVoiceSelect = useCallback(
-    (language: 'en' | 'he', voiceId: string) => {
+    (language: 'en' | 'he' | 'ar', voiceId: string) => {
       onVoiceChange(language, voiceId);
+      setExpandedPicker(null);
     },
     [onVoiceChange],
   );
 
-  const handleTestSingleVoice = useCallback(async (voice: Voice) => {
+  const handleTestVoice = useCallback(async (voiceId: string, langPrefix: string) => {
     try {
-      const testText = voice.language.startsWith('he') ? '\u05E9\u05DC\u05D5\u05DD' : 'Hello';
-      await TTS.setVoice(voice.id);
-      await TTS.speak(testText);
+      await TTS.setVoice(voiceId);
+      await TTS.speak(getTestText(langPrefix));
     } catch (error) {
       console.error('Failed to test voice:', error);
     }
   }, []);
 
+  const currentRateId =
+    settings.rate <= 0.3 ? 'slow' : settings.rate >= 0.7 ? 'fast' : 'normal';
+  const currentPitchId =
+    settings.pitch <= 0.8 ? 'low' : settings.pitch >= 1.2 ? 'high' : 'normal';
+
   const rateOptions = [
-    {label: strings.settings.slow, value: 0.3},
-    {label: strings.settings.normal, value: 0.5},
-    {label: strings.settings.fast, value: 0.7},
+    {id: 'slow', label: strings.settings.slow},
+    {id: 'normal', label: strings.settings.normal},
+    {id: 'fast', label: strings.settings.fast},
   ];
 
   const pitchOptions = [
-    {label: strings.settings.low, value: 0.8},
-    {label: strings.settings.normal, value: 1.0},
-    {label: strings.settings.high, value: 1.2},
+    {id: 'low', label: strings.settings.low},
+    {id: 'normal', label: strings.settings.normal},
+    {id: 'high', label: strings.settings.high},
   ];
 
-  const renderVoiceAccordion = (
-    title: string,
+  const renderVoicePicker = (
+    label: string,
     voices: Voice[],
     selectedVoiceId: string | undefined,
-    language: 'en' | 'he',
-    expanded: boolean,
-    onToggle: () => void,
-  ) => (
-    <View style={styles.card}>
-      <TouchableOpacity
-        style={styles.accordionHeader}
-        onPress={onToggle}
-        activeOpacity={0.7}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        <Text style={styles.accordionIcon}>{expanded ? '\u25BC' : '\u25B6'}</Text>
-      </TouchableOpacity>
+    language: 'en' | 'he' | 'ar',
+  ) => {
+    if (voices.length === 0 && !loading) return null;
 
-      {selectedVoiceId && (
-        <View style={styles.accordionCurrentValue}>
-          <Text style={styles.currentValueText}>
-            {strings.settingsModal.current}{' '}
-            {voices.find(v => v.id === selectedVoiceId)?.name ||
-              strings.settingsModal.none}
-          </Text>
+    const isExpanded = expandedPicker === language;
+    const selectedVoice = voices.find(v => v.id === selectedVoiceId);
+
+    return (
+      <View style={styles.pickerRow}>
+        {/* Label */}
+        <Text style={styles.pickerLabel}>{label}</Text>
+
+        {/* Current voice + test + dropdown toggle */}
+        <View style={styles.pickerControl}>
+          <TouchableOpacity
+            style={styles.pickerDropdown}
+            onPress={() => setExpandedPicker(isExpanded ? null : language)}
+            activeOpacity={0.7}>
+            <Text style={styles.pickerValue} numberOfLines={1}>
+              {selectedVoice?.name || strings.settingsModal.none}
+            </Text>
+            <Text style={styles.pickerArrow}>{isExpanded ? '\u25B2' : '\u25BC'}</Text>
+          </TouchableOpacity>
+
+          {selectedVoiceId ? (
+            <TouchableOpacity
+              style={styles.testCurrentButton}
+              onPress={() => handleTestVoice(selectedVoiceId, language)}
+              activeOpacity={0.7}>
+              <Text style={styles.testCurrentButtonText}>Test</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={[styles.testCurrentButton, styles.testCurrentButtonDisabled]}>
+              <Text style={[styles.testCurrentButtonText, styles.testCurrentButtonTextDisabled]}>Test</Text>
+            </View>
+          )}
         </View>
-      )}
 
-      {expanded &&
-        (loading ? (
-          <ActivityIndicator size="large" color={colors.primary} />
-        ) : (
-          <View style={styles.voiceList}>
-            {voices.map(voice => (
-              <View
-                key={voice.id}
-                style={[
-                  styles.voiceItem,
-                  selectedVoiceId === voice.id && styles.voiceItemSelected,
-                ]}>
-                <TouchableOpacity
-                  style={styles.voiceButton}
-                  onPress={() => handleVoiceSelect(language, voice.id)}>
-                  <Text
-                    style={[
-                      styles.voiceText,
-                      selectedVoiceId === voice.id && styles.voiceTextSelected,
-                    ]}>
-                    {voice.name}
-                  </Text>
-                  <Text style={styles.voiceLanguage}>{voice.language}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.testVoiceButton}
-                  onPress={() => handleTestSingleVoice(voice)}
-                  activeOpacity={0.7}>
-                  <Text style={styles.testVoiceButtonText}>Test</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
-          </View>
-        ))}
-    </View>
-  );
+        {/* Expanded dropdown list */}
+        {isExpanded && (
+          loading ? (
+            <ActivityIndicator size="small" color={colors.primary} style={{marginTop: 8}} />
+          ) : (
+            <View style={styles.dropdownList}>
+              {voices.map(voice => {
+                const isSelected = selectedVoiceId === voice.id;
+                return (
+                  <View
+                    key={voice.id}
+                    style={[styles.dropdownItem, isSelected && styles.dropdownItemSelected]}>
+                    <TouchableOpacity
+                      style={styles.dropdownItemInfo}
+                      onPress={() => handleVoiceSelect(language, voice.id)}>
+                      <Text style={[styles.dropdownItemName, isSelected && styles.dropdownItemNameSelected]}>
+                        {voice.name}
+                      </Text>
+                      <Text style={styles.dropdownItemLang}>{voice.language}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.dropdownTestButton}
+                      onPress={() => handleTestVoice(voice.id, voice.language)}
+                      activeOpacity={0.7}>
+                      <Text style={styles.dropdownTestButtonText}>Test</Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+            </View>
+          )
+        )}
+      </View>
+    );
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      {/* Test Voice Button */}
-      <TouchableOpacity
-        style={styles.testButton}
-        onPress={handleTestVoice}
-        activeOpacity={0.7}>
-        <Text style={styles.testButtonText}>Test Voice</Text>
-      </TouchableOpacity>
-
       {/* Speech Speed */}
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>{strings.settings.speechSpeed}</Text>
-        <View style={styles.optionsRow}>
-          {rateOptions.map(option => (
-            <TouchableOpacity
-              key={option.label}
-              style={[
-                styles.optionButton,
-                settings.rate === option.value && styles.optionButtonActive,
-              ]}
-              onPress={() => handleRateChange(option.value)}
-              activeOpacity={0.7}>
-              <Text
-                style={[
-                  styles.optionText,
-                  settings.rate === option.value && styles.optionTextActive,
-                ]}>
-                {option.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
+      <ButtonGroupRow
+        title={strings.settings.speechSpeed}
+        options={rateOptions}
+        selectedId={currentRateId}
+        onSelect={handleRateChange}
+      />
 
       {/* Voice Pitch */}
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>{strings.settings.voicePitch}</Text>
-        <View style={styles.optionsRow}>
-          {pitchOptions.map(option => (
-            <TouchableOpacity
-              key={option.label}
-              style={[
-                styles.optionButton,
-                settings.pitch === option.value && styles.optionButtonActive,
-              ]}
-              onPress={() => handlePitchChange(option.value)}
-              activeOpacity={0.7}>
-              <Text
-                style={[
-                  styles.optionText,
-                  settings.pitch === option.value && styles.optionTextActive,
-                ]}>
-                {option.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
+      <ButtonGroupRow
+        title={strings.settings.voicePitch}
+        options={pitchOptions}
+        selectedId={currentPitchId}
+        onSelect={handlePitchChange}
+      />
 
-      {/* Hebrew Voice Accordion */}
-      {renderVoiceAccordion(
+      {/* Voice Selection Section */}
+      <Text style={styles.sectionTitle}>Voice</Text>
+
+      {renderVoicePicker(
         strings.settingsModal.hebrewVoice,
         hebrewVoices,
         hebrewVoice,
         'he',
-        hebrewVoicesExpanded,
-        () => setHebrewVoicesExpanded(!hebrewVoicesExpanded),
       )}
 
-      {/* English Voice Accordion */}
-      {renderVoiceAccordion(
+      {renderVoicePicker(
         strings.settingsModal.englishVoice,
         englishVoices,
         englishVoice,
         'en',
-        englishVoicesExpanded,
-        () => setEnglishVoicesExpanded(!englishVoicesExpanded),
+      )}
+
+      {renderVoicePicker(
+        strings.settingsModal.arabicVoice,
+        arabicVoices,
+        arabicVoice,
+        'ar',
       )}
     </ScrollView>
   );
@@ -268,131 +250,115 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    padding: sizes.spacing.md,
-    gap: sizes.spacing.md,
-  },
-  testButton: {
-    backgroundColor: colors.primary,
-    borderRadius: sizes.borderRadius.medium,
-    paddingVertical: sizes.spacing.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  testButtonText: {
-    fontSize: sizes.fontSize.large,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: sizes.borderRadius.large,
-    padding: sizes.spacing.lg,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 2,
+    padding: 16,
+    paddingBottom: 0,
   },
   sectionTitle: {
-    fontSize: sizes.fontSize.large,
+    fontSize: 14,
     fontWeight: '600',
-    color: colors.text,
-    marginBottom: sizes.spacing.md,
+    color: '#333',
+    marginBottom: 12,
   },
-  optionsRow: {
+
+  // Voice picker row
+  pickerRow: {
+    marginBottom: 16,
+  },
+  pickerLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: 6,
+  },
+  pickerControl: {
     flexDirection: 'row',
-    gap: sizes.spacing.sm,
-  },
-  optionButton: {
-    flex: 1,
-    height: sizes.touchTarget.large,
-    backgroundColor: colors.surface,
-    borderRadius: sizes.borderRadius.medium,
-    justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: colors.border,
+    gap: 8,
   },
-  optionButtonActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primaryDark,
-  },
-  optionText: {
-    fontSize: sizes.fontSize.medium,
-    color: colors.text,
-    fontWeight: '500',
-  },
-  optionTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  accordionHeader: {
+  pickerDropdown: {
+    flex: 1,
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    ...subtleShadow,
   },
-  accordionIcon: {
-    fontSize: sizes.fontSize.large,
-    color: colors.text,
-  },
-  accordionCurrentValue: {
-    marginBottom: sizes.spacing.md,
-  },
-  currentValueText: {
-    fontSize: sizes.fontSize.medium,
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  voiceList: {
-    gap: sizes.spacing.sm,
-  },
-  voiceItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: sizes.borderRadius.medium,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    overflow: 'hidden',
-  },
-  voiceItemSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary + '20',
-  },
-  voiceButton: {
+  pickerValue: {
     flex: 1,
-    padding: sizes.spacing.md,
-  },
-  voiceText: {
-    fontSize: sizes.fontSize.medium,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '500',
     color: colors.text,
-    marginBottom: sizes.spacing.xs,
   },
-  voiceTextSelected: {
-    color: colors.primary,
+  pickerArrow: {
+    fontSize: 10,
+    color: '#6B7280',
+    marginLeft: 8,
   },
-  voiceLanguage: {
-    fontSize: sizes.fontSize.small,
-    color: colors.textLight,
-  },
-  testVoiceButton: {
-    paddingHorizontal: sizes.spacing.lg,
-    paddingVertical: sizes.spacing.md,
+  testCurrentButton: {
     backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    minWidth: 100,
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
-  testVoiceButtonText: {
-    fontSize: sizes.fontSize.medium,
+  testCurrentButtonDisabled: {
+    backgroundColor: '#D1D5DB',
+  },
+  testCurrentButtonText: {
+    fontSize: 14,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  testCurrentButtonTextDisabled: {
+    color: '#9CA3AF',
+  },
+
+  // Dropdown list
+  dropdownList: {
+    marginTop: 8,
+    borderRadius: 10,
+    backgroundColor: '#F9FAFB',
+    overflow: 'hidden',
+    ...subtleShadow,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E5E7EB',
+  },
+  dropdownItemSelected: {
+    backgroundColor: colors.primary + '15',
+  },
+  dropdownItemInfo: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  dropdownItemName: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.text,
+  },
+  dropdownItemNameSelected: {
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  dropdownItemLang: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    marginTop: 2,
+  },
+  dropdownTestButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  dropdownTestButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.primary,
   },
 });
 

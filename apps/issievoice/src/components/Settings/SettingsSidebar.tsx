@@ -401,10 +401,15 @@ const styles = StyleSheet.create({
 
   // Portrait tabs styles
   tabsContainer: {
-    backgroundColor: 'transparent',
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 12,
+    marginTop: 8,
+    borderRadius: 16,
+    ...cardShadow,
   },
   tabRow: {
     flexDirection: 'row',
+    justifyContent: 'center',
     paddingHorizontal: 12,
     paddingTop: 8,
     paddingBottom: 4,
@@ -418,6 +423,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 8,
     backgroundColor: '#F1F5F9',
+    minWidth: 130,
+    ...subtleShadow,
   },
   tabActive: {
     backgroundColor: colors.primary,
@@ -432,6 +439,7 @@ const styles = StyleSheet.create({
   },
   subTabRow: {
     flexDirection: 'row',
+    justifyContent: 'center',
     paddingHorizontal: 12,
     paddingBottom: 8,
     paddingTop: 4,
@@ -445,6 +453,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     gap: 6,
     backgroundColor: '#F1F5F9',
+    ...subtleShadow,
   },
   subTabActive: {
     backgroundColor: colors.primary,
