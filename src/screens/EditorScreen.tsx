@@ -66,6 +66,7 @@ import {
   isBuiltInProfileId
 } from '../data/builtInProfiles';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { cardShadow } from '../styles/shadows';
 
 // ============================================
 // FACTORY DEFAULT CONFIGURATION
@@ -1488,8 +1489,10 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         {(() => {
           const previewH = windowWidth > windowHeight ? windowHeight / 3 : windowHeight / 4;
           return (
-            <View style={[styles.headlessPreview, { backgroundColor: state.config.backgroundColor || '#CBCFD8' }]}>
-              <InteractiveCanvas onTestInput={handleTestInput} height={previewH} hideHeader />
+            <View style={[styles.headlessPreview, { backgroundColor: (state.config.backgroundColor && state.config.backgroundColor !== 'default') ? state.config.backgroundColor : '#CBCFD8' }]}>
+              <View style={styles.headlessPreviewInner}>
+                <InteractiveCanvas onTestInput={handleTestInput} height={previewH} hideHeader />
+              </View>
             </View>
           );
         })()}
@@ -2598,11 +2601,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
     marginTop: 8,
     marginBottom: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+    ...cardShadow,
     overflow: 'hidden',
   },
   headlessPreview: {
@@ -2610,13 +2609,12 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
     marginTop: 4,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+    ...cardShadow,
+  },
+  headlessPreviewInner: {
+    margin: 4,
+    borderRadius: 12,
     overflow: 'hidden',
-    padding: 8,
   },
   loadingContainer: {
     flex: 1,

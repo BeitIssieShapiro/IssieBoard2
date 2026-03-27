@@ -11,13 +11,14 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { View, StyleSheet, Linking } from 'react-native';
-import { EditorScreen } from './screens/EditorScreen';
 import { ClassicEditorScreen } from './screens/ClassicEditorScreen';
 import KeyboardPreferences from './native/KeyboardPreferences';
 import { LocalizationProvider } from './localization';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { initializeFirebase } from './firebase-config';
 import { loadLanguage, LANGUAGE_SETTINGS } from '@beitissieshapiro/issie-shared';
+import NewSettingsScreen from '../apps/issievoice/src/screens/NewSettingsScreen';
+import { LocalizationProvider as VoiceLocalizationProvider } from '../apps/issievoice/src/context/LocalizationContext';
 
 type LanguageId = 'he' | 'en' | 'ar';
 
@@ -207,31 +208,32 @@ export const AppNavigator: React.FC = () => {
   if (currentScreen.type === 'classic') {
     return (
       <LocalizationProvider>
-        <View style={styles.container}>
-          <ClassicEditorScreen
-            key={editorKey}
-            initialLanguage={initialLanguage}
-            onSwitchToAdvanced={handleSwitchToAdvanced}
-          />
-        </View>
+        <SafeAreaProvider>
+          <View style={styles.container}>
+            <ClassicEditorScreen
+              key={editorKey}
+              initialLanguage={initialLanguage}
+              onSwitchToAdvanced={handleSwitchToAdvanced}
+            />
+          </View>
+        </SafeAreaProvider>
       </LocalizationProvider>
     );
   }
 
-  const profileId = currentScreen.type === 'editor' ? currentScreen.profileId : undefined;
-
   return (
     <LocalizationProvider>
       <SafeAreaProvider>
-
-        <View style={styles.container}>
-          <EditorScreen
-            key={editorKey}
-            profileId={profileId}
-            initialLanguage={initialLanguage}
-            onSwitchToClassic={isV1User ? handleSwitchToClassic : undefined}
-          />
-        </View>
+        <VoiceLocalizationProvider>
+          <View style={styles.container}>
+            <NewSettingsScreen
+              key={editorKey}
+              appContext="issieboard"
+              initialLanguage={initialLanguage}
+              onSwitchToClassic={isV1User ? handleSwitchToClassic : undefined}
+            />
+          </View>
+        </VoiceLocalizationProvider>
       </SafeAreaProvider>
     </LocalizationProvider>
   );

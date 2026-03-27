@@ -35,6 +35,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalization } from '../localization';
 import { AboutScreen } from '../components/AboutScreen';
 import { ISSIEBOARD_ABOUT } from '../components/about-content';
+import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 
 const PREDEFINED_RULES: Record<string, any> = {
   'en': enRules,
@@ -1056,17 +1057,17 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
       {/* Sections list — always mounted, never unmounted or hidden */}
       <View style={styles.sectionsLayer} pointerEvents={activeSetting ? 'none' : 'auto'}>
         <View style={styles.header}>
-          <Text allowFontScaling={false} style={styles.headerTitle}>{strings.editor.classicView}</Text>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
+          <Text allowFontScaling={false} style={styles.headerTitle}>Issie Board ({strings.editor.classicView})</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <TouchableOpacity style={styles.advancedButton} onPress={onSwitchToAdvanced}>
+              <Text allowFontScaling={false} style={styles.advancedButtonText}>{strings.editor.backToNewsettings}</Text>
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.aboutButton}
               onPress={() => setShowAbout(true)}
               accessibilityLabel="About"
             >
-              <Text allowFontScaling={false} style={styles.aboutButtonText}>ℹ️</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.advancedButton} onPress={onSwitchToAdvanced}>
-              <Text allowFontScaling={false} style={styles.advancedButtonText}>{strings.editor.backToNewsettings}</Text>
+              <MyIcon info={{ name: 'information-circle-outline', type: 'Ionicons', color: '#3B82F6', size: 24 }} />
             </TouchableOpacity>
           </View>
         </View>
@@ -1239,13 +1240,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   aboutButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    width: 38,
+    height: 38,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  aboutButtonText: {
-    fontSize: 22,
   },
   errorText: {
     fontSize: 16,

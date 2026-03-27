@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../constants';
-import { useLocalization } from '../context/LocalizationContext';
 import SettingsSidebar from '../components/Settings/SettingsSidebar';
 import KeyboardHeader from '../components/Settings/KeyboardHeader';
 import VoiceSettingsPanel from '../components/Settings/VoiceSettingsPanel';
@@ -17,23 +16,34 @@ import { EditorScreen } from '../../../../src/screens/EditorScreen';
 import { LocalizationProvider as EditorLocalizationProvider } from '../../../../src/localization';
 import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 import KeyboardPreferences from '../../../../src/native/KeyboardPreferences';
+import { AboutScreen } from '../../../../src/components/AboutScreen';
+import { ISSIEBOARD_ABOUT, ISSIEVOICE_ABOUT } from '../../../../src/components/about-content';
 
 const KEYBOARD_TABS = ['general', 'keys-groups', 'nikkud', 'features', 'advanced'];
 
 interface NewSettingsScreenProps {
-  navigation: any;
-  route: any;
+  navigation?: any;
+  route?: any;
+  /** 'issievoice' (default) = Voice + Keyboard tabs; 'issieboard' = Keyboard tabs only */
+  appContext?: 'issievoice' | 'issieboard';
+  /** Initial language (alternative to route.params.initialLanguage) */
+  initialLanguage?: 'en' | 'he' | 'ar';
+  /** Called when classic/legacy view toggle is requested */
+  onSwitchToClassic?: () => void;
 }
 
-const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route }) => {
+const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route, appContext, initialLanguage: initialLangProp, onSwitchToClassic }) => {
+  const resolvedContext = appContext || route?.params?.appContext || 'issievoice';
+  const isKeyboardOnly = resolvedContext === 'issieboard';
+  const canGoBack = !!navigation?.goBack;
   const [activeTab, setActiveTab] = useState<string>('general');
+  const [showAbout, setShowAbout] = useState(false);
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
-  const { strings } = useLocalization();
 
   // Keyboard config state
   const [kbLanguage, setKbLanguage] = useState<'en' | 'he' | 'ar'>(
-    route.params?.initialLanguage || 'he'
+    initialLangProp || route?.params?.initialLanguage || 'he'
   );
   const [profileName, setProfileName] = useState<string>('Default');
   const [isDirty, setIsDirty] = useState(false);
@@ -60,12 +70,13 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
     }
   }, [kbLanguage, activeTab]);
 
-  // Voice settings state (loaded from KeyboardPreferences on mount)
+  // Voice settings state (only for issievoice mode)
   const [englishVoice, setEnglishVoice] = useState<string | undefined>(undefined);
   const [hebrewVoice, setHebrewVoice] = useState<string | undefined>(undefined);
 
-  // Load saved voice settings on mount
+  // Load saved voice settings on mount (only for issievoice)
   useEffect(() => {
+    if (isKeyboardOnly) return;
     const loadVoiceSettings = async () => {
       const savedEnVoice = await KeyboardPreferences.getProfile('issievoice_englishVoice');
       if (savedEnVoice) setEnglishVoice(savedEnVoice);
@@ -84,8 +95,6 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
       await KeyboardPreferences.setProfile(voiceId, 'issievoice_hebrewVoice');
     }
   };
-
-  const isKeyboardTab = KEYBOARD_TABS.includes(activeTab);
 
   const confirmUnsavedChanges = useCallback((onDiscard: () => void) => {
     Alert.alert(
@@ -109,15 +118,16 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
   }, [activeTab, isDirty, confirmUnsavedChanges]);
 
   const handleGoBack = useCallback(() => {
+    if (!canGoBack) return;
     if (isDirty) {
       confirmUnsavedChanges(() => navigation.goBack());
     } else {
       navigation.goBack();
     }
-  }, [isDirty, confirmUnsavedChanges, navigation]);
+  }, [isDirty, confirmUnsavedChanges, navigation, canGoBack]);
 
   const renderContent = () => {
-    if (activeTab === 'voice') {
+    if (!isKeyboardOnly && activeTab === 'voice') {
       return (
         <VoiceSettingsPanel
           englishVoice={englishVoice}
@@ -140,9 +150,9 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
         />
         <EditorLocalizationProvider>
           <EditorScreen
-            appContext="issievoice"
+            appContext={resolvedContext}
             initialLanguage={kbLanguage}
-            onClose={() => navigation.goBack()}
+            onClose={canGoBack ? () => navigation.goBack() : undefined}
             onStateChange={handleEditorStateChange}
             showProfilePickerRef={showProfilePickerRef}
             changeLanguageRef={changeLanguageRef}
@@ -159,17 +169,28 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
     <SafeAreaView style={styles.container}>
       {/* Header Bar */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={handleGoBack}
-          activeOpacity={0.7}>
-          <MyIcon info={{ name: 'arrow-back', type: 'Ionicons', color: '#FFFFFF', size: 20 }} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Issie Voice Settings</Text>
+        {canGoBack ? (
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={handleGoBack}
+            activeOpacity={0.7}>
+            <MyIcon info={{ name: 'arrow-back', type: 'Ionicons', color: '#FFFFFF', size: 20 }} />
+          </TouchableOpacity>
+        ) : null}
+        <Text style={styles.headerTitle}>{isKeyboardOnly ? 'Issie Board' : 'Issie Voice Settings'}</Text>
         <View style={{ flex: 1 }} />
+        {onSwitchToClassic && (
+          <TouchableOpacity
+            style={styles.classicButton}
+            onPress={onSwitchToClassic}
+            activeOpacity={0.7}>
+            <Text style={styles.classicButtonText}>Classic View</Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
-          style={styles.infoButton}
-          onPress={() => {/* TODO: show about */}}
+          style={styles.aboutButton}
+          onPress={() => setShowAbout(true)}
+          accessibilityLabel="About"
           activeOpacity={0.7}>
           <MyIcon info={{ name: 'information-circle-outline', type: 'Ionicons', color: colors.primary, size: 24 }} />
         </TouchableOpacity>
@@ -184,6 +205,7 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
               onTabChange={handleTabChange}
               isLandscape={true}
               disabledTabs={disabledTabs}
+              mode={isKeyboardOnly ? 'keyboard' : 'voice'}
             />
             <View style={styles.detailArea}>
               {renderContent()}
@@ -196,6 +218,7 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
               onTabChange={handleTabChange}
               isLandscape={false}
               disabledTabs={disabledTabs}
+              mode={isKeyboardOnly ? 'keyboard' : 'voice'}
             />
             <View style={styles.detailArea}>
               {renderContent()}
@@ -203,6 +226,13 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
           </View>
         )}
       </View>
+      {showAbout && (
+        <AboutScreen
+          appName={isKeyboardOnly ? 'IssieBoard' : 'IssieVoice'}
+          onClose={() => setShowAbout(false)}
+          paragraphs={isKeyboardOnly ? ISSIEBOARD_ABOUT : ISSIEVOICE_ABOUT}
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -233,7 +263,18 @@ const styles = StyleSheet.create({
     color: colors.primary,
     marginLeft: 8,
   },
-  infoButton: {
+  classicButton: {
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  classicButtonText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  aboutButton: {
     width: 38,
     height: 38,
     borderRadius: 12,

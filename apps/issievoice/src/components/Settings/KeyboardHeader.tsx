@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 import { colors } from '../../constants';
+import { cardShadow } from '../../../../../src/styles/shadows';
 
 export interface KeyboardHeaderProps {
   currentLanguage: 'en' | 'he' | 'ar';
@@ -112,11 +113,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+    ...cardShadow,
     gap: 10,
   },
   languageTabs: {

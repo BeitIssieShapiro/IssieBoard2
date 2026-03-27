@@ -2,12 +2,15 @@ import React from 'react';
 import {View, Text, TouchableOpacity, StyleSheet} from 'react-native';
 import {colors} from '../../constants';
 import {MyIcon, IconType} from '@beitissieshapiro/issie-shared/dist/icons';
+import {cardShadow, subtleShadow} from '../../../../../src/styles/shadows';
 
 export interface SettingsSidebarProps {
   activeTab: string;
   onTabChange: (tabId: string) => void;
   isLandscape: boolean;
   disabledTabs?: string[];
+  /** 'voice' = IssieVoice (Keyboard group + Voice tab), 'keyboard' = IssieBoard (keyboard tabs only) */
+  mode?: 'voice' | 'keyboard';
 }
 
 type TabId = 'general' | 'keys-groups' | 'nikkud' | 'features' | 'advanced' | 'voice';
@@ -95,27 +98,32 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   onTabChange,
   isLandscape,
   disabledTabs,
+  mode = 'voice',
 }) => {
+  const keyboardOnly = mode === 'keyboard';
+
   if (isLandscape) {
     return (
       <View style={styles.sidebar}>
-        {/* Keyboard group header — tappable, selects first child */}
-        <TouchableOpacity
-          style={styles.groupHeader}
-          onPress={() => onTabChange('general')}
-          activeOpacity={0.7}>
-          <View style={[styles.iconCircle, {backgroundColor: colors.primary + '18'}]}>
-            <MyIcon
-              info={{
-                name: 'keyboard-settings-outline',
-                type: 'MDI',
-                color: colors.primary,
-                size: 20,
-              }}
-            />
-          </View>
-          <Text style={styles.groupHeaderText}>Keyboard</Text>
-        </TouchableOpacity>
+        {/* Keyboard group header — only in voice mode */}
+        {!keyboardOnly && (
+          <TouchableOpacity
+            style={styles.groupHeader}
+            onPress={() => onTabChange('general')}
+            activeOpacity={0.7}>
+            <View style={[styles.iconCircle, {backgroundColor: colors.primary + '18'}]}>
+              <MyIcon
+                info={{
+                  name: 'keyboard-settings-outline',
+                  type: 'MDI',
+                  color: colors.primary,
+                  size: 20,
+                }}
+              />
+            </View>
+            <Text style={styles.groupHeaderText}>Keyboard</Text>
+          </TouchableOpacity>
+        )}
 
         {/* Keyboard children */}
         {KEYBOARD_CHILDREN.map(tab => (
@@ -124,25 +132,80 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
             tab={tab}
             isActive={activeTab === tab.id}
             onPress={() => onTabChange(tab.id)}
-            indented
+            indented={!keyboardOnly}
             disabled={disabledTabs?.includes(tab.id)}
           />
         ))}
 
-        {/* Divider */}
-        <View style={styles.divider} />
-
-        {/* Voice tab */}
-        <TabItem
-          tab={VOICE_TAB}
-          isActive={activeTab === VOICE_TAB.id}
-          onPress={() => onTabChange(VOICE_TAB.id)}
-        />
+        {/* Divider + Voice tab — only in voice mode */}
+        {!keyboardOnly && (
+          <>
+            <View style={styles.divider} />
+            <TabItem
+              tab={VOICE_TAB}
+              isActive={activeTab === VOICE_TAB.id}
+              onPress={() => onTabChange(VOICE_TAB.id)}
+            />
+          </>
+        )}
       </View>
     );
   }
 
-  // Portrait mode: two-level top tabs
+  // Portrait mode
+  if (keyboardOnly) {
+    // Keyboard-only: single row of tabs (no two-level nesting)
+    return (
+      <View style={styles.tabsContainer}>
+        <View style={styles.subTabRow}>
+          {KEYBOARD_CHILDREN.map(tab => {
+            const isActive = activeTab === tab.id;
+            const isDisabled = disabledTabs?.includes(tab.id);
+            return (
+              <TouchableOpacity
+                key={tab.id}
+                style={[styles.subTab, isActive && styles.subTabActive]}
+                onPress={() => onTabChange(tab.id)}
+                activeOpacity={0.7}
+                disabled={isDisabled}>
+                <View
+                  style={[
+                    styles.iconCircleTiny,
+                    {backgroundColor: isActive ? 'rgba(255,255,255,0.25)' : tab.iconColor + '18'},
+                    isDisabled && {opacity: 0.35},
+                  ]}>
+                  {tab.iconText ? (
+                    <Text style={{fontSize: 13, color: isActive ? '#FFFFFF' : tab.iconColor, fontWeight: '700'}}>
+                      {tab.iconText}
+                    </Text>
+                  ) : (
+                    <MyIcon
+                      info={{
+                        name: tab.iconName!,
+                        type: tab.iconType!,
+                        color: isActive ? '#FFFFFF' : tab.iconColor,
+                        size: 14,
+                      }}
+                    />
+                  )}
+                </View>
+                <Text
+                  style={[
+                    styles.subTabText,
+                    isActive && styles.subTabTextActive,
+                    isDisabled && {opacity: 0.35},
+                  ]}>
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+    );
+  }
+
+  // Voice mode portrait: two-level top tabs
   const keyboardActive = isKeyboardTab(activeTab);
 
   return (
@@ -266,11 +329,7 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     marginBottom: 12,
     borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    ...cardShadow,
     gap: 4,
   },
   groupHeader: {
@@ -294,20 +353,14 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     gap: 10,
     backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.06,
-    shadowRadius: 2,
-    elevation: 1,
+    ...subtleShadow,
   },
   sidebarCardIndented: {
     marginLeft: 20,
   },
   sidebarCardActive: {
     backgroundColor: colors.primary,
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
+    ...cardShadow,
   },
   sidebarCardText: {
     fontSize: 14,
