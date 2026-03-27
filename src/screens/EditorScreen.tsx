@@ -413,9 +413,18 @@ interface EditorScreenInnerProps {
   onKeyboardChange: (keyboardId: string) => void;
   onCreateNew: (name: string, language: LanguageId, keyboardId: string) => Promise<void>;
   onSwitchToClassic?: () => void;
+  showProfilePickerRef?: React.MutableRefObject<(() => void) | null>;
+  /** Headless mode: only render toolbox panels + modals, no header/canvas/profile row */
+  headless?: boolean;
+  /** Active tab ID for headless per-tab rendering */
+  activeTab?: string;
+  /** Ref to expose save function to parent */
+  saveRef?: React.MutableRefObject<(() => void) | null>;
+  /** Ref to expose language change to parent */
+  changeLanguageRef?: React.MutableRefObject<((lang: LanguageId) => void) | null>;
+  /** Callback to report state changes (language, profile, dirty) to parent */
+  onStateChange?: (state: { language: LanguageId; profileName: string; isDirty: boolean }) => void;
 }
-
-// Convert StyleGroups to GroupConfig format
 // StyleGroup.members now stores key values directly (e.g., ["א", "ב"]) not position IDs
 // Only include active groups in the output config
 const convertStyleGroupsToGroupConfig = (
@@ -464,6 +473,12 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   onKeyboardChange,
   onCreateNew,
   onSwitchToClassic,
+  showProfilePickerRef,
+  headless,
+  activeTab,
+  saveRef,
+  changeLanguageRef,
+  onStateChange,
 }) => {
   const { strings, isRTL } = useLocalization();
   const LANGUAGES = useMemo(() => getLanguages(strings), [strings]);
@@ -474,6 +489,18 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   const [settingActive, setSettingActive] = useState(false);
   const [showProfilePicker, setShowProfilePicker] = useState(false);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+
+  // Expose profile picker trigger to parent
+  useEffect(() => {
+    if (showProfilePickerRef) {
+      showProfilePickerRef.current = () => setShowProfilePicker(true);
+    }
+    return () => {
+      if (showProfilePickerRef) {
+        showProfilePickerRef.current = null;
+      }
+    };
+  }, [showProfilePickerRef]);
   const [showSaveAsModal, setShowSaveAsModal] = useState(false);
   const [duplicateName, setDuplicateName] = useState('');
   const [profiles, setProfiles] = useState<ProfileOption[]>([]);
@@ -862,6 +889,37 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       setSaving(false);
     }
   }, [state.config, state.styleGroups, onSave, showToast, currentProfileId, profiles, dispatch, strings.alerts.profileSaved, strings.alerts.failedToSaveProfile]);
+
+  // Expose save function to parent via ref
+  useEffect(() => {
+    if (saveRef) {
+      saveRef.current = handleSave;
+    }
+    return () => {
+      if (saveRef) {
+        saveRef.current = null;
+      }
+    };
+  }, [saveRef, handleSave]);
+
+  // Expose language change to parent via ref (inner handleLanguageChange loads profiles)
+  useEffect(() => {
+    if (changeLanguageRef) {
+      changeLanguageRef.current = handleLanguageChange;
+    }
+    return () => {
+      if (changeLanguageRef) {
+        changeLanguageRef.current = null;
+      }
+    };
+  }, [changeLanguageRef, handleLanguageChange]);
+
+  // Report state changes to parent (language, profile name, dirty status)
+  useEffect(() => {
+    if (onStateChange) {
+      onStateChange({ language: currentLanguage, profileName: currentProfileName, isDirty: state.isDirty });
+    }
+  }, [currentLanguage, currentProfileName, state.isDirty, onStateChange]);
 
   const handleSaveAs = useCallback(async (newName: string): Promise<boolean> => {
     try {
@@ -1404,6 +1462,155 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   // Check if current profile is a default profile (not deletable but can be edited)
   const isDefaultProfile = currentProfileId === getDefaultProfileId(currentLanguage);
 
+  // Headless mode: only render toolbox + modals, no header/canvas/profile row
+  if (headless) {
+    return (
+      <View style={{ flex: 1, direction: isRTL ? "rtl" : "ltr" }}>
+        {/* Toast Notification */}
+        {toastMessage && (
+          <Animated.View style={[styles.toast, { opacity: toastOpacity }]}>
+            <Text allowFontScaling={false} style={styles.toastText}>{toastMessage}</Text>
+          </Animated.View>
+        )}
+
+        {/* Settings panel in rounded raised container */}
+        <View style={styles.headlessPanel}>
+          <Toolbox
+            keyboardVariants={currentLanguageDef.keyboards}
+            currentKeyboardId={currentKeyboardId}
+            onKeyboardVariantChange={handleKeyboardChange}
+            profileName={currentProfileName}
+            section={activeTab}
+          />
+        </View>
+
+        {/* Keyboard preview in rounded raised container */}
+        {(() => {
+          const previewH = windowWidth > windowHeight ? windowHeight / 3 : windowHeight / 4;
+          return (
+            <View style={[styles.headlessPreview, { backgroundColor: state.config.backgroundColor || '#CBCFD8' }]}>
+              <InteractiveCanvas onTestInput={handleTestInput} height={previewH} hideHeader />
+            </View>
+          );
+        })()}
+
+        {/* Profile Picker Modal */}
+        <Modal
+          visible={showProfilePicker}
+          transparent
+          animationType="fade"
+          supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']}
+          onRequestClose={() => setShowProfilePicker(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <TouchableOpacity
+              style={StyleSheet.absoluteFill}
+              activeOpacity={1}
+              onPress={() => setShowProfilePicker(false)}
+            />
+            <View style={[styles.profilePickerContainer, windowWidth < 700 && styles.profilePickerContainerSmall]}>
+              <View style={styles.profilePickerHeader}>
+                <Text allowFontScaling={false} style={styles.profilePickerTitle}>
+                  {`${strings.editor.myKeyboards} - ${currentLanguageDef.name}`}
+                </Text>
+                <View style={styles.profilePickerHeaderActions}>
+                  <ActionButton
+                    label={`+ ${strings.editor.newProfile}`}
+                    color="green"
+                    onPress={() => {
+                      setShowProfilePicker(false);
+                      setShowAddProfileModal(true);
+                    }}
+                  />
+                  <TouchableOpacity
+                    style={styles.profilePickerCloseButton}
+                    onPress={() => setShowProfilePicker(false)}
+                  >
+                    <Text allowFontScaling={false} style={styles.profilePickerCloseText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {profiles.length === 0 ? (
+                <Text allowFontScaling={false} style={styles.noProfilesText}>
+                  {strings.alerts.profileNotFound} - {currentLanguageDef.name}
+                </Text>
+              ) : (
+                <FlatList
+                  data={profiles}
+                  keyExtractor={item => item.id}
+                  style={{ flexShrink: 1 }}
+                  renderItem={({ item }) => (
+                    <View
+                      style={[
+                        styles.profileOption,
+                        windowWidth < 700 && styles.profileOptionSmall,
+                        item.id === currentProfileId && styles.profileOptionActive,
+                      ]}
+                    >
+                      <View style={[styles.profileOptionInfo, windowWidth < 700 && styles.profileOptionInfoSmall]}>
+                        <View style={styles.profileNameRow}>
+                          {item.isBuiltIn && (
+                            <Text allowFontScaling={false} style={styles.builtInIcon}>🎨</Text>
+                          )}
+                          <Text allowFontScaling={false} style={styles.profileOptionText}>
+                            {item.name}
+                          </Text>
+                        </View>
+                        <View style={styles.profileBadgesRow}>
+                          {item.isBuiltIn && (
+                            <View style={styles.readOnlyBadge}>
+                              <Text allowFontScaling={false} style={styles.readOnlyBadgeText}>{strings.editor.builtIn}</Text>
+                            </View>
+                          )}
+                          {item.isSystemActive && (
+                            <View style={styles.systemActiveBadge}>
+                              <Text allowFontScaling={false} style={styles.systemActiveBadgeText}>⚡ {strings.profiles.current}</Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+
+                      <View style={styles.profileOptionActions}>
+                        <ActionButton
+                          label={strings.editor.select}
+                          color="blue"
+                          onPress={() => {
+                            handleSetActiveForProfile(item);
+                            handleLoadProfile(item);
+                          }}
+                        />
+                      </View>
+                    </View>
+                  )}
+                />
+              )}
+            </View>
+          </View>
+        </Modal>
+
+        {/* Add Profile Modal */}
+        <AddProfileModal
+          visible={showAddProfileModal}
+          onClose={() => setShowAddProfileModal(false)}
+          onCreate={(name, lang, kbId) => handleCreateNewProfile(name, lang as LanguageId, kbId)}
+          initialLanguage={currentLanguage}
+          initialKeyboardId={currentKeyboardId}
+          existingNames={profiles.map(p => p.name)}
+        />
+
+        {/* Save As Modal */}
+        <SaveAsModal
+          visible={showSaveAsModal}
+          onClose={() => { afterSaveAsRef.current = null; setShowSaveAsModal(false); }}
+          onSaveAs={handleSaveAs}
+          originalName={currentProfileName}
+          existingNames={profiles.map(p => p.name)}
+        />
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={[styles.container, { direction: isRTL ? "rtl" : "ltr" }]}>
       {/* Toast Notification */}
@@ -1797,6 +2004,12 @@ interface EditorScreenProps {
   onBack?: () => void;       // Made optional for IssieVoice
   onClose?: () => void;      // Close callback for IssieVoice
   onSwitchToClassic?: () => void;  // Switch to classic editor view
+  onStateChange?: (state: { language: LanguageId; profileName: string; isDirty: boolean }) => void;
+  showProfilePickerRef?: React.MutableRefObject<(() => void) | null>;
+  changeLanguageRef?: React.MutableRefObject<((lang: LanguageId) => void) | null>;
+  headless?: boolean;
+  activeTab?: string;
+  saveRef?: React.MutableRefObject<(() => void) | null>;
 }
 
 export const EditorScreen: React.FC<EditorScreenProps> = ({
@@ -1806,6 +2019,12 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
   onBack,
   onClose,
   onSwitchToClassic,
+  onStateChange,
+  showProfilePickerRef,
+  changeLanguageRef,
+  headless,
+  activeTab,
+  saveRef,
 }) => {
   const { strings, isRTL } = useLocalization();
   const [loading, setLoading] = useState(true);
@@ -2345,6 +2564,12 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
         onKeyboardChange={handleKeyboardChange}
         onCreateNew={handleCreateNew}
         onSwitchToClassic={onSwitchToClassic}
+        showProfilePickerRef={showProfilePickerRef}
+        headless={headless}
+        activeTab={activeTab}
+        saveRef={saveRef}
+        changeLanguageRef={changeLanguageRef}
+        onStateChange={onStateChange}
       />
     </EditorProvider>
   );
@@ -2365,6 +2590,33 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F5F5',
+  },
+  headlessPanel: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    marginHorizontal: 12,
+    marginTop: 8,
+    marginBottom: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+    overflow: 'hidden',
+  },
+  headlessPreview: {
+    borderRadius: 16,
+    marginHorizontal: 12,
+    marginTop: 4,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+    overflow: 'hidden',
+    padding: 8,
   },
   loadingContainer: {
     flex: 1,

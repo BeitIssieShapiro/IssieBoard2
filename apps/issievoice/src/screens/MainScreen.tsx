@@ -14,7 +14,7 @@ import { SafeAreaView, useSafeAreaInsets, useSafeAreaFrame } from 'react-native-
 import TextDisplayArea from '../components/TextDisplayArea/TextDisplayArea';
 import SuggestionsBar from '../components/SuggestionsBar/SuggestionsBar';
 import FavoritesBar from '../components/FavoritesBar/FavoritesBar';
-import SettingsModal from '../components/SettingsModal/SettingsModal';
+
 import { KeyboardPreview, KeyPressEvent } from '../../../../src/components/KeyboardPreview';
 import { buildKeyboardConfig } from '../../../../src/utils/keyboardConfigMerger';
 import { colors } from '../constants';
@@ -39,10 +39,8 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
   const suggestionsRef = useRef<string[]>([]);
   const [keyboardHeight, setKeyboardHeight] = useState(350);
   const [currentLanguage, setCurrentLanguage] = useState<'en' | 'he'>(deviceLanguage === 'ar' ? 'he' : deviceLanguage);
-  const [languageMode, setLanguageMode] = useState<'en-only' | 'he-only' | 'detect'>('detect');
   const [englishVoice, setEnglishVoice] = useState<string | undefined>(undefined);
   const [hebrewVoice, setHebrewVoice] = useState<string | undefined>(undefined);
-  const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const [favoritesReloadTrigger, setFavoritesReloadTrigger] = useState(0);
   const keyboardConfigRef = useRef<any>(null);
   const keyboardHeightRef = useRef<number>(350);
@@ -246,30 +244,27 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
     }
   };
 
-  // Load settings from storage on mount
-  useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const savedMode = await KeyboardPreferences.getProfile('issievoice_languageMode');
-        if (savedMode && (savedMode === 'en-only' || savedMode === 'he-only' || savedMode === 'detect')) {
-          setLanguageMode(savedMode as 'en-only' | 'he-only' | 'detect');
-        }
+  // Load voice settings from storage on mount and when returning from settings
+  useFocusEffect(
+    React.useCallback(() => {
+      const loadSettings = async () => {
+        try {
+          const savedEnVoice = await KeyboardPreferences.getProfile('issievoice_englishVoice');
+          if (savedEnVoice) {
+            setEnglishVoice(savedEnVoice);
+          }
 
-        const savedEnVoice = await KeyboardPreferences.getProfile('issievoice_englishVoice');
-        if (savedEnVoice) {
-          setEnglishVoice(savedEnVoice);
+          const savedHeVoice = await KeyboardPreferences.getProfile('issievoice_hebrewVoice');
+          if (savedHeVoice) {
+            setHebrewVoice(savedHeVoice);
+          }
+        } catch (error) {
+          console.error('Failed to load settings:', error);
         }
-
-        const savedHeVoice = await KeyboardPreferences.getProfile('issievoice_hebrewVoice');
-        if (savedHeVoice) {
-          setHebrewVoice(savedHeVoice);
-        }
-      } catch (error) {
-        console.error('Failed to load settings:', error);
-      }
-    };
-    loadSettings();
-  }, []);
+      };
+      loadSettings();
+    }, [])
+  );
 
   // Effect for loading keyboard config when language changes
   useEffect(() => {
@@ -396,7 +391,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
 
   const handleSpeak = async () => {
     if (currentText.trim()) {
-      await speak(currentText, languageMode, englishVoice, hebrewVoice);
+      await speak(currentText, 'detect', englishVoice, hebrewVoice);
     }
   };
 
@@ -477,7 +472,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
   // Handle favorite press - speak the text
   const handleFavoritePress = async (text: string) => {
     console.log('⭐ Favorite selected:', text);
-    await speak(text, languageMode, englishVoice, hebrewVoice);
+    await speak(text, 'detect', englishVoice, hebrewVoice);
   };
 
   // Function to toggle between languages
@@ -490,37 +485,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
     setKbSuggestions([]);
   };
 
-  // Handle language mode change
-  const handleLanguageModeChange = async (mode: 'en-only' | 'he-only' | 'detect') => {
-    setLanguageMode(mode);
-    try {
-      await KeyboardPreferences.setProfile(mode, 'issievoice_languageMode');
-      console.log(`💾 Language mode saved: ${mode}`);
-    } catch (error) {
-      console.error('Failed to save language mode:', error);
-    }
-  };
 
-  // Handle voice change
-  const handleVoiceChange = async (language: 'en' | 'he', voiceId: string) => {
-    if (language === 'en') {
-      setEnglishVoice(voiceId);
-      try {
-        await KeyboardPreferences.setProfile(voiceId, 'issievoice_englishVoice');
-        console.log(`💾 English voice saved: ${voiceId}`);
-      } catch (error) {
-        console.error('Failed to save English voice:', error);
-      }
-    } else {
-      setHebrewVoice(voiceId);
-      try {
-        await KeyboardPreferences.setProfile(voiceId, 'issievoice_hebrewVoice');
-        console.log(`💾 Hebrew voice saved: ${voiceId}`);
-      } catch (error) {
-        console.error('Failed to save Hebrew voice:', error);
-      }
-    }
-  };
 
   const suggestionsHeight = isLandscape ? availableHeight * 0.22 : availableHeight * 0.18;
   const minSymbolHeight = availableHeight * 0.4 >= 120 ? 120 : suggestionsHeight;
@@ -528,22 +493,11 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        {/* Settings Modal */}
-        <SettingsModal
-          visible={settingsModalVisible}
-          onClose={() => setSettingsModalVisible(false)}
-          languageMode={languageMode}
-          onLanguageModeChange={handleLanguageModeChange}
-          englishVoice={englishVoice}
-          hebrewVoice={hebrewVoice}
-          onVoiceChange={handleVoiceChange}
-        />
-
         {/* Header Bar */}
         <View style={styles.headerBar}>
           <TouchableOpacity
             style={styles.menuButton}
-            onPress={() => navigation.navigate('Settings', { englishVoice, hebrewVoice, initialLanguage: currentLanguage })}
+            onPress={() => navigation.navigate('Settings', { initialLanguage: currentLanguage })}
             activeOpacity={0.7}>
             <Text style={styles.menuButtonText}>☰</Text>
           </TouchableOpacity>

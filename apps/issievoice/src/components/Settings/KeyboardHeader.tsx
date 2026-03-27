@@ -9,17 +9,19 @@ import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 import { colors } from '../../constants';
 
 export interface KeyboardHeaderProps {
-  currentLanguage: 'en' | 'he';
-  onLanguageChange: (language: 'en' | 'he') => void;
+  currentLanguage: 'en' | 'he' | 'ar';
+  onLanguageChange: (language: 'en' | 'he' | 'ar') => void;
   profileName: string;
   onProfilePress: () => void;
   onSave: () => void;
+  onSaveAs?: () => void;
   isDirty: boolean;
 }
 
-const LANGUAGES: { id: 'en' | 'he'; label: string }[] = [
+const LANGUAGES: { id: 'en' | 'he' | 'ar'; label: string }[] = [
   { id: 'he', label: 'עברית' },
   { id: 'en', label: 'English' },
+  { id: 'ar', label: 'العربية' },
 ];
 
 const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
@@ -28,11 +30,12 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
   profileName,
   onProfilePress,
   onSave,
+  onSaveAs,
   isDirty,
 }) => {
   return (
     <View style={styles.container}>
-      {/* Left side: Language toggle buttons */}
+      {/* Language toggle pills */}
       <View style={styles.languageTabs}>
         {LANGUAGES.map(lang => {
           const isActive = currentLanguage === lang.id;
@@ -41,17 +44,13 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
               key={lang.id}
               style={[styles.languageTab, isActive && styles.languageTabActive]}
               onPress={() => onLanguageChange(lang.id)}
-              accessibilityLabel={lang.label}
-              accessibilityRole="button"
-              accessibilityState={{ selected: isActive }}
-            >
+              activeOpacity={0.7}>
               <Text
                 allowFontScaling={false}
                 style={[
                   styles.languageTabText,
                   isActive && styles.languageTabTextActive,
-                ]}
-              >
+                ]}>
                 {lang.label}
               </Text>
             </TouchableOpacity>
@@ -59,37 +58,44 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
         })}
       </View>
 
-      {/* Right side: Profile name + Save button */}
-      <View style={styles.rightSection}>
-        <TouchableOpacity
-          style={styles.profileButton}
-          onPress={onProfilePress}
-          accessibilityLabel={`Profile: ${profileName}`}
-          accessibilityRole="button"
-        >
-          <Text style={styles.profileLabel}>Profile: </Text>
-          <Text style={styles.profileName} numberOfLines={1} ellipsizeMode="tail">
-            {profileName}
-          </Text>
-        </TouchableOpacity>
+      {/* Profile name + select */}
+      <TouchableOpacity
+        style={styles.profileButton}
+        onPress={onProfilePress}
+        activeOpacity={0.7}>
+        <MyIcon info={{ name: 'keyboard-settings-outline', type: 'MDI', color: colors.primary, size: 18 }} />
+        <Text style={styles.profileName} numberOfLines={1} ellipsizeMode="tail">
+          {profileName}
+        </Text>
+        <MyIcon info={{ name: 'chevron-down', type: 'Ionicons', color: colors.textLight, size: 16 }} />
+      </TouchableOpacity>
 
+      {/* Save / Save As */}
+      <View style={styles.actions}>
         <TouchableOpacity
           style={[styles.saveButton, !isDirty && styles.saveButtonDisabled]}
           onPress={onSave}
           disabled={!isDirty}
-          accessibilityLabel="Save"
-          accessibilityRole="button"
-          accessibilityState={{ disabled: !isDirty }}
-        >
+          activeOpacity={0.7}>
           <MyIcon
             info={{
               name: 'save-outline',
               type: 'Ionicons',
-              color: isDirty ? colors.primary : colors.textLight,
-              size: 22,
+              color: isDirty ? '#FFFFFF' : colors.textLight,
+              size: 18,
             }}
           />
+          <Text style={[styles.saveText, !isDirty && styles.saveTextDisabled]}>Save</Text>
         </TouchableOpacity>
+
+        {onSaveAs && (
+          <TouchableOpacity
+            style={styles.saveAsButton}
+            onPress={onSaveAs}
+            activeOpacity={0.7}>
+            <Text style={styles.saveAsText}>Save As</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -99,24 +105,30 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    height: 50,
-    paddingHorizontal: 12,
-    backgroundColor: colors.surface,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginHorizontal: 12,
+    marginTop: 8,
+    marginBottom: 4,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+    gap: 10,
   },
   languageTabs: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: colors.borderLight,
+    backgroundColor: '#F1F5F9',
     borderRadius: 20,
     padding: 3,
   },
   languageTab: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
     borderRadius: 17,
   },
   languageTabActive: {
@@ -128,7 +140,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   languageTabText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: colors.textSecondary,
   },
@@ -136,34 +148,60 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
   },
-  rightSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flexShrink: 1,
-  },
   profileButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexShrink: 1,
-    maxWidth: 200,
-  },
-  profileLabel: {
-    fontSize: 13,
-    color: colors.textSecondary,
+    flex: 1,
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   profileName: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 13,
+    fontWeight: '600',
     color: colors.text,
-    flexShrink: 1,
+    flex: 1,
+  },
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   saveButton: {
-    padding: 6,
-    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
   },
   saveButtonDisabled: {
-    opacity: 0.5,
+    backgroundColor: '#E2E8F0',
+  },
+  saveText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  saveTextDisabled: {
+    color: colors.textLight,
+  },
+  saveAsButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  saveAsText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.primary,
   },
 });
 

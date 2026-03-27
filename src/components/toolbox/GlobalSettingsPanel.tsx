@@ -38,6 +38,8 @@ export interface GlobalSettingsPanelProps {
   featuresExpanded: boolean;
   /** Callback to toggle features */
   setFeaturesExpanded: (expanded: boolean) => void;
+  /** If set, show only this section: 'general' | 'features' | 'advanced' */
+  section?: string;
 }
 
 export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
@@ -48,6 +50,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
   setAdvancedExpanded,
   featuresExpanded,
   setFeaturesExpanded,
+  section,
 }) => {
   const {
     state,
@@ -153,10 +156,16 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
     dispatch({ type: 'MARK_DIRTY' });
   };
 
+  const showGeneral = !section || section === 'general';
+  const showFeatures = !section || section === 'features';
+  const showAdvanced = !section || section === 'advanced';
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Colors Section */}
-      <View style={styles.settingSection}>
+      {showGeneral && (
+        <>
+          {/* Colors Section */}
+          <View style={styles.settingSection}>
         <Text allowFontScaling={false} style={styles.settingTitle}>{strings.globalSettings.colors}</Text>
 
         <View style={styles.colorsTable}>
@@ -249,9 +258,13 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
           onSelect={onKeyboardVariantChange!}
         />
       )}
+        </>
+      )}
 
-      {/* 7. Features (Collapsible) */}
+      {/* 7. Features (Collapsible, or always-open in section mode) */}
+      {showFeatures && (
       <View style={styles.section}>
+        {!section && (
         <TouchableOpacity
           style={styles.advancedHeader}
           onPress={() => setFeaturesExpanded(!featuresExpanded)}
@@ -264,9 +277,10 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
             {featuresExpanded ? '▼' : isRTL ? '◀' : '▶'}
           </Text>
         </TouchableOpacity>
+        )}
 
-        {featuresExpanded && (
-          <View style={styles.advancedContent}>
+        {(section || featuresExpanded) && (
+          <View style={section ? styles.content : styles.advancedContent}>
             <View style={styles.featureRow}>
               <View style={styles.featureInfo}>
                 <Text allowFontScaling={false} style={styles.featureLabel}>{strings.globalSettings.wordSuggestions}</Text>
@@ -316,9 +330,12 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
           </View>
         )}
       </View>
+      )}
 
-      {/* 8. Advanced Settings (Expandable) */}
+      {/* 8. Advanced Settings (Expandable, or always-open in section mode) */}
+      {showAdvanced && (
       <View style={styles.section}>
+        {!section && (
         <TouchableOpacity
           style={styles.advancedHeader}
           onPress={() => setAdvancedExpanded(!advancedExpanded)}
@@ -331,9 +348,10 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
             {advancedExpanded ? '▼' : isRTL ? '◀' : '▶'}
           </Text>
         </TouchableOpacity>
+        )}
 
-        {advancedExpanded && (
-          <View style={styles.advancedContent}>
+        {(section || advancedExpanded) && (
+          <View style={section ? styles.content : styles.advancedContent}>
             {/* Height Preset */}
             <View style={styles.section}>
               <ButtonGroupRow
@@ -384,6 +402,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
           </View>
         )}
       </View>
+      )}
     </ScrollView>
   );
 };

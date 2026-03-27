@@ -59,6 +59,9 @@ export interface ToolboxProps {
   onKeyboardVariantChange?: (keyboardId: string) => void;
   /** Current profile name for breadcrumb display */
   profileName?: string;
+  /** If set, render only this section without accordion wrappers.
+   *  'general' | 'keys-groups' | 'nikkud' | 'features' | 'advanced' */
+  section?: string;
 }
 
 export const Toolbox: React.FC<ToolboxProps> = ({
@@ -66,6 +69,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
   currentKeyboardId,
   onKeyboardVariantChange,
   profileName,
+  section,
 }) => {
   const { state, clearSelection } = useEditor();
   const { strings } = useLocalization();
@@ -185,6 +189,145 @@ export const Toolbox: React.FC<ToolboxProps> = ({
       </View>
     );
   };
+
+  // Section-specific rendering (for headless per-tab mode)
+  if (section) {
+    const renderSectionContent = () => {
+      switch (section) {
+        case 'general':
+          return (
+            <GlobalSettingsPanel
+              keyboardVariants={keyboardVariants}
+              currentKeyboardId={currentKeyboardId}
+              onKeyboardVariantChange={onKeyboardVariantChange}
+              advancedExpanded={false}
+              setAdvancedExpanded={() => {}}
+              featuresExpanded={false}
+              setFeaturesExpanded={() => {}}
+              section="general"
+            />
+          );
+        case 'keys-groups':
+          return (
+            <>
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4 }}>
+                <ActionButton
+                  label={strings.toolbox.presets}
+                  color="blue"
+                  icon="📋"
+                  onPress={() => setShowTemplatesModal(true)}
+                />
+                <ActionButton
+                  label={strings.toolbox.new}
+                  color="green"
+                  icon="+"
+                  onPress={handleCreatePressed}
+                />
+              </View>
+              <StyleRulesPanel
+                onEditPressed={handleEditPressed}
+                onCreatePressed={handleCreatePressed}
+              />
+            </>
+          );
+        case 'nikkud':
+          return state.config.diacritics ? <DiacriticsPanel /> : null;
+        case 'features':
+          return (
+            <GlobalSettingsPanel
+              keyboardVariants={keyboardVariants}
+              currentKeyboardId={currentKeyboardId}
+              onKeyboardVariantChange={onKeyboardVariantChange}
+              advancedExpanded={false}
+              setAdvancedExpanded={() => {}}
+              featuresExpanded={true}
+              setFeaturesExpanded={() => {}}
+              section="features"
+            />
+          );
+        case 'advanced':
+          return (
+            <GlobalSettingsPanel
+              keyboardVariants={keyboardVariants}
+              currentKeyboardId={currentKeyboardId}
+              onKeyboardVariantChange={onKeyboardVariantChange}
+              advancedExpanded={true}
+              setAdvancedExpanded={() => {}}
+              featuresExpanded={false}
+              setFeaturesExpanded={() => {}}
+              section="advanced"
+            />
+          );
+        default:
+          return null;
+      }
+    };
+
+    return (
+      <ScrollView style={[styles.container, { backgroundColor: 'transparent' }]}>
+        {renderSectionContent()}
+
+        {/* Presets Browser Modal (needed for keys-groups) */}
+        <Modal
+          visible={showTemplatesModal}
+          transparent
+          animationType="fade"
+          supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']}
+          onRequestClose={() => setShowTemplatesModal(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowTemplatesModal(false)}
+          >
+            <View style={styles.templatesModal} onStartShouldSetResponder={() => true}>
+              <View style={styles.templatesHeader}>
+                <Text allowFontScaling={false} style={styles.templatesTitle}>📋 {strings.toolbox.presetsModalTitle}</Text>
+                <TouchableOpacity onPress={() => setShowTemplatesModal(false)}>
+                  <Text allowFontScaling={false} style={styles.templatesCloseButton}>✕</Text>
+                </TouchableOpacity>
+              </View>
+              <FlatList
+                data={currentTemplates}
+                keyExtractor={(item, index) => `${item.name}_${index}`}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.templateItem}
+                    onPress={() => handleTemplateSelect(item)}
+                  >
+                    <View style={styles.templateInfo}>
+                      <Text allowFontScaling={false} style={styles.templateName}>{item.name}</Text>
+                      <Text allowFontScaling={false} style={styles.templateDescription}>{item.description}</Text>
+                      <Text allowFontScaling={false} style={styles.templateKeys}>
+                        {resolveMembers(item, currentKeyboardId).length} {strings.toolbox.keysLabel}: {resolveMembers(item, currentKeyboardId).slice(0, 8).join(', ')}
+                        {resolveMembers(item, currentKeyboardId).length > 8 ? '...' : ''}
+                      </Text>
+                    </View>
+                    <Text allowFontScaling={false} style={styles.templateArrow}>›</Text>
+                  </TouchableOpacity>
+                )}
+              />
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
+        {/* Add/Edit Style Rule Modal */}
+        <AddStyleRuleModal
+          visible={showStyleRuleModal}
+          editingGroup={editingGroup}
+          initialSelectedKeys={editingGroup ? undefined : (templateData ? resolveMembers(templateData, currentKeyboardId) : getSelectedKeyValues())}
+          initialName={templateData?.name}
+          initialBgColor={templateData?.style.bgColor}
+          initialTextColor={templateData?.style.color}
+          initialVisibilityMode={templateData?.style.visibilityMode}
+          isPreset={!!(templateData && !editingGroup) || !!(editingGroup?.presetId)}
+          presetId={templateData && !editingGroup ? templateData.id : editingGroup?.presetId}
+          profileName={profileName}
+          onClose={handleCloseModal}
+        />
+      </ScrollView>
+    );
+  }
 
   return (
     <ScrollView style={styles.container}>

@@ -5,7 +5,6 @@ import {createStackNavigator} from '@react-navigation/stack';
 import * as ScreenSizer from '@bam.tech/react-native-screen-sizer';
 import MainScreen from './src/screens/MainScreen';
 import BrowseScreen from './src/screens/BrowseScreen';
-import SettingsScreen from './src/screens/SettingsScreen';
 import NewSettingsScreen from './src/screens/NewSettingsScreen';
 import {TextProvider} from './src/context/TextContext';
 import {TTSProvider} from './src/context/TTSContext';
@@ -46,7 +45,6 @@ const App = () => {
                       <Stack.Screen name="Main" component={MainScreen} />
                       <Stack.Screen name="Browse" component={BrowseScreen} />
                       <Stack.Screen name="Settings" component={NewSettingsScreen} />
-                      <Stack.Screen name="OldSettings" component={SettingsScreen} />
                     </Stack.Navigator>
                   </NavigationContainer>
                 </ScreenSizer.Wrapper>
@@ -60,7 +58,6 @@ const App = () => {
                     <Stack.Screen name="Main" component={MainScreen} />
                     <Stack.Screen name="Browse" component={BrowseScreen} />
                     <Stack.Screen name="Settings" component={NewSettingsScreen} />
-                    <Stack.Screen name="OldSettings" component={SettingsScreen} />
                   </Stack.Navigator>
                 </NavigationContainer>
               )}

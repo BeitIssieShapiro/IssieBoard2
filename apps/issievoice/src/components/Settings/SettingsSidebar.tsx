@@ -1,7 +1,7 @@
 import React from 'react';
 import {View, Text, TouchableOpacity, StyleSheet} from 'react-native';
 import {colors} from '../../constants';
-import {MyIcon} from '@beitissieshapiro/issie-shared/dist/icons';
+import {MyIcon, IconType} from '@beitissieshapiro/issie-shared/dist/icons';
 
 export interface SettingsSidebarProps {
   activeTab: string;
@@ -9,19 +9,23 @@ export interface SettingsSidebarProps {
   isLandscape: boolean;
 }
 
-type TabId = 'general' | 'keys-groups' | 'nikkud' | 'voice';
+type TabId = 'general' | 'keys-groups' | 'nikkud' | 'features' | 'advanced' | 'voice';
 
 interface TabDef {
   id: TabId;
   label: string;
-  iconName: string;
-  iconType: string;
+  iconName?: string;
+  iconType?: IconType;
+  iconText?: string; // Unicode text icon (e.g. nikkud)
+  iconColor: string; // accent color for inactive state
 }
 
 const KEYBOARD_CHILDREN: TabDef[] = [
-  {id: 'general', label: 'General', iconName: 'settings-outline', iconType: 'Ionicons'},
-  {id: 'keys-groups', label: 'Keys Groups', iconName: 'color-palette-outline', iconType: 'Ionicons'},
-  {id: 'nikkud', label: 'Nikkud', iconName: 'text-outline', iconType: 'Ionicons'},
+  {id: 'general', label: 'General', iconName: 'settings-outline', iconType: 'Ionicons', iconColor: colors.primary},
+  {id: 'keys-groups', label: 'Keys Groups', iconName: 'color-palette-outline', iconType: 'Ionicons', iconColor: '#7C3AED'},
+  {id: 'nikkud', label: 'Nikkud', iconText: '\u25CC\u05B8', iconColor: '#059669'},
+  {id: 'features', label: 'Features', iconName: 'toggle-outline', iconType: 'Ionicons', iconColor: '#0891B2'},
+  {id: 'advanced', label: 'Advanced', iconName: 'cog-outline', iconType: 'Ionicons', iconColor: '#6B7280'},
 ];
 
 const VOICE_TAB: TabDef = {
@@ -29,12 +33,58 @@ const VOICE_TAB: TabDef = {
   label: 'Voice',
   iconName: 'volume-high-outline',
   iconType: 'Ionicons',
+  iconColor: '#D97706',
 };
 
 const KEYBOARD_CHILD_IDS: string[] = KEYBOARD_CHILDREN.map(t => t.id);
 
 const isKeyboardTab = (tabId: string): boolean =>
   KEYBOARD_CHILD_IDS.includes(tabId);
+
+/** Renders a sidebar/tab item with icon circle + label, matching the card design */
+const TabItem: React.FC<{
+  tab: TabDef;
+  isActive: boolean;
+  onPress: () => void;
+  indented?: boolean;
+}> = ({tab, isActive, onPress, indented}) => (
+  <TouchableOpacity
+    style={[
+      styles.sidebarCard,
+      indented && styles.sidebarCardIndented,
+      isActive && styles.sidebarCardActive,
+    ]}
+    onPress={onPress}
+    activeOpacity={0.7}>
+    <View
+      style={[
+        styles.iconCircle,
+        {backgroundColor: isActive ? 'rgba(255,255,255,0.25)' : tab.iconColor + '18'},
+      ]}>
+      {tab.iconText ? (
+        <Text style={{fontSize: 18, color: isActive ? '#FFFFFF' : tab.iconColor, fontWeight: '700'}}>
+          {tab.iconText}
+        </Text>
+      ) : (
+        <MyIcon
+          info={{
+            name: tab.iconName!,
+            type: tab.iconType!,
+            color: isActive ? '#FFFFFF' : tab.iconColor,
+            size: 20,
+          }}
+        />
+      )}
+    </View>
+    <Text
+      style={[
+        styles.sidebarCardText,
+        isActive && styles.sidebarCardTextActive,
+      ]}>
+      {tab.label}
+    </Text>
+  </TouchableOpacity>
+);
 
 const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   activeTab,
@@ -44,76 +94,44 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   if (isLandscape) {
     return (
       <View style={styles.sidebar}>
-        {/* Keyboard group header */}
-        <View style={styles.groupHeader}>
-          <MyIcon
-            info={{
-              name: 'keyboard-outline',
-              type: 'Ionicons',
-              color: colors.text,
-              size: 20,
-            }}
-          />
+        {/* Keyboard group header — tappable, selects first child */}
+        <TouchableOpacity
+          style={styles.groupHeader}
+          onPress={() => onTabChange('general')}
+          activeOpacity={0.7}>
+          <View style={[styles.iconCircle, {backgroundColor: colors.primary + '18'}]}>
+            <MyIcon
+              info={{
+                name: 'keyboard-settings-outline',
+                type: 'MDI',
+                color: colors.primary,
+                size: 20,
+              }}
+            />
+          </View>
           <Text style={styles.groupHeaderText}>Keyboard</Text>
-        </View>
+        </TouchableOpacity>
 
         {/* Keyboard children */}
-        {KEYBOARD_CHILDREN.map(tab => {
-          const isActive = activeTab === tab.id;
-          return (
-            <TouchableOpacity
-              key={tab.id}
-              style={[styles.sidebarItem, styles.sidebarChildItem, isActive && styles.sidebarItemActive]}
-              onPress={() => onTabChange(tab.id)}
-              activeOpacity={0.7}>
-              <MyIcon
-                info={{
-                  name: tab.iconName,
-                  type: tab.iconType,
-                  color: isActive ? '#FFFFFF' : colors.text,
-                  size: 18,
-                }}
-              />
-              <Text
-                style={[
-                  styles.sidebarItemText,
-                  isActive && styles.sidebarItemTextActive,
-                ]}>
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
+        {KEYBOARD_CHILDREN.map(tab => (
+          <TabItem
+            key={tab.id}
+            tab={tab}
+            isActive={activeTab === tab.id}
+            onPress={() => onTabChange(tab.id)}
+            indented
+          />
+        ))}
 
         {/* Divider */}
         <View style={styles.divider} />
 
         {/* Voice tab */}
-        {(() => {
-          const isActive = activeTab === VOICE_TAB.id;
-          return (
-            <TouchableOpacity
-              style={[styles.sidebarItem, isActive && styles.sidebarItemActive]}
-              onPress={() => onTabChange(VOICE_TAB.id)}
-              activeOpacity={0.7}>
-              <MyIcon
-                info={{
-                  name: VOICE_TAB.iconName,
-                  type: VOICE_TAB.iconType,
-                  color: isActive ? '#FFFFFF' : colors.text,
-                  size: 20,
-                }}
-              />
-              <Text
-                style={[
-                  styles.sidebarItemText,
-                  isActive && styles.sidebarItemTextActive,
-                ]}>
-                {VOICE_TAB.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })()}
+        <TabItem
+          tab={VOICE_TAB}
+          isActive={activeTab === VOICE_TAB.id}
+          onPress={() => onTabChange(VOICE_TAB.id)}
+        />
       </View>
     );
   }
@@ -133,14 +151,20 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
             }
           }}
           activeOpacity={0.7}>
-          <MyIcon
-            info={{
-              name: 'keyboard-outline',
-              type: 'Ionicons',
-              color: keyboardActive ? '#FFFFFF' : colors.text,
-              size: 18,
-            }}
-          />
+          <View
+            style={[
+              styles.iconCircleSmall,
+              {backgroundColor: keyboardActive ? 'rgba(255,255,255,0.25)' : colors.primary + '18'},
+            ]}>
+            <MyIcon
+              info={{
+                name: 'keyboard-settings-outline',
+                type: 'MDI',
+                color: keyboardActive ? '#FFFFFF' : colors.primary,
+                size: 16,
+              }}
+            />
+          </View>
           <Text style={[styles.tabText, keyboardActive && styles.tabTextActive]}>
             Keyboard
           </Text>
@@ -150,14 +174,20 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
           style={[styles.tab, activeTab === 'voice' && styles.tabActive]}
           onPress={() => onTabChange('voice')}
           activeOpacity={0.7}>
-          <MyIcon
-            info={{
-              name: VOICE_TAB.iconName,
-              type: VOICE_TAB.iconType,
-              color: activeTab === 'voice' ? '#FFFFFF' : colors.text,
-              size: 18,
-            }}
-          />
+          <View
+            style={[
+              styles.iconCircleSmall,
+              {backgroundColor: activeTab === 'voice' ? 'rgba(255,255,255,0.25)' : VOICE_TAB.iconColor + '18'},
+            ]}>
+            <MyIcon
+              info={{
+                name: VOICE_TAB.iconName!,
+                type: VOICE_TAB.iconType!,
+                color: activeTab === 'voice' ? '#FFFFFF' : VOICE_TAB.iconColor,
+                size: 16,
+              }}
+            />
+          </View>
           <Text
             style={[
               styles.tabText,
@@ -179,14 +209,26 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                 style={[styles.subTab, isActive && styles.subTabActive]}
                 onPress={() => onTabChange(tab.id)}
                 activeOpacity={0.7}>
-                <MyIcon
-                  info={{
-                    name: tab.iconName,
-                    type: tab.iconType,
-                    color: isActive ? '#FFFFFF' : colors.text,
-                    size: 16,
-                  }}
-                />
+                <View
+                  style={[
+                    styles.iconCircleTiny,
+                    {backgroundColor: isActive ? 'rgba(255,255,255,0.25)' : tab.iconColor + '18'},
+                  ]}>
+                  {tab.iconText ? (
+                    <Text style={{fontSize: 13, color: isActive ? '#FFFFFF' : tab.iconColor, fontWeight: '700'}}>
+                      {tab.iconText}
+                    </Text>
+                  ) : (
+                    <MyIcon
+                      info={{
+                        name: tab.iconName!,
+                        type: tab.iconType!,
+                        color: isActive ? '#FFFFFF' : tab.iconColor,
+                        size: 14,
+                      }}
+                    />
+                  )}
+                </View>
                 <Text
                   style={[
                     styles.subTabText,
@@ -206,59 +248,97 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
 const styles = StyleSheet.create({
   // Landscape sidebar styles
   sidebar: {
-    width: 180,
+    width: 200,
     backgroundColor: '#FFFFFF',
-    paddingVertical: 16,
+    paddingVertical: 12,
     paddingHorizontal: 8,
-    borderRightWidth: 1,
-    borderRightColor: colors.borderLight,
+    marginTop: 8,
+    marginLeft: 12,
+    marginBottom: 12,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    gap: 4,
   },
   groupHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 8,
+    paddingVertical: 8,
+    gap: 10,
   },
   groupHeaderText: {
     fontSize: 15,
     fontWeight: '700',
     color: colors.text,
   },
-  sidebarItem: {
+  // Card-style sidebar items
+  sidebarCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 10,
-    borderRadius: 12,
-    gap: 8,
+    borderRadius: 14,
+    gap: 10,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    elevation: 1,
   },
-  sidebarChildItem: {
-    marginLeft: 16,
+  sidebarCardIndented: {
+    marginLeft: 20,
   },
-  sidebarItemActive: {
+  sidebarCardActive: {
     backgroundColor: colors.primary,
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  sidebarItemText: {
+  sidebarCardText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
     color: colors.text,
   },
-  sidebarItemTextActive: {
+  sidebarCardTextActive: {
     color: '#FFFFFF',
+  },
+  // Icon circles
+  iconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  iconCircleSmall: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  iconCircleTiny: {
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   divider: {
     height: 1,
     backgroundColor: colors.borderLight,
-    marginVertical: 8,
+    marginVertical: 6,
     marginHorizontal: 12,
   },
 
   // Portrait tabs styles
   tabsContainer: {
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
+    backgroundColor: 'transparent',
   },
   tabRow: {
     flexDirection: 'row',
@@ -270,10 +350,11 @@ const styles = StyleSheet.create({
   tab: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 12,
-    gap: 6,
+    gap: 8,
+    backgroundColor: '#F1F5F9',
   },
   tabActive: {
     backgroundColor: colors.primary,
@@ -296,10 +377,11 @@ const styles = StyleSheet.create({
   subTab: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
     gap: 6,
+    backgroundColor: '#F1F5F9',
   },
   subTabActive: {
     backgroundColor: colors.primary,

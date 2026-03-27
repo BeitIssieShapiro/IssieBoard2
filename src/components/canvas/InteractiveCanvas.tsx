@@ -45,6 +45,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 interface InteractiveCanvasProps {
   onTestInput?: (text: string) => void;
   height: number;
+  hideHeader?: boolean;
 }
 
 // Language display names
@@ -54,7 +55,7 @@ const LANGUAGE_NAMES: Record<string, string> = {
   'ar': 'العربية',
 };
 
-export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInput, height }) => {
+export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInput, height, hideHeader }) => {
   const { state, dispatch } = useEditor();
   const { strings } = useLocalization();
   const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
@@ -194,9 +195,10 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
   const windowAvailableWidth = windowWidth - insets.left - insets.right
 
   return (
-    <View style={{ flexDirection: isLandscape ? "row" : "column", minHeight: height + 20 }}>
+    <View style={{ flexDirection: isLandscape && !hideHeader ? "row" : "column", minHeight: hideHeader ? height : height + 20 }}>
 
       {/* Preview Header */}
+      {!hideHeader && (
       <View style={isLandscape ? styles.previewHeaderLandscape : styles.previewHeader}>
         <Text allowFontScaling={false} style={styles.previewLabel}>{strings.canvas.preview}</Text>
         <View style={[styles.languageBadge]}>
@@ -205,22 +207,23 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
           </Text>
         </View>
       </View>
+      )}
 
       {/* Keyboard Preview */}
       <View style={{
-        width: isLandscape ? windowAvailableWidth * 0.8 : '100%',
+        width: isLandscape && !hideHeader ? windowAvailableWidth * 0.8 : '100%',
         alignItems: 'center',
         justifyContent:"center",
-        height: Math.max(height, keyboardHeight) - 50,
-        marginTop: isLandscape ? 10 : 0,
+        height: hideHeader ? height : Math.max(height, keyboardHeight) - 50,
+        marginTop: isLandscape && !hideHeader ? 10 : 0,
       }}>
         <KeyboardPreview
           key={`editor-preview-${windowAvailableWidth}`}
           style={[
             styles.preview,
             {
-              height: Math.max(height - 40, keyboardHeight),  // Container height (what we're willing to allocate)
-              width: isLandscape ? windowAvailableWidth * 0.78 : '100%',
+              height: hideHeader ? height : Math.max(height - 40, keyboardHeight),
+              width: isLandscape && !hideHeader ? windowAvailableWidth * 0.78 : '100%',
             }
           ]}
           configJson={configJson}
