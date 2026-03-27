@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -46,6 +46,19 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
     setProfileName(state.profileName);
     setIsDirty(state.isDirty);
   }, []);
+
+  // English has no diacritics — disable nikkud tab
+  const disabledTabs = useMemo(
+    () => (kbLanguage === 'en' ? ['nikkud'] : []),
+    [kbLanguage],
+  );
+
+  // Auto-switch away from nikkud when it becomes disabled
+  useEffect(() => {
+    if (activeTab === 'nikkud' && kbLanguage === 'en') {
+      setActiveTab('general');
+    }
+  }, [kbLanguage, activeTab]);
 
   // Voice settings state (loaded from KeyboardPreferences on mount)
   const [englishVoice, setEnglishVoice] = useState<string | undefined>(undefined);
@@ -170,6 +183,7 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
               activeTab={activeTab}
               onTabChange={handleTabChange}
               isLandscape={true}
+              disabledTabs={disabledTabs}
             />
             <View style={styles.detailArea}>
               {renderContent()}
@@ -181,6 +195,7 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
               activeTab={activeTab}
               onTabChange={handleTabChange}
               isLandscape={false}
+              disabledTabs={disabledTabs}
             />
             <View style={styles.detailArea}>
               {renderContent()}

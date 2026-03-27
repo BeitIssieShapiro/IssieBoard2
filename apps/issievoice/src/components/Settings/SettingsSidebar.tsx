@@ -7,6 +7,7 @@ export interface SettingsSidebarProps {
   activeTab: string;
   onTabChange: (tabId: string) => void;
   isLandscape: boolean;
+  disabledTabs?: string[];
 }
 
 type TabId = 'general' | 'keys-groups' | 'nikkud' | 'features' | 'advanced' | 'voice';
@@ -47,15 +48,18 @@ const TabItem: React.FC<{
   isActive: boolean;
   onPress: () => void;
   indented?: boolean;
-}> = ({tab, isActive, onPress, indented}) => (
+  disabled?: boolean;
+}> = ({tab, isActive, onPress, indented, disabled}) => (
   <TouchableOpacity
     style={[
       styles.sidebarCard,
       indented && styles.sidebarCardIndented,
       isActive && styles.sidebarCardActive,
+      disabled && { opacity: 0.35 },
     ]}
     onPress={onPress}
-    activeOpacity={0.7}>
+    activeOpacity={0.7}
+    disabled={disabled}>
     <View
       style={[
         styles.iconCircle,
@@ -90,6 +94,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   activeTab,
   onTabChange,
   isLandscape,
+  disabledTabs,
 }) => {
   if (isLandscape) {
     return (
@@ -120,6 +125,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
             isActive={activeTab === tab.id}
             onPress={() => onTabChange(tab.id)}
             indented
+            disabled={disabledTabs?.includes(tab.id)}
           />
         ))}
 
@@ -203,16 +209,19 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
         <View style={styles.subTabRow}>
           {KEYBOARD_CHILDREN.map(tab => {
             const isActive = activeTab === tab.id;
+            const isDisabled = disabledTabs?.includes(tab.id);
             return (
               <TouchableOpacity
                 key={tab.id}
                 style={[styles.subTab, isActive && styles.subTabActive]}
                 onPress={() => onTabChange(tab.id)}
-                activeOpacity={0.7}>
+                activeOpacity={0.7}
+                disabled={isDisabled}>
                 <View
                   style={[
                     styles.iconCircleTiny,
                     {backgroundColor: isActive ? 'rgba(255,255,255,0.25)' : tab.iconColor + '18'},
+                    isDisabled && {opacity: 0.35},
                   ]}>
                   {tab.iconText ? (
                     <Text style={{fontSize: 13, color: isActive ? '#FFFFFF' : tab.iconColor, fontWeight: '700'}}>
@@ -233,6 +242,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                   style={[
                     styles.subTabText,
                     isActive && styles.subTabTextActive,
+                    isDisabled && {opacity: 0.35},
                   ]}>
                   {tab.label}
                 </Text>
