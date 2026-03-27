@@ -17,34 +17,13 @@ import FavoritesBar from '../components/FavoritesBar/FavoritesBar';
 import SettingsModal from '../components/SettingsModal/SettingsModal';
 import { KeyboardPreview, KeyPressEvent } from '../../../../src/components/KeyboardPreview';
 import { buildKeyboardConfig } from '../../../../src/utils/keyboardConfigMerger';
-import { colors, sizes } from '../constants';
+import { colors } from '../constants';
 import KeyboardPreferences from '../../../../src/native/KeyboardPreferences';
 import { symbolService } from '../services/SymbolService';
-import { IVButton } from '../components/ActionBar/SpeakButton';
 
 interface MainScreenProps {
   navigation: any;
 }
-
-const settingsKey = {
-  type: 'event',  // Event-only key
-  label: '☰',
-  caption: '☰',
-  value: 'SETTINGS',  // Event identifier
-  width: 1,
-  bgColor: '#888888',
-  fontSizePreset: 'normal',
-};
-
-const clearAllKey = {
-  type: 'event',  // Event-only key - doesn't modify text
-  label: '🗑️',
-  caption: '🗑️',
-  value: 'CLEAR_ALL',  // Event identifier
-  width: 1,
-  bgColor: '#f44336',
-  fontSizePreset: 'normal',
-};
 
 const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
   const { currentText, setText, cursorPosition, setCursorPosition } = useText();
@@ -108,9 +87,6 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
             console.log(`✅ Loaded saved keyboard config from ${configKey}`);
             console.log('📋 Saved config has groups:', !!savedConfig.groups, 'count:', savedConfig.groups?.length || 0);
 
-            // Ensure settings button is enabled for IssieVoice
-            savedConfig.settingsButtonEnabled = true;
-
             // Set the language in config to ensure proper rendering
             savedConfig.language = language;
 
@@ -124,87 +100,37 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
               bgColor: '#2196F3',
             };
 
-            // Add clear-all key (trash icon)
-
-
             console.log(`🔑 Creating language key for ${language} keyboard:`, languageKey);
-
-            // Determine if we're on mobile (for settings button placement)
-            const isMobileDevice = frame.width < 600;
 
             // Update all keysets to include language switch key and remove close/next-keyboard
             savedConfig.keysets = savedConfig.keysets.map((keyset: any) => ({
               ...keyset,
-              rows: keyset.rows.map((row: any, rowIndex: number) => {
-                // Check if this is the top row (for mobile settings button)
-                const isTopRow = rowIndex === 0;
-
-                // Check if this is the bottom row by looking for space key or if it's the last row with control keys
-                const hasSpaceKey = row.keys.some((k: any) => k.type === 'space' || k.value === ' ');
-                const hasControlKeys = row.keys.some((k: any) =>
-                  k.type === 'keyset' || k.type === 'next-keyboard' || k.type === 'close'
-                );
-                const isBottomRow = row.alwaysInclude || hasSpaceKey || (hasControlKeys && rowIndex === keyset.rows.length - 1);
-
-                // Always filter out unwanted keys
+              rows: keyset.rows.map((row: any) => {
                 const filteredKeys = row.keys.filter((key: any) =>
                   key.type !== 'next-keyboard' && key.type !== 'close'
                 );
 
-                // MOBILE: Add settings to top row
-                if (isMobileDevice && isTopRow) {
-                  const hasSettingsKey = row.keys.some((k: any) => k.value === settingsKey.value);
+                const hasSpaceKey = row.keys.some((k: any) => k.type === 'space' || k.value === ' ');
+                const hasControlKeys = row.keys.some((k: any) =>
+                  k.type === 'keyset' || k.type === 'next-keyboard' || k.type === 'close'
+                );
+                const isBottomRow = row.alwaysInclude || hasSpaceKey || hasControlKeys;
 
-                  if (!hasSettingsKey) {
-                    // Add spacer + settings at the end of top row
-                    return {
-                      ...row,
-                      keys: [
-                        ...filteredKeys,
-                        { hidden: true, width: 0.5 },  // Half-key spacer
-                        settingsKey
-                      ]
-                    };
-                  }
-                }
-
-                // BOTTOM ROW: Add language switch and clear-all
                 if (isBottomRow) {
-                  // Check if language key already exists
                   const hasLanguageKey = row.keys.some((k: any) => k.type === 'language');
-                  const hasClearAllKey = row.keys.some((k: any) => k.value === clearAllKey.value);
-                  const hasSettingsKey = row.keys.some((k: any) => k.value === settingsKey.value);
-
-                  if (!hasLanguageKey || !hasClearAllKey || (!hasSettingsKey && !isMobileDevice)) {
-                    // Add language key after first key
+                  if (!hasLanguageKey) {
                     const newKeys = filteredKeys.reduce((acc: any[], key: any, index: number) => {
                       acc.push(key);
-                      if (index === 0 && !hasLanguageKey) {
+                      if (index === 0) {
                         acc.push(languageKey);
                       }
                       return acc;
                     }, []);
-
-                    // Add gap + clear-all (+ settings on non-mobile) at the end
-                    if (!hasClearAllKey || (!hasSettingsKey && !isMobileDevice)) {
-                      newKeys.push({ hidden: true, width: 0.25 });
-                      if (!hasClearAllKey) {
-                        newKeys.push(clearAllKey);
-                      }
-                      // Only add settings to bottom row on non-mobile devices
-                      if (!isMobileDevice && !hasSettingsKey) {
-                        newKeys.push({ hidden: true, width: 0.1 });
-                        newKeys.push(settingsKey);
-                      }
-                    }
-
                     return { ...row, keys: newKeys };
-                  } else {
-                    // Keys exist, just use filtered keys
-                    return { ...row, keys: filteredKeys };
                   }
+                  return { ...row, keys: filteredKeys };
                 }
-                return row;
+                return { ...row, keys: filteredKeys };
               }),
             }));
 
@@ -263,69 +189,33 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
         bgColor: '#2196F3',
       };
 
-      const isMobileDevice = frame.width < 600;
-
-      // Inject IssieVoice keys (language switch, clear-all, settings) into each keyset
+      // Inject IssieVoice keys (language switch) into each keyset
       const modifiedKeysets = baseConfig.keysets.map((keyset: any) => ({
         ...keyset,
-        rows: keyset.rows.map((row: any, rowIndex: number) => {
-          const isTopRow = rowIndex === 0;
-          const hasSpaceKey = row.keys.some((k: any) => k.type === 'space' || k.value === ' ');
-          const hasControlKeys = row.keys.some((k: any) =>
-            k.type === 'keyset' || k.type === 'next-keyboard' || k.type === 'close'
-          );
-          const isBottomRow = row.alwaysInclude || hasSpaceKey || (hasControlKeys && rowIndex === keyset.rows.length - 1);
-
-          // Filter out unwanted keys
+        rows: keyset.rows.map((row: any) => {
           const filteredKeys = row.keys.filter((key: any) =>
             key.type !== 'next-keyboard' && key.type !== 'close'
           );
 
-          // MOBILE: Add settings to top row
-          if (isMobileDevice && isTopRow) {
-            const hasSettingsKey = row.keys.some((k: any) => k.value === settingsKey.value);
-            if (!hasSettingsKey) {
-              return {
-                ...row,
-                keys: [
-                  ...filteredKeys,
-                  { hidden: true, width: 0.5 },
-                  settingsKey
-                ]
-              };
-            }
-          }
+          const hasSpaceKey = row.keys.some((k: any) => k.type === 'space' || k.value === ' ');
+          const hasControlKeys = row.keys.some((k: any) =>
+            k.type === 'keyset' || k.type === 'next-keyboard' || k.type === 'close'
+          );
+          const isBottomRow = row.alwaysInclude || hasSpaceKey || hasControlKeys;
 
-          // BOTTOM ROW: Add language switch and clear-all
           if (isBottomRow) {
             const hasLanguageKey = row.keys.some((k: any) => k.type === 'language');
-            const hasClearAllKey = row.keys.some((k: any) => k.value === clearAllKey.value);
-            const hasSettingsKey = row.keys.some((k: any) => k.value === settingsKey.value);
-
-            if (!hasLanguageKey || !hasClearAllKey || (!hasSettingsKey && !isMobileDevice)) {
+            if (!hasLanguageKey) {
               const newKeys = filteredKeys.reduce((acc: any[], key: any, index: number) => {
                 acc.push(key);
-                if (index === 0 && !hasLanguageKey) {
+                if (index === 0) {
                   acc.push(languageKey);
                 }
                 return acc;
               }, []);
-
-              if (!hasClearAllKey || (!hasSettingsKey && !isMobileDevice)) {
-                newKeys.push({ hidden: true, width: 0.25 });
-                if (!hasClearAllKey) {
-                  newKeys.push(clearAllKey);
-                }
-                if (!isMobileDevice && !hasSettingsKey) {
-                  newKeys.push({ hidden: true, width: 0.1 });
-                  newKeys.push(settingsKey);
-                }
-              }
-
               return { ...row, keys: newKeys };
-            } else {
-              return { ...row, keys: filteredKeys };
             }
+            return { ...row, keys: filteredKeys };
           }
           return { ...row, keys: filteredKeys };
         }),
@@ -337,7 +227,6 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
         heightPreset: 'tall',
         fontSizePreset: 'large',
         language: language,
-        settingsButtonEnabled: true,
       };
 
       console.log('📋 Final config keysets:', issieVoiceConfig.keysets.map((k: any) => k.id));
@@ -426,20 +315,6 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
     // Handle event-type keys (custom actions that don't modify text)
     if (type === 'event') {
       console.log('📢 Event key pressed:', value);
-
-      if (value === clearAllKey.value) {
-        console.log('🗑️ Clear-all event');
-        setText('');
-        return;
-      }
-
-      if (value === settingsKey.value) {
-        console.log('⚙️ Settings event');
-        setSettingsModalVisible(true);
-        return;
-      }
-
-      // Unknown event
       console.warn('⚠️ Unknown event value:', value);
       return;
     }
@@ -652,8 +527,6 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
     navigation.navigate('KeyboardSettings', { initialLanguage: currentLanguage });
   };
 
-  const isMobile = frame.width < 600;
-  const buttonColumnWidth = isMobile ? availableHeight * .175  : availableHeight * .225;
   const suggestionsHeight = isLandscape ? availableHeight * 0.22 : availableHeight * 0.18;
   const minSymbolHeight = availableHeight * 0.4 >= 120 ? 120 : suggestionsHeight;
 
@@ -671,40 +544,54 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
           onVoiceChange={handleVoiceChange}
         />
 
-        <View>
-          <View style={{ flexDirection: "row", width: "100%", height: Math.min(availableHeight * .45, frame.height * 0.25) }}>
-            <IVButton
-              onPress={handleSpeak}
-              width={Math.min(200, frame.width * 0.25)}
-              caption={strings.actionBar.speak}
-              icon='🗣️'
-              style={{ backgroundColor: "#35C759" }}
+        {/* Header Bar */}
+        <View style={styles.headerBar}>
+          <TouchableOpacity
+            style={styles.menuButton}
+            onPress={() => setSettingsModalVisible(true)}
+            activeOpacity={0.7}>
+            <Text style={styles.menuButtonText}>☰</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Issie Voice</Text>
+        </View>
+
+        {/* Text Area with Floating Buttons */}
+        <View style={{
+          flex: 1,
+          maxHeight: Math.min(availableHeight * 0.45, frame.height * 0.25),
+        }}>
+          <View style={{ flex: 1 }}>
+            <TextDisplayArea
+              text={currentText}
+              screenWidth={frame.width}
+              speakButtonPadding={80}
             />
-
-            {/* Text Display Area - Center */}
-            <View style={{ flex: 1 }}>
-              <TextDisplayArea
-                text={currentText}
-                screenWidth={frame.width}
-              />
-            </View>
-
-            {/* Save/Load Buttons - Right Side */}
-            <View style={{ flexDirection: "column", padding: 4, width: buttonColumnWidth, height: Math.min(availableHeight * .45, frame.height * 0.25) }}>
-              <TouchableOpacity
-                style={[styles.topButton, { height: Math.min(availableHeight * .225, frame.height * 0.125), backgroundColor: colors.save }]}
-                onPress={handleSave}
-                activeOpacity={0.7}>
-                <Text style={styles.topButtonText}>💾</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.topButton, { height: Math.min(availableHeight * .225, frame.height * 0.125), backgroundColor: colors.browse }]}
-                onPress={handleBrowse}
-                activeOpacity={0.7}>
-                <Text style={styles.topButtonText}>📂</Text>
-              </TouchableOpacity>
-            </View>
           </View>
+
+          {/* Save/Browse - top right */}
+          <View style={styles.sideButtons}>
+            <TouchableOpacity
+              style={[styles.sideButton, { backgroundColor: colors.save }]}
+              onPress={handleSave}
+              activeOpacity={0.7}>
+              <Text style={styles.sideButtonText}>💾</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.sideButton, { backgroundColor: colors.browse }]}
+              onPress={handleBrowse}
+              activeOpacity={0.7}>
+              <Text style={styles.sideButtonText}>📂</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Floating Speak Button - bottom right */}
+          <TouchableOpacity
+            style={styles.speakFab}
+            onPress={handleSpeak}
+            activeOpacity={0.7}>
+            <Text style={styles.speakFabIcon}>🗣️</Text>
+            <Text style={styles.speakFabLabel}>{strings.actionBar.speak}</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Favorites Bar - Below top section, Above Keyboard */}
@@ -763,15 +650,71 @@ const styles = StyleSheet.create({
     flex: 1,
     zIndex: 10
   },
-  topButton: {
-    flex: 1,
+  headerBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: colors.background,
+  },
+  menuButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: sizes.borderRadius.small,
-    margin: 2,
   },
-  topButtonText: {
-    fontSize: 32,
+  menuButtonText: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.primary,
+    marginLeft: 12,
+  },
+  sideButtons: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    gap: 4,
+  },
+  sideButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sideButtonText: {
+    fontSize: 18,
+  },
+  speakFab: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FF9500',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  speakFabIcon: {
+    fontSize: 24,
+  },
+  speakFabLabel: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   keyboardWrapper: {
     borderRadius: 12,
@@ -780,6 +723,7 @@ const styles = StyleSheet.create({
     left: 8,
     right: 8,
     padding: 8,
+    marginHorizontal: 8,
     boxShadow: '4px 4px 20px rgba(0, 0, 0, 0.4)',
   },
   keyboard: {
