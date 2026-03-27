@@ -543,7 +543,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
         <View style={styles.headerBar}>
           <TouchableOpacity
             style={styles.menuButton}
-            onPress={() => setSettingsModalVisible(true)}
+            onPress={() => navigation.navigate('Settings', { englishVoice, hebrewVoice, initialLanguage: currentLanguage })}
             activeOpacity={0.7}>
             <Text style={styles.menuButtonText}>☰</Text>
           </TouchableOpacity>
