@@ -17,9 +17,10 @@ import { detectTextDirection } from '../../utils/textDirection';
 interface TextDisplayAreaProps {
   text: string;
   screenWidth?: number; // Optional screen width for responsive scaling
+  speakButtonPadding?: number; // Extra bottom-right padding for floating speak button
 }
 
-const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1000 }) => {
+const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1000, speakButtonPadding = 0 }) => {
   const { setText, cursorPosition, setCursorPosition, pendingSelection, clearPendingSelection } = useText();
   const { isSpeaking, spokenRange } = useTTS();
   const { strings, isRTL, language } = useLocalization();
@@ -67,7 +68,7 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1
   // Build highlighted text segments when speaking
   const renderHighlightedText = () => {
     if (!spokenRange || !text) {
-      return <Text style={[styles.highlightText, { fontSize, lineHeight }, isTextRTL && styles.textInputRTL]}>{text}</Text>;
+      return <Text style={[styles.highlightText, { fontSize, lineHeight }, isTextRTL && styles.textInputRTL, speakButtonPadding > 0 && { paddingBottom: speakButtonPadding }]}>{text}</Text>;
     }
 
     const { location, length } = spokenRange;
@@ -76,7 +77,7 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1
     const after = text.substring(location + length);
 
     return (
-      <Text style={[styles.highlightText, { fontSize, lineHeight }, isTextRTL && styles.textInputRTL]}>
+      <Text style={[styles.highlightText, { fontSize, lineHeight }, isTextRTL && styles.textInputRTL, speakButtonPadding > 0 && { paddingBottom: speakButtonPadding }]}>
         {before}
         <Text style={styles.highlightedWord}>{highlighted}</Text>
         {after}
@@ -93,6 +94,7 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1
           { fontSize, lineHeight, height: '100%' },
           isTextRTL && styles.textInputRTL,
           isSpeaking && styles.hiddenTextInput,
+          speakButtonPadding > 0 && { paddingBottom: speakButtonPadding },
         ]}
         value={text}
         onChangeText={(newText) => {
