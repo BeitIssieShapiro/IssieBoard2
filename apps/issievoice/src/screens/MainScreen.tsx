@@ -108,12 +108,12 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
               ...keyset,
               rows: keyset.rows.map((row: any) => {
                 const filteredKeys = row.keys.filter((key: any) =>
-                  key.type !== 'next-keyboard' && key.type !== 'close'
+                  key.type !== 'next-keyboard' && key.type !== 'close' && key.type !== 'settings'
                 );
 
                 const hasSpaceKey = row.keys.some((k: any) => k.type === 'space' || k.value === ' ');
                 const hasControlKeys = row.keys.some((k: any) =>
-                  k.type === 'keyset' || k.type === 'next-keyboard' || k.type === 'close'
+                  k.type === 'keyset' || k.type === 'next-keyboard' || k.type === 'close' || k.type === 'settings'
                 );
                 const isBottomRow = row.alwaysInclude || hasSpaceKey || hasControlKeys;
 
@@ -522,12 +522,6 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
     }
   };
 
-  // Handle settings button press from keyboard
-  const handleOpenSettings = () => {
-    console.log('⚙️ Settings button pressed from keyboard - opening keyboard settings');
-    navigation.navigate('KeyboardSettings', { initialLanguage: currentLanguage });
-  };
-
   const suggestionsHeight = isLandscape ? availableHeight * 0.22 : availableHeight * 0.18;
   const minSymbolHeight = availableHeight * 0.4 >= 120 ? 120 : suggestionsHeight;
 
@@ -602,7 +596,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
         {/* Favorites Bar - Below top section, Above Keyboard */}
         <FavoritesBar
           onFavoritePress={handleFavoritePress}
-          height={Math.min(availableHeight * 0.4, isLandscape ? availableHeight * 0.4 : 150)}
+          height={Math.min(availableHeight * 0.4, isLandscape ? availableHeight * 0.4 : 250)}
           navigation={navigation}
           reloadTrigger={favoritesReloadTrigger}
           screenWidth={frame.width}
@@ -630,7 +624,6 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
               text={currentText}
               onKeyPress={handleKeyPress}
               onSuggestionsChange={handleSuggestionsChange}
-              onOpenSettings={handleOpenSettings}
               onHeightChange={(e) => {
                 const newHeight = e.nativeEvent.height - 40;
                 console.log('⌨️ Keyboard reported height:', e.nativeEvent.height, '→ setting container to:', newHeight);
@@ -686,6 +679,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingLeft: 16,
     paddingRight: 16,
+    marginTop: 10,
     gap: 12,
   },
   textAreaContainer: {
