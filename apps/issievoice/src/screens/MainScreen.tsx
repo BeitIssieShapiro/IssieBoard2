@@ -18,6 +18,7 @@ import SettingsModal from '../components/SettingsModal/SettingsModal';
 import { KeyboardPreview, KeyPressEvent } from '../../../../src/components/KeyboardPreview';
 import { buildKeyboardConfig } from '../../../../src/utils/keyboardConfigMerger';
 import { colors } from '../constants';
+import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 import KeyboardPreferences from '../../../../src/native/KeyboardPreferences';
 import { symbolService } from '../services/SymbolService';
 
@@ -31,7 +32,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
   const { language: deviceLanguage, strings } = useLocalization();
   const { showNotification } = useNotification();
   const [keyboardConfig, setKeyboardConfig] = useState<string>('');
-  const [keyboardBgColor, setKeyboardBgColor] = useState<string>('#D1D1D1');
+  const [keyboardBgColor, setKeyboardBgColor] = useState<string>('#F1F2F4');
   const [kbSuggestions, setKbSuggestions] = useState<string[]>([]);
   const [symbolUrls, setSymbolUrls] = useState<Map<string, string | null>>(new Map());
   const symbolDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -159,7 +160,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
             const configString = JSON.stringify(savedConfig);
             console.log('📤 Setting keyboard config from saved profile, length:', configString.length);
             const bg = savedConfig.backgroundColor;
-            setKeyboardBgColor(!bg || bg === 'default' ? '#D1D1D1' : bg);
+            setKeyboardBgColor(!bg || bg === 'default' ? '#F1F2F4' : bg);
             setKeyboardConfig(configString);
             return;
           } catch (parseError) {
@@ -238,7 +239,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
       console.log('📤 Setting keyboard config, length:', configString.length);
 
       const bg = issieVoiceConfig.backgroundColor;
-      setKeyboardBgColor(!bg || bg === 'default' ? '#D1D1D1' : bg);
+      setKeyboardBgColor(!bg || bg === 'default' ? '#F1F2F4' : bg);
       setKeyboardConfig(configString);
     } catch (error) {
       console.error('❌ Failed to load keyboard config:', error);
@@ -555,43 +556,47 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
           <Text style={styles.headerTitle}>Issie Voice</Text>
         </View>
 
-        {/* Text Area with Floating Buttons */}
-        <View style={{
-          flex: 1,
-          maxHeight: Math.min(availableHeight * 0.45, frame.height * 0.25),
-        }}>
-          <View style={{ flex: 1 }}>
-            <TextDisplayArea
-              text={currentText}
-              screenWidth={frame.width}
-              speakButtonPadding={80}
-            />
+        {/* Text Area Row: text area + side buttons */}
+        <View style={[styles.textAreaRow, {
+          maxHeight: Math.min(availableHeight * 0.3, frame.height * 0.18),
+        }]}>
+          {/* Text Area with Floating Speak Button */}
+          <View style={styles.textAreaContainer}>
+            <View style={{ flex: 1 }}>
+              <TextDisplayArea
+                text={currentText}
+                screenWidth={frame.width}
+                speakButtonPadding={50}
+              />
+            </View>
+
+            {/* Floating Speak Button - vertically centered, right side */}
+            <View style={styles.speakFabWrapper} pointerEvents="box-none">
+              <TouchableOpacity
+                style={styles.speakFab}
+                onPress={handleSpeak}
+                activeOpacity={0.7}>
+                <MyIcon info={{ name: 'record-voice-over', type: 'MI', color: '#FFFFFF', size: 20 }} />
+                <Text style={styles.speakFabLabel}>{strings.actionBar.speak}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
-          {/* Save/Browse - top right */}
+          {/* Save/Browse buttons - to the right of text area */}
           <View style={styles.sideButtons}>
             <TouchableOpacity
-              style={[styles.sideButton, { backgroundColor: colors.save }]}
+              style={styles.sideButton}
               onPress={handleSave}
               activeOpacity={0.7}>
-              <Text style={styles.sideButtonText}>💾</Text>
+              <MyIcon info={{ name: 'save-outline', type: 'Ionicons', color: colors.primary, size: 24 }} />
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.sideButton, { backgroundColor: colors.browse }]}
+              style={styles.sideButton}
               onPress={handleBrowse}
               activeOpacity={0.7}>
-              <Text style={styles.sideButtonText}>📂</Text>
+              <MyIcon info={{ name: 'folder-open-outline', type: 'Ionicons', color: colors.primary, size: 24 }} />
             </TouchableOpacity>
           </View>
-
-          {/* Floating Speak Button - bottom right */}
-          <TouchableOpacity
-            style={styles.speakFab}
-            onPress={handleSpeak}
-            activeOpacity={0.7}>
-            <Text style={styles.speakFabIcon}>🗣️</Text>
-            <Text style={styles.speakFabLabel}>{strings.actionBar.speak}</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Favorites Bar - Below top section, Above Keyboard */}
@@ -676,44 +681,69 @@ const styles = StyleSheet.create({
     color: colors.primary,
     marginLeft: 12,
   },
+  textAreaRow: {
+    flex: 1,
+    flexDirection: 'row',
+    paddingLeft: 16,
+    paddingRight: 16,
+    gap: 12,
+  },
+  textAreaContainer: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.15)',
+  },
   sideButtons: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    gap: 4,
+    justifyContent: 'space-between',
+    gap: 6,
+    marginRight: 4,
   },
   sideButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sideButtonText: {
-    fontSize: 18,
-  },
-  speakFab: {
-    position: 'absolute',
-    bottom: 8,
-    right: 8,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#FF9500',
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  sideButtonText: {
+    fontSize: 24,
+  },
+  speakFabWrapper: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    right: 14,
+    justifyContent: 'center',
+  },
+  speakFab: {
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 6,
   },
   speakFabIcon: {
-    fontSize: 24,
+    fontSize: 18,
+    color: '#FFFFFF',
   },
   speakFabLabel: {
     color: '#FFFFFF',
-    fontSize: 10,
+    fontSize: 14,
     fontWeight: 'bold',
   },
   keyboardWrapper: {

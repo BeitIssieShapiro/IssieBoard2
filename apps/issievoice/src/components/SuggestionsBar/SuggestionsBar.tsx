@@ -62,7 +62,7 @@ const SuggestionsBar: React.FC<SuggestionsBarProps> = ({
   // At smaller widths: reduce font size proportionally
   const baseHeightFontSize = buttonHeight * 0.5; // Base size from height
   const widthScaleFactor = Math.min(1, screenWidth / 1000); // Scale down on smaller screens
-  const baseFontSize = Math.max(18, baseHeightFontSize * widthScaleFactor); // Minimum 18px
+  const baseFontSize = Math.max(16, baseHeightFontSize * widthScaleFactor * 0.9); // Minimum 16px
 
   const showSymbols = height >= 120;
   const imageSize = showSymbols ? Math.floor(buttonHeight * 0.55) : 0;
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
   },
   suggestionText: {
     color: colors.primary,
-    fontWeight: '600',
+    fontWeight: '500',
     textAlign: 'center',
   },
 });

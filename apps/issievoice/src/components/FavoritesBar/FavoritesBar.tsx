@@ -132,7 +132,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
     return text.trim().split(/\s+/)[0] || text.substring(0, 15);
   };
 
-  const addButtonHeight = isMobile ? height / 4 : height / 2;
+  const addButtonHeight = isMobile ? height / 4 : height / 3;
 
   return (
     <>
@@ -170,7 +170,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
               const caption = item.sentence.caption || getFirstWord(item.sentence.text);
               const icon = item.sentence.icon;
               const isSelected = selectedId === item.favorite.id;
-              const itemHeight = isMobile ? height / 4 : height / 2; // Subtract padding for non-mobile
+              const itemHeight = isMobile ? height / 4 : height / 3;
 
               return (
                 <View key={item.favorite.id} style={styles.favoriteWrapper}>
@@ -249,12 +249,16 @@ const styles = StyleSheet.create({
     height: 60,
     paddingHorizontal: sizes.spacing.sm,
     paddingVertical: sizes.spacing.xs,
-    borderRadius: sizes.borderRadius.large,
-    backgroundColor: colors.secondary,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
-    boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.3)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
   favoriteButtonMobile: {
     flexDirection: 'row',
@@ -276,15 +280,15 @@ const styles = StyleSheet.create({
     fontSize: 20,
   },
   favoriteCaptionWithIcon: {
-    color: '#FFFFFF',
+    color: '#111827',
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
   },
   favoriteText: {
-    color: '#FFFFFF',
+    color: '#111827',
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   addButton: {
     width: 80,

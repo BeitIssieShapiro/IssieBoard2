@@ -38,12 +38,11 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1
   const isTextRTL = textDirection === 'rtl';
 
   // Calculate font size based on screen width (scales from 1000px reference)
-  // At 1000px: fontSize = 36 (sizes.fontSize.xxlarge)
-  // Scales proportionally but never below 20px
-  const baseFontSize = sizes.fontSize.xxlarge; // ~36
+  // At 1000px: fontSize = 24, scales proportionally but never below 16px
+  const baseFontSize = 24;
   const scaleFactor = screenWidth / 1000;
-  const fontSize = Math.max(20, baseFontSize * scaleFactor);
-  const lineHeight = fontSize * 1.5;
+  const fontSize = Math.max(16, baseFontSize * scaleFactor);
+  const lineHeight = fontSize * 1.4;
 
   // Re-focus after text changes from our custom keyboard
   useEffect(() => {
@@ -144,9 +143,7 @@ const styles = StyleSheet.create({
   container: {
     paddingBottom: 4,
     width: "100%",
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    backgroundColor: '#FFFFFF',
     position: 'relative',
     justifyContent: 'flex-start',
   },
