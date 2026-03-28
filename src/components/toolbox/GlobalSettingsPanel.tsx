@@ -164,249 +164,255 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
   const showAdvanced = !section || section === 'advanced';
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.container} contentContainerStyle={[styles.content, isRTL && { direction: 'rtl' }]}>
       {showGeneral && (
         <>
           {/* Colors Section */}
           <View style={styles.settingSection}>
-        <Text allowFontScaling={false} style={styles.settingTitle}>{strings.globalSettings.colors}</Text>
+            <Text allowFontScaling={false} style={[styles.settingTitle]}>{strings.globalSettings.colors}</Text>
 
-        <View style={styles.colorsTable}>
-          {/* Header Row */}
-          <View style={styles.colorsHeaderRow}>
-            <Text allowFontScaling={false} style={styles.colorColumnHeader}>{strings.globalSettings.background}</Text>
-            <Text allowFontScaling={false} style={styles.colorColumnHeader}>{strings.globalSettings.keysBackground}</Text>
-            <Text allowFontScaling={false} style={styles.colorColumnHeader}>{strings.globalSettings.keysText}</Text>
+            <View style={styles.colorsTable}>
+              {/* Header Row */}
+              <View style={[styles.colorsHeaderRow]}>
+                <Text allowFontScaling={false} style={styles.colorColumnHeader}>{strings.globalSettings.background}</Text>
+                <Text allowFontScaling={false} style={styles.colorColumnHeader}>{strings.globalSettings.keysBackground}</Text>
+                <Text allowFontScaling={false} style={styles.colorColumnHeader}>{strings.globalSettings.keysText}</Text>
+              </View>
+
+              {/* Color Buttons Row */}
+              <View style={[styles.colorsButtonRow]}>
+                <View style={styles.colorColumn}>
+                  <CompactColorPicker
+                    title=""
+                    value={state.config.backgroundColor || ''}
+                    onChange={updateBackgroundColor}
+                    showSystemDefault
+                    systemDefaultLabel={strings.common.default}
+                  />
+                </View>
+
+                <View style={styles.colorColumn}>
+                  <CompactColorPicker
+                    title=""
+                    value={keysBgColor}
+                    onChange={updateKeysBgColor}
+                    showSystemDefault
+                    systemDefaultLabel={strings.common.default}
+                  />
+                </View>
+
+                <View style={styles.colorColumn}>
+                  <CompactColorPicker
+                    title=""
+                    value={textColor}
+                    onChange={updateTextColor}
+                    showSystemDefault
+                    systemDefaultLabel={strings.common.default}
+                  />
+                </View>
+              </View>
+            </View>
           </View>
 
-          {/* Color Buttons Row */}
-          <View style={styles.colorsButtonRow}>
-            <View style={styles.colorColumn}>
-              <CompactColorPicker
-                title=""
-                value={state.config.backgroundColor || ''}
-                onChange={updateBackgroundColor}
-                showSystemDefault
-                systemDefaultLabel={strings.common.default}
-              />
-            </View>
+          {/* 4. Font (only for Hebrew) */}
+          {isHebrewKeyboard && (
+            <ButtonGroupRow
+              isRTL={isRTL}
+              title={strings.globalSettings.font}
+              options={hebrewFontOptions.map(opt => ({
+                id: opt.id,
+                label: opt.label,
+                customStyle: opt.fontFamily ? { fontFamily: opt.fontFamily } : undefined,
+              }))}
+              selectedId={currentFontName ? 'yad' : 'system'}
+              onSelect={(id) => {
+                const option = hebrewFontOptions.find(o => o.id === id);
+                updateFontName(option?.fontFamily);
+              }}
+            />
+          )}
 
-            <View style={styles.colorColumn}>
-              <CompactColorPicker
-                title=""
-                value={keysBgColor}
-                onChange={updateKeysBgColor}
-                showSystemDefault
-                systemDefaultLabel={strings.common.default}
-              />
-            </View>
+          {/* 5. Key Gap */}
+          <ButtonGroupRow
+            isRTL={isRTL}
+            title={strings.globalSettings.keyGap}
+            options={keyGapOptions.map(opt => ({
+              id: opt.id,
+              label: opt.label,
+            }))}
+            selectedId={
+              currentKeyGap === 3 ? 'regular' :
+                currentKeyGap === 8 ? 'medium' :
+                  currentKeyGap === 16 ? 'large' :
+                    'regular'
+            }
+            onSelect={(id) => {
+              const option = keyGapOptions.find(o => o.id === id);
+              if (option) {
+                updateKeyGap(option.value);
+              }
+            }}
+          />
 
-            <View style={styles.colorColumn}>
-              <CompactColorPicker
-                title=""
-                value={textColor}
-                onChange={updateTextColor}
-                showSystemDefault
-                systemDefaultLabel={strings.common.default}
-              />
-            </View>
-          </View>
-        </View>
-      </View>
-
-      {/* 4. Font (only for Hebrew) */}
-      {isHebrewKeyboard && (
-        <ButtonGroupRow
-          title={strings.globalSettings.font}
-          options={hebrewFontOptions.map(opt => ({
-            id: opt.id,
-            label: opt.label,
-            customStyle: opt.fontFamily ? { fontFamily: opt.fontFamily } : undefined,
-          }))}
-          selectedId={currentFontName ? 'yad' : 'system'}
-          onSelect={(id) => {
-            const option = hebrewFontOptions.find(o => o.id === id);
-            updateFontName(option?.fontFamily);
-          }}
-        />
-      )}
-
-      {/* 5. Key Gap */}
-      <ButtonGroupRow
-        title={strings.globalSettings.keyGap}
-        options={keyGapOptions.map(opt => ({
-          id: opt.id,
-          label: opt.label,
-        }))}
-        selectedId={
-          currentKeyGap === 3 ? 'regular' :
-          currentKeyGap === 8 ? 'medium' :
-          currentKeyGap === 16 ? 'large' :
-          'regular'
-        }
-        onSelect={(id) => {
-          const option = keyGapOptions.find(o => o.id === id);
-          if (option) {
-            updateKeyGap(option.value);
-          }
-        }}
-      />
-
-      {/* 6. Keyboard Layout (only show if multiple variants) */}
-      {keyboardVariants && keyboardVariants.length > 1 && (
-        <ButtonGroupRow
-          title={strings.globalSettings.keyboardLayout}
-          options={keyboardVariants.map(v => ({ id: v.id, label: v.name }))}
-          selectedId={currentKeyboardId || ''}
-          onSelect={onKeyboardVariantChange!}
-        />
-      )}
+          {/* 6. Keyboard Layout (only show if multiple variants) */}
+          {keyboardVariants && keyboardVariants.length > 1 && (
+            <ButtonGroupRow
+              isRTL={isRTL}
+              title={strings.globalSettings.keyboardLayout}
+              options={keyboardVariants.map(v => ({ id: v.id, label: v.name }))}
+              selectedId={currentKeyboardId || ''}
+              onSelect={onKeyboardVariantChange!}
+            />
+          )}
         </>
       )}
 
       {/* 7. Features (Collapsible, or always-open in section mode) */}
       {showFeatures && (
-      <View style={styles.section}>
-        {!section && (
-        <TouchableOpacity
-          style={styles.advancedHeader}
-          onPress={() => setFeaturesExpanded(!featuresExpanded)}
-          activeOpacity={0.7}
-        >
-          <Text allowFontScaling={false} style={styles.advancedTitle}>
-            {strings.globalSettings.features}
-          </Text>
-          <Text allowFontScaling={false} style={styles.advancedArrow}>
-            {featuresExpanded ? '▼' : isRTL ? '◀' : '▶'}
-          </Text>
-        </TouchableOpacity>
-        )}
+        <View style={styles.section}>
+          {!section && (
+            <TouchableOpacity
+              style={styles.advancedHeader}
+              onPress={() => setFeaturesExpanded(!featuresExpanded)}
+              activeOpacity={0.7}
+            >
+              <Text allowFontScaling={false} style={styles.advancedTitle}>
+                {strings.globalSettings.features}
+              </Text>
+              <Text allowFontScaling={false} style={styles.advancedArrow}>
+                {featuresExpanded ? '▼' : isRTL ? '◀' : '▶'}
+              </Text>
+            </TouchableOpacity>
+          )}
 
-        {(section || featuresExpanded) && (
-          <View style={section ? styles.content : styles.advancedContent}>
-            <View style={styles.featureRow}>
-              <View style={styles.featureInfo}>
-                <Text allowFontScaling={false} style={styles.featureLabel}>{strings.globalSettings.wordSuggestions}</Text>
-                <Text allowFontScaling={false} style={styles.featureDescription}>
-                  {strings.globalSettings.wordSuggestionsDesc}
-                </Text>
+          {(section || featuresExpanded) && (
+            <View style={section ? styles.content : styles.advancedContent}>
+              <View style={[styles.featureRow]}>
+                <View style={[styles.featureInfo, isRTL && { marginRight: 0, marginLeft: 12 }]}>
+                  <Text allowFontScaling={false} style={[styles.featureLabel, ]}>{strings.globalSettings.wordSuggestions}</Text>
+                  <Text allowFontScaling={false} style={[styles.featureDescription, ]}>
+                    {strings.globalSettings.wordSuggestionsDesc}
+                  </Text>
+                </View>
+                <ToggleSwitch
+                  value={wordSuggestionsEnabled}
+                  onChange={updateWordSuggestions}
+                  labelOn=""
+                  labelOff=""
+                  size="medium"
+                />
               </View>
-              <ToggleSwitch
-                value={wordSuggestionsEnabled}
-                onChange={updateWordSuggestions}
-                labelOn=""
-                labelOff=""
-                size="medium"
-              />
-            </View>
-            <View style={styles.featureRow}>
-              <View style={styles.featureInfo}>
-                <Text allowFontScaling={false} style={styles.featureLabel}>{strings.globalSettings.autoCorrect}</Text>
-                <Text allowFontScaling={false} style={styles.featureDescription}>
-                  {strings.globalSettings.autoCorrectDesc}
-                </Text>
+              <View style={styles.featureRow}>
+                <View style={[styles.featureInfo, isRTL && { marginRight: 0, marginLeft: 12 }]}>
+                  <Text allowFontScaling={false} style={styles.featureLabel}>{strings.globalSettings.autoCorrect}</Text>
+                  <Text allowFontScaling={false} style={styles.featureDescription}>
+                    {strings.globalSettings.autoCorrectDesc}
+                  </Text>
+                </View>
+                <ToggleSwitch
+                  value={autoCorrectEnabled}
+                  onChange={updateAutoCorrect}
+                  labelOn=""
+                  labelOff=""
+                  size="medium"
+                  disabled={!wordSuggestionsEnabled}
+                />
               </View>
-              <ToggleSwitch
-                value={autoCorrectEnabled}
-                onChange={updateAutoCorrect}
-                labelOn=""
-                labelOff=""
-                size="medium"
-                disabled={!wordSuggestionsEnabled}
-              />
+              {appContext !== 'issievoice' && (
+                <View style={styles.featureRow}>
+                  <View style={[styles.featureInfo, isRTL && { marginRight: 0, marginLeft: 12 }]}>
+                    <Text allowFontScaling={false} style={styles.featureLabel}>{strings.globalSettings.settingsButton}</Text>
+                    <Text allowFontScaling={false} style={styles.featureDescription}>
+                      {strings.globalSettings.settingsButtonDesc}
+                    </Text>
+                  </View>
+                  <ToggleSwitch
+                    value={settingsButtonEnabled}
+                    onChange={updateSettingsButton}
+                    labelOn=""
+                    labelOff=""
+                    size="medium"
+                  />
+                </View>
+              )}
             </View>
-            {appContext !== 'issievoice' && (
-            <View style={styles.featureRow}>
-              <View style={styles.featureInfo}>
-                <Text allowFontScaling={false} style={styles.featureLabel}>{strings.globalSettings.settingsButton}</Text>
-                <Text allowFontScaling={false} style={styles.featureDescription}>
-                  {strings.globalSettings.settingsButtonDesc}
-                </Text>
-              </View>
-              <ToggleSwitch
-                value={settingsButtonEnabled}
-                onChange={updateSettingsButton}
-                labelOn=""
-                labelOff=""
-                size="medium"
-              />
-            </View>
-            )}
-          </View>
-        )}
-      </View>
+          )}
+        </View>
       )}
 
       {/* 8. Advanced Settings (Expandable, or always-open in section mode) */}
       {showAdvanced && (
-      <View style={styles.section}>
-        {!section && (
-        <TouchableOpacity
-          style={styles.advancedHeader}
-          onPress={() => setAdvancedExpanded(!advancedExpanded)}
-          activeOpacity={0.7}
-        >
-          <Text allowFontScaling={false} style={styles.advancedTitle}>
-            {strings.globalSettings.advancedSettings}
-          </Text>
-          <Text allowFontScaling={false} style={styles.advancedArrow}>
-            {advancedExpanded ? '▼' : isRTL ? '◀' : '▶'}
-          </Text>
-        </TouchableOpacity>
-        )}
+        <View style={styles.section}>
+          {!section && (
+            <TouchableOpacity
+              style={styles.advancedHeader}
+              onPress={() => setAdvancedExpanded(!advancedExpanded)}
+              activeOpacity={0.7}
+            >
+              <Text allowFontScaling={false} style={styles.advancedTitle}>
+                {strings.globalSettings.advancedSettings}
+              </Text>
+              <Text allowFontScaling={false} style={styles.advancedArrow}>
+                {advancedExpanded ? '▼' : isRTL ? '◀' : '▶'}
+              </Text>
+            </TouchableOpacity>
+          )}
 
-        {(section || advancedExpanded) && (
-          <View style={section ? styles.content : styles.advancedContent}>
-            {/* Height Preset */}
-            <View style={styles.section}>
-              <ButtonGroupRow
-                title={strings.globalSettings.keyboardHeight}
-                options={heightPresetOptions.map(opt => ({
-                  id: opt.id,
-                  label: opt.label,
-                }))}
-                selectedId={currentHeightPreset}
-                onSelect={(id) => {
-                  updateHeightPreset(id);
-                }}
-              />
-            </View>
+          {(section || advancedExpanded) && (
+            <View style={section ? styles.content : styles.advancedContent}>
+              {/* Height Preset */}
+              <View style={styles.section}>
+                <ButtonGroupRow
+                  isRTL={isRTL}
+                  title={strings.globalSettings.keyboardHeight}
+                  options={heightPresetOptions.map(opt => ({
+                    id: opt.id,
+                    label: opt.label,
+                  }))}
+                  selectedId={currentHeightPreset}
+                  onSelect={(id) => {
+                    updateHeightPreset(id);
+                  }}
+                />
+              </View>
 
-            {/* Font Size Preset */}
-            <View style={styles.section}>
-              <ButtonGroupRow
-                title={strings.globalSettings.fontSize}
-                options={fontSizePresetOptions.map(opt => ({
-                  id: opt.id,
-                  label: opt.label,
-                }))}
-                selectedId={currentFontSizePreset}
-                onSelect={(id) => {
-                  updateFontSizePreset(id);
-                }}
-              />
-            </View>
+              {/* Font Size Preset */}
+              <View style={styles.section}>
+                <ButtonGroupRow
+                  isRTL={isRTL}
+                  title={strings.globalSettings.fontSize}
+                  options={fontSizePresetOptions.map(opt => ({
+                    id: opt.id,
+                    label: opt.label,
+                  }))}
+                  selectedId={currentFontSizePreset}
+                  onSelect={(id) => {
+                    updateFontSizePreset(id);
+                  }}
+                />
+              </View>
 
-            {/* Font Weight */}
-            <View style={styles.section}>
-              <ButtonGroupRow
-                title={strings.globalSettings.fontWeight}
-                options={fontWeightOptions.map(opt => ({
-                  id: opt.id,
-                  label: opt.label,
-                }))}
-                selectedId={fontWeightOptions.find(opt => opt.value === currentFontWeight)?.id || 'bold'}
-                onSelect={(id) => {
-                  const option = fontWeightOptions.find(o => o.id === id);
-                  if (option) {
-                    updateFontWeight(option.value);
-                  }
-                }}
-              />
+              {/* Font Weight */}
+              <View style={styles.section}>
+                <ButtonGroupRow
+                  isRTL={isRTL}
+                  title={strings.globalSettings.fontWeight}
+                  options={fontWeightOptions.map(opt => ({
+                    id: opt.id,
+                    label: opt.label,
+                  }))}
+                  selectedId={fontWeightOptions.find(opt => opt.value === currentFontWeight)?.id || 'bold'}
+                  onSelect={(id) => {
+                    const option = fontWeightOptions.find(o => o.id === id);
+                    if (option) {
+                      updateFontWeight(option.value);
+                    }
+                  }}
+                />
+              </View>
             </View>
-          </View>
-        )}
-      </View>
+          )}
+        </View>
       )}
     </ScrollView>
   );
@@ -453,6 +459,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
     marginBottom: 12,
+    textAlign: 'left'
   },
   section: {
     marginBottom: 0,
@@ -466,19 +473,21 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 10,
   },
-  featureInfo: { 
-    flex: 1, 
+  featureInfo: {
+    flex: 1,
     marginRight: 12,
   },
-  featureLabel: { 
-    fontSize: 15, 
-    fontWeight: '500', 
+  featureLabel: {
+    fontSize: 15,
+    fontWeight: '500',
     color: '#333',
+    textAlign:'left'
   },
   featureDescription: {
     fontSize: 12,
     color: '#666',
     marginTop: 4,
+    textAlign: 'left'
   },
   advancedHeader: {
     flexDirection: 'row',

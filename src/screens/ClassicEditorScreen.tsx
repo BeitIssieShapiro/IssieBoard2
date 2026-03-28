@@ -30,7 +30,7 @@ import { buildKeyboardConfig, SourceKeyboard, transformConfigForPreview } from '
 import enRules from '../../assets/predefined-rules/en.json';
 import heRules from '../../assets/predefined-rules/he.json';
 import arRules from '../../assets/predefined-rules/ar.json';
-import { BUILT_IN_PROFILES, isBuiltInProfileId, extractTemplateId, getBuiltInProfileTemplate } from '../data/builtInProfiles';
+import { BUILT_IN_PROFILES, isBuiltInProfileId, extractTemplateId, getBuiltInProfileTemplate, getLocalizedProfileName } from '../data/builtInProfiles';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalization } from '../localization';
 import { AboutScreen } from '../components/AboutScreen';
@@ -226,7 +226,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
       const profileId = `${currentLanguage}-${template.id}`;
       profiles.push({
         id: profileId,
-        name: template.name,
+        name: getLocalizedProfileName(template.id, currentLanguage),
         isBuiltIn: true,
         isActive: profileId === activeId,
       });
@@ -271,7 +271,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
         const keyboardId = currentLanguage === 'he' ? 'he' : currentLanguage;
         newProfileDef = {
           id: profileId,
-          name: template.name,
+          name: getLocalizedProfileName(templateId!, currentLanguage),
           version: '1.0.0',
           language: currentLanguage,
           keyboardId,
@@ -802,7 +802,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
             if (template) {
               resetDef = {
                 id: profileDef.id,
-                name: template.name,
+                name: getLocalizedProfileName(templateId!, currentLanguage),
                 version: '1.0.0',
                 language: currentLanguage,
                 keyboardId,

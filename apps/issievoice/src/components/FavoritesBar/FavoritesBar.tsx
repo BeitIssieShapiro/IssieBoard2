@@ -17,9 +17,10 @@ interface FavoritesBarProps {
   onEditModeChange?: (isEditMode: boolean) => void;
   reloadTrigger?: number;
   screenWidth?: number;
+  isRTL?: boolean;
 }
 
-const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, navigation, onEditModeChange, reloadTrigger, screenWidth = 1000 }) => {
+const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, navigation, onEditModeChange, reloadTrigger, screenWidth = 1000, isRTL = false }) => {
   const [favorites, setFavorites] = useState<{ favorite: Favorite; sentence: SavedSentence }[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const { strings } = useLocalization();
@@ -165,7 +166,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
         )}
 
         <View style={styles.innerContainer}>
-          <View style={styles.favoritesGrid}>
+          <View style={[styles.favoritesGrid, isRTL && { flexDirection: 'row-reverse' }]}>
             {favorites.map((item) => {
               const caption = item.sentence.caption || getFirstWord(item.sentence.text);
               const icon = item.sentence.icon;
@@ -173,7 +174,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
               const itemHeight = isMobile ? height / 4 : height / 3;
 
               return (
-                <View key={item.favorite.id} style={styles.favoriteWrapper}>
+                <View key={item.favorite.id} style={[styles.favoriteWrapper, isRTL && { marginRight: 0, marginLeft: sizes.spacing.sm }]}>
                   <TouchableOpacity
                     style={[
                       styles.favoriteButton,
@@ -196,7 +197,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
             })}
 
             {/* Add button */}
-            <View style={styles.favoriteWrapper}>
+            <View style={[styles.favoriteWrapper, isRTL && { marginRight: 0, marginLeft: sizes.spacing.sm }]}>
               <TouchableOpacity
                 style={[styles.addButton, { height: addButtonHeight }]}
                 onPress={handleAddPress}

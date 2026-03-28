@@ -76,7 +76,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
   appContext,
 }) => {
   const { state, clearSelection } = useEditor();
-  const { strings } = useLocalization();
+  const { strings, isRTL } = useLocalization();
   const [showStyleRuleModal, setShowStyleRuleModal] = useState(false);
   const [showTemplatesModal, setShowTemplatesModal] = useState(false);
   const [editingGroup, setEditingGroup] = useState<StyleGroup | null>(null);
@@ -215,7 +215,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
         case 'keys-groups':
           return (
             <>
-              <View style={styles.keysGroupsActions}>
+              <View style={[styles.keysGroupsActions, isRTL && { flexDirection: 'row-reverse' }]}>
                 <TouchableOpacity
                   style={styles.subtleButton}
                   onPress={() => setShowTemplatesModal(true)}
@@ -274,7 +274,9 @@ export const Toolbox: React.FC<ToolboxProps> = ({
 
     return (
       <ScrollView style={[styles.container, { backgroundColor: 'transparent' }]}>
+        <View style={isRTL ? { direction: 'rtl' } : undefined}>
         {renderSectionContent()}
+        </View>
 
         {/* Presets Browser Modal (needed for keys-groups) */}
         <Modal
@@ -339,7 +341,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, isRTL && { direction: 'rtl' }]}>
       <AccordionSection id="settings" title={`🎨 ${strings.toolbox.generalAppearance}`}>
         <GlobalSettingsPanel
           keyboardVariants={keyboardVariants}

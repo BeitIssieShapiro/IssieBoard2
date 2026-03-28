@@ -127,10 +127,10 @@ export const StyleRulesPanel: React.FC<StyleRulesPanelProps> = ({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container]}>
       {state.styleGroups.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text allowFontScaling={false} style={styles.emptyText}>
+        <View style={[styles.emptyContainer]}>
+          <Text allowFontScaling={false} style={[styles.emptyText]}>
             {strings.styleRules.noGroupsHint}
           </Text>
         </View>
@@ -142,7 +142,7 @@ export const StyleRulesPanel: React.FC<StyleRulesPanelProps> = ({
             return (
               <View
                 key={group.id}
-                style={styles.groupRow}
+                style={[styles.groupRow]}
               >
                 {/* Enable/Disable Switch */}
                 <Switch
@@ -207,6 +207,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#999',
     fontStyle: 'italic',
+    textAlign: 'left'
   },
   // Thin row layout - everything on one line
   groupRow: {
@@ -223,6 +224,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
     flex: 1,
+    textAlign: 'left'
   },
   groupNameInactive: {
     color: '#999',

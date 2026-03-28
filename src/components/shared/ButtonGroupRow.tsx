@@ -12,6 +12,7 @@ interface ButtonGroupRowProps {
   options: ButtonOption[];
   selectedId: string;
   onSelect: (id: string) => void;
+  isRTL?: boolean;
 }
 
 /**
@@ -24,12 +25,13 @@ export const ButtonGroupRow: React.FC<ButtonGroupRowProps> = ({
   options,
   selectedId,
   onSelect,
+  isRTL,
 }) => {
   const { width } = useWindowDimensions();
   const isSmallScreen = width < 700;
 
   return (
-    <View style={[styles.container, isSmallScreen && styles.containerSmall]}>
+    <View style={[styles.container, isSmallScreen && styles.containerSmall, isRTL && { direction: 'rtl' }]}>
       <Text allowFontScaling={false} style={styles.title}>{title}</Text>
       <View style={styles.buttonGroup}>
         {options.map(option => (
@@ -82,15 +84,15 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 4,
     gap: 4,
-    flexWrap: 'wrap', // Allow buttons to wrap to next line if needed
+    flexWrap: 'wrap',
   },
   button: {
-    paddingHorizontal: 12,  // Reduced from 16
+    paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 60,  // Reduced from 80 to fit more buttons
+    minWidth: 60,
   },
   buttonActive: {
     backgroundColor: '#3B82F6',

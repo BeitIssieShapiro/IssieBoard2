@@ -65,6 +65,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
   // Determine if landscape or portrait
   const isLandscape = frame.width > frame.height;
   const isPhoneLandscape = isLandscape && Math.min(frame.width, frame.height) < 600;
+  const isRTL = currentLanguage === 'he';
 
   // Function to load keyboard configuration for a specific language
   const loadKeyboardConfig = async (language: string) => {
@@ -495,20 +496,20 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         {/* Header Bar */}
-        <View style={styles.headerBar}>
+        <View style={[styles.headerBar, isRTL && { flexDirection: 'row-reverse' }]}>
           <TouchableOpacity
             style={styles.menuButton}
             onPress={() => navigation.navigate('Settings', { initialLanguage: currentLanguage })}
             activeOpacity={0.7}>
             <Text style={styles.menuButtonText}>☰</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Issie Voice</Text>
+          <Text style={[styles.headerTitle, isRTL && { marginLeft: 0, marginRight: 12 }]}>Issie Voice</Text>
         </View>
 
         {/* Text Area Row: text area + side buttons */}
         <View style={[styles.textAreaRow, {
           maxHeight: Math.min(availableHeight * 0.3, frame.height * 0.18),
-        }]}>
+        }, isRTL && { flexDirection: 'row-reverse' }]}>
           {/* Text Area with Floating Speak Button */}
           <View style={styles.textAreaContainer}>
             <View style={{ flex: 1 }}>
@@ -519,10 +520,10 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
               />
             </View>
 
-            {/* Floating Speak Button - vertically centered, right side */}
-            <View style={styles.speakFabWrapper} pointerEvents="box-none">
+            {/* Floating Speak Button - vertically centered */}
+            <View style={[styles.speakFabWrapper, isRTL && { right: undefined, left: 14 }]} pointerEvents="box-none">
               <TouchableOpacity
-                style={styles.speakFab}
+                style={[styles.speakFab, isRTL && { flexDirection: 'row-reverse' }]}
                 onPress={handleSpeak}
                 activeOpacity={0.7}>
                 <MyIcon info={{ name: 'record-voice-over', type: 'MI', color: '#FFFFFF', size: 20 }} />
@@ -556,6 +557,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
             navigation={navigation}
             reloadTrigger={favoritesReloadTrigger}
             screenWidth={frame.width}
+            isRTL={isRTL}
           />
         )}
 

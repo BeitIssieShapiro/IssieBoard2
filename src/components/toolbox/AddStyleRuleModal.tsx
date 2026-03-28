@@ -421,6 +421,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
             {/* Visibility Mode */}
             <View>
               <ButtonGroupRow
+                isRTL={isRTL}
                 title={strings.styleRuleModal.visibility}
                 options={[
                   { id: 'default', label: strings.styleRuleModal.visibilityDefault },

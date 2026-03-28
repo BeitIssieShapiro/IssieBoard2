@@ -268,6 +268,11 @@ export interface Strings {
     editorHelpText: string;
     aboutProfiles: string;
     helpText: string;
+    builtInNames: {
+      default: string;
+      classic: string;
+      highContrast: string;
+    };
   };
   status: {
     initializing: string;
@@ -569,6 +574,11 @@ const en: Strings = {
     editorHelpText: 'You can manually edit the JSON below if needed. Changes will override the configuration.',
     aboutProfiles: 'About Keyboards',
     helpText: '• Keyboards combine key layouts with styling\n• Switch keyboards to change layouts and themes\n• Edit keyboards/ folder to add new languages\n• Edit profiles/ folder to create custom themes\n• See keyboards/README.md for details',
+    builtInNames: {
+      default: 'Default',
+      classic: 'IssieBoard Classic',
+      highContrast: 'High Contrast',
+    },
   },
   status: {
     initializing: 'Initializing...',
@@ -870,6 +880,11 @@ const he: Strings = {
     editorHelpText: 'ניתן לערוך את ה-JSON למטה במידת הצורך. השינויים ידרסו את ההגדרות.',
     aboutProfiles: 'אודות מקלדות',
     helpText: '• מקלדות משלבות פריסת מקשים עם עיצוב\n• החלף מקלדות לשינוי פריסה וערכות נושא\n• ערוך תיקיית keyboards/ להוספת שפות\n• ערוך תיקיית profiles/ ליצירת ערכות נושא\n• ראה keyboards/README.md לפרטים',
+    builtInNames: {
+      default: 'ברירת מחדל',
+      classic: 'IssieBoard קלאסי',
+      highContrast: 'ניגודיות גבוהה',
+    },
   },
   status: {
     initializing: 'מאתחל...',
@@ -1171,6 +1186,11 @@ const ar: Strings = {
     editorHelpText: 'يمكنك تحرير JSON أدناه إذا لزم الأمر. ستتجاوز التغييرات الإعدادات.',
     aboutProfiles: 'حول لوحات المفاتيح',
     helpText: '• لوحات المفاتيح تجمع بين تخطيط المفاتيح والتصميم\n• بدّل لوحات المفاتيح لتغيير التخطيط والسمات\n• حرر مجلد keyboards/ لإضافة لغات\n• حرر مجلد profiles/ لإنشاء سمات مخصصة\n• انظر keyboards/README.md للتفاصيل',
+    builtInNames: {
+      default: 'افتراضي',
+      classic: 'IssieBoard كلاسيكي',
+      highContrast: 'تباين عالٍ',
+    },
   },
   status: {
     initializing: 'جارٍ التهيئة...',

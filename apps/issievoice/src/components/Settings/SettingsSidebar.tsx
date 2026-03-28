@@ -3,6 +3,7 @@ import {View, Text, TouchableOpacity, StyleSheet, useWindowDimensions} from 'rea
 import {colors} from '../../constants';
 import {MyIcon, IconType} from '@beitissieshapiro/issie-shared/dist/icons';
 import {cardShadow, subtleShadow} from '../../../../../src/styles/shadows';
+import {useLocalization} from '../../context/LocalizationContext';
 
 export interface SettingsSidebarProps {
   activeTab: string;
@@ -24,23 +25,23 @@ interface TabDef {
   iconColor: string; // accent color for inactive state
 }
 
-const KEYBOARD_CHILDREN: TabDef[] = [
-  {id: 'general', label: 'General', iconName: 'settings-outline', iconType: 'Ionicons', iconColor: colors.primary},
-  {id: 'keys-groups', label: 'Keys Groups', iconName: 'color-palette-outline', iconType: 'Ionicons', iconColor: '#7C3AED'},
-  {id: 'nikkud', label: 'Nikkud', iconText: '\u25CC\u05B8', iconColor: '#059669'},
-  {id: 'features', label: 'Features', iconName: 'toggle-outline', iconType: 'Ionicons', iconColor: '#0891B2'},
-  {id: 'advanced', label: 'Advanced', iconName: 'cog-outline', iconType: 'Ionicons', iconColor: '#6B7280'},
+const getKeyboardChildren = (tabLabels: { general: string; keysGroups: string; nikkud: string; features: string; advanced: string }): TabDef[] => [
+  {id: 'general', label: tabLabels.general, iconName: 'settings-outline', iconType: 'Ionicons', iconColor: colors.primary},
+  {id: 'keys-groups', label: tabLabels.keysGroups, iconName: 'color-palette-outline', iconType: 'Ionicons', iconColor: '#7C3AED'},
+  {id: 'nikkud', label: tabLabels.nikkud, iconText: '\u25CC\u05B8', iconColor: '#059669'},
+  {id: 'features', label: tabLabels.features, iconName: 'toggle-outline', iconType: 'Ionicons', iconColor: '#0891B2'},
+  {id: 'advanced', label: tabLabels.advanced, iconName: 'cog-outline', iconType: 'Ionicons', iconColor: '#6B7280'},
 ];
 
-const VOICE_TAB: TabDef = {
+const getVoiceTab = (label: string): TabDef => ({
   id: 'voice',
-  label: 'Voice',
+  label,
   iconName: 'volume-high-outline',
   iconType: 'Ionicons',
   iconColor: '#D97706',
-};
+});
 
-const KEYBOARD_CHILD_IDS: string[] = KEYBOARD_CHILDREN.map(t => t.id);
+const KEYBOARD_CHILD_IDS: string[] = ['general', 'keys-groups', 'nikkud', 'features', 'advanced'];
 
 const isKeyboardTab = (tabId: string): boolean =>
   KEYBOARD_CHILD_IDS.includes(tabId);
@@ -57,13 +58,16 @@ const TabItem: React.FC<{
   compact?: boolean;
   extraCompact?: boolean;
   hideLabel?: boolean;
-}> = ({tab, isActive, onPress, indented, disabled, compact, extraCompact, hideLabel}) => (
+  isRTL?: boolean;
+}> = ({tab, isActive, onPress, indented, disabled, compact, extraCompact, hideLabel, isRTL}) => (
   <TouchableOpacity
     style={[
       styles.sidebarCard,
       compact && styles.sidebarCardCompact,
       extraCompact && styles.sidebarCardExtraCompact,
       indented && (extraCompact ? styles.sidebarCardIndentedExtraCompact : compact ? styles.sidebarCardIndentedCompact : styles.sidebarCardIndented),
+      isRTL && indented && (extraCompact ? styles.sidebarCardIndentedExtraCompactRTL : compact ? styles.sidebarCardIndentedCompactRTL : styles.sidebarCardIndentedRTL),
+      isRTL && { flexDirection: 'row-reverse' },
       isActive && styles.sidebarCardActive,
       disabled && { opacity: 0.35 },
     ]}
@@ -113,16 +117,21 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   const {width: screenWidth, height: screenHeight} = useWindowDimensions();
   const shortSide = Math.min(screenWidth, screenHeight);
   const isPhone = shortSide < 600;
-  // Voice mode on phone has more tabs — needs icon-only sidebar
+  // Voice mode on phone has more tabs — needs extra compact sidebar
   const isPhoneVoice = isPhone && !keyboardOnly;
+
+  const {strings, isRTL} = useLocalization();
+  const tabLabels = strings.settings.tabs;
+  const KEYBOARD_CHILDREN = getKeyboardChildren(tabLabels);
+  const VOICE_TAB = getVoiceTab(tabLabels.voice);
 
   if (isLandscape) {
     return (
-      <View style={[styles.sidebar, isPhoneVoice ? styles.sidebarExtraCompact : isPhone && styles.sidebarCompact]}>
+      <View style={[styles.sidebar, isPhoneVoice ? styles.sidebarExtraCompact : isPhone && styles.sidebarCompact, isRTL && { alignItems: 'stretch' }, isRTL && { marginLeft: 0, marginRight: 12 }]}>
         {/* Keyboard group header — only in voice mode */}
         {!keyboardOnly && (
           <TouchableOpacity
-            style={[styles.groupHeader, isPhoneVoice ? styles.groupHeaderExtraCompact : isPhone && styles.groupHeaderCompact]}
+            style={[styles.groupHeader, isPhoneVoice ? styles.groupHeaderExtraCompact : isPhone && styles.groupHeaderCompact, isRTL && { flexDirection: 'row-reverse' }]}
             onPress={() => onTabChange('general')}
             activeOpacity={0.7}>
             <View style={[isPhoneVoice ? styles.iconCircleExtraCompact : isPhone ? styles.iconCircleCompact : styles.iconCircle, {backgroundColor: colors.primary + '18'}]}>
@@ -135,7 +144,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                 }}
               />
             </View>
-            <Text style={[styles.groupHeaderText, isPhoneVoice ? styles.groupHeaderTextExtraCompact : isPhone && styles.groupHeaderTextCompact]}>Keyboard</Text>
+            <Text style={[styles.groupHeaderText, isPhoneVoice ? styles.groupHeaderTextExtraCompact : isPhone && styles.groupHeaderTextCompact]}>{tabLabels.keyboard}</Text>
           </TouchableOpacity>
         )}
 
@@ -150,6 +159,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
             disabled={disabledTabs?.includes(tab.id)}
             compact={isPhone}
             extraCompact={isPhoneVoice}
+            isRTL={isRTL}
           />
         ))}
 
@@ -163,6 +173,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
               onPress={() => onTabChange(VOICE_TAB.id)}
               compact={isPhone}
               extraCompact={isPhoneVoice}
+              isRTL={isRTL}
             />
           </>
         )}
@@ -175,7 +186,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
     // Keyboard-only: single row of tabs (no two-level nesting)
     return (
       <View style={styles.tabsContainer}>
-        <View style={styles.subTabRow}>
+        <View style={[styles.subTabRow, isRTL && { flexDirection: 'row-reverse' }]}>
           {KEYBOARD_CHILDREN.map(tab => {
             const isActive = activeTab === tab.id;
             const isDisabled = disabledTabs?.includes(tab.id);
@@ -231,9 +242,9 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   return (
     <View style={styles.tabsContainer}>
       {/* Level 1: Keyboard | Voice */}
-      <View style={styles.tabRow}>
+      <View style={[styles.tabRow, isRTL && { flexDirection: 'row-reverse' }]}>
         <TouchableOpacity
-          style={[styles.tab, keyboardActive && styles.tabActive]}
+          style={[styles.tab, keyboardActive && styles.tabActive, isRTL && { flexDirection: 'row-reverse' }]}
           onPress={() => {
             if (!keyboardActive) {
               onTabChange('general');
@@ -255,12 +266,12 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
             />
           </View>
           <Text style={[styles.tabText, keyboardActive && styles.tabTextActive]}>
-            Keyboard
+            {tabLabels.keyboard}
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'voice' && styles.tabActive]}
+          style={[styles.tab, activeTab === 'voice' && styles.tabActive, isRTL && { flexDirection: 'row-reverse' }]}
           onPress={() => onTabChange('voice')}
           activeOpacity={0.7}>
           <View
@@ -282,14 +293,14 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
               styles.tabText,
               activeTab === 'voice' && styles.tabTextActive,
             ]}>
-            Voice
+            {tabLabels.voice}
           </Text>
         </TouchableOpacity>
       </View>
 
       {/* Level 2: sub-tabs (only when Keyboard is active) */}
       {keyboardActive && (
-        <View style={styles.subTabRow}>
+        <View style={[styles.subTabRow, isRTL && { flexDirection: 'row-reverse' }]}>
           {KEYBOARD_CHILDREN.map(tab => {
             const isActive = activeTab === tab.id;
             const isDisabled = disabledTabs?.includes(tab.id);
@@ -422,11 +433,23 @@ const styles = StyleSheet.create({
   sidebarCardIndented: {
     marginLeft: 28,
   },
+  sidebarCardIndentedRTL: {
+    marginLeft: 0,
+    marginRight: 28,
+  },
   sidebarCardIndentedCompact: {
     marginLeft: 20,
   },
+  sidebarCardIndentedCompactRTL: {
+    marginLeft: 0,
+    marginRight: 20,
+  },
   sidebarCardIndentedExtraCompact: {
     marginLeft: 12,
+  },
+  sidebarCardIndentedExtraCompactRTL: {
+    marginLeft: 0,
+    marginRight: 12,
   },
   sidebarCardActive: {
     backgroundColor: colors.primary,

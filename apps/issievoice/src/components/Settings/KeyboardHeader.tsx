@@ -9,6 +9,7 @@ import {
 import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 import { colors } from '../../constants';
 import { cardShadow } from '../../../../../src/styles/shadows';
+import { getStrings } from '../../../../../src/localization/strings';
 
 export interface KeyboardHeaderProps {
   currentLanguage: 'en' | 'he' | 'ar';
@@ -44,9 +45,11 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
   const isPhone = shortSide < 500;
   const isPortrait = height > width;
   const twoRows = isPhone && isPortrait;
+  const isRTL = currentLanguage === 'he' || currentLanguage === 'ar';
+  const strings = getStrings(currentLanguage);
 
   return (
-    <View style={[styles.container, twoRows && styles.containerTwoRows]}>
+    <View style={[styles.container, twoRows && styles.containerTwoRows, isRTL && { direction: 'rtl' }]}>
       {/* Row 1 (or inline): Language toggle pills */}
       <View style={[styles.languageTabs, twoRows && styles.languageTabsCentered]}>
         {LANGUAGES.map(lang => {
@@ -84,11 +87,11 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
       {/* Row 2 (or inline): Profile + Save */}
       <View style={[styles.row2, twoRows && styles.row2TwoRows]}>
         <TouchableOpacity
-          style={styles.profileButton}
+          style={[styles.profileButton]}
           onPress={onProfilePress}
           activeOpacity={0.7}>
           <MyIcon info={{ name: 'keyboard-settings-outline', type: 'MDI', color: colors.primary, size: 18 }} />
-          <Text style={styles.profileName} numberOfLines={1} ellipsizeMode="tail">
+          <Text allowFontScaling={false} style={[styles.profileName]} numberOfLines={1} ellipsizeMode="tail">
             {profileName}
           </Text>
           <MyIcon info={{ name: 'chevron-down', type: 'Ionicons', color: colors.textLight, size: 16 }} />
@@ -108,7 +111,7 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
                 size: 18,
               }}
             />
-            <Text style={[styles.saveText, !isDirty && styles.saveTextDisabled]}>Save</Text>
+            <Text style={[styles.saveText, !isDirty && styles.saveTextDisabled]}>{strings.common.save}</Text>
           </TouchableOpacity>
 
           {onSaveAs && (
@@ -116,7 +119,7 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
               style={styles.saveAsButton}
               onPress={onSaveAs}
               activeOpacity={0.7}>
-              <Text style={styles.saveAsText}>Save As</Text>
+              <Text style={styles.saveAsText}>{strings.editor.saveAs}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -220,6 +223,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.text,
     flex: 1,
+    textAlign: 'left'
   },
   actions: {
     flexDirection: 'row',

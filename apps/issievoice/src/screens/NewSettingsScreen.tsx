@@ -9,11 +9,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../constants';
+import { useLocalization } from '../context/LocalizationContext';
 import SettingsSidebar from '../components/Settings/SettingsSidebar';
 import KeyboardHeader from '../components/Settings/KeyboardHeader';
 import VoiceSettingsPanel from '../components/Settings/VoiceSettingsPanel';
 import { EditorScreen } from '../../../../src/screens/EditorScreen';
-import { LocalizationProvider as EditorLocalizationProvider } from '../../../../src/localization';
+import { LocalizationProvider as EditorLocalizationProvider, useLocalization as useEditorLocalization } from '../../../../src/localization';
 import { getStrings as getEditorStrings } from '../../../../src/localization/strings';
 import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 import KeyboardPreferences from '../../../../src/native/KeyboardPreferences';
@@ -23,6 +24,15 @@ import { cardShadow } from '../../../../src/styles/shadows';
 import { useKeyboardSetupStatus } from '../../../../src/hooks/useKeyboardSetupStatus';
 
 const KEYBOARD_TABS = ['general', 'keys-groups', 'nikkud', 'features', 'advanced'];
+
+/** Syncs the editor's LocalizationProvider language with the keyboard language */
+const EditorLanguageSync: React.FC<{ language: 'en' | 'he' | 'ar'; children: React.ReactNode }> = ({ language, children }) => {
+  const { changeLanguage } = useEditorLocalization();
+  useEffect(() => {
+    changeLanguage(language);
+  }, [language, changeLanguage]);
+  return <>{children}</>;
+};
 
 interface NewSettingsScreenProps {
   navigation?: any;
@@ -41,6 +51,7 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
   const canGoBack = !!navigation?.goBack;
   const [activeTab, setActiveTab] = useState<string>('general');
   const [showAbout, setShowAbout] = useState(false);
+  const { strings: voiceStrings } = useLocalization();
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
 
@@ -48,7 +59,8 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
   const [kbLanguage, setKbLanguage] = useState<'en' | 'he' | 'ar'>(
     initialLangProp || route?.params?.initialLanguage || 'he'
   );
-  const [profileName, setProfileName] = useState<string>('Default');
+  const isSettingsRTL = kbLanguage === 'he' || kbLanguage === 'ar';
+  const [profileName, setProfileName] = useState<string>('');
   const [isDirty, setIsDirty] = useState(false);
   const showProfilePickerRef = useRef<(() => void) | null>(null);
   const changeLanguageRef = useRef<((lang: 'en' | 'he' | 'ar') => void) | null>(null);
@@ -177,17 +189,19 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
           onFullAccessBadgePress={handleFullAccessBadgePress}
         />
         <EditorLocalizationProvider>
-          <EditorScreen
-            appContext={resolvedContext}
-            initialLanguage={kbLanguage}
-            onClose={canGoBack ? () => navigation.goBack() : undefined}
-            onStateChange={handleEditorStateChange}
-            showProfilePickerRef={showProfilePickerRef}
-            changeLanguageRef={changeLanguageRef}
-            headless
-            activeTab={activeTab}
-            saveRef={saveRef}
-          />
+          <EditorLanguageSync language={kbLanguage}>
+            <EditorScreen
+              appContext={resolvedContext}
+              initialLanguage={kbLanguage}
+              onClose={canGoBack ? () => navigation.goBack() : undefined}
+              onStateChange={handleEditorStateChange}
+              showProfilePickerRef={showProfilePickerRef}
+              changeLanguageRef={changeLanguageRef}
+              headless
+              activeTab={activeTab}
+              saveRef={saveRef}
+            />
+          </EditorLanguageSync>
         </EditorLocalizationProvider>
       </View>
     );
@@ -196,16 +210,16 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
   return (
     <SafeAreaView style={styles.container}>
       {/* Header Bar */}
-      <View style={styles.header}>
+      <View style={[styles.header, isSettingsRTL && { flexDirection: 'row-reverse' }]}>
         {canGoBack ? (
           <TouchableOpacity
             style={styles.backButton}
             onPress={handleGoBack}
             activeOpacity={0.7}>
-            <MyIcon info={{ name: 'arrow-back', type: 'Ionicons', color: '#FFFFFF', size: 20 }} />
+            <MyIcon info={{ name: isSettingsRTL ? 'arrow-forward' : 'arrow-back', type: 'Ionicons', color: '#FFFFFF', size: 20 }} />
           </TouchableOpacity>
         ) : null}
-        <Text style={styles.headerTitle}>{isKeyboardOnly ? 'Issie Board' : 'Issie Voice Settings'}</Text>
+        <Text style={[styles.headerTitle, isSettingsRTL && { marginLeft: 0, marginRight: 8 }]}>{isKeyboardOnly ? 'Issie Board' : voiceStrings.settings.settingsTitle}</Text>
         <View style={{ flex: 1 }} />
         {onSwitchToClassic && (
           <TouchableOpacity
@@ -227,7 +241,7 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
       {/* Main Content */}
       <View style={styles.mainContent}>
         {isLandscape ? (
-          <View style={styles.landscapeLayout}>
+          <View style={[styles.landscapeLayout, isSettingsRTL && { flexDirection: 'row-reverse' }]}>
             <SettingsSidebar
               activeTab={activeTab}
               onTabChange={handleTabChange}

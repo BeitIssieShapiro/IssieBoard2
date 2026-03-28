@@ -25,6 +25,7 @@ import { KeyboardConfig, ProfileDefinition, KeyboardDefinition, VisibilityMode }
 import AddProfileModal from '../../components/AddProfileModal';
 import SaveAsModal from '../../components/SaveAsModal';
 import { ActionButton } from '../components/shared/ActionButton';
+import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 import { useLocalization } from '../localization';
 import { useKeyboardSetupStatus } from '../hooks/useKeyboardSetupStatus';
 import { SetupStatusStrip } from '../components/SetupStatusStrip';
@@ -63,7 +64,8 @@ import {
   BUILT_IN_PROFILES,
   getBuiltInProfileTemplate,
   extractTemplateId,
-  isBuiltInProfileId
+  isBuiltInProfileId,
+  getLocalizedProfileName
 } from '../data/builtInProfiles';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { cardShadow } from '../styles/shadows';
@@ -625,7 +627,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       const profileId = `${currentLanguage}-${template.id}`;
       profileList.push({
         id: profileId,
-        name: template.name,
+        name: getLocalizedProfileName(template.id, currentLanguage),
         language: currentLanguage,
         keyboardId: firstKeyboardId,
         isBuiltIn: true,
@@ -756,10 +758,13 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       console.log(`📱 Loaded active profile ${effectiveActiveProfile}`);
       const config = buildConfiguration(loaded.profileDef);
       setConfig(config, loaded.styleGroups);
-      setCurrentProfileName(loaded.profileDef.name);
+      // For built-in profiles, use localized name instead of saved name
+      const loadedTemplateId = extractTemplateId(effectiveActiveProfile);
+      const displayName = loadedTemplateId ? getLocalizedProfileName(loadedTemplateId, newLanguage) : loaded.profileDef.name;
+      setCurrentProfileName(displayName);
       setCurrentProfileId(effectiveActiveProfile);
       setCurrentKeyboardId(loaded.profileDef.keyboardId);
-      onProfileChange(effectiveActiveProfile, loaded.profileDef.name, newLanguage, loaded.profileDef.keyboardId);
+      onProfileChange(effectiveActiveProfile, displayName, newLanguage, loaded.profileDef.keyboardId);
     } else {
       // Check if this is a built-in profile that hasn't been saved yet
       const templateId = extractTemplateId(effectiveActiveProfile);
@@ -769,7 +774,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         if (template) {
           const profileDef: SavedProfileDefinition = {
             id: effectiveActiveProfile,
-            name: template.name,
+            name: getLocalizedProfileName(templateId, newLanguage),
             version: '1.0.0',
             language: newLanguage,
             keyboardId: firstKeyboardId,
@@ -785,10 +790,10 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
 
           const config = buildConfiguration(profileDef);
           setConfig(config, styleGroups);
-          setCurrentProfileName(template.name);
+          setCurrentProfileName(getLocalizedProfileName(templateId, newLanguage));
           setCurrentProfileId(effectiveActiveProfile);
           setCurrentKeyboardId(firstKeyboardId);
-          onProfileChange(effectiveActiveProfile, template.name, newLanguage, firstKeyboardId);
+          onProfileChange(effectiveActiveProfile, getLocalizedProfileName(templateId, newLanguage), newLanguage, firstKeyboardId);
         } else {
           // Template not found - fallback to factory defaults
           console.log(`📱 Template ${templateId} not found, using factory defaults`);
@@ -1130,7 +1135,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         // Build profile directly from the template (avoid refetching inside createProfileFromTemplate)
         profileDef = {
           id: profile.id,
-          name: template.name,
+          name: getLocalizedProfileName(templateId!, profile.language),
           version: '1.0.0',
           language: profile.language,
           keyboardId: profile.keyboardId,
@@ -1277,10 +1282,12 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
                 if (loaded) {
                   const config = buildConfiguration(loaded.profileDef);
                   setConfig(config, loaded.styleGroups);
-                  setCurrentProfileName(loaded.profileDef.name);
+                  const delTemplateId = extractTemplateId(defaultProfileId);
+                  const delDisplayName = delTemplateId ? getLocalizedProfileName(delTemplateId, currentLanguage) : loaded.profileDef.name;
+                  setCurrentProfileName(delDisplayName);
                   setCurrentProfileId(defaultProfileId);
                   setCurrentKeyboardId(loaded.profileDef.keyboardId);
-                  onProfileChange(defaultProfileId, loaded.profileDef.name, currentLanguage, loaded.profileDef.keyboardId);
+                  onProfileChange(defaultProfileId, delDisplayName, currentLanguage, loaded.profileDef.keyboardId);
                 }
               }
             } catch (error) {
@@ -1526,14 +1533,16 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
                   {`${strings.editor.myKeyboards} - ${currentLanguageDef.name}`}
                 </Text>
                 <View style={styles.profilePickerHeaderActions}>
-                  <ActionButton
-                    label={`+ ${strings.editor.newProfile}`}
-                    color="green"
+                  <TouchableOpacity
+                    style={styles.profilePickerNewButton}
                     onPress={() => {
                       setShowProfilePicker(false);
                       setShowAddProfileModal(true);
                     }}
-                  />
+                    activeOpacity={0.7}>
+                    <MyIcon info={{ name: 'add', type: 'Ionicons', color: '#3B82F6', size: 24 }} />
+                    <Text allowFontScaling={false} style={styles.profilePickerNewButtonText}>{strings.editor.newProfile}</Text>
+                  </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.profilePickerCloseButton}
                     onPress={() => setShowProfilePicker(false)}
@@ -1552,48 +1561,34 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
                   data={profiles}
                   keyExtractor={item => item.id}
                   style={{ flexShrink: 1 }}
+                  contentContainerStyle={styles.profilePillList}
                   renderItem={({ item }) => (
-                    <View
+                    <TouchableOpacity
                       style={[
-                        styles.profileOption,
-                        windowWidth < 700 && styles.profileOptionSmall,
-                        item.id === currentProfileId && styles.profileOptionActive,
+                        styles.profilePill,
+                        item.id === currentProfileId && styles.profilePillActive,
                       ]}
+                      onPress={() => {
+                        handleSetActiveForProfile(item);
+                        handleLoadProfile(item);
+                      }}
+                      activeOpacity={0.7}
                     >
-                      <View style={[styles.profileOptionInfo, windowWidth < 700 && styles.profileOptionInfoSmall]}>
-                        <View style={styles.profileNameRow}>
-                          {item.isBuiltIn && (
-                            <Text allowFontScaling={false} style={styles.builtInIcon}>🎨</Text>
-                          )}
-                          <Text allowFontScaling={false} style={styles.profileOptionText}>
-                            {item.name}
-                          </Text>
+                      {item.isBuiltIn && (
+                        <MyIcon info={{ name: 'keyboard-outline', type: 'MDI', color: item.id === currentProfileId ? '#FFFFFF' : '#6B7280', size: 24 }} />
+                      )}
+                      <Text allowFontScaling={false} style={[
+                        styles.profilePillText,
+                        item.id === currentProfileId && styles.profilePillTextActive,
+                      ]}>
+                        {item.name}
+                      </Text>
+                      {item.isBuiltIn && (
+                        <View style={[styles.profilePillBadge, item.id === currentProfileId && styles.profilePillBadgeActive]}>
+                          <Text allowFontScaling={false} style={[styles.profilePillBadgeText, item.id === currentProfileId && styles.profilePillBadgeTextActive]}>{strings.editor.builtIn}</Text>
                         </View>
-                        <View style={styles.profileBadgesRow}>
-                          {item.isBuiltIn && (
-                            <View style={styles.readOnlyBadge}>
-                              <Text allowFontScaling={false} style={styles.readOnlyBadgeText}>{strings.editor.builtIn}</Text>
-                            </View>
-                          )}
-                          {item.isSystemActive && (
-                            <View style={styles.systemActiveBadge}>
-                              <Text allowFontScaling={false} style={styles.systemActiveBadgeText}>⚡ {strings.profiles.current}</Text>
-                            </View>
-                          )}
-                        </View>
-                      </View>
-
-                      <View style={styles.profileOptionActions}>
-                        <ActionButton
-                          label={strings.editor.select}
-                          color="blue"
-                          onPress={() => {
-                            handleSetActiveForProfile(item);
-                            handleLoadProfile(item);
-                          }}
-                        />
-                      </View>
-                    </View>
+                      )}
+                    </TouchableOpacity>
                   )}
                 />
               )}
@@ -1719,15 +1714,16 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
                   : `${strings.editor.myKeyboards} - ${currentLanguageDef.name}`}
               </Text>
               <View style={styles.profilePickerHeaderActions}>
-                {/* Add New Profile Button */}
-                <ActionButton
-                  label={`+ ${strings.editor.newProfile}`}
-                  color="green"
+                <TouchableOpacity
+                  style={styles.profilePickerNewButton}
                   onPress={() => {
                     setShowProfilePicker(false);
                     setShowAddProfileModal(true);
                   }}
-                />
+                  activeOpacity={0.7}>
+                  <MyIcon info={{ name: 'add', type: 'Ionicons', color: '#3B82F6', size: 18 }} />
+                  <Text allowFontScaling={false} style={styles.profilePickerNewButtonText}>{strings.editor.newProfile}</Text>
+                </TouchableOpacity>
                 {/* Close button */}
                 <TouchableOpacity
                   style={styles.profilePickerCloseButton}
@@ -1747,70 +1743,51 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
                 data={profiles}
                 keyExtractor={item => item.id}
                 style={{ flexShrink: 1 }}
+                contentContainerStyle={styles.profilePillList}
                 renderItem={({ item }) => (
                   <View
                     style={[
-                      styles.profileOption,
-                      windowWidth < 700 && styles.profileOptionSmall,
-                      item.id === currentProfileId && styles.profileOptionActive,
+                      styles.profilePill,
+                      item.id === currentProfileId && styles.profilePillActive,
                     ]}
                   >
-                    <View style={[styles.profileOptionInfo, windowWidth < 700 && styles.profileOptionInfoSmall]}>
-                      <View style={styles.profileNameRow}>
-                        {/* Built-in icon */}
-                        {item.isBuiltIn && (
-                          <Text allowFontScaling={false} style={styles.builtInIcon}>🎨</Text>
-                        )}
-                        <Text allowFontScaling={false} style={styles.profileOptionText}>
-                          {item.name}
-                        </Text>
-                      </View>
-                      <View style={styles.profileBadgesRow}>
-                        {/* Built-in badge */}
-                        {item.isBuiltIn && (
-                          <View style={styles.readOnlyBadge}>
-                            <Text allowFontScaling={false} style={styles.readOnlyBadgeText}>{strings.editor.builtIn}</Text>
-                          </View>
-                        )}
-                        {/* Active badge */}
-                        {item.isSystemActive && (
-                          <View style={styles.systemActiveBadge}>
-                            <Text allowFontScaling={false} style={styles.systemActiveBadgeText}>⚡ {strings.profiles.current}</Text>
-                          </View>
-                        )}
-                      </View>
-                    </View>
-
-                    {/* Action buttons: Rename, Delete (if not built-in) then Select */}
-                    <View style={styles.profileOptionActions}>
-                      {/* Rename button - only for custom profiles */}
-                      {!item.isBuiltIn && (
+                    <TouchableOpacity
+                      style={styles.profilePillMain}
+                      onPress={() => {
+                        handleSetActiveForProfile(item);
+                        handleLoadProfile(item);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      {item.isBuiltIn && (
+                        <MyIcon info={{ name: 'keyboard-outline', type: 'MDI', color: item.id === currentProfileId ? '#FFFFFF' : '#6B7280', size: 16 }} />
+                      )}
+                      <Text allowFontScaling={false} style={[
+                        styles.profilePillText,
+                        item.id === currentProfileId && styles.profilePillTextActive,
+                      ]}>
+                        {item.name}
+                      </Text>
+                      {item.isBuiltIn && (
+                        <View style={[styles.profilePillBadge, item.id === currentProfileId && styles.profilePillBadgeActive]}>
+                          <Text allowFontScaling={false} style={[styles.profilePillBadgeText, item.id === currentProfileId && styles.profilePillBadgeTextActive]}>{strings.editor.builtIn}</Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                    {!item.isBuiltIn && (
+                      <View style={styles.profilePillActions}>
                         <ActionButton
                           label={strings.common.rename}
                           color="gray"
                           onPress={() => handleRenameProfile(item)}
                         />
-                      )}
-                      {/* Delete button - only for custom profiles */}
-                      {!item.isBuiltIn && (
                         <ActionButton
                           label={strings.common.delete}
                           color="red"
                           onPress={() => handleDeleteProfile(item)}
                         />
-                      )}
-                      {/* Select button - always show, makes it active and loads for editing */}
-                      <ActionButton
-                        label={strings.editor.select}
-                        color="blue"
-                        onPress={() => {
-                          // First make it active
-                          handleSetActiveForProfile(item);
-                          // Then load for editing
-                          handleLoadProfile(item);
-                        }}
-                      />
-                    </View>
+                      </View>
+                    )}
                   </View>
                 )}
               />
@@ -2123,7 +2100,8 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
           setInitialConfig(config);
           setInitialStyleGroups(loaded.styleGroups);
           setCurrentProfileId(effectiveActiveProfile);
-          setProfileName(loaded.profileDef.name);
+          const initTemplateId = extractTemplateId(effectiveActiveProfile);
+          setProfileName(initTemplateId ? getLocalizedProfileName(initTemplateId, savedLanguage) : loaded.profileDef.name);
           setCurrentKeyboardId(loaded.profileDef.keyboardId);
         } else {
           console.log(`📱 No active profile ${effectiveActiveProfile} found, using base keyboard`);
@@ -2139,7 +2117,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
           setInitialConfig(config);
           setInitialStyleGroups([]);
           setCurrentProfileId(defaultProfileId);
-          setProfileName(strings.common.default);
+          setProfileName(getLocalizedProfileName('default', savedLanguage));
           setCurrentKeyboardId(defaultKeyboardId);
         }
 
@@ -2156,7 +2134,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
         );
         setInitialConfig(buildConfiguration(fallbackDef));
         setCurrentProfileId(defaultProfileId);
-        setProfileName(defaultProfileId);
+        setProfileName(getLocalizedProfileName('default', lang));
         setCurrentLanguage(lang);
         setCurrentKeyboardId(lang);
       } finally {
@@ -2431,7 +2409,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
         if (template) {
           const profileDef: SavedProfileDefinition = {
             id: profileIdToActivate,
-            name: template.name,
+            name: getLocalizedProfileName(templateId, currentLanguage),
             version: '1.0.0',
             language: currentLanguage,
             keyboardId: firstKeyboardId,
@@ -2910,138 +2888,65 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     lineHeight: 20,
   },
-  profileOption: {
+  profilePillList: {
+    padding: 8,
+    gap: 6,
+  },
+  profilePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    paddingHorizontal: 14,
     paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
-  },
-  profileOptionSmall: {
-    flexWrap: 'wrap',
-  },
-  profileOptionActive: {
-    backgroundColor: '#E3F2FD',
-  },
-  profileOptionMain: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  profileOptionInfo: {
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    flex: 1,
-  },
-  profileOptionInfoSmall: {
-    width: '100%',
-    marginBottom: 8,
-  },
-  profileNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  builtInIcon: {
-    fontSize: 16,
-    marginRight: 6,
-  },
-  profileOptionText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  profileBadgesRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  readOnlyBadge: {
-    backgroundColor: '#9E9E9E',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-    marginRight: 4,
-  },
-  readOnlyBadgeText: {
-    fontSize: 9,
-    fontWeight: '600',
-    color: '#FFF',
-  },
-  profileOptionCheck: {
-    fontSize: 16,
-    color: '#2196F3',
-    fontWeight: 'bold',
-    marginRight: 8,
-  },
-  profileOptionActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: 8,
+    borderRadius: 10,
+    backgroundColor: '#F3F4F6',
     gap: 8,
   },
-  profileActionButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
-  profileDeleteButton: {
-    backgroundColor: '#F44336',
-  },
-  selectButton: {
+  profilePillActive: {
     backgroundColor: '#3B82F6',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  profileActionButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#FFF',
-  },
-  selectButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#FFF',
-  },
-  duplicateIconText: {
-    fontSize: 20,
-  },
-  profileBadges: {
+  profilePillMain: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: 8,
+    gap: 8,
   },
-  systemActiveBadge: {
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: 8,
+  profilePillText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#6B7280',
+    flex: 1,
+    textAlign: 'left'
+  },
+  profilePillTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  profilePillBadge: {
+    backgroundColor: 'rgba(0,0,0,0.08)',
+    paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 10,
-    marginRight: 4,
+    borderRadius: 6,
   },
-  systemActiveBadgeText: {
+  profilePillBadgeActive: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  profilePillBadgeText: {
     fontSize: 10,
-    fontWeight: 'bold',
-    color: '#FFF',
+    fontWeight: '600',
+    color: '#9CA3AF',
   },
-  editingBadge: {
-    backgroundColor: '#2196F3',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-    marginRight: 4,
+  profilePillBadgeTextActive: {
+    color: 'rgba(255,255,255,0.8)',
   },
-  editingBadgeText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#FFF',
-  },
-  activateButton: {
-    backgroundColor: '#FF9800',
-  },
-  duplicateActionButton: {
-    backgroundColor: '#2196F3',
+  profilePillActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   toast: {
     position: 'absolute',
@@ -3165,18 +3070,26 @@ const styles = StyleSheet.create({
   profilePickerHeaderActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
-  addNewProfileButton: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 14,
-    marginRight: 8,
+  profilePickerNewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
-  addNewProfileButtonText: {
-    color: '#FFF',
-    fontSize: 14,
+  profilePickerNewButtonText: {
+    fontSize: 13,
     fontWeight: '600',
+    color: '#3B82F6',
   },
   profilePickerCloseButton: {
     width: 32,

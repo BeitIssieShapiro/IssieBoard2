@@ -66,6 +66,17 @@ export interface Strings {
     aboutTitle: string;
     aboutDescription: string;
     version: string;
+    test: string;
+    settingsTitle: string;
+    tabs: {
+      keyboard: string;
+      general: string;
+      keysGroups: string;
+      nikkud: string;
+      features: string;
+      advanced: string;
+      voice: string;
+    };
   };
   settingsModal: {
     title: string;
@@ -156,6 +167,17 @@ const en: Strings = {
     aboutTitle: 'About IssieVoice',
     aboutDescription: 'IssieVoice is an assistive communication app for people who need help speaking.',
     version: 'Version',
+    test: 'Test',
+    settingsTitle: 'Issie Voice Settings',
+    tabs: {
+      keyboard: 'Keyboard',
+      general: 'General',
+      keysGroups: 'Keys Groups',
+      nikkud: 'Nikkud',
+      features: 'Features',
+      advanced: 'Advanced',
+      voice: 'Voice',
+    },
   },
   settingsModal: {
     title: 'Settings',
@@ -246,6 +268,17 @@ const he: Strings = {
     aboutTitle: 'אודות IssieVoice',
     aboutDescription: 'IssieVoice הוא אפליקציית תקשורת תומכת עבור אנשים שזקוקים לעזרה בדיבור.',
     version: 'גרסה',
+    test: 'בדיקה',
+    settingsTitle: 'הגדרות Issie Voice',
+    tabs: {
+      keyboard: 'מקלדת',
+      general: 'כללי',
+      keysGroups: 'קבוצות מקשים',
+      nikkud: 'ניקוד',
+      features: 'תכונות',
+      advanced: 'מתקדם',
+      voice: 'קול',
+    },
   },
   settingsModal: {
     title: 'הגדרות',
@@ -336,6 +369,17 @@ const ar: Strings = {
     aboutTitle: 'حول IssieVoice',
     aboutDescription: 'IssieVoice هو تطبيق تواصل مساعد للأشخاص الذين يحتاجون إلى مساعدة في التحدث.',
     version: 'الإصدار',
+    test: 'اختبار',
+    settingsTitle: 'إعدادات Issie Voice',
+    tabs: {
+      keyboard: 'لوحة مفاتيح',
+      general: 'عام',
+      keysGroups: 'مجموعات المفاتيح',
+      nikkud: 'تشكيل',
+      features: 'ميزات',
+      advanced: 'متقدم',
+      voice: 'صوت',
+    },
   },
   settingsModal: {
     title: 'الإعدادات',

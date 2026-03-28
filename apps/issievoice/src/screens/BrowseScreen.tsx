@@ -21,6 +21,7 @@ import SavedSentencesManager, {
 } from '../services/SavedSentencesManager';
 import FavoritesManager from '../services/FavoritesManager';
 import {colors, sizes} from '../constants';
+import {MyIcon} from '@beitissieshapiro/issie-shared/dist/icons';
 import EmojiPicker, { en, he } from 'rn-emoji-keyboard';
 import { SafeAreaView, useSafeAreaFrame } from 'react-native-safe-area-context';
 
@@ -39,25 +40,19 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation}) => {
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const {setText, currentText} = useText();
   const {speak} = useTTS();
-  const {strings, language} = useLocalization();
+  const {strings, language, isRTL} = useLocalization();
   const {showNotification} = useNotification();
 
   // Get window dimensions using useSafeAreaFrame (works with ScreenSizer)
   const frame = useSafeAreaFrame();
 
   // Determine if landscape (2 columns) or portrait (1 column)
-  // Landscape if width > height
   const isLandscape = frame.width > frame.height;
   const numColumns = isLandscape ? 2 : 1;
 
-  // Debug: log dimension changes
-  useEffect(() => {
-    console.log(`📐 Layout update: ${frame.width}x${frame.height}, isLandscape: ${isLandscape}, columns: ${numColumns}`);
-  }, [frame.width, frame.height, isLandscape, numColumns]);
-
   useEffect(() => {
     loadSentences();
-    loadFavorites(); // Load favorites in both modes
+    loadFavorites();
   }, []);
 
   useEffect(() => {
@@ -90,7 +85,6 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation}) => {
     await loadFavorites();
 
     if (isNowFavorite) {
-      // If sentence has no caption/icon, prompt user to set them
       if (!sentence.caption && !sentence.icon) {
         Alert.alert(
           strings.favorites.captionIconPromptTitle,
@@ -147,7 +141,6 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation}) => {
   };
 
   const handleInsertText = (sentence: SavedSentence) => {
-    // Insert at the end of current text with space before and after
     const spaceBefore = currentText && !currentText.endsWith(' ') ? ' ' : '';
     const spaceAfter = ' ';
     const newText = currentText + spaceBefore + sentence.text + spaceAfter;
@@ -187,31 +180,29 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation}) => {
     const hasCustomDisplay = item.icon || item.caption;
 
     return (
-      <View style={[styles.sentenceItem, isLandscape && styles.sentenceItemLandscape]}>
+      <View style={[styles.sentenceCard, isLandscape && styles.sentenceCardLandscape]}>
         <TouchableOpacity
           style={styles.sentenceTextContainer}
           onPress={() => handleReplaceText(item)}
           activeOpacity={0.7}>
 
-          {/* Show icon/caption prominently if set */}
-          {hasCustomDisplay && (
+          {hasCustomDisplay ? (
             <View style={styles.favoriteHeaderContainer}>
               {item.icon && (
                 <Text style={styles.favoriteHeaderIcon}>{item.icon}</Text>
               )}
-              <Text style={styles.favoriteHeaderText}>
+              <Text style={styles.favoriteHeaderText} numberOfLines={1}>
                 {item.caption || getFirstWord(item.text)}
               </Text>
+              <Text style={styles.sentenceTextInline} numberOfLines={1}>
+                {item.text}
+              </Text>
             </View>
+          ) : (
+            <Text style={styles.sentenceText} numberOfLines={2}>
+              {item.text}
+            </Text>
           )}
-
-          {/* Full sentence text */}
-          <Text style={[
-            styles.sentenceText,
-            hasCustomDisplay && styles.sentenceTextSecondary
-          ]} numberOfLines={2}>
-            {item.text}
-          </Text>
           {item.category && (
             <Text style={styles.categoryText}>{item.category}</Text>
           )}
@@ -219,40 +210,38 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation}) => {
 
         <View style={styles.actionButtons}>
           <TouchableOpacity
-            style={[styles.actionButton, styles.editButton]}
+            style={styles.actionBtn}
             onPress={() => handleEditCaptionIcon(item)}
             activeOpacity={0.7}>
-            <Text style={styles.actionButtonText}>✏️</Text>
+            <MyIcon info={{ name: 'create-outline', type: 'Ionicons', color: colors.primary, size: 18 }} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.actionButton, styles.insertButton]}
+            style={styles.actionBtn}
             onPress={() => handleInsertText(item)}
             activeOpacity={0.7}>
-            <Text style={styles.actionButtonText}>➕</Text>
+            <MyIcon info={{ name: 'add-circle-outline', type: 'Ionicons', color: colors.primary, size: 18 }} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.actionButton, styles.speakButton]}
+            style={[styles.actionBtn, styles.actionBtnSpeak]}
             onPress={() => handleSpeakPress(item)}
             activeOpacity={0.7}>
-            <Text style={styles.actionButtonText}>🗣️</Text>
+            <MyIcon info={{ name: 'volume-high-outline', type: 'Ionicons', color: '#FFFFFF', size: 18 }} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.actionButton, styles.addFavoriteButton, isFavorite && styles.addFavoriteButtonActive]}
+            style={[styles.actionBtn, isFavorite ? styles.actionBtnFavoriteActive : styles.actionBtnFavorite]}
             onPress={() => handleToggleFavorite(item)}
             activeOpacity={0.7}>
-            <Text style={styles.actionButtonText}>
-              {isFavorite ? '⭐' : '☆'}
-            </Text>
+            <MyIcon info={{ name: isFavorite ? 'star' : 'star-outline', type: 'Ionicons', color: isFavorite ? '#FFFFFF' : '#F59E0B', size: 18 }} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.actionButton, styles.deleteButton]}
+            style={[styles.actionBtn, styles.actionBtnDelete]}
             onPress={() => handleDeletePress(item)}
             activeOpacity={0.7}>
-            <Text style={styles.actionButtonText}>🗑️</Text>
+            <MyIcon info={{ name: 'trash-outline', type: 'Ionicons', color: colors.error, size: 18 }} />
           </TouchableOpacity>
         </View>
       </View>
@@ -281,27 +270,29 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation}) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, isRTL && { direction: 'rtl' }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}>
-          <Text style={styles.backButtonText}>{strings.common.back}</Text>
+          <MyIcon info={{ name: isRTL ? 'arrow-forward' : 'arrow-back', type: 'Ionicons', color: '#FFFFFF', size: 20 }} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
           {strings.browse.savedSentences}
         </Text>
+        <View style={{ flex: 1 }} />
         <TouchableOpacity
-          style={styles.clearAllButton}
+          style={[styles.headerButton, sentences.length === 0 && styles.headerButtonDisabled]}
           onPress={handleClearAll}
           disabled={sentences.length === 0}
           activeOpacity={0.7}>
+          <MyIcon info={{ name: 'trash-outline', type: 'Ionicons', color: sentences.length === 0 ? colors.textLight : colors.error, size: 16 }} />
           <Text
             style={[
-              styles.clearAllButtonText,
-              sentences.length === 0 && styles.clearAllButtonTextDisabled,
+              styles.headerButtonText,
+              { color: sentences.length === 0 ? colors.textLight : colors.error },
             ]}>
             {strings.browse.clearAll}
           </Text>
@@ -310,20 +301,24 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation}) => {
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder={strings.browse.search}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
+        <View style={[styles.searchInputWrapper, isRTL && { direction: 'rtl' }]}>
+          <MyIcon info={{ name: 'search', type: 'Ionicons', color: colors.textLight, size: 18 }} />
+          <TextInput
+            style={[styles.searchInput, isRTL && { textAlign: 'right', writingDirection: 'rtl' }]}
+            placeholder={strings.browse.search}
+            placeholderTextColor={colors.textLight}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+        </View>
       </View>
 
       {/* Sentences List */}
       {filteredSentences.length > 0 ? (
         <FlatList
-          key={numColumns} // Force re-render when numColumns changes
+          key={numColumns}
           data={filteredSentences}
           renderItem={renderSentenceItem}
           keyExtractor={item => item.id}
@@ -334,6 +329,7 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation}) => {
         />
       ) : (
         <View style={styles.emptyContainer}>
+          <MyIcon info={{ name: 'document-text-outline', type: 'Ionicons', color: colors.textLight, size: 48 }} />
           <Text style={styles.emptyText}>
             {searchQuery
               ? strings.browse.noMatchingSearch
@@ -407,13 +403,14 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation}) => {
                         style={[styles.editModalButton, styles.cancelButton]}
                         onPress={handleCancelEdit}
                         activeOpacity={0.7}>
-                        <Text style={styles.editModalButtonText}>{strings.common.cancel}</Text>
+                        <Text style={styles.cancelButtonText}>{strings.common.cancel}</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={[styles.editModalButton, styles.saveButton]}
                         onPress={handleSaveCaptionIcon}
                         activeOpacity={0.7}>
-                        <Text style={styles.editModalButtonText}>{strings.common.save}</Text>
+                        <MyIcon info={{ name: 'checkmark', type: 'Ionicons', color: '#FFFFFF', size: 18 }} />
+                        <Text style={styles.saveButtonText}>{strings.common.save}</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -457,143 +454,182 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: sizes.spacing.md,
-    paddingVertical: sizes.spacing.md,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 10,
   },
   backButton: {
-    paddingRight: sizes.spacing.md,
-  },
-  backButtonText: {
-    fontSize: sizes.fontSize.large,
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  headerTitle: {
-    fontSize: sizes.fontSize.xlarge,
-    fontWeight: 'bold',
-    color: colors.text,
-    flex: 1,
-    textAlign: 'center',
-  },
-  clearAllButton: {
-    paddingLeft: sizes.spacing.md,
-  },
-  clearAllButtonText: {
-    fontSize: sizes.fontSize.medium,
-    color: colors.error,
-    fontWeight: '600',
-  },
-  clearAllButtonTextDisabled: {
-    color: colors.textLight,
-  },
-  searchContainer: {
-    paddingHorizontal: sizes.spacing.md,
-    paddingVertical: sizes.spacing.sm,
-    backgroundColor: colors.surface,
-  },
-  searchInput: {
-    height: sizes.touchTarget.medium,
-    backgroundColor: colors.background,
-    borderRadius: sizes.borderRadius.medium,
-    paddingHorizontal: sizes.spacing.md,
-    fontSize: sizes.fontSize.medium,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  listContent: {
-    padding: sizes.spacing.md,
-  },
-  columnWrapper: {
-    gap: sizes.spacing.md,
-  },
-  sentenceItem: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface,
-    borderRadius: sizes.borderRadius.medium,
-    marginBottom: sizes.spacing.md,
-    padding: sizes.spacing.md,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  sentenceItemLandscape: {
-    flex: 1,
-    maxWidth: '48%', // Ensure item doesn't exceed half width in 2-column layout
-  },
-  favoriteHeaderContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: sizes.spacing.xs,
-  },
-  favoriteHeaderIcon: {
-    fontSize: 28,
-    marginRight: sizes.spacing.xs,
-  },
-  favoriteHeaderText: {
-    fontSize: sizes.fontSize.large,
-    fontWeight: '700',
-    color: colors.primary,
-  },
-  sentenceTextContainer: {
-    flex: 1,
-    marginRight: sizes.spacing.sm,
-  },
-  sentenceText: {
-    fontSize: sizes.fontSize.medium,
-    color: colors.text,
-    marginBottom: sizes.spacing.xs,
-  },
-  sentenceTextSecondary: {
-    fontSize: sizes.fontSize.small,
-    color: colors.textSecondary,
-  },
-  categoryText: {
-    fontSize: sizes.fontSize.small,
-    color: colors.textSecondary,
-    fontStyle: 'italic',
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: sizes.spacing.xs,
-  },
-  actionButton: {
-    width: sizes.touchTarget.small,
-    height: sizes.touchTarget.small,
-    borderRadius: sizes.borderRadius.small,
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  insertButton: {
-    backgroundColor: '#9C27B0', // Purple for insert
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.primary,
+    textAlign: 'left',
   },
-  editButton: {
-    backgroundColor: '#9C27B0', // Purple for edit
+  headerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
-  speakButton: {
+  headerButtonDisabled: {
+    opacity: 0.5,
+  },
+  headerButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  // Search
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    marginHorizontal: 12,
+  },
+  searchInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  searchInput: {
+    flex: 1,
+    height: 44,
+    fontSize: 16,
+    color: colors.text,
+    textAlign: 'left',
+  },
+  // List
+  listContent: {
+    padding: 12,
+  },
+  columnWrapper: {
+    gap: 12,
+  },
+  // Sentence Card
+  sentenceCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    marginBottom: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  sentenceCardLandscape: {
+    flex: 1,
+    maxWidth: '48%',
+  },
+  favoriteHeaderContainer: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 6,
+  },
+  favoriteHeaderIcon: {
+    fontSize: 20,
+  },
+  favoriteHeaderText: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: colors.primary,
+    flexShrink: 0,
+    textAlign: 'left',
+  },
+  sentenceTextInline: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'left',
+  },
+  sentenceTextContainer: {
+    marginBottom: 12,
+  },
+  sentenceText: {
+    fontSize: 17,
+    color: colors.text,
+    lineHeight: 24,
+    textAlign: 'left',
+  },
+  categoryText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+    marginTop: 4,
+    textAlign: 'left',
+  },
+  // Action Buttons Row
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+    paddingTop: 12,
+  },
+  actionBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  actionBtnSpeak: {
     backgroundColor: colors.speak,
   },
-  deleteButton: {
-    backgroundColor: colors.clear,
+  actionBtnFavorite: {
+    backgroundColor: '#FEF3C7',
   },
-  addFavoriteButton: {
-    backgroundColor: '#FFB300', // Amber for add to favorites
-    width: sizes.touchTarget.medium,
+  actionBtnFavoriteActive: {
+    backgroundColor: '#F59E0B',
   },
-  addFavoriteButtonActive: {
-    backgroundColor: colors.success,
+  actionBtnDelete: {
+    backgroundColor: '#FEE2E2',
   },
-  actionButtonText: {
-    fontSize: sizes.fontSize.large,
+  // Empty State
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: sizes.spacing.xl,
+    gap: 12,
   },
+  emptyText: {
+    fontSize: 18,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  emptySubtext: {
+    fontSize: 15,
+    color: colors.textLight,
+    textAlign: 'center',
+  },
+  // Edit Modal
   modalOverlay: {
     position: 'absolute',
     top: 0,
@@ -623,13 +659,13 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 500,
     minWidth: 300,
-    backgroundColor: colors.surface,
-    borderRadius: sizes.borderRadius.large,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
     padding: sizes.spacing.xl,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
     elevation: 8,
     alignSelf: 'center',
   },
@@ -653,7 +689,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: sizes.borderRadius.medium,
+    borderRadius: 12,
     padding: sizes.spacing.md,
     fontSize: sizes.fontSize.medium,
     color: colors.text,
@@ -662,7 +698,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     borderWidth: 2,
     borderColor: colors.primary,
-    borderRadius: sizes.borderRadius.medium,
+    borderRadius: 16,
     width: 80,
     height: 80,
     justifyContent: 'center',
@@ -686,37 +722,28 @@ const styles = StyleSheet.create({
   },
   editModalButton: {
     flex: 1,
-    padding: sizes.spacing.md,
-    borderRadius: sizes.borderRadius.medium,
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
+    gap: 6,
+    padding: sizes.spacing.md,
+    borderRadius: 14,
   },
   cancelButton: {
-    backgroundColor: colors.textLight,
+    backgroundColor: '#F3F4F6',
+  },
+  cancelButtonText: {
+    color: colors.textSecondary,
+    fontSize: sizes.fontSize.medium,
+    fontWeight: '600',
   },
   saveButton: {
     backgroundColor: colors.primary,
   },
-  editModalButtonText: {
+  saveButtonText: {
     color: '#FFFFFF',
     fontSize: sizes.fontSize.medium,
     fontWeight: '600',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: sizes.spacing.xl,
-  },
-  emptyText: {
-    fontSize: sizes.fontSize.large,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: sizes.spacing.sm,
-  },
-  emptySubtext: {
-    fontSize: sizes.fontSize.medium,
-    color: colors.textLight,
-    textAlign: 'center',
   },
 });
 

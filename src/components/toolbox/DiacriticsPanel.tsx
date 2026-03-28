@@ -57,7 +57,7 @@ const NikkudKey: React.FC<NikkudKeyProps> = ({
 
 export const DiacriticsPanel: React.FC = () => {
   const { state, dispatch } = useEditor();
-  const { strings } = useLocalization();
+  const { strings, isRTL } = useLocalization();
   
   // Determine which keyboard is currently shown
   const keyboards = state.config.keyboards || [];
@@ -208,9 +208,10 @@ export const DiacriticsPanel: React.FC = () => {
   const allItems = [...basicItems, ...advancedItems];
   
   return (
-    <View style={styles.container}>
+    <View style={[styles.container]}>
       {/* Mode Selector */}
       <ButtonGroupRow
+        isRTL={isRTL}
         title={strings.diacritics.enableNikkud}
         options={[
           { id: 'basic', label: strings.diacritics.basic },
@@ -225,7 +226,7 @@ export const DiacriticsPanel: React.FC = () => {
       {/* Custom Mode - Show all nikkud options as toggleable keys */}
       {currentMode === 'custom' && (
         <View style={styles.section}>
-          <Text allowFontScaling={false} style={styles.sectionTitle}>{strings.diacritics.diacriticsSection}</Text>
+          <Text allowFontScaling={false} style={[styles.sectionTitle]}>{strings.diacritics.diacriticsSection}</Text>
           <View style={styles.nikkudGrid}>
             {allItems.map(item => (
               <NikkudKey
@@ -247,8 +248,8 @@ export const DiacriticsPanel: React.FC = () => {
             {strings.diacritics.modifiers}
           </Text>
           {modifiers.map((modifier) => (
-            <View key={modifier.id} style={styles.modifierRow}>
-              <View style={styles.modifierInfo}>
+            <View key={modifier.id} style={[styles.modifierRow]}>
+              <View style={[styles.modifierInfo, isRTL && { marginRight: 0, marginLeft: 12 }]}>
                 <Text allowFontScaling={false} style={styles.modifierName}>{modifier.name}</Text>
                 {modifier.options && modifier.options.length > 0 && (
                   <Text allowFontScaling={false} style={styles.modifierOptions}>
@@ -288,6 +289,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   sectionTitle: {
+    textAlign: 'left',
     fontSize: 14,
     fontWeight: '600',
     color: '#333',

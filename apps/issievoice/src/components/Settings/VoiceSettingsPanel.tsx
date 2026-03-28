@@ -46,7 +46,7 @@ const VoiceSettingsPanel: React.FC<VoiceSettingsPanelProps> = ({
   onVoiceChange,
 }) => {
   const {settings, updateSettings, getAvailableVoices} = useTTS();
-  const {strings} = useLocalization();
+  const {strings, isRTL} = useLocalization();
 
   const [englishVoices, setEnglishVoices] = useState<Voice[]>([]);
   const [hebrewVoices, setHebrewVoices] = useState<Voice[]>([]);
@@ -136,18 +136,18 @@ const VoiceSettingsPanel: React.FC<VoiceSettingsPanelProps> = ({
     return (
       <View style={styles.pickerRow}>
         {/* Label */}
-        <Text style={styles.pickerLabel}>{label}</Text>
+        <Text style={[styles.pickerLabel, isRTL && { textAlign: 'right' }]}>{label}</Text>
 
         {/* Current voice + test + dropdown toggle */}
-        <View style={styles.pickerControl}>
+        <View style={[styles.pickerControl, isRTL && { flexDirection: 'row-reverse' }]}>
           <TouchableOpacity
-            style={styles.pickerDropdown}
+            style={[styles.pickerDropdown, isRTL && { flexDirection: 'row-reverse' }]}
             onPress={() => setExpandedPicker(isExpanded ? null : language)}
             activeOpacity={0.7}>
-            <Text style={styles.pickerValue} numberOfLines={1}>
+            <Text style={[styles.pickerValue, isRTL && { textAlign: 'right' }]} numberOfLines={1}>
               {selectedVoice?.name || strings.settingsModal.none}
             </Text>
-            <Text style={styles.pickerArrow}>{isExpanded ? '\u25B2' : '\u25BC'}</Text>
+            <Text style={[styles.pickerArrow, isRTL && { marginLeft: 0, marginRight: 8 }]}>{isExpanded ? '\u25B2' : '\u25BC'}</Text>
           </TouchableOpacity>
 
           {selectedVoiceId ? (
@@ -155,11 +155,11 @@ const VoiceSettingsPanel: React.FC<VoiceSettingsPanelProps> = ({
               style={styles.testCurrentButton}
               onPress={() => handleTestVoice(selectedVoiceId, language)}
               activeOpacity={0.7}>
-              <Text style={styles.testCurrentButtonText}>Test</Text>
+              <Text style={styles.testCurrentButtonText}>{strings.settings.test}</Text>
             </TouchableOpacity>
           ) : (
             <View style={[styles.testCurrentButton, styles.testCurrentButtonDisabled]}>
-              <Text style={[styles.testCurrentButtonText, styles.testCurrentButtonTextDisabled]}>Test</Text>
+              <Text style={[styles.testCurrentButtonText, styles.testCurrentButtonTextDisabled]}>{strings.settings.test}</Text>
             </View>
           )}
         </View>
@@ -175,20 +175,20 @@ const VoiceSettingsPanel: React.FC<VoiceSettingsPanelProps> = ({
                 return (
                   <View
                     key={voice.id}
-                    style={[styles.dropdownItem, isSelected && styles.dropdownItemSelected]}>
+                    style={[styles.dropdownItem, isSelected && styles.dropdownItemSelected, isRTL && { flexDirection: 'row-reverse' }]}>
                     <TouchableOpacity
                       style={styles.dropdownItemInfo}
                       onPress={() => handleVoiceSelect(language, voice.id)}>
-                      <Text style={[styles.dropdownItemName, isSelected && styles.dropdownItemNameSelected]}>
+                      <Text style={[styles.dropdownItemName, isSelected && styles.dropdownItemNameSelected, isRTL && { textAlign: 'right' }]}>
                         {voice.name}
                       </Text>
-                      <Text style={styles.dropdownItemLang}>{voice.language}</Text>
+                      <Text style={[styles.dropdownItemLang, isRTL && { textAlign: 'right' }]}>{voice.language}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.dropdownTestButton}
                       onPress={() => handleTestVoice(voice.id, voice.language)}
                       activeOpacity={0.7}>
-                      <Text style={styles.dropdownTestButtonText}>Test</Text>
+                      <Text style={styles.dropdownTestButtonText}>{strings.settings.test}</Text>
                     </TouchableOpacity>
                   </View>
                 );
@@ -204,6 +204,7 @@ const VoiceSettingsPanel: React.FC<VoiceSettingsPanelProps> = ({
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       {/* Speech Speed */}
       <ButtonGroupRow
+        isRTL={isRTL}
         title={strings.settings.speechSpeed}
         options={rateOptions}
         selectedId={currentRateId}
@@ -212,6 +213,7 @@ const VoiceSettingsPanel: React.FC<VoiceSettingsPanelProps> = ({
 
       {/* Voice Pitch */}
       <ButtonGroupRow
+        isRTL={isRTL}
         title={strings.settings.voicePitch}
         options={pitchOptions}
         selectedId={currentPitchId}
@@ -219,7 +221,7 @@ const VoiceSettingsPanel: React.FC<VoiceSettingsPanelProps> = ({
       />
 
       {/* Voice Selection Section */}
-      <Text style={styles.sectionTitle}>Voice</Text>
+      <Text style={[styles.sectionTitle, isRTL && { textAlign: 'right' }]}>{strings.settings.tabs.voice}</Text>
 
       {renderVoicePicker(
         strings.settingsModal.hebrewVoice,
