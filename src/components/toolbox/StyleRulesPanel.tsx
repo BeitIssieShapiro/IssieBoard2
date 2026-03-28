@@ -5,11 +5,12 @@ import {
   StyleSheet,
   Alert,
   TouchableOpacity,
+  Switch,
 } from 'react-native';
 import { useEditor } from '../../context/EditorContext';
 import { useLocalization } from '../../localization';
 import { StyleGroup } from '../../../types';
-import { ActionButton } from '../shared/ActionButton';
+import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 
 export interface StyleRulesPanelProps {
   onEditPressed: (group: StyleGroup) => void;
@@ -143,18 +144,15 @@ export const StyleRulesPanel: React.FC<StyleRulesPanelProps> = ({
                 key={group.id}
                 style={styles.groupRow}
               >
-                {/* Checkbox */}
-                <TouchableOpacity
-                  onPress={() => toggleGroupActive(group.id)}
-                  hitSlop={{ top: 10, bottom: 10, left: 5, right: 10 }}
-                >
-                  <View style={[
-                    styles.checkbox,
-                    isGroupActive && styles.checkboxChecked,
-                  ]}>
-                    {isGroupActive && <Text allowFontScaling={false} style={styles.checkboxCheckmark}>✓</Text>}
-                  </View>
-                </TouchableOpacity>
+                {/* Enable/Disable Switch */}
+                <Switch
+                  value={isGroupActive}
+                  onValueChange={() => toggleGroupActive(group.id)}
+                  trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
+                  thumbColor={isGroupActive ? '#3B82F6' : '#F3F4F6'}
+                  ios_backgroundColor="#D1D5DB"
+                  style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
+                />
                 
                 {/* Group Name */}
                 <Text allowFontScaling={false} style={[styles.groupName, !isGroupActive && styles.groupNameInactive]} numberOfLines={1}>
@@ -171,16 +169,20 @@ export const StyleRulesPanel: React.FC<StyleRulesPanelProps> = ({
                 
                 {/* Action Buttons */}
                 <View style={styles.groupActions}>
-                  <ActionButton
-                    label={strings.common.edit}
-                    color="blue"
+                  <TouchableOpacity
+                    style={styles.iconButton}
                     onPress={() => onEditPressed(group)}
-                  />
-                  <ActionButton
-                    label={strings.common.delete}
-                    color="red"
+                    activeOpacity={0.7}>
+                    <MyIcon info={{ name: 'edit', type: 'MI', color: '#3B82F6', size: 16 }} />
+                    <Text allowFontScaling={false} style={styles.iconButtonTextBlue}>{strings.common.edit}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.iconButton}
                     onPress={() => handleDeleteGroup(group)}
-                  />
+                    activeOpacity={0.7}>
+                    <MyIcon info={{ name: 'delete-outline', type: 'MDI', color: '#EF4444', size: 16 }} />
+                    <Text allowFontScaling={false} style={styles.iconButtonTextRed}>{strings.common.delete}</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
             );
@@ -194,6 +196,7 @@ export const StyleRulesPanel: React.FC<StyleRulesPanelProps> = ({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: 'transparent',
+    padding: 12,
   },
   listContainer: {
   },
@@ -214,25 +217,6 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 8,
     gap: 10,
-  },
-  checkbox: {
-    width: 18,
-    height: 18,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: '#BDBDBD',
-    backgroundColor: '#FFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: '#4CAF50',
-    borderColor: '#4CAF50',
-  },
-  checkboxCheckmark: {
-    color: '#FFF',
-    fontSize: 10,
-    fontWeight: 'bold',
   },
   groupName: {
     fontSize: 14,
@@ -256,6 +240,30 @@ const styles = StyleSheet.create({
   groupActions: {
     flexDirection: 'row',
     gap: 6,
+  },
+  iconButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  iconButtonTextBlue: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#3B82F6',
+  },
+  iconButtonTextRed: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#EF4444',
   },
   colorSwatchContainer: {
     flexDirection: 'row',

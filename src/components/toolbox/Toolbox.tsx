@@ -8,6 +8,7 @@ import { DiacriticsPanel } from './DiacriticsPanel';
 import { ActionButton } from '../shared/ActionButton';
 import { AddStyleRuleModal } from './AddStyleRuleModal';
 import { StyleGroup } from '../../../types';
+import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 
 // Import predefined rules
 import heTemplates from '../../../assets/predefined-rules/he.json';
@@ -210,19 +211,21 @@ export const Toolbox: React.FC<ToolboxProps> = ({
         case 'keys-groups':
           return (
             <>
-              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4 }}>
-                <ActionButton
-                  label={strings.toolbox.presets}
-                  color="blue"
-                  icon="📋"
+              <View style={styles.keysGroupsActions}>
+                <TouchableOpacity
+                  style={styles.subtleButton}
                   onPress={() => setShowTemplatesModal(true)}
-                />
-                <ActionButton
-                  label={strings.toolbox.new}
-                  color="green"
-                  icon="+"
+                  activeOpacity={0.7}>
+                  <MyIcon info={{ name: 'list', type: 'Ionicons', color: '#3B82F6', size: 18 }} />
+                  <Text allowFontScaling={false} style={styles.subtleButtonText}>{strings.toolbox.presets}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.subtleButton}
                   onPress={handleCreatePressed}
-                />
+                  activeOpacity={0.7}>
+                  <MyIcon info={{ name: 'add', type: 'Ionicons', color: '#3B82F6', size: 18 }} />
+                  <Text allowFontScaling={false} style={styles.subtleButtonText}>{strings.toolbox.new}</Text>
+                </TouchableOpacity>
               </View>
               <StyleRulesPanel
                 onEditPressed={handleEditPressed}
@@ -349,18 +352,20 @@ export const Toolbox: React.FC<ToolboxProps> = ({
         badge={state.styleGroups.length > 0 ? `${state.styleGroups.length}` : undefined}
         actionButton={
           <View onStartShouldSetResponder={() => true} style={{ flexDirection: 'row', gap: 8 }}>
-            <ActionButton
-              label={strings.toolbox.presets}
-              color="blue"
-              icon="📋"
+            <TouchableOpacity
+              style={styles.subtleButton}
               onPress={() => setShowTemplatesModal(true)}
-            />
-            <ActionButton
-              label={strings.toolbox.new}
-              color="green"
-              icon="+"
+              activeOpacity={0.7}>
+              <MyIcon info={{ name: 'list', type: 'Ionicons', color: '#3B82F6', size: 18 }} />
+              <Text allowFontScaling={false} style={styles.subtleButtonText}>{strings.toolbox.presets}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.subtleButton}
               onPress={handleCreatePressed}
-            />
+              activeOpacity={0.7}>
+              <MyIcon info={{ name: 'add', type: 'Ionicons', color: '#3B82F6', size: 18 }} />
+              <Text allowFontScaling={false} style={styles.subtleButtonText}>{strings.toolbox.new}</Text>
+            </TouchableOpacity>
           </View>
         }
       >
@@ -506,6 +511,33 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 13,
     fontWeight: '600',
+  },
+  keysGroupsActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  subtleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  subtleButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#3B82F6',
   },
   // Templates Modal Styles
   modalOverlay: {

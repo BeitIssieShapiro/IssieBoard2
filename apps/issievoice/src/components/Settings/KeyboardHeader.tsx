@@ -4,6 +4,7 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
+  useWindowDimensions,
 } from 'react-native';
 import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 import { colors } from '../../constants';
@@ -17,6 +18,8 @@ export interface KeyboardHeaderProps {
   onSave: () => void;
   onSaveAs?: () => void;
   isDirty: boolean;
+  showFullAccessBadge?: boolean;
+  onFullAccessBadgePress?: () => void;
 }
 
 const LANGUAGES: { id: 'en' | 'he' | 'ar'; label: string }[] = [
@@ -33,11 +36,19 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
   onSave,
   onSaveAs,
   isDirty,
+  showFullAccessBadge,
+  onFullAccessBadgePress,
 }) => {
+  const {width, height} = useWindowDimensions();
+  const shortSide = Math.min(width, height);
+  const isPhone = shortSide < 500;
+  const isPortrait = height > width;
+  const twoRows = isPhone && isPortrait;
+
   return (
-    <View style={styles.container}>
-      {/* Language toggle pills */}
-      <View style={styles.languageTabs}>
+    <View style={[styles.container, twoRows && styles.containerTwoRows]}>
+      {/* Row 1 (or inline): Language toggle pills */}
+      <View style={[styles.languageTabs, twoRows && styles.languageTabsCentered]}>
         {LANGUAGES.map(lang => {
           const isActive = currentLanguage === lang.id;
           return (
@@ -54,49 +65,61 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
                 ]}>
                 {lang.label}
               </Text>
+              {isActive && showFullAccessBadge && (
+                <TouchableOpacity
+                  style={styles.fullAccessBadge}
+                  onPress={onFullAccessBadgePress}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <View style={styles.fullAccessBadgeCircle}>
+                    <MyIcon info={{ name: 'warning-outline', type: 'Ionicons', color: '#D97706', size: 12 }} />
+                  </View>
+                </TouchableOpacity>
+              )}
             </TouchableOpacity>
           );
         })}
       </View>
 
-      {/* Profile name + select */}
-      <TouchableOpacity
-        style={styles.profileButton}
-        onPress={onProfilePress}
-        activeOpacity={0.7}>
-        <MyIcon info={{ name: 'keyboard-settings-outline', type: 'MDI', color: colors.primary, size: 18 }} />
-        <Text style={styles.profileName} numberOfLines={1} ellipsizeMode="tail">
-          {profileName}
-        </Text>
-        <MyIcon info={{ name: 'chevron-down', type: 'Ionicons', color: colors.textLight, size: 16 }} />
-      </TouchableOpacity>
-
-      {/* Save / Save As */}
-      <View style={styles.actions}>
+      {/* Row 2 (or inline): Profile + Save */}
+      <View style={[styles.row2, twoRows && styles.row2TwoRows]}>
         <TouchableOpacity
-          style={[styles.saveButton, !isDirty && styles.saveButtonDisabled]}
-          onPress={onSave}
-          disabled={!isDirty}
+          style={styles.profileButton}
+          onPress={onProfilePress}
           activeOpacity={0.7}>
-          <MyIcon
-            info={{
-              name: 'save-outline',
-              type: 'Ionicons',
-              color: isDirty ? '#FFFFFF' : colors.textLight,
-              size: 18,
-            }}
-          />
-          <Text style={[styles.saveText, !isDirty && styles.saveTextDisabled]}>Save</Text>
+          <MyIcon info={{ name: 'keyboard-settings-outline', type: 'MDI', color: colors.primary, size: 18 }} />
+          <Text style={styles.profileName} numberOfLines={1} ellipsizeMode="tail">
+            {profileName}
+          </Text>
+          <MyIcon info={{ name: 'chevron-down', type: 'Ionicons', color: colors.textLight, size: 16 }} />
         </TouchableOpacity>
 
-        {onSaveAs && (
+        <View style={styles.actions}>
           <TouchableOpacity
-            style={styles.saveAsButton}
-            onPress={onSaveAs}
+            style={[styles.saveButton, !isDirty && styles.saveButtonDisabled]}
+            onPress={onSave}
+            disabled={!isDirty}
             activeOpacity={0.7}>
-            <Text style={styles.saveAsText}>Save As</Text>
+            <MyIcon
+              info={{
+                name: 'save-outline',
+                type: 'Ionicons',
+                color: isDirty ? '#FFFFFF' : colors.textLight,
+                size: 18,
+              }}
+            />
+            <Text style={[styles.saveText, !isDirty && styles.saveTextDisabled]}>Save</Text>
           </TouchableOpacity>
-        )}
+
+          {onSaveAs && (
+            <TouchableOpacity
+              style={styles.saveAsButton}
+              onPress={onSaveAs}
+              activeOpacity={0.7}>
+              <Text style={styles.saveAsText}>Save As</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     </View>
   );
@@ -116,12 +139,20 @@ const styles = StyleSheet.create({
     ...cardShadow,
     gap: 10,
   },
+  containerTwoRows: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    gap: 8,
+  },
   languageTabs: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F1F5F9',
     borderRadius: 20,
     padding: 3,
+  },
+  languageTabsCentered: {
+    alignSelf: 'center',
   },
   languageTab: {
     paddingHorizontal: 12,
@@ -144,6 +175,33 @@ const styles = StyleSheet.create({
   languageTabTextActive: {
     color: '#FFFFFF',
     fontWeight: '700',
+  },
+  fullAccessBadge: {
+    position: 'absolute',
+    top: -8,
+    right: 0,
+  },
+  fullAccessBadgeCircle: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  row2: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 10,
+  },
+  row2TwoRows: {
+    flex: 0,
   },
   profileButton: {
     flexDirection: 'row',

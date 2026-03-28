@@ -1,5 +1,5 @@
 import React from 'react';
-import {View, Text, TouchableOpacity, StyleSheet} from 'react-native';
+import {View, Text, TouchableOpacity, StyleSheet, useWindowDimensions} from 'react-native';
 import {colors} from '../../constants';
 import {MyIcon, IconType} from '@beitissieshapiro/issie-shared/dist/icons';
 import {cardShadow, subtleShadow} from '../../../../../src/styles/shadows';
@@ -45,6 +45,8 @@ const KEYBOARD_CHILD_IDS: string[] = KEYBOARD_CHILDREN.map(t => t.id);
 const isKeyboardTab = (tabId: string): boolean =>
   KEYBOARD_CHILD_IDS.includes(tabId);
 
+const PHONE_MAX_WIDTH = 500;
+
 /** Renders a sidebar/tab item with icon circle + label, matching the card design */
 const TabItem: React.FC<{
   tab: TabDef;
@@ -52,11 +54,13 @@ const TabItem: React.FC<{
   onPress: () => void;
   indented?: boolean;
   disabled?: boolean;
-}> = ({tab, isActive, onPress, indented, disabled}) => (
+  compact?: boolean;
+}> = ({tab, isActive, onPress, indented, disabled, compact}) => (
   <TouchableOpacity
     style={[
       styles.sidebarCard,
-      indented && styles.sidebarCardIndented,
+      compact && styles.sidebarCardCompact,
+      indented && (compact ? styles.sidebarCardIndentedCompact : styles.sidebarCardIndented),
       isActive && styles.sidebarCardActive,
       disabled && { opacity: 0.35 },
     ]}
@@ -65,11 +69,11 @@ const TabItem: React.FC<{
     disabled={disabled}>
     <View
       style={[
-        styles.iconCircle,
+        compact ? styles.iconCircleCompact : styles.iconCircle,
         {backgroundColor: isActive ? 'rgba(255,255,255,0.25)' : tab.iconColor + '18'},
       ]}>
       {tab.iconText ? (
-        <Text style={{fontSize: 18, color: isActive ? '#FFFFFF' : tab.iconColor, fontWeight: '700'}}>
+        <Text style={{fontSize: compact ? 15 : 18, color: isActive ? '#FFFFFF' : tab.iconColor, fontWeight: '700'}}>
           {tab.iconText}
         </Text>
       ) : (
@@ -78,14 +82,14 @@ const TabItem: React.FC<{
             name: tab.iconName!,
             type: tab.iconType!,
             color: isActive ? '#FFFFFF' : tab.iconColor,
-            size: 20,
+            size: compact ? 17 : 20,
           }}
         />
       )}
     </View>
     <Text
       style={[
-        styles.sidebarCardText,
+        compact ? styles.sidebarCardTextCompact : styles.sidebarCardText,
         isActive && styles.sidebarCardTextActive,
       ]}>
       {tab.label}
@@ -101,27 +105,30 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   mode = 'voice',
 }) => {
   const keyboardOnly = mode === 'keyboard';
+  const {width: screenWidth, height: screenHeight} = useWindowDimensions();
+  const shortSide = Math.min(screenWidth, screenHeight);
+  const isPhone = shortSide < 500;
 
   if (isLandscape) {
     return (
-      <View style={styles.sidebar}>
+      <View style={[styles.sidebar, isPhone && styles.sidebarCompact]}>
         {/* Keyboard group header — only in voice mode */}
         {!keyboardOnly && (
           <TouchableOpacity
-            style={styles.groupHeader}
+            style={[styles.groupHeader, isPhone && styles.groupHeaderCompact]}
             onPress={() => onTabChange('general')}
             activeOpacity={0.7}>
-            <View style={[styles.iconCircle, {backgroundColor: colors.primary + '18'}]}>
+            <View style={[isPhone ? styles.iconCircleCompact : styles.iconCircle, {backgroundColor: colors.primary + '18'}]}>
               <MyIcon
                 info={{
                   name: 'keyboard-settings-outline',
                   type: 'MDI',
                   color: colors.primary,
-                  size: 20,
+                  size: isPhone ? 17 : 20,
                 }}
               />
             </View>
-            <Text style={styles.groupHeaderText}>Keyboard</Text>
+            <Text style={[styles.groupHeaderText, isPhone && styles.groupHeaderTextCompact]}>Keyboard</Text>
           </TouchableOpacity>
         )}
 
@@ -134,6 +141,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
             onPress={() => onTabChange(tab.id)}
             indented={!keyboardOnly}
             disabled={disabledTabs?.includes(tab.id)}
+            compact={isPhone}
           />
         ))}
 
@@ -145,6 +153,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
               tab={VOICE_TAB}
               isActive={activeTab === VOICE_TAB.id}
               onPress={() => onTabChange(VOICE_TAB.id)}
+              compact={isPhone}
             />
           </>
         )}
@@ -164,7 +173,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
             return (
               <TouchableOpacity
                 key={tab.id}
-                style={[styles.subTab, isActive && styles.subTabActive]}
+                style={[isPhone ? styles.subTabIconOnly : styles.subTab, isActive && styles.subTabActive]}
                 onPress={() => onTabChange(tab.id)}
                 activeOpacity={0.7}
                 disabled={isDisabled}>
@@ -189,14 +198,16 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                     />
                   )}
                 </View>
-                <Text
-                  style={[
-                    styles.subTabText,
-                    isActive && styles.subTabTextActive,
-                    isDisabled && {opacity: 0.35},
-                  ]}>
-                  {tab.label}
-                </Text>
+                {!isPhone && (
+                  <Text
+                    style={[
+                      styles.subTabText,
+                      isActive && styles.subTabTextActive,
+                      isDisabled && {opacity: 0.35},
+                    ]}>
+                    {tab.label}
+                  </Text>
+                )}
               </TouchableOpacity>
             );
           })}
@@ -276,7 +287,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
             return (
               <TouchableOpacity
                 key={tab.id}
-                style={[styles.subTab, isActive && styles.subTabActive]}
+                style={[isPhone ? styles.subTabIconOnly : styles.subTab, isActive && styles.subTabActive]}
                 onPress={() => onTabChange(tab.id)}
                 activeOpacity={0.7}
                 disabled={isDisabled}>
@@ -301,14 +312,16 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                     />
                   )}
                 </View>
-                <Text
-                  style={[
-                    styles.subTabText,
-                    isActive && styles.subTabTextActive,
-                    isDisabled && {opacity: 0.35},
-                  ]}>
-                  {tab.label}
-                </Text>
+                {!isPhone && (
+                  <Text
+                    style={[
+                      styles.subTabText,
+                      isActive && styles.subTabTextActive,
+                      isDisabled && {opacity: 0.35},
+                    ]}>
+                    {tab.label}
+                  </Text>
+                )}
               </TouchableOpacity>
             );
           })}
@@ -319,7 +332,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
 };
 
 const styles = StyleSheet.create({
-  // Landscape sidebar styles
+  // Landscape sidebar styles — default (iPad)
   sidebar: {
     width: 200,
     backgroundColor: '#FFFFFF',
@@ -332,6 +345,13 @@ const styles = StyleSheet.create({
     ...cardShadow,
     gap: 4,
   },
+  sidebarCompact: {
+    width: 170,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    borderRadius: 16,
+    gap: 2,
+  },
   groupHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -339,12 +359,20 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     gap: 10,
   },
+  groupHeaderCompact: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    gap: 8,
+  },
   groupHeaderText: {
     fontSize: 15,
     fontWeight: '700',
     color: colors.text,
   },
-  // Card-style sidebar items
+  groupHeaderTextCompact: {
+    fontSize: 13,
+  },
+  // Card-style sidebar items — default (iPad)
   sidebarCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -355,8 +383,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     ...subtleShadow,
   },
+  sidebarCardCompact: {
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+    borderRadius: 10,
+    gap: 8,
+  },
   sidebarCardIndented: {
     marginLeft: 20,
+  },
+  sidebarCardIndentedCompact: {
+    marginLeft: 16,
   },
   sidebarCardActive: {
     backgroundColor: colors.primary,
@@ -364,6 +401,11 @@ const styles = StyleSheet.create({
   },
   sidebarCardText: {
     fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  sidebarCardTextCompact: {
+    fontSize: 12,
     fontWeight: '600',
     color: colors.text,
   },
@@ -375,6 +417,13 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  iconCircleCompact: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -445,6 +494,7 @@ const styles = StyleSheet.create({
     paddingTop: 4,
     gap: 6,
   },
+  // Sub-tab with icon + label (iPad / tablet)
   subTab: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -452,6 +502,15 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 10,
     gap: 6,
+    backgroundColor: '#F1F5F9',
+    ...subtleShadow,
+  },
+  // Sub-tab icon only (phone)
+  subTabIconOnly: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 6,
+    borderRadius: 10,
     backgroundColor: '#F1F5F9',
     ...subtleShadow,
   },

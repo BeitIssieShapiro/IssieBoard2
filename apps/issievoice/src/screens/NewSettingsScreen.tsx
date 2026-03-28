@@ -14,11 +14,13 @@ import KeyboardHeader from '../components/Settings/KeyboardHeader';
 import VoiceSettingsPanel from '../components/Settings/VoiceSettingsPanel';
 import { EditorScreen } from '../../../../src/screens/EditorScreen';
 import { LocalizationProvider as EditorLocalizationProvider } from '../../../../src/localization';
+import { getStrings as getEditorStrings } from '../../../../src/localization/strings';
 import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 import KeyboardPreferences from '../../../../src/native/KeyboardPreferences';
 import { AboutScreen } from '../../../../src/components/AboutScreen';
 import { ISSIEBOARD_ABOUT, ISSIEVOICE_ABOUT } from '../../../../src/components/about-content';
 import { cardShadow } from '../../../../src/styles/shadows';
+import { useKeyboardSetupStatus } from '../../../../src/hooks/useKeyboardSetupStatus';
 
 const KEYBOARD_TABS = ['general', 'keys-groups', 'nikkud', 'features', 'advanced'];
 
@@ -51,6 +53,20 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
   const showProfilePickerRef = useRef<(() => void) | null>(null);
   const changeLanguageRef = useRef<((lang: 'en' | 'he' | 'ar') => void) | null>(null);
   const saveRef = useRef<(() => void) | null>(null);
+
+  // Keyboard setup status (for Full Access badge — IssieBoard only)
+  const setupStatus = useKeyboardSetupStatus(kbLanguage);
+  const showFullAccessBadge = isKeyboardOnly && setupStatus.isAdded === true && setupStatus.hasFullAccess !== true;
+
+  const handleFullAccessBadgePress = useCallback(() => {
+    const s = getEditorStrings(kbLanguage);
+    const message = [
+      s.setup.fullAccessStep1,
+      s.setup.fullAccessStep2,
+      s.setup.fullAccessStep3,
+    ].join('\n');
+    Alert.alert(s.setup.fullAccessTitle, message);
+  }, [kbLanguage]);
 
   const handleEditorStateChange = useCallback((state: { language: string; profileName: string; isDirty: boolean }) => {
     setKbLanguage(state.language as 'en' | 'he' | 'ar');
@@ -157,6 +173,8 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
           onProfilePress={() => showProfilePickerRef.current?.()}
           onSave={() => saveRef.current?.()}
           isDirty={isDirty}
+          showFullAccessBadge={showFullAccessBadge}
+          onFullAccessBadgePress={handleFullAccessBadgePress}
         />
         <EditorLocalizationProvider>
           <EditorScreen

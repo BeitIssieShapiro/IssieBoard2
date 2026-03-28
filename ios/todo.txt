@@ -8,10 +8,10 @@ todo - IssieBoard:
 ----
 Android:
   - x is invisible in Nikkud
-- leave settings w/o save
 - not offer suggestion for certain input type? then ommit the header row?
 - URL/email no auto-shift
 - Globe icon color
+- remove settings for kb in IssieVoice
 
 
 

@@ -1474,6 +1474,11 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
           </Animated.View>
         )}
 
+        {/* Keyboard Setup Status — IssieBoard only */}
+        {appContext !== 'issievoice' && (
+          <SetupStatusStrip isAdded={setupStatus.isAdded} languageName={currentLanguageDef.name} />
+        )}
+
         {/* Settings panel in rounded raised container */}
         <View style={styles.headlessPanel}>
           <Toolbox
@@ -1487,7 +1492,10 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
 
         {/* Keyboard preview in rounded raised container */}
         {(() => {
-          const previewH = windowWidth > windowHeight ? windowHeight / 3 : windowHeight / 4;
+          const isPhoneLandscape = windowWidth > windowHeight && windowWidth < 900;
+          const previewH = windowWidth > windowHeight
+            ? (isPhoneLandscape ? windowHeight * 0.25 : windowHeight / 3)
+            : windowHeight / 4;
           return (
             <View style={[styles.headlessPreview, { backgroundColor: (state.config.backgroundColor && state.config.backgroundColor !== 'default') ? state.config.backgroundColor : '#CBCFD8' }]}>
               <View style={styles.headlessPreviewInner}>

@@ -7,6 +7,7 @@ import {
   TextInput,
   ScrollView,
   Animated,
+  TouchableOpacity,
   useWindowDimensions,
 } from 'react-native';
 import { useEditor } from '../../context/EditorContext';
@@ -15,8 +16,8 @@ import { StyleGroup, KeyStyleOverride, KeyboardConfig, VisibilityMode } from '..
 import { CompactColorPicker } from '../shared/CompactColorPicker';
 import { ButtonGroupRow } from '../shared/ButtonGroupRow';
 import { KeyboardPreview, KeyPressEvent } from '../KeyboardPreview';
-import { ActionButton } from '../shared/ActionButton';
 import { transformConfigForPreview } from '../../utils/keyboardConfigMerger';
+import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 
 interface AddStyleRuleModalProps {
   visible: boolean;
@@ -366,17 +367,21 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
               </Text>
             </View>
             <View style={styles.headerActions}>
-              <ActionButton
-                label={strings.common.cancel}
-                color="gray"
+              <TouchableOpacity
+                style={styles.headerButton}
                 onPress={handleCancel}
-              />
-              <ActionButton
-                label={editingGroup ? strings.common.save : (isPreset ? strings.common.apply : strings.common.create)}
-                color="green"
+                activeOpacity={0.7}>
+                <MyIcon info={{ name: 'close', type: 'Ionicons', color: '#6B7280', size: 16 }} />
+                <Text allowFontScaling={false} style={styles.headerButtonTextGray}>{strings.common.cancel}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.headerButton, selectedKeyValues.length === 0 && styles.headerButtonDisabled]}
                 onPress={handleOk}
-                disabled={selectedKeyValues.length === 0}
-              />
+                activeOpacity={0.7}
+                disabled={selectedKeyValues.length === 0}>
+                <MyIcon info={{ name: 'checkmark', type: 'Ionicons', color: selectedKeyValues.length === 0 ? '#9CA3AF' : '#3B82F6', size: 16 }} />
+                <Text allowFontScaling={false} style={[styles.headerButtonTextBlue, selectedKeyValues.length === 0 && styles.headerButtonTextDisabled]}>OK</Text>
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -521,6 +526,36 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
     gap: 8,
+  },
+  headerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  headerButtonDisabled: {
+    opacity: 0.5,
+  },
+  headerButtonTextGray: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  headerButtonTextBlue: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#3B82F6',
+  },
+  headerButtonTextDisabled: {
+    color: '#9CA3AF',
   },
   nameRow: {
     flexDirection: 'row',
