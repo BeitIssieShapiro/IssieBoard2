@@ -64,6 +64,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
 
   // Determine if landscape or portrait
   const isLandscape = frame.width > frame.height;
+  const isPhoneLandscape = isLandscape && Math.min(frame.width, frame.height) < 600;
 
   // Function to load keyboard configuration for a specific language
   const loadKeyboardConfig = async (language: string) => {
@@ -533,28 +534,30 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
           {/* Save/Browse buttons - to the right of text area */}
           <View style={styles.sideButtons}>
             <TouchableOpacity
-              style={styles.sideButton}
+              style={[styles.sideButton, isPhoneLandscape && styles.sideButtonSmall]}
               onPress={handleSave}
               activeOpacity={0.7}>
-              <MyIcon info={{ name: 'save-outline', type: 'Ionicons', color: colors.primary, size: 24 }} />
+              <MyIcon info={{ name: 'save-outline', type: 'Ionicons', color: colors.primary, size: isPhoneLandscape ? 19 : 24 }} />
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.sideButton}
+              style={[styles.sideButton, isPhoneLandscape && styles.sideButtonSmall]}
               onPress={handleBrowse}
               activeOpacity={0.7}>
-              <MyIcon info={{ name: 'folder-open-outline', type: 'Ionicons', color: colors.primary, size: 24 }} />
+              <MyIcon info={{ name: 'folder-open-outline', type: 'Ionicons', color: colors.primary, size: isPhoneLandscape ? 19 : 24 }} />
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Favorites Bar - Below top section, Above Keyboard */}
-        <FavoritesBar
-          onFavoritePress={handleFavoritePress}
-          height={Math.min(availableHeight * 0.4, isLandscape ? availableHeight * 0.4 : 250)}
-          navigation={navigation}
-          reloadTrigger={favoritesReloadTrigger}
-          screenWidth={frame.width}
-        />
+        {/* Favorites Bar - Below top section, Above Keyboard (hidden on phone landscape) */}
+        {!isPhoneLandscape && (
+          <FavoritesBar
+            onFavoritePress={handleFavoritePress}
+            height={Math.min(availableHeight * 0.4, isLandscape ? availableHeight * 0.4 : 250)}
+            navigation={navigation}
+            reloadTrigger={favoritesReloadTrigger}
+            screenWidth={frame.width}
+          />
+        )}
 
         {/* Unified Keyboard + Suggestions Container */}
         <View style={[styles.keyboardWrapper, { backgroundColor: keyboardBgColor }]}>
@@ -660,6 +663,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 3,
     elevation: 3,
+  },
+  sideButtonSmall: {
+    width: 42,
+    height: 42,
+    borderRadius: 11,
   },
   sideButtonText: {
     fontSize: 24,

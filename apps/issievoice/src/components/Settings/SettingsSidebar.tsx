@@ -55,12 +55,15 @@ const TabItem: React.FC<{
   indented?: boolean;
   disabled?: boolean;
   compact?: boolean;
-}> = ({tab, isActive, onPress, indented, disabled, compact}) => (
+  extraCompact?: boolean;
+  hideLabel?: boolean;
+}> = ({tab, isActive, onPress, indented, disabled, compact, extraCompact, hideLabel}) => (
   <TouchableOpacity
     style={[
       styles.sidebarCard,
       compact && styles.sidebarCardCompact,
-      indented && (compact ? styles.sidebarCardIndentedCompact : styles.sidebarCardIndented),
+      extraCompact && styles.sidebarCardExtraCompact,
+      indented && (extraCompact ? styles.sidebarCardIndentedExtraCompact : compact ? styles.sidebarCardIndentedCompact : styles.sidebarCardIndented),
       isActive && styles.sidebarCardActive,
       disabled && { opacity: 0.35 },
     ]}
@@ -69,11 +72,11 @@ const TabItem: React.FC<{
     disabled={disabled}>
     <View
       style={[
-        compact ? styles.iconCircleCompact : styles.iconCircle,
+        extraCompact ? styles.iconCircleExtraCompact : compact ? styles.iconCircleCompact : styles.iconCircle,
         {backgroundColor: isActive ? 'rgba(255,255,255,0.25)' : tab.iconColor + '18'},
       ]}>
       {tab.iconText ? (
-        <Text style={{fontSize: compact ? 15 : 18, color: isActive ? '#FFFFFF' : tab.iconColor, fontWeight: '700'}}>
+        <Text style={{fontSize: extraCompact ? 13 : compact ? 15 : 18, color: isActive ? '#FFFFFF' : tab.iconColor, fontWeight: '700'}}>
           {tab.iconText}
         </Text>
       ) : (
@@ -82,18 +85,20 @@ const TabItem: React.FC<{
             name: tab.iconName!,
             type: tab.iconType!,
             color: isActive ? '#FFFFFF' : tab.iconColor,
-            size: compact ? 17 : 20,
+            size: extraCompact ? 14 : compact ? 17 : 20,
           }}
         />
       )}
     </View>
+    {!hideLabel && (
     <Text
       style={[
-        compact ? styles.sidebarCardTextCompact : styles.sidebarCardText,
+        extraCompact ? styles.sidebarCardTextExtraCompact : compact ? styles.sidebarCardTextCompact : styles.sidebarCardText,
         isActive && styles.sidebarCardTextActive,
       ]}>
       {tab.label}
     </Text>
+    )}
   </TouchableOpacity>
 );
 
@@ -107,28 +112,30 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   const keyboardOnly = mode === 'keyboard';
   const {width: screenWidth, height: screenHeight} = useWindowDimensions();
   const shortSide = Math.min(screenWidth, screenHeight);
-  const isPhone = shortSide < 500;
+  const isPhone = shortSide < 600;
+  // Voice mode on phone has more tabs — needs icon-only sidebar
+  const isPhoneVoice = isPhone && !keyboardOnly;
 
   if (isLandscape) {
     return (
-      <View style={[styles.sidebar, isPhone && styles.sidebarCompact]}>
+      <View style={[styles.sidebar, isPhoneVoice ? styles.sidebarExtraCompact : isPhone && styles.sidebarCompact]}>
         {/* Keyboard group header — only in voice mode */}
         {!keyboardOnly && (
           <TouchableOpacity
-            style={[styles.groupHeader, isPhone && styles.groupHeaderCompact]}
+            style={[styles.groupHeader, isPhoneVoice ? styles.groupHeaderExtraCompact : isPhone && styles.groupHeaderCompact]}
             onPress={() => onTabChange('general')}
             activeOpacity={0.7}>
-            <View style={[isPhone ? styles.iconCircleCompact : styles.iconCircle, {backgroundColor: colors.primary + '18'}]}>
+            <View style={[isPhoneVoice ? styles.iconCircleExtraCompact : isPhone ? styles.iconCircleCompact : styles.iconCircle, {backgroundColor: colors.primary + '18'}]}>
               <MyIcon
                 info={{
                   name: 'keyboard-settings-outline',
                   type: 'MDI',
                   color: colors.primary,
-                  size: isPhone ? 17 : 20,
+                  size: isPhoneVoice ? 14 : isPhone ? 17 : 20,
                 }}
               />
             </View>
-            <Text style={[styles.groupHeaderText, isPhone && styles.groupHeaderTextCompact]}>Keyboard</Text>
+            <Text style={[styles.groupHeaderText, isPhoneVoice ? styles.groupHeaderTextExtraCompact : isPhone && styles.groupHeaderTextCompact]}>Keyboard</Text>
           </TouchableOpacity>
         )}
 
@@ -142,6 +149,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
             indented={!keyboardOnly}
             disabled={disabledTabs?.includes(tab.id)}
             compact={isPhone}
+            extraCompact={isPhoneVoice}
           />
         ))}
 
@@ -154,6 +162,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
               isActive={activeTab === VOICE_TAB.id}
               onPress={() => onTabChange(VOICE_TAB.id)}
               compact={isPhone}
+              extraCompact={isPhoneVoice}
             />
           </>
         )}
@@ -352,6 +361,13 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     gap: 2,
   },
+  sidebarExtraCompact: {
+    width: 150,
+    paddingVertical: 6,
+    paddingHorizontal: 5,
+    borderRadius: 14,
+    gap: 2,
+  },
   groupHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -364,6 +380,11 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     gap: 8,
   },
+  groupHeaderExtraCompact: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    gap: 6,
+  },
   groupHeaderText: {
     fontSize: 15,
     fontWeight: '700',
@@ -371,6 +392,9 @@ const styles = StyleSheet.create({
   },
   groupHeaderTextCompact: {
     fontSize: 13,
+  },
+  groupHeaderTextExtraCompact: {
+    fontSize: 12,
   },
   // Card-style sidebar items — default (iPad)
   sidebarCard: {
@@ -389,11 +413,20 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     gap: 8,
   },
+  sidebarCardExtraCompact: {
+    paddingHorizontal: 6,
+    paddingVertical: 5,
+    borderRadius: 8,
+    gap: 6,
+  },
   sidebarCardIndented: {
-    marginLeft: 20,
+    marginLeft: 28,
   },
   sidebarCardIndentedCompact: {
-    marginLeft: 16,
+    marginLeft: 20,
+  },
+  sidebarCardIndentedExtraCompact: {
+    marginLeft: 12,
   },
   sidebarCardActive: {
     backgroundColor: colors.primary,
@@ -406,6 +439,11 @@ const styles = StyleSheet.create({
   },
   sidebarCardTextCompact: {
     fontSize: 12,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  sidebarCardTextExtraCompact: {
+    fontSize: 11,
     fontWeight: '600',
     color: colors.text,
   },
@@ -435,6 +473,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   iconCircleTiny: {
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  iconCircleExtraCompact: {
     width: 26,
     height: 26,
     borderRadius: 8,

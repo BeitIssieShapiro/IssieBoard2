@@ -1412,9 +1412,7 @@ class KeyboardRenderer {
         
         // Colors - use darker key colors for dark mode to match system keyboard
         var bgColor = key.backgroundColor
-        if key.type.lowercased() == "shift" && shiftState.isActive() {
-            bgColor = .systemGreen
-        } else if bgColor == .white {
+        if bgColor == .white {
             // Use a darker shade for regular keys in dark mode, similar to system keyboard
             bgColor = UIColor { traitCollection in
                 if traitCollection.userInterfaceStyle == .dark {
@@ -1440,6 +1438,12 @@ class KeyboardRenderer {
 
         // Nikkud active indicator - rounded border instead of yellow background
         if key.type.lowercased() == "nikkud" && nikkudActive {
+            visualKeyView.layer.borderWidth = 2.5
+            visualKeyView.layer.borderColor = UIColor.systemBlue.cgColor
+        }
+
+        // Shift active indicator - same blue border as nikkud
+        if key.type.lowercased() == "shift" && shiftState.isActive() {
             visualKeyView.layer.borderWidth = 2.5
             visualKeyView.layer.borderColor = UIColor.systemBlue.cgColor
         }
@@ -1997,9 +2001,7 @@ class KeyboardRenderer {
         
         // Determine background and text colors based on button state
         var bgColor = key.backgroundColor
-        if key.type.lowercased() == "shift" && shiftState.isActive() {
-            bgColor = .systemGreen
-        } else if bgColor == .white {
+        if bgColor == .white {
             // Use adaptive color for dark mode
             bgColor = UIColor { traitCollection in
                 if traitCollection.userInterfaceStyle == .dark {

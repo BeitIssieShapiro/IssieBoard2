@@ -7,6 +7,7 @@ import {
   Text,
   ScrollView,
   InputAccessoryView,
+  useWindowDimensions,
 } from 'react-native';
 import { useText } from '../../context/TextContext';
 import { useTTS } from '../../context/TTSContext';
@@ -26,6 +27,8 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1
   const { strings, isRTL, language } = useLocalization();
   const textInputRef = useRef<TextInput>(null);
   const [selection, setSelection] = useState<{ start: number; end: number } | undefined>(undefined);
+  const {width: winW, height: winH} = useWindowDimensions();
+  const isPhoneLandscape = winW > winH && Math.min(winW, winH) < 500;
 
   // Dynamically detect text direction based on content
   // If text is empty, use the current language direction
@@ -39,10 +42,11 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1
 
   // Calculate font size based on screen width (scales from 1000px reference)
   // At 1000px: fontSize = 24, scales proportionally but never below 16px
-  const baseFontSize = 24;
+  // On phone landscape, use smaller font to fit in limited vertical space
+  const baseFontSize = isPhoneLandscape ? 18 : 24;
   const scaleFactor = screenWidth / 1000;
-  const fontSize = Math.max(16, baseFontSize * scaleFactor);
-  const lineHeight = fontSize * 1.4;
+  const fontSize = Math.max(isPhoneLandscape ? 14 : 16, baseFontSize * scaleFactor);
+  const lineHeight = fontSize * (isPhoneLandscape ? 1.0 : 1.4);
 
   // Re-focus after text changes from our custom keyboard
   useEffect(() => {
@@ -91,6 +95,7 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1
         style={[
           styles.textInput,
           { fontSize, lineHeight, height: '100%' },
+          isPhoneLandscape && { paddingTop: 4 },
           isTextRTL && styles.textInputRTL,
           isSpeaking && styles.hiddenTextInput,
           speakButtonPadding > 0 && { paddingBottom: speakButtonPadding },
@@ -129,7 +134,7 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1
       )}
       {text.length > 0 && (
         <TouchableOpacity
-          style={[styles.clearButton, isRTL ? styles.clearButtonLeft : styles.clearButtonRight]}
+          style={[styles.clearButton, isRTL ? styles.clearButtonLeft : styles.clearButtonRight, isPhoneLandscape && !isRTL && { right: 120 }]}
           onPress={handleClear}
           activeOpacity={0.7}>
           <Text style={styles.clearButtonText}>✕</Text>
