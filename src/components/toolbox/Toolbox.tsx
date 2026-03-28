@@ -63,6 +63,8 @@ export interface ToolboxProps {
   /** If set, render only this section without accordion wrappers.
    *  'general' | 'keys-groups' | 'nikkud' | 'features' | 'advanced' */
   section?: string;
+  /** App context — hides settings button toggle for IssieVoice */
+  appContext?: 'issievoice' | 'issieboard';
 }
 
 export const Toolbox: React.FC<ToolboxProps> = ({
@@ -71,6 +73,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
   onKeyboardVariantChange,
   profileName,
   section,
+  appContext,
 }) => {
   const { state, clearSelection } = useEditor();
   const { strings } = useLocalization();
@@ -203,6 +206,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
               onKeyboardVariantChange={onKeyboardVariantChange}
               advancedExpanded={false}
               setAdvancedExpanded={() => {}}
+              appContext={appContext}
               featuresExpanded={false}
               setFeaturesExpanded={() => {}}
               section="general"
@@ -243,6 +247,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
               onKeyboardVariantChange={onKeyboardVariantChange}
               advancedExpanded={false}
               setAdvancedExpanded={() => {}}
+              appContext={appContext}
               featuresExpanded={true}
               setFeaturesExpanded={() => {}}
               section="features"
@@ -256,6 +261,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
               onKeyboardVariantChange={onKeyboardVariantChange}
               advancedExpanded={true}
               setAdvancedExpanded={() => {}}
+              appContext={appContext}
               featuresExpanded={false}
               setFeaturesExpanded={() => {}}
               section="advanced"
@@ -343,6 +349,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
           setAdvancedExpanded={setAdvancedExpanded}
           featuresExpanded={featuresExpanded}
           setFeaturesExpanded={setFeaturesExpanded}
+          appContext={appContext}
         />
       </AccordionSection>
 

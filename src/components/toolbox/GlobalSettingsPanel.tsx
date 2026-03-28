@@ -40,6 +40,8 @@ export interface GlobalSettingsPanelProps {
   setFeaturesExpanded: (expanded: boolean) => void;
   /** If set, show only this section: 'general' | 'features' | 'advanced' */
   section?: string;
+  /** App context — hides settings button toggle for IssieVoice */
+  appContext?: 'issievoice' | 'issieboard';
 }
 
 export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
@@ -51,6 +53,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
   featuresExpanded,
   setFeaturesExpanded,
   section,
+  appContext,
 }) => {
   const {
     state,
@@ -312,6 +315,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
                 disabled={!wordSuggestionsEnabled}
               />
             </View>
+            {appContext !== 'issievoice' && (
             <View style={styles.featureRow}>
               <View style={styles.featureInfo}>
                 <Text allowFontScaling={false} style={styles.featureLabel}>{strings.globalSettings.settingsButton}</Text>
@@ -327,6 +331,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
                 size="medium"
               />
             </View>
+            )}
           </View>
         )}
       </View>

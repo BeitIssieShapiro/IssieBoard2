@@ -46,6 +46,7 @@ interface InteractiveCanvasProps {
   onTestInput?: (text: string) => void;
   height: number;
   hideHeader?: boolean;
+  hideSettingsKey?: boolean;
 }
 
 // Language display names
@@ -55,7 +56,7 @@ const LANGUAGE_NAMES: Record<string, string> = {
   'ar': 'العربية',
 };
 
-export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInput, height, hideHeader }) => {
+export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInput, height, hideHeader, hideSettingsKey }) => {
   const { state, dispatch } = useEditor();
   const { strings } = useLocalization();
   const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
@@ -160,8 +161,8 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
       console.log(`🎨 [InteractiveCanvas] Sample group:`, JSON.stringify(groupConfigs[0]));
     }
 
-    // Get settingsButtonEnabled setting (default to true)
-    const settingsButtonEnabled = state.config.settingsButtonEnabled !== false;
+    // Get settingsButtonEnabled setting (default to true, but force false if hideSettingsKey)
+    const settingsButtonEnabled = hideSettingsKey ? false : state.config.settingsButtonEnabled !== false;
 
     // Filter out settings button if disabled
     const filteredKeysets = state.config.keysets.map(keyset => ({
