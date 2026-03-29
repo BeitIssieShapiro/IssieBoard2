@@ -1529,9 +1529,11 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
             />
             <View style={[styles.profilePickerContainer, windowWidth < 700 && styles.profilePickerContainerSmall]}>
               <View style={styles.profilePickerHeader}>
-                <Text allowFontScaling={false} style={styles.profilePickerTitle}>
-                  {`${strings.editor.myKeyboards} - ${currentLanguageDef.name}`}
-                </Text>
+                <TouchableOpacity onPress={handleTitleTap} activeOpacity={1}>
+                  <Text allowFontScaling={false} style={styles.profilePickerTitle}>
+                    {`${strings.editor.myKeyboards} - ${currentLanguageDef.name}`}
+                  </Text>
+                </TouchableOpacity>
                 <View style={styles.profilePickerHeaderActions}>
                   <TouchableOpacity
                     style={styles.profilePickerNewButton}
