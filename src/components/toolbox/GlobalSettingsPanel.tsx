@@ -216,23 +216,27 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
 
           {/* 4. Font (only for Hebrew) */}
           {isHebrewKeyboard && (
-            <ButtonGroupRow
-              isRTL={isRTL}
-              title={strings.globalSettings.font}
-              options={hebrewFontOptions.map(opt => ({
-                id: opt.id,
-                label: opt.label,
-                customStyle: opt.fontFamily ? { fontFamily: opt.fontFamily } : undefined,
-              }))}
-              selectedId={currentFontName ? 'yad' : 'system'}
-              onSelect={(id) => {
-                const option = hebrewFontOptions.find(o => o.id === id);
-                updateFontName(option?.fontFamily);
-              }}
-            />
+            <>
+              <View style={styles.separator} />
+              <ButtonGroupRow
+                isRTL={isRTL}
+                title={strings.globalSettings.font}
+                options={hebrewFontOptions.map(opt => ({
+                  id: opt.id,
+                  label: opt.label,
+                  customStyle: opt.fontFamily ? { fontFamily: opt.fontFamily } : undefined,
+                }))}
+                selectedId={currentFontName ? 'yad' : 'system'}
+                onSelect={(id) => {
+                  const option = hebrewFontOptions.find(o => o.id === id);
+                  updateFontName(option?.fontFamily);
+                }}
+              />
+            </>
           )}
 
           {/* 5. Key Gap */}
+          <View style={styles.separator} />
           <ButtonGroupRow
             isRTL={isRTL}
             title={strings.globalSettings.keyGap}
@@ -256,13 +260,16 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
 
           {/* 6. Keyboard Layout (only show if multiple variants) */}
           {keyboardVariants && keyboardVariants.length > 1 && (
-            <ButtonGroupRow
-              isRTL={isRTL}
-              title={strings.globalSettings.keyboardLayout}
-              options={keyboardVariants.map(v => ({ id: v.id, label: v.name }))}
-              selectedId={currentKeyboardId || ''}
-              onSelect={onKeyboardVariantChange!}
-            />
+            <>
+              <View style={styles.separator} />
+              <ButtonGroupRow
+                isRTL={isRTL}
+                title={strings.globalSettings.keyboardLayout}
+                options={keyboardVariants.map(v => ({ id: v.id, label: v.name }))}
+                selectedId={currentKeyboardId || ''}
+                onSelect={onKeyboardVariantChange!}
+              />
+            </>
           )}
         </>
       )}
@@ -302,6 +309,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
                   size="medium"
                 />
               </View>
+              <View style={styles.separator} />
               <View style={styles.featureRow}>
                 <View style={[styles.featureInfo, isRTL && { marginRight: 0, marginLeft: 12 }]}>
                   <Text allowFontScaling={false} style={styles.featureLabel}>{strings.globalSettings.autoCorrect}</Text>
@@ -319,21 +327,24 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
                 />
               </View>
               {appContext !== 'issievoice' && (
-                <View style={styles.featureRow}>
-                  <View style={[styles.featureInfo, isRTL && { marginRight: 0, marginLeft: 12 }]}>
-                    <Text allowFontScaling={false} style={styles.featureLabel}>{strings.globalSettings.settingsButton}</Text>
-                    <Text allowFontScaling={false} style={styles.featureDescription}>
-                      {strings.globalSettings.settingsButtonDesc}
-                    </Text>
+                <>
+                  <View style={styles.separator} />
+                  <View style={styles.featureRow}>
+                    <View style={[styles.featureInfo, isRTL && { marginRight: 0, marginLeft: 12 }]}>
+                      <Text allowFontScaling={false} style={styles.featureLabel}>{strings.globalSettings.settingsButton}</Text>
+                      <Text allowFontScaling={false} style={styles.featureDescription}>
+                        {strings.globalSettings.settingsButtonDesc}
+                      </Text>
+                    </View>
+                    <ToggleSwitch
+                      value={settingsButtonEnabled}
+                      onChange={updateSettingsButton}
+                      labelOn=""
+                      labelOff=""
+                      size="medium"
+                    />
                   </View>
-                  <ToggleSwitch
-                    value={settingsButtonEnabled}
-                    onChange={updateSettingsButton}
-                    labelOn=""
-                    labelOff=""
-                    size="medium"
-                  />
-                </View>
+                </>
               )}
             </View>
           )}
@@ -376,6 +387,8 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
                 />
               </View>
 
+              <View style={styles.separator} />
+
               {/* Font Size Preset */}
               <View style={styles.section}>
                 <ButtonGroupRow
@@ -391,6 +404,8 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
                   }}
                 />
               </View>
+
+              <View style={styles.separator} />
 
               {/* Font Weight */}
               <View style={styles.section}>
@@ -463,6 +478,12 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 0,
+  },
+  separator: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#E0E0E0',
+    marginVertical: 10,
+    marginHorizontal: 4,
   },
   featureRow: {
     flexDirection: 'row',

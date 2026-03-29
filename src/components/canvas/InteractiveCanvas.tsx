@@ -47,6 +47,8 @@ interface InteractiveCanvasProps {
   height: number;
   hideHeader?: boolean;
   hideSettingsKey?: boolean;
+  /** When 'advanced', the preview uses the native-reported keyboard height for a realistic preview */
+  activeTab?: string;
 }
 
 // Language display names
@@ -56,7 +58,7 @@ const LANGUAGE_NAMES: Record<string, string> = {
   'ar': 'العربية',
 };
 
-export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInput, height, hideHeader, hideSettingsKey }) => {
+export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInput, height, hideHeader, hideSettingsKey, activeTab }) => {
   const { state, dispatch } = useEditor();
   const { strings } = useLocalization();
   const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
@@ -194,9 +196,12 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
 
   const isLandscape = windowWidth > windowHeight;
   const windowAvailableWidth = windowWidth - insets.left - insets.right
+  // In advanced tab, use native-reported height for realistic preview
+  const useRealisticHeight = activeTab === 'advanced' && keyboardHeight > 0;
+  const effectiveHeight = useRealisticHeight ? keyboardHeight : height;
 
   return (
-    <View style={{ flexDirection: isLandscape && !hideHeader ? "row" : "column", minHeight: hideHeader ? height : height + 20 }}>
+    <View style={{ flexDirection: isLandscape && !hideHeader ? "row" : "column", minHeight: hideHeader ? effectiveHeight : height + 20 }}>
 
       {/* Preview Header */}
       {!hideHeader && (
@@ -215,7 +220,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
         width: isLandscape && !hideHeader ? windowAvailableWidth * 0.8 : '100%',
         alignItems: 'center',
         justifyContent:"center",
-        height: hideHeader ? height : Math.max(height, keyboardHeight) - 50,
+        height: hideHeader ? effectiveHeight : Math.max(height, keyboardHeight) - 50,
         marginTop: isLandscape && !hideHeader ? 10 : 0,
       }}>
         <KeyboardPreview
@@ -223,12 +228,12 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
           style={[
             styles.preview,
             {
-              height: hideHeader ? height : Math.max(height - 40, keyboardHeight),
+              height: hideHeader ? effectiveHeight : Math.max(height - 40, keyboardHeight),
               width: isLandscape && !hideHeader ? windowAvailableWidth * 0.78 : '100%',
             }
           ]}
           configJson={configJson}
-          maxHeight={height}  // Tell keyboard to scale to fit this height
+          maxHeight={useRealisticHeight ? undefined : height}
           onKeyPress={handleKeyPress}
           onHeightChange={handleHeightChange}
         />

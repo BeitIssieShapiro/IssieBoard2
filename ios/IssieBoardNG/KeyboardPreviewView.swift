@@ -155,6 +155,8 @@ class KeyboardPreviewView: UIView {
         } else {
             previewMaxHeight = nil
             renderer?.setPreviewMode(maxHeight: nil)
+            // Re-render at full size
+            renderKeyboard()
         }
     }
 
