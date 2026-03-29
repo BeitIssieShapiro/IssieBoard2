@@ -141,10 +141,10 @@ const ClassicSectionsList: React.FC<ClassicSectionsListProps> = ({
 
                 {/* Action Keys */}
                 <SectionHeader title={strings.classic.actionKeys} />
-                <ColorRow title={strings.classic.spaceKeyColor} color={classicState.actionGroups.space?.style.bgColor} onPress={() => onSelectSetting('space-color')} />
-                <ColorRow title={strings.classic.deleteKeyColor} color={classicState.actionGroups.delete?.style.bgColor} onPress={() => onSelectSetting('delete-color')} />
-                <ColorRow title={strings.classic.enterKeyColor} color={classicState.actionGroups.enter?.style.bgColor} onPress={() => onSelectSetting('enter-color')} />
-                <ColorRow title={strings.classic.otherKeysColor} color={classicState.actionGroups.other?.style.bgColor} onPress={() => onSelectSetting('other-color')} />
+                <ColorRow title={strings.classic.spaceKeyColor} color={classicState.actionGroups.space?.style.bgColor || keysBgColor} onPress={() => onSelectSetting('space-color')} />
+                <ColorRow title={strings.classic.deleteKeyColor} color={classicState.actionGroups.delete?.style.bgColor || keysBgColor} onPress={() => onSelectSetting('delete-color')} />
+                <ColorRow title={strings.classic.enterKeyColor} color={classicState.actionGroups.enter?.style.bgColor || keysBgColor} onPress={() => onSelectSetting('enter-color')} />
+                <ColorRow title={strings.classic.otherKeysColor} color={classicState.actionGroups.other?.style.bgColor || keysBgColor} onPress={() => onSelectSetting('other-color')} />
 
                 {/* Nikkud - Hebrew only */}
                 {currentLanguage === 'he' && (
@@ -183,8 +183,8 @@ const ClassicSectionsList: React.FC<ClassicSectionsListProps> = ({
 
                 {/* Per-group colors */}
                 <SectionHeader title={`Group 1 (${groupLabels[0]})`} />
-                <ColorRow title={strings.classic.keysColor} color={classicState.charsetGroups[0]?.style.bgColor} onPress={() => onSelectSetting('group1-keys-color')} />
-                <ColorRow title={strings.classic.textColor} color={classicState.charsetGroups[0]?.style.color} onPress={() => onSelectSetting('group1-text-color')} />
+                <ColorRow title={strings.classic.keysColor} color={classicState.charsetGroups[0]?.style.bgColor || keysBgColor} onPress={() => onSelectSetting('group1-keys-color')} />
+                <ColorRow title={strings.classic.textColor} color={classicState.charsetGroups[0]?.style.color || textColor} onPress={() => onSelectSetting('group1-text-color')} />
 
                 {isSections ? (
                     <>
@@ -195,13 +195,18 @@ const ClassicSectionsList: React.FC<ClassicSectionsListProps> = ({
                         />
                         <ColorRow
                             title={strings.classic.keysColor}
-                            color={classicState.charsetGroups[1]?.style.bgColor}
+                            color={classicState.charsetGroups[1]?.style.bgColor || keysBgColor}
                             onPress={() => onSelectSetting('group2-keys-color')}
                             disabled={!classicState.threeColorMode}
                         />
                         <ColorRow
                             title={strings.classic.textColor}
-                            color={classicState.charsetGroups[1]?.style.color}
+                            color={classicState.charsetGroups[1]?.style.color || textColor}
+                            onPress={() => onSelectSetting('group2-text-color')}
+                            disabled={!classicState.threeColorMode}
+                        />
+                            title={strings.classic.textColor}
+                            color={classicState.charsetGroups[1]?.style.color || textColor}
                             onPress={() => onSelectSetting('group2-text-color')}
                             disabled={!classicState.threeColorMode}
                         />
@@ -209,14 +214,14 @@ const ClassicSectionsList: React.FC<ClassicSectionsListProps> = ({
                 ) : (
                     <>
                         <SectionHeader title={`Group 2 (${groupLabels[1]})`} />
-                        <ColorRow title={strings.classic.keysColor} color={classicState.charsetGroups[1]?.style.bgColor} onPress={() => onSelectSetting('group2-keys-color')} />
-                        <ColorRow title={strings.classic.textColor} color={classicState.charsetGroups[1]?.style.color} onPress={() => onSelectSetting('group2-text-color')} />
+                        <ColorRow title={strings.classic.keysColor} color={classicState.charsetGroups[1]?.style.bgColor || keysBgColor} onPress={() => onSelectSetting('group2-keys-color')} />
+                        <ColorRow title={strings.classic.textColor} color={classicState.charsetGroups[1]?.style.color || textColor} onPress={() => onSelectSetting('group2-text-color')} />
                     </>
                 )}
 
                 <SectionHeader title={classicState.threeColorMode || !isSections ? `Group 3 (${groupLabels[2]})` : `Group 2 (${groupLabels[2]})`} />
-                <ColorRow title={strings.classic.keysColor} color={classicState.charsetGroups[2]?.style.bgColor} onPress={() => onSelectSetting('group3-keys-color')} />
-                <ColorRow title={strings.classic.textColor} color={classicState.charsetGroups[2]?.style.color} onPress={() => onSelectSetting('group3-text-color')} />
+                <ColorRow title={strings.classic.keysColor} color={classicState.charsetGroups[2]?.style.bgColor || keysBgColor} onPress={() => onSelectSetting('group3-keys-color')} />
+                <ColorRow title={strings.classic.textColor} color={classicState.charsetGroups[2]?.style.color || textColor} onPress={() => onSelectSetting('group3-text-color')} />
 
                 {/* Special Keys */}
                 <SectionHeader title={strings.classic.specialKeys} />

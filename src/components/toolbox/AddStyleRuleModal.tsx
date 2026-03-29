@@ -30,6 +30,7 @@ interface AddStyleRuleModalProps {
   isPreset?: boolean; // If true, keys are locked (only colors can be edited)
   presetId?: string; // The predefined rule ID (e.g., "top-row") — stored on the group for auto-update on variant switch
   profileName?: string; // Current profile name for breadcrumb
+  hideGlobeButton?: boolean; // Hide globe button in keyboard preview
   onClose: () => void;
 }
 
@@ -44,6 +45,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
   isPreset = false,
   presetId,
   profileName,
+  hideGlobeButton,
   onClose,
 }) => {
   const {
@@ -136,7 +138,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
     const { type, value } = event.nativeEvent;
 
     // Skip navigation/system keys that aren't selectable via tap
-    if (type === 'keyset-changed' || type === 'next-keyboard' || type === 'language') {
+    if (type === 'keyset-changed' || type === 'language') {
       return;
     }
 
@@ -163,7 +165,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
 
     // For special keys (enter, shift, backspace, space, nikkud), use the type as the value for storage
     // This ensures they can be selected and styled consistently
-    const specialKeyTypes = ['enter', 'shift', 'backspace', 'space', 'settings', 'close', 'nikkud'];
+    const specialKeyTypes = ['enter', 'shift', 'backspace', 'space', 'settings', 'close', 'nikkud', 'next-keyboard'];
     const keyValue = specialKeyTypes.includes(type) ? type : (value || type);
 
     if (!keyValue) return;
@@ -413,6 +415,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
                   configJson={previewConfigJson}
                   selectedKeys={selectedKeysJson}
                   maxHeight={modalPreviewHeight}
+                  hideGlobeButton={hideGlobeButton}
                   onKeyPress={handleKeyPress}
                 />
               </View>

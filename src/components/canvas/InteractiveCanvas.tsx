@@ -47,6 +47,7 @@ interface InteractiveCanvasProps {
   height: number;
   hideHeader?: boolean;
   hideSettingsKey?: boolean;
+  hideGlobeButton?: boolean;
   /** When 'advanced', the preview uses the native-reported keyboard height for a realistic preview */
   activeTab?: string;
 }
@@ -58,7 +59,7 @@ const LANGUAGE_NAMES: Record<string, string> = {
   'ar': 'العربية',
 };
 
-export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInput, height, hideHeader, hideSettingsKey, activeTab }) => {
+export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInput, height, hideHeader, hideSettingsKey, hideGlobeButton, activeTab }) => {
   const { state, dispatch } = useEditor();
   const { strings } = useLocalization();
   const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
@@ -234,6 +235,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
           ]}
           configJson={configJson}
           maxHeight={useRealisticHeight ? undefined : height}
+          hideGlobeButton={hideGlobeButton}
           onKeyPress={handleKeyPress}
           onHeightChange={handleHeightChange}
         />

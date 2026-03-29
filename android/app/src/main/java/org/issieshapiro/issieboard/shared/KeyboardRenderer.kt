@@ -1400,6 +1400,7 @@ class KeyboardRenderer(private val context: Context) {
         val isNikkudKey = key.type.lowercase() == "nikkud"
         val isCloseKey = key.type.lowercase() == "close"
         val isSettingsKey = key.type.lowercase() == "settings"
+        val isNextKeyboardKey = key.type.lowercase() == "next-keyboard"
 
         // Determine final text early (needed for icon: prefix detection)
         val displayText = if (shiftState.isActive()) key.sCaption else key.caption
@@ -1415,6 +1416,7 @@ class KeyboardRenderer(private val context: Context) {
         val iconDrawableName: String? = when {
             isSettingsKey -> "ic_settings_gear"
             isCloseKey -> "ic_keyboard_hide"
+            isNextKeyboardKey -> "ic_globe"
             finalText.startsWith("icon:") -> finalText.removePrefix("icon:")
             else -> null
         }
@@ -1950,6 +1952,12 @@ class KeyboardRenderer(private val context: Context) {
             }
             
             "next-keyboard" -> {
+                // In selection mode, emit key press for selection
+                if (onKeyLongPress != null) {
+                    debugLog("   → Selection mode: emitting key press")
+                    onKeyPress?.invoke(key)
+                    return
+                }
                 debugLog("   → Handling NEXT-KEYBOARD")
                 val callback = onNextKeyboard
                 if (callback != null) {

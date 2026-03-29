@@ -856,20 +856,23 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
   // Get the current color for a setting
   const getColorForSetting = useCallback((settingId: SettingId): string => {
     if (!classicState || !profileDef) return '#000000';
+    // Fallbacks use the global keys/text colors so the picker shows what's actually applied
+    const globalKeysBg = profileDef.keysBgColor || '#CCCCCC';
+    const globalText = profileDef.textColor || '#000000';
     switch (settingId) {
       case 'bg-color': return profileDef.backgroundColor || '#FFFFFF';
-      case 'keys-color': return profileDef.keysBgColor || '#CCCCCC';
-      case 'text-color': return profileDef.textColor || '#000000';
-      case 'space-color': return classicState.actionGroups.space?.style.bgColor || '#4DD0E1';
-      case 'delete-color': return classicState.actionGroups.delete?.style.bgColor || '#4DD0E1';
-      case 'enter-color': return classicState.actionGroups.enter?.style.bgColor || '#4DD0E1';
-      case 'other-color': return classicState.actionGroups.other?.style.bgColor || '#4DD0E1';
-      case 'group1-keys-color': return classicState.charsetGroups[0]?.style.bgColor || '#CCCCCC';
-      case 'group1-text-color': return classicState.charsetGroups[0]?.style.color || '#000000';
-      case 'group2-keys-color': return classicState.charsetGroups[1]?.style.bgColor || '#CCCCCC';
-      case 'group2-text-color': return classicState.charsetGroups[1]?.style.color || '#000000';
-      case 'group3-keys-color': return classicState.charsetGroups[2]?.style.bgColor || '#CCCCCC';
-      case 'group3-text-color': return classicState.charsetGroups[2]?.style.color || '#000000';
+      case 'keys-color': return globalKeysBg;
+      case 'text-color': return globalText;
+      case 'space-color': return classicState.actionGroups.space?.style.bgColor || globalKeysBg;
+      case 'delete-color': return classicState.actionGroups.delete?.style.bgColor || globalKeysBg;
+      case 'enter-color': return classicState.actionGroups.enter?.style.bgColor || globalKeysBg;
+      case 'other-color': return classicState.actionGroups.other?.style.bgColor || globalKeysBg;
+      case 'group1-keys-color': return classicState.charsetGroups[0]?.style.bgColor || globalKeysBg;
+      case 'group1-text-color': return classicState.charsetGroups[0]?.style.color || globalText;
+      case 'group2-keys-color': return classicState.charsetGroups[1]?.style.bgColor || globalKeysBg;
+      case 'group2-text-color': return classicState.charsetGroups[1]?.style.color || globalText;
+      case 'group3-keys-color': return classicState.charsetGroups[2]?.style.bgColor || globalKeysBg;
+      case 'group3-text-color': return classicState.charsetGroups[2]?.style.color || globalText;
       case 'special-keys-color': return classicState.specialKeysGroup?.style.bgColor || '#FFFF00';
       case 'special-keys-text-color': return classicState.specialKeysGroup?.style.color || '#000000';
       default: return '#000000';

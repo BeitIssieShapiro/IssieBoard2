@@ -334,6 +334,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
           isPreset={!!(templateData && !editingGroup) || !!(editingGroup?.presetId)}
           presetId={templateData && !editingGroup ? templateData.id : editingGroup?.presetId}
           profileName={profileName}
+          hideGlobeButton={appContext === 'issievoice'}
           onClose={handleCloseModal}
         />
       </ScrollView>
@@ -446,6 +447,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
         isPreset={!!(templateData && !editingGroup) || !!(editingGroup?.presetId)}
         presetId={templateData && !editingGroup ? templateData.id : editingGroup?.presetId}
         profileName={profileName}
+        hideGlobeButton={appContext === 'issievoice'}
         onClose={handleCloseModal}
       />
     </ScrollView>

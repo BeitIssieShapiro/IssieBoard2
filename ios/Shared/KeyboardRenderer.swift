@@ -1560,6 +1560,7 @@ class KeyboardRenderer {
             let keyType = key.type.lowercased()
             if keyType == "settings" { return "gearshape.fill" }
             if keyType == "close" { return "keyboard.chevron.compact.down" }
+            if keyType == "next-keyboard" { return "globe" }
             if finalText.hasPrefix("sf:") { return String(finalText.dropFirst(3)) }
             return nil
         }()
@@ -2384,10 +2385,12 @@ class KeyboardRenderer {
             }
                         
         case "next-keyboard":
-            // For actual keyboard: call system callback
-            // For preview: switch language internally AND notify React
-            print("   → Handling NEXT-KEYBOARD")
-            if let onNextKeyboard = onNextKeyboard {
+            // In selection mode, emit key press for selection
+            // In normal mode, handle next-keyboard action
+            if onKeyLongPress != nil {
+                print("   → Selection mode: emitting key press")
+                onKeyPress?(key)
+            } else if let onNextKeyboard = onNextKeyboard {
                 print("   → Calling onNextKeyboard (actual keyboard)")
                 onNextKeyboard()
             } else {

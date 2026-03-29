@@ -37,6 +37,13 @@ class KeyboardPreviewView: UIView {
     // Selected keys for edit mode visualization (config mode only)
     private var selectedKeyIds: Set<String> = []
 
+    // Whether to hide the globe (next-keyboard) button — controlled by React prop
+    @objc var hideGlobeButton: Bool = false {
+        didSet {
+            renderer?.setShowGlobeButton(!hideGlobeButton)
+        }
+    }
+
     // Layout tracking to prevent infinite loops
     private var lastRenderedWidth: CGFloat = 0
     private var lastStoredConfigJson: String?
@@ -363,8 +370,8 @@ class KeyboardPreviewView: UIView {
 
         let renderer = engine.renderer
 
-        // Configure for input mode
-        renderer.setShowGlobeButton(false)
+        // Configure for input mode — use hideGlobeButton prop
+        renderer.setShowGlobeButton(!hideGlobeButton)
 
         // Set preview mode with maxHeight if available
         if let maxHeight = previewMaxHeight {
@@ -440,7 +447,7 @@ class KeyboardPreviewView: UIView {
 
         guard let renderer = configModeRenderer else { return }
 
-        renderer.setShowGlobeButton(false)
+        renderer.setShowGlobeButton(!hideGlobeButton)  // Use prop to control globe visibility
 
         // Set preview mode with maxHeight if available
         if let maxHeight = previewMaxHeight {

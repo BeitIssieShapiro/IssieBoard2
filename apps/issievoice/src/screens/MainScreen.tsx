@@ -581,6 +581,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
               configJson={keyboardConfig}
               language={currentLanguage}
               text={currentText}
+              hideGlobeButton
               onKeyPress={handleKeyPress}
               onSuggestionsChange={handleSuggestionsChange}
               onHeightChange={(e) => {

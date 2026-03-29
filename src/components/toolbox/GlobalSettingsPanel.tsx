@@ -169,7 +169,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
         <>
           {/* Colors Section */}
           <View style={styles.settingSection}>
-            <Text allowFontScaling={false} style={[styles.settingTitle]}>{strings.globalSettings.colors}</Text>
+            <Text allowFontScaling={false} style={styles.settingTitle}>{strings.globalSettings.colors}</Text>
 
             <View style={styles.colorsTable}>
               {/* Header Row */}
@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
   },
   settingTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: 'bold',
     color: '#333',
     marginBottom: 12,
     textAlign: 'left'
@@ -521,7 +521,7 @@ const styles = StyleSheet.create({
   },
   advancedTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: 'semibold',
     color: '#1976D2',
   },
   advancedArrow: {

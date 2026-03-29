@@ -19,7 +19,7 @@ V- gaps:
 V- key height preview is misleading
 - classic view - the groups colors (if missing) should follow the global settings
 - next-kb button is missing in preview
-- 123 on left is larger than 123 on right in iPad
+V- 123 on left is larger than 123 on right in iPad
 
 
 

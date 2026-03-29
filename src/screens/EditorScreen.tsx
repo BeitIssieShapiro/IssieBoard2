@@ -1507,7 +1507,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
           return (
             <View style={[styles.headlessPreview, { backgroundColor: (state.config.backgroundColor && state.config.backgroundColor !== 'default') ? state.config.backgroundColor : '#CBCFD8' }]}>
               <View style={styles.headlessPreviewInner}>
-                <InteractiveCanvas onTestInput={handleTestInput} height={previewH} hideHeader hideSettingsKey={appContext === 'issievoice'} activeTab={activeTab} />
+                <InteractiveCanvas onTestInput={handleTestInput} height={previewH} hideHeader hideSettingsKey={appContext === 'issievoice'} hideGlobeButton={appContext === 'issievoice'} activeTab={activeTab} />
               </View>
             </View>
           );

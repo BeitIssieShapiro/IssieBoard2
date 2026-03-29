@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: 'semibold',
     color: '#6B7280',
   },
   buttonTextActive: {
