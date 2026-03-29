@@ -10,6 +10,7 @@ import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 import { colors } from '../../constants';
 import { cardShadow } from '../../../../../src/styles/shadows';
 import { getStrings } from '../../../../../src/localization/strings';
+import { useLocalization } from '../../context/LocalizationContext';
 
 export interface KeyboardHeaderProps {
   currentLanguage: 'en' | 'he' | 'ar';
@@ -45,8 +46,8 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
   const isPhone = shortSide < 500;
   const isPortrait = height > width;
   const twoRows = isPhone && isPortrait;
-  const isRTL = currentLanguage === 'he' || currentLanguage === 'ar';
-  const strings = getStrings(currentLanguage);
+  const { language: uiLanguage, isRTL } = useLocalization();
+  const strings = getStrings(uiLanguage);
 
   return (
     <View style={[styles.container, twoRows && styles.containerTwoRows, isRTL && { direction: 'rtl' }]}>

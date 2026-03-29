@@ -483,7 +483,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   changeLanguageRef,
   onStateChange,
 }) => {
-  const { strings, isRTL } = useLocalization();
+  const { strings, isRTL, language: uiLanguage } = useLocalization();
   const LANGUAGES = useMemo(() => getLanguages(strings), [strings]);
   const { state, setMode, setConfig, markDirty, dispatch } = useEditor();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
@@ -627,7 +627,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       const profileId = `${currentLanguage}-${template.id}`;
       profileList.push({
         id: profileId,
-        name: getLocalizedProfileName(template.id, currentLanguage),
+        name: getLocalizedProfileName(template.id, uiLanguage),
         language: currentLanguage,
         keyboardId: firstKeyboardId,
         isBuiltIn: true,
@@ -760,7 +760,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       setConfig(config, loaded.styleGroups);
       // For built-in profiles, use localized name instead of saved name
       const loadedTemplateId = extractTemplateId(effectiveActiveProfile);
-      const displayName = loadedTemplateId ? getLocalizedProfileName(loadedTemplateId, newLanguage) : loaded.profileDef.name;
+      const displayName = loadedTemplateId ? getLocalizedProfileName(loadedTemplateId, uiLanguage) : loaded.profileDef.name;
       setCurrentProfileName(displayName);
       setCurrentProfileId(effectiveActiveProfile);
       setCurrentKeyboardId(loaded.profileDef.keyboardId);
@@ -774,7 +774,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         if (template) {
           const profileDef: SavedProfileDefinition = {
             id: effectiveActiveProfile,
-            name: getLocalizedProfileName(templateId, newLanguage),
+            name: getLocalizedProfileName(templateId, uiLanguage),
             version: '1.0.0',
             language: newLanguage,
             keyboardId: firstKeyboardId,
@@ -790,10 +790,10 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
 
           const config = buildConfiguration(profileDef);
           setConfig(config, styleGroups);
-          setCurrentProfileName(getLocalizedProfileName(templateId, newLanguage));
+          setCurrentProfileName(getLocalizedProfileName(templateId, uiLanguage));
           setCurrentProfileId(effectiveActiveProfile);
           setCurrentKeyboardId(firstKeyboardId);
-          onProfileChange(effectiveActiveProfile, getLocalizedProfileName(templateId, newLanguage), newLanguage, firstKeyboardId);
+          onProfileChange(effectiveActiveProfile, getLocalizedProfileName(templateId, uiLanguage), newLanguage, firstKeyboardId);
         } else {
           // Template not found - fallback to factory defaults
           console.log(`📱 Template ${templateId} not found, using factory defaults`);
@@ -1135,7 +1135,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         // Build profile directly from the template (avoid refetching inside createProfileFromTemplate)
         profileDef = {
           id: profile.id,
-          name: getLocalizedProfileName(templateId!, profile.language),
+          name: getLocalizedProfileName(templateId!, uiLanguage),
           version: '1.0.0',
           language: profile.language,
           keyboardId: profile.keyboardId,
@@ -1283,7 +1283,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
                   const config = buildConfiguration(loaded.profileDef);
                   setConfig(config, loaded.styleGroups);
                   const delTemplateId = extractTemplateId(defaultProfileId);
-                  const delDisplayName = delTemplateId ? getLocalizedProfileName(delTemplateId, currentLanguage) : loaded.profileDef.name;
+                  const delDisplayName = delTemplateId ? getLocalizedProfileName(delTemplateId, uiLanguage) : loaded.profileDef.name;
                   setCurrentProfileName(delDisplayName);
                   setCurrentProfileId(defaultProfileId);
                   setCurrentKeyboardId(loaded.profileDef.keyboardId);
@@ -2015,7 +2015,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
   activeTab,
   saveRef,
 }) => {
-  const { strings, isRTL } = useLocalization();
+  const { strings, isRTL, language: uiLanguage } = useLocalization();
   const [loading, setLoading] = useState(true);
   const [initialConfig, setInitialConfig] = useState<KeyboardConfig | null>(null);
   const [initialStyleGroups, setInitialStyleGroups] = useState<any[]>([]);
@@ -2101,7 +2101,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
           setInitialStyleGroups(loaded.styleGroups);
           setCurrentProfileId(effectiveActiveProfile);
           const initTemplateId = extractTemplateId(effectiveActiveProfile);
-          setProfileName(initTemplateId ? getLocalizedProfileName(initTemplateId, savedLanguage) : loaded.profileDef.name);
+          setProfileName(initTemplateId ? getLocalizedProfileName(initTemplateId, uiLanguage) : loaded.profileDef.name);
           setCurrentKeyboardId(loaded.profileDef.keyboardId);
         } else {
           console.log(`📱 No active profile ${effectiveActiveProfile} found, using base keyboard`);
@@ -2117,7 +2117,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
           setInitialConfig(config);
           setInitialStyleGroups([]);
           setCurrentProfileId(defaultProfileId);
-          setProfileName(getLocalizedProfileName('default', savedLanguage));
+          setProfileName(getLocalizedProfileName('default', uiLanguage));
           setCurrentKeyboardId(defaultKeyboardId);
         }
 
@@ -2134,7 +2134,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
         );
         setInitialConfig(buildConfiguration(fallbackDef));
         setCurrentProfileId(defaultProfileId);
-        setProfileName(getLocalizedProfileName('default', lang));
+        setProfileName(getLocalizedProfileName('default', uiLanguage));
         setCurrentLanguage(lang);
         setCurrentKeyboardId(lang);
       } finally {
@@ -2409,7 +2409,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
         if (template) {
           const profileDef: SavedProfileDefinition = {
             id: profileIdToActivate,
-            name: getLocalizedProfileName(templateId, currentLanguage),
+            name: getLocalizedProfileName(templateId, uiLanguage),
             version: '1.0.0',
             language: currentLanguage,
             keyboardId: firstKeyboardId,

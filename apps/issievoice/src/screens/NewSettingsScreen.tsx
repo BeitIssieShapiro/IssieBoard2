@@ -51,7 +51,7 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
   const canGoBack = !!navigation?.goBack;
   const [activeTab, setActiveTab] = useState<string>('general');
   const [showAbout, setShowAbout] = useState(false);
-  const { strings: voiceStrings } = useLocalization();
+  const { strings: voiceStrings, isRTL: isSettingsRTL, language: uiLanguage } = useLocalization();
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
 
@@ -59,7 +59,6 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
   const [kbLanguage, setKbLanguage] = useState<'en' | 'he' | 'ar'>(
     initialLangProp || route?.params?.initialLanguage || 'he'
   );
-  const isSettingsRTL = kbLanguage === 'he' || kbLanguage === 'ar';
   const [profileName, setProfileName] = useState<string>('');
   const [isDirty, setIsDirty] = useState(false);
   const showProfilePickerRef = useRef<(() => void) | null>(null);
@@ -189,7 +188,7 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
           onFullAccessBadgePress={handleFullAccessBadgePress}
         />
         <EditorLocalizationProvider>
-          <EditorLanguageSync language={kbLanguage}>
+          <EditorLanguageSync language={uiLanguage}>
             <EditorScreen
               appContext={resolvedContext}
               initialLanguage={kbLanguage}
