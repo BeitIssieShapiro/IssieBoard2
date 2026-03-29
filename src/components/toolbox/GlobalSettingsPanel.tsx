@@ -110,7 +110,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
   const keyGapOptions = [
     { id: 'regular', label: strings.globalSettings.keyGapRegular, value: 3 },
     { id: 'medium', label: strings.globalSettings.keyGapMedium, value: 8 },
-    { id: 'large', label: strings.globalSettings.keyGapLarge, value: 16 },
+    { id: 'large', label: strings.globalSettings.keyGapLarge, value: 10 },
   ];
 
   // Font weight options
@@ -247,7 +247,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
             selectedId={
               currentKeyGap === 3 ? 'regular' :
                 currentKeyGap === 8 ? 'medium' :
-                  currentKeyGap === 16 ? 'large' :
+                  currentKeyGap === 10 ? 'large' :
                     'regular'
             }
             onSelect={(id) => {

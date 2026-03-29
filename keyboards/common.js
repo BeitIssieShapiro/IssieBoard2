@@ -97,7 +97,7 @@ module.exports = {
       },
       // Appended as a new final row to every keyset
       bottomRow: [
-        { type: "keyset", width: 1.5 },
+        { type: "keyset", width: 1 },
         { type: "next-keyboard", width: 1 },
         { type: "settings" },
         { type: "space", flex: true },

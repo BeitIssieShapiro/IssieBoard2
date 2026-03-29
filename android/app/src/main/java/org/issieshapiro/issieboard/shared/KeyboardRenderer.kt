@@ -1576,7 +1576,7 @@ class KeyboardRenderer(private val context: Context) {
 
         // Get key gap from config or use defaults (matching iOS logic)
         val horizontalGap = scaledKeyGap
-        val verticalGap = horizontalGap + (dpToPx(2) * effectiveDimensionScale).toInt()  // Vertical padding is slightly larger (2dp more than horizontal)
+        val verticalGap = horizontalGap  // Same gap in both directions
 
         // Add visual key view with padding
         buttonContainer.addView(visualKeyView, FrameLayout.LayoutParams(

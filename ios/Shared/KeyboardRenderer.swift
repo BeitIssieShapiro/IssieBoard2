@@ -1690,7 +1690,7 @@ class KeyboardRenderer {
         // Get key gap from config or use defaults
         let gap = (UIDevice.current.userInterfaceIdiom == .pad ? config?.keyGap_large : nil) ?? config?.keyGap ?? 3
         let horizontalGap = (CGFloat(gap)) * currentScale
-        let verticalGap = (horizontalGap / currentScale + 2) * currentScale  // Vertical padding is slightly larger (2px more than horizontal)
+        let verticalGap = horizontalGap  // Same gap in both directions
 
         // Add visual key view to button (with padding for visual gap)
         button.addSubview(visualKeyView)

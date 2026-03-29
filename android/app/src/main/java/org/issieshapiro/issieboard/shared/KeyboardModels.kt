@@ -672,8 +672,8 @@ object KeyboardHeightConstants {
     /** Suggestions bar height (reduced by 20% from 40) */
     const val SUGGESTIONS_BAR_HEIGHT: Float = 32f
 
-    /** Vertical spacing between rows */
-    const val ROW_SPACING: Float = 5f
+    /** Vertical spacing between rows (0 — gap is handled by key's vertical padding via keyGap) */
+    const val ROW_SPACING: Float = 0f
 }
 
 /** Configuration constants for font sizes.
