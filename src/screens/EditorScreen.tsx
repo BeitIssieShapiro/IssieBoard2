@@ -493,6 +493,17 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   const [showProfilePicker, setShowProfilePicker] = useState(false);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
 
+  // Speak button in keyboard setting (IssieVoice only)
+  const [speakButtonInKeyboard, setSpeakButtonInKeyboard] = useState(false);
+  useEffect(() => {
+    if (appContext !== 'issievoice') return;
+    const load = async () => {
+      const value = await KeyboardPreferences.getString('issievoice_speakButtonInKeyboard');
+      setSpeakButtonInKeyboard(value === 'true');
+    };
+    load();
+  }, [appContext]);
+
   // Expose profile picker trigger to parent
   useEffect(() => {
     if (showProfilePickerRef) {
@@ -1495,6 +1506,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
             profileName={currentProfileName}
             section={activeTab}
             appContext={appContext}
+            onSpeakButtonInKeyboardChange={appContext === 'issievoice' ? setSpeakButtonInKeyboard : undefined}
           />
         </View>
 
@@ -1507,7 +1519,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
           return (
             <View style={[styles.headlessPreview, { backgroundColor: (state.config.backgroundColor && state.config.backgroundColor !== 'default') ? state.config.backgroundColor : '#CBCFD8' }]}>
               <View style={styles.headlessPreviewInner}>
-                <InteractiveCanvas onTestInput={handleTestInput} height={previewH} hideHeader hideSettingsKey={appContext === 'issievoice'} hideCloseKey={appContext === 'issievoice'} hideGlobeButton={appContext === 'issievoice'} activeTab={activeTab} />
+                <InteractiveCanvas onTestInput={handleTestInput} height={previewH} hideHeader hideSettingsKey={appContext === 'issievoice'} hideCloseKey={appContext === 'issievoice'} hideGlobeButton={appContext === 'issievoice'} activeTab={activeTab} speakButtonInKeyboard={speakButtonInKeyboard} />
               </View>
             </View>
           );

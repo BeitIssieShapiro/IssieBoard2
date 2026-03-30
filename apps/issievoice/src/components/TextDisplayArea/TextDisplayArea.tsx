@@ -14,14 +14,16 @@ import { useTTS } from '../../context/TTSContext';
 import { colors, sizes } from '../../constants';
 import { useLocalization } from '../../context/LocalizationContext';
 import { detectTextDirection } from '../../utils/textDirection';
+import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 
 interface TextDisplayAreaProps {
   text: string;
   screenWidth?: number; // Optional screen width for responsive scaling
   speakButtonPadding?: number; // Extra bottom-right padding for floating speak button
+  onSave?: () => void;
 }
 
-const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1000, speakButtonPadding = 0 }) => {
+const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1000, speakButtonPadding = 0, onSave }) => {
   const { setText, cursorPosition, setCursorPosition, pendingSelection, clearPendingSelection } = useText();
   const { isSpeaking, spokenRange } = useTTS();
   const { strings, isRTL, language } = useLocalization();
@@ -43,7 +45,7 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1
   // Calculate font size based on screen width (scales from 1000px reference)
   // At 1000px: fontSize = 24, scales proportionally but never below 16px
   // On phone landscape, use smaller font to fit in limited vertical space
-  const baseFontSize = isPhoneLandscape ? 18 : 24;
+  const baseFontSize = isPhoneLandscape ? 18 : 32;
   const scaleFactor = screenWidth / 1000;
   const fontSize = Math.max(isPhoneLandscape ? 14 : 16, baseFontSize * scaleFactor);
   const lineHeight = fontSize * (isPhoneLandscape ? 1.0 : 1.4);
@@ -132,14 +134,21 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1
           {renderHighlightedText()}
         </ScrollView>
       )}
-      {text.length > 0 && (
-        <TouchableOpacity
-          style={[styles.clearButton, isRTL ? styles.clearButtonLeft : styles.clearButtonRight, isPhoneLandscape && !isRTL && { right: 120 }]}
-          onPress={handleClear}
-          activeOpacity={0.7}>
-          <Text style={styles.clearButtonText}>✕</Text>
-        </TouchableOpacity>
-      )}
+      {/* Delete button - top-start, Save button - top-end */}
+      <TouchableOpacity
+        style={[styles.topButton, styles.bottomButton, styles.deleteButton, isRTL ? { right: 8 } : { left: 8 }, !text.length && styles.topButtonDisabled]}
+        onPress={handleClear}
+        activeOpacity={0.7}
+        disabled={!text.length}>
+        <MyIcon info={{ name: 'trash-outline', type: 'Ionicons', color: text.length ? '#E53935' : colors.textLight, size: 22 }} />
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.topButton, styles.saveButton, isRTL ? { left: 8 } : { right: 8 }, !text.length && styles.topButtonDisabled]}
+        onPress={onSave}
+        activeOpacity={0.7}
+        disabled={!text.length}>
+        <MyIcon info={{ name: 'save-outline', type: 'Ionicons', color: text.length ? colors.primary : colors.textLight, size: 32 }} />
+      </TouchableOpacity>
     </View>
   );
 };
@@ -162,34 +171,38 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
     textAlign: 'left',
     paddingTop: 8,
-    paddingLeft: 8,
-    paddingRight: 40, // Space for clear button
+    paddingLeft: 12, // Space for delete button
+    paddingRight: 48, // Space for save button
   },
   textInputRTL: {
     textAlign: 'right',
-    paddingLeft: 40, // Space for clear button on left
-    paddingRight: 8,
+    paddingLeft: 48, // Space for save button on left
+    paddingRight: 48, // Space for delete button on right
   },
-  clearButton: {
+  topButton: {
     position: 'absolute',
-    top: 8,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    top: 6,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  clearButtonRight: {
-    right: 8,
+  bottomButton: {
+    top: undefined,
+    bottom: 6,
   },
-  clearButtonLeft: {
-    left: 8,
+  topButtonDisabled: {
+    opacity: 0.4,
   },
-  clearButtonText: {
-    color: colors.textLight,
-    fontSize: 18,
-    fontWeight: 'bold',
+  deleteButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  saveButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    width: 54,
+    height: 54,
+    borderRadius: 27,
   },
   hiddenTextInput: {
     color: 'transparent',
@@ -207,8 +220,8 @@ const styles = StyleSheet.create({
     textAlign: 'left',
     // iOS TextInput has ~4px extra internal content inset vs Text
     paddingTop: 17,
-    paddingLeft: 8,
-    paddingRight: 40,
+    paddingLeft: 48,
+    paddingRight: 48,
   },
   highlightedWord: {
     backgroundColor: '#FFD700',

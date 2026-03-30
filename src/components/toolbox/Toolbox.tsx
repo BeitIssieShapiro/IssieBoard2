@@ -65,6 +65,8 @@ export interface ToolboxProps {
   section?: string;
   /** App context — hides settings button toggle for IssieVoice */
   appContext?: 'issievoice' | 'issieboard';
+  /** Callback when speak-button-in-keyboard setting changes (IssieVoice only) */
+  onSpeakButtonInKeyboardChange?: (value: boolean) => void;
 }
 
 export const Toolbox: React.FC<ToolboxProps> = ({
@@ -74,6 +76,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
   profileName,
   section,
   appContext,
+  onSpeakButtonInKeyboardChange,
 }) => {
   const { state, clearSelection } = useEditor();
   const { strings, isRTL } = useLocalization();
@@ -248,6 +251,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
               advancedExpanded={false}
               setAdvancedExpanded={() => {}}
               appContext={appContext}
+              onSpeakButtonInKeyboardChange={onSpeakButtonInKeyboardChange}
               featuresExpanded={true}
               setFeaturesExpanded={() => {}}
               section="features"
@@ -354,6 +358,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
           featuresExpanded={featuresExpanded}
           setFeaturesExpanded={setFeaturesExpanded}
           appContext={appContext}
+          onSpeakButtonInKeyboardChange={onSpeakButtonInKeyboardChange}
         />
       </AccordionSection>
 

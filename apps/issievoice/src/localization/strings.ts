@@ -68,6 +68,8 @@ export interface Strings {
     version: string;
     test: string;
     settingsTitle: string;
+    speakButtonInKeyboard: string;
+    speakButtonInKeyboardDesc: string;
     tabs: {
       keyboard: string;
       general: string;
@@ -169,6 +171,8 @@ const en: Strings = {
     version: 'Version',
     test: 'Test',
     settingsTitle: 'Issie Voice Settings',
+    speakButtonInKeyboard: 'Speak Button in Keyboard',
+    speakButtonInKeyboardDesc: 'Show the speak button as part of the keyboard instead of above it',
     tabs: {
       keyboard: 'Keyboard',
       general: 'General',
@@ -270,6 +274,8 @@ const he: Strings = {
     version: 'גרסה',
     test: 'בדיקה',
     settingsTitle: 'הגדרות Issie Voice',
+    speakButtonInKeyboard: 'כפתור הקראה במקלדת',
+    speakButtonInKeyboardDesc: 'הצג את כפתור ההקראה כחלק מהמקלדת במקום מעליה',
     tabs: {
       keyboard: 'מקלדת',
       general: 'כללי',
@@ -371,6 +377,8 @@ const ar: Strings = {
     version: 'الإصدار',
     test: 'اختبار',
     settingsTitle: 'إعدادات Issie Voice',
+    speakButtonInKeyboard: 'زر التحدث في لوحة المفاتيح',
+    speakButtonInKeyboardDesc: 'عرض زر التحدث كجزء من لوحة المفاتيح بدلاً من فوقها',
     tabs: {
       keyboard: 'لوحة مفاتيح',
       general: 'عام',

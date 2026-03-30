@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import { useLocalization } from '../../localization';
 import { CompactColorPicker } from '../shared/CompactColorPicker';
 import { ButtonGroupRow } from '../shared/ButtonGroupRow';
 import { ToggleSwitch } from '../shared/ToggleSwitch';
+import KeyboardPreferences from '../../native/KeyboardPreferences';
 
 export interface KeyboardVariantOption {
   id: string;
@@ -42,6 +43,8 @@ export interface GlobalSettingsPanelProps {
   section?: string;
   /** App context — hides settings button toggle for IssieVoice */
   appContext?: 'issievoice' | 'issieboard';
+  /** Callback when speak-button-in-keyboard setting changes (IssieVoice only) */
+  onSpeakButtonInKeyboardChange?: (value: boolean) => void;
 }
 
 export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
@@ -54,6 +57,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
   setFeaturesExpanded,
   section,
   appContext,
+  onSpeakButtonInKeyboardChange,
 }) => {
   const {
     state,
@@ -67,6 +71,23 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
     dispatch,
   } = useEditor();
   const { strings, isRTL } = useLocalization();
+
+  // Speak button in keyboard setting (IssieVoice only)
+  const [speakButtonInKeyboard, setSpeakButtonInKeyboard] = useState(false);
+  useEffect(() => {
+    if (appContext !== 'issievoice') return;
+    const load = async () => {
+      const value = await KeyboardPreferences.getString('issievoice_speakButtonInKeyboard');
+      setSpeakButtonInKeyboard(value === 'true');
+    };
+    load();
+  }, [appContext]);
+
+  const handleSpeakButtonInKeyboardToggle = async (value: boolean) => {
+    setSpeakButtonInKeyboard(value);
+    await KeyboardPreferences.setString('issievoice_speakButtonInKeyboard', value ? 'true' : 'false');
+    onSpeakButtonInKeyboardChange?.(value);
+  };
 
   // Get current settings (moved before local state initialization)
   const textColor = (state.config as any).textColor || '';
@@ -339,6 +360,26 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
                     <ToggleSwitch
                       value={settingsButtonEnabled}
                       onChange={updateSettingsButton}
+                      labelOn=""
+                      labelOff=""
+                      size="medium"
+                    />
+                  </View>
+                </>
+              )}
+              {appContext === 'issievoice' && (
+                <>
+                  <View style={styles.separator} />
+                  <View style={styles.featureRow}>
+                    <View style={[styles.featureInfo, isRTL && { marginRight: 0, marginLeft: 12 }]}>
+                      <Text allowFontScaling={false} style={styles.featureLabel}>{strings.globalSettings.speakButtonInKeyboard}</Text>
+                      <Text allowFontScaling={false} style={styles.featureDescription}>
+                        {strings.globalSettings.speakButtonInKeyboardDesc}
+                      </Text>
+                    </View>
+                    <ToggleSwitch
+                      value={speakButtonInKeyboard}
+                      onChange={handleSpeakButtonInKeyboardToggle}
                       labelOn=""
                       labelOff=""
                       size="medium"

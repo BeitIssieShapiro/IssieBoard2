@@ -204,6 +204,21 @@ class KeyboardPreferences {
     }
   }
 
+  /**
+   * Set a string value without the profile_ prefix
+   */
+  async setString(key: string, value: string): Promise<SetResult> {
+    try {
+      await DefaultPreference.setName('issieboard_keyboard_prefs');
+      await DefaultPreference.set(key, value);
+      console.log('📝 Android: Set string:', key);
+      return { success: true };
+    } catch (error) {
+      console.error('❌ Android: Failed to set string', error);
+      return { success: false, error: String(error) };
+    }
+  }
+
   async printAllPreferences(): Promise<PreferenceInfo> {
     const profile = await this.getCurrentProfile();
     const language = await this.getSelectedLanguage();

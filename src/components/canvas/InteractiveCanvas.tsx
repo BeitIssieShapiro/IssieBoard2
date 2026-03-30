@@ -51,6 +51,8 @@ interface InteractiveCanvasProps {
   hideGlobeButton?: boolean;
   /** When 'advanced', the preview uses the native-reported keyboard height for a realistic preview */
   activeTab?: string;
+  /** When true, replaces the rightmost keyset key in abc bottom row with a speak button */
+  speakButtonInKeyboard?: boolean;
 }
 
 // Language display names
@@ -60,7 +62,7 @@ const LANGUAGE_NAMES: Record<string, string> = {
   'ar': 'العربية',
 };
 
-export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInput, height, hideHeader, hideSettingsKey, hideCloseKey, hideGlobeButton, activeTab }) => {
+export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInput, height, hideHeader, hideSettingsKey, hideCloseKey, hideGlobeButton, activeTab, speakButtonInKeyboard }) => {
   const { state, dispatch } = useEditor();
   const { strings } = useLocalization();
   const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
@@ -178,18 +180,52 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
       })),
     }));
 
+    // Inject speak key into abc keyset if speak-in-keyboard is enabled
+    const finalKeysets = speakButtonInKeyboard
+      ? filteredKeysets.map(keyset => {
+          if (keyset.id !== 'abc' && keyset.id !== 'abc_large') return keyset;
+          return {
+            ...keyset,
+            rows: keyset.rows.map(row => {
+              const hasSpaceKey = row.keys.some((k: any) => k.type === 'space' || k.value === ' ');
+              const hasControlKeys = row.keys.some((k: any) =>
+                k.type === 'keyset' || k.type === 'next-keyboard' || k.type === 'close'
+              );
+              const isBottomRow = row.alwaysInclude || hasSpaceKey || hasControlKeys;
+              if (!isBottomRow) return row;
+
+              const lastKeysetIndex = row.keys.reduce((lastIdx: number, key: any, idx: number) =>
+                key.type === 'keyset' ? idx : lastIdx, -1);
+              if (lastKeysetIndex === -1) return row;
+
+              const newKeys = [...row.keys];
+              newKeys[lastKeysetIndex] = {
+                type: 'event',
+                value: 'speak',
+                label: '🔊 Speak',
+                caption: '🔊 Speak',
+                width: 2,
+                bgColor: '#2196F3',
+                textColor: '#FFFFFF',
+              } as any;
+              return { ...row, keys: newKeys };
+            }),
+          };
+        })
+      : filteredKeysets;
+
     // Return the base config with the current groups and filtered keysets
     // Disable word suggestions for preview
     // IMPORTANT: Preserve all config properties (heightPreset, fontSizePreset, colors, etc.)
     const previewConfig: KeyboardConfig = {
       ...state.config,
-      keysets: filteredKeysets,
+      keysets: finalKeysets,
       groups: groupConfigs,
       wordSuggestionsEnabled: false,
     };
 
     return previewConfig;
-  }, [state.config, state.styleGroups, hideCloseKey]);
+  }, [state.config, state.styleGroups, hideCloseKey, speakButtonInKeyboard]);
 
   const configJson = useMemo(() => {
     return JSON.stringify(transformConfigForPreview(configWithGroups));

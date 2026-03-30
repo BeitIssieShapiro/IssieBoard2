@@ -149,6 +149,8 @@ export interface Strings {
     autoCorrectDesc: string;
     settingsButton: string;
     settingsButtonDesc: string;
+    speakButtonInKeyboard: string;
+    speakButtonInKeyboardDesc: string;
     advancedSettings: string;
     keyboardHeight: string;
     fontSize: string;
@@ -455,6 +457,8 @@ const en: Strings = {
     autoCorrectDesc: 'Automatically correct common typos',
     settingsButton: 'Settings Button',
     settingsButtonDesc: 'Show settings gear icon on keyboard',
+    speakButtonInKeyboard: 'Speak Button in Keyboard',
+    speakButtonInKeyboardDesc: 'Show the speak button as part of the keyboard instead of above it',
     advancedSettings: 'Advanced Settings',
     keyboardHeight: 'Keyboard Height',
     fontSize: 'Font Size',
@@ -761,6 +765,8 @@ const he: Strings = {
     autoCorrectDesc: 'תקן שגיאות הקלדה נפוצות באופן אוטומטי',
     settingsButton: 'כפתור הגדרות',
     settingsButtonDesc: 'הצג סמל הגדרות על המקלדת',
+    speakButtonInKeyboard: 'כפתור הקראה במקלדת',
+    speakButtonInKeyboardDesc: 'הצג את כפתור ההקראה כחלק מהמקלדת במקום מעליה',
     advancedSettings: 'הגדרות מתקדמות',
     keyboardHeight: 'גובה מקלדת',
     fontSize: 'גודל גופן',
@@ -1067,6 +1073,8 @@ const ar: Strings = {
     autoCorrectDesc: 'تصحيح الأخطاء الإملائية الشائعة تلقائيًا',
     settingsButton: 'زر الإعدادات',
     settingsButtonDesc: 'إظهار أيقونة الإعدادات على لوحة المفاتيح',
+    speakButtonInKeyboard: 'زر التحدث في لوحة المفاتيح',
+    speakButtonInKeyboardDesc: 'عرض زر التحدث كجزء من لوحة المفاتيح بدلاً من فوقها',
     advancedSettings: 'إعدادات متقدمة',
     keyboardHeight: 'ارتفاع لوحة المفاتيح',
     fontSize: 'حجم الخط',

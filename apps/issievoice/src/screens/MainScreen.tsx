@@ -46,6 +46,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
   const [favoritesReloadTrigger, setFavoritesReloadTrigger] = useState(0);
   const keyboardConfigRef = useRef<any>(null);
   const keyboardHeightRef = useRef<number>(350);
+  const [speakButtonInKeyboard, setSpeakButtonInKeyboard] = useState(false);
 
   // Load symbol cache and clean up debounce on unmount
   useEffect(() => {
@@ -68,6 +69,42 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
   const isLandscape = frame.width > frame.height;
   const isPhoneLandscape = isLandscape && Math.min(frame.width, frame.height) < 600;
   const isRTL = currentLanguage === 'he';
+
+  // Inject speak key into the abc keyset's bottom row, replacing the rightmost keyset key
+  const injectSpeakKey = (keysets: any[], speakLabel: string) => {
+    return keysets.map((keyset: any) => {
+      // Only modify the abc keyset (main alphabetic view)
+      if (keyset.id !== 'abc' && keyset.id !== 'abc_large') return keyset;
+
+      const rows = keyset.rows.map((row: any) => {
+        const hasSpaceKey = row.keys.some((k: any) => k.type === 'space' || k.value === ' ');
+        const hasControlKeys = row.keys.some((k: any) =>
+          k.type === 'keyset' || k.type === 'next-keyboard' || k.type === 'close'
+        );
+        const isBottomRow = row.alwaysInclude || hasSpaceKey || hasControlKeys;
+        if (!isBottomRow) return row;
+
+        // Find the rightmost keyset key and replace it with the speak key
+        const lastKeysetIndex = row.keys.reduce((lastIdx: number, key: any, idx: number) =>
+          key.type === 'keyset' ? idx : lastIdx, -1);
+
+        if (lastKeysetIndex === -1) return row;
+
+        const newKeys = [...row.keys];
+        newKeys[lastKeysetIndex] = {
+          type: 'event',
+          value: 'speak',
+          label: `🔊 ${speakLabel}`,
+          caption: `🔊 ${speakLabel}`,
+          width: 2,
+          bgColor: '#2196F3',
+          textColor: '#FFFFFF',
+        };
+        return { ...row, keys: newKeys };
+      });
+      return { ...keyset, rows };
+    });
+  };
 
   // Function to load keyboard configuration for a specific language
   const loadKeyboardConfig = async (language: string) => {
@@ -136,6 +173,11 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
                 return { ...row, keys: filteredKeys };
               }),
             }));
+
+            // Inject speak key if setting is enabled
+            if (speakButtonInKeyboard) {
+              savedConfig.keysets = injectSpeakKey(savedConfig.keysets, strings.actionBar.speak.trim());
+            }
 
             // Store the config object for height calculations
             // Use presets instead of absolute values
@@ -226,7 +268,9 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
 
       const issieVoiceConfig = {
         ...baseConfig,
-        keysets: modifiedKeysets,
+        keysets: speakButtonInKeyboard
+          ? injectSpeakKey(modifiedKeysets, strings.actionBar.speak.trim())
+          : modifiedKeysets,
         heightPreset: 'tall',
         fontSizePreset: 'large',
         language: language,
@@ -262,6 +306,9 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
           if (savedHeVoice) {
             setHebrewVoice(savedHeVoice);
           }
+
+          const speakInKb = await KeyboardPreferences.getString('issievoice_speakButtonInKeyboard');
+          setSpeakButtonInKeyboard(speakInKb === 'true');
         } catch (error) {
           console.error('Failed to load settings:', error);
         }
@@ -270,17 +317,17 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
     }, [])
   );
 
-  // Effect for loading keyboard config when language changes
+  // Effect for loading keyboard config when language or speak-in-keyboard setting changes
   useEffect(() => {
     const loadConfig = async () => {
-      console.log(`🔄 Language change effect triggered: ${currentLanguage}`);
+      console.log(`🔄 Language change effect triggered: ${currentLanguage}, speakInKb: ${speakButtonInKeyboard}`);
       // Reset keyboard height to allow fresh measurement
       keyboardHeightRef.current = 350;
       setKeyboardHeight(350);
       await loadKeyboardConfig(currentLanguage);
     };
     loadConfig();
-  }, [currentLanguage]);
+  }, [currentLanguage, speakButtonInKeyboard]);
 
   // Native keyboard now handles scaling automatically with presets
   // No need for manual height adjustment
@@ -315,6 +362,10 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
     // Handle event-type keys (custom actions that don't modify text)
     if (type === 'event') {
       console.log('📢 Event key pressed:', value);
+      if (value === 'speak') {
+        handleSpeak();
+        return;
+      }
       console.warn('⚠️ Unknown event value:', value);
       return;
     }
@@ -508,7 +559,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
           <Text style={[styles.headerTitle, isRTL && { marginLeft: 0, marginRight: 12 }]}>Issie Voice</Text>
         </View>
 
-        {/* Text Area Row: text area + side buttons */}
+        {/* Text Area Row */}
         <View style={[styles.textAreaRow, {
           maxHeight: Math.min(availableHeight * 0.3, frame.height * 0.18),
         }, isRTL && { flexDirection: 'row-reverse' }]}>
@@ -518,11 +569,13 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
               <TextDisplayArea
                 text={currentText}
                 screenWidth={frame.width}
-                speakButtonPadding={50}
+                speakButtonPadding={speakButtonInKeyboard ? 0 : 50}
+                onSave={handleSave}
               />
             </View>
 
-            {/* Floating Speak Button - vertically centered */}
+            {/* Floating Speak Button - hidden when speak is in keyboard */}
+            {!speakButtonInKeyboard && (
             <View style={[styles.speakFabWrapper, isRTL && { right: undefined, left: 14 }]} pointerEvents="box-none">
               <TouchableOpacity
                 style={[styles.speakFab, isRTL && { flexDirection: 'row-reverse' }]}
@@ -532,22 +585,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
                 <Text style={styles.speakFabLabel}>{strings.actionBar.speak}</Text>
               </TouchableOpacity>
             </View>
-          </View>
-
-          {/* Save/Browse buttons - to the right of text area */}
-          <View style={styles.sideButtons}>
-            <TouchableOpacity
-              style={[styles.sideButton, isPhoneLandscape && styles.sideButtonSmall]}
-              onPress={handleSave}
-              activeOpacity={0.7}>
-              <MyIcon info={{ name: 'save-outline', type: 'Ionicons', color: colors.primary, size: isPhoneLandscape ? 19 : 24 }} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.sideButton, isPhoneLandscape && styles.sideButtonSmall]}
-              onPress={handleBrowse}
-              activeOpacity={0.7}>
-              <MyIcon info={{ name: 'folder-open-outline', type: 'Ionicons', color: colors.primary, size: isPhoneLandscape ? 19 : 24 }} />
-            </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -572,6 +610,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
             symbolUrls={symbolUrls}
             language={currentLanguage}
             onSuggestionPress={handleSuggestionFromBar}
+            onBrowse={handleBrowse}
             height={Math.max(minSymbolHeight, suggestionsHeight)}
             screenWidth={frame.width}
           />
@@ -650,33 +689,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
     boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.15)',
-  },
-  sideButtons: {
-    justifyContent: 'space-between',
-    gap: 6,
-    marginRight: 4,
-  },
-  sideButton: {
-    marginVertical: 10,
-    width: 52,
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  sideButtonSmall: {
-    width: 42,
-    height: 42,
-    borderRadius: 11,
-  },
-  sideButtonText: {
-    fontSize: 24,
   },
   speakFabWrapper: {
     position: 'absolute',

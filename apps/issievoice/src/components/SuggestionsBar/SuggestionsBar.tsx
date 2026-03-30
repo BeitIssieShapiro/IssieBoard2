@@ -9,12 +9,14 @@ import {
 } from 'react-native';
 import { useText } from '../../context/TextContext';
 import { colors, sizes } from '../../constants';
+import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 
 interface SuggestionsBarProps {
   currentText: string;
   kbSuggestions?: string[];
   language?: 'en' | 'he';
   onSuggestionPress?: (suggestion: string) => void;
+  onBrowse?: () => void;
   symbolUrls?: Map<string, string | null>;
   height?: number; // Optional responsive height
   screenWidth?: number; // Optional screen width for responsive scaling
@@ -44,6 +46,7 @@ const SuggestionsBar: React.FC<SuggestionsBarProps> = ({
   kbSuggestions = [],
   language = 'en',
   onSuggestionPress,
+  onBrowse,
   symbolUrls = new Map(),
   height = 70, // Default height
   screenWidth = 1000, // Default screen width
@@ -99,7 +102,18 @@ const SuggestionsBar: React.FC<SuggestionsBarProps> = ({
   };
 
   if (kbSuggestions.length === 0) {
-    return null;
+    return (
+      <View style={[styles.container, isRTL && styles.containerRTL]}>
+        {onBrowse && (
+          <TouchableOpacity
+            style={[styles.browseButton, isRTL ? styles.browseButtonLeft : styles.browseButtonRight]}
+            onPress={onBrowse}
+            activeOpacity={0.7}>
+            <MyIcon info={{ name: 'folder-open-outline', type: 'Ionicons', color: colors.primary, size: 27 }} />
+          </TouchableOpacity>
+        )}
+      </View>
+    );
   }
 
   // For RTL, reverse the suggestions order so first suggestion appears on the right
@@ -107,6 +121,14 @@ const SuggestionsBar: React.FC<SuggestionsBarProps> = ({
 
   return (
     <View style={[styles.container, isRTL && styles.containerRTL]}>
+      {onBrowse && (
+        <TouchableOpacity
+          style={[styles.browseButton, isRTL ? styles.browseButtonLeft : styles.browseButtonRight]}
+          onPress={onBrowse}
+          activeOpacity={0.7}>
+          <MyIcon info={{ name: 'folder-open-outline', type: 'Ionicons', color: colors.primary, size: 26 }} />
+        </TouchableOpacity>
+      )}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -164,6 +186,25 @@ const styles = StyleSheet.create({
   },
   containerRTL: {
     alignItems: 'flex-end',
+  },
+  browseButton: {
+    position: 'absolute',
+    top: 4,
+    zIndex: 10,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.08)',
+  },
+  browseButtonRight: {
+    right: 8,
+  },
+  browseButtonLeft: {
+    left: 8,
   },
   scrollContent: {
     paddingHorizontal: sizes.spacing.sm,
