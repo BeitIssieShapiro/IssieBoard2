@@ -151,6 +151,8 @@ export interface Strings {
     settingsButtonDesc: string;
     speakButtonInKeyboard: string;
     speakButtonInKeyboardDesc: string;
+    symbolsInSuggestions: string;
+    symbolsInSuggestionsDesc: string;
     advancedSettings: string;
     keyboardHeight: string;
     fontSize: string;
@@ -459,6 +461,8 @@ const en: Strings = {
     settingsButtonDesc: 'Show settings gear icon on keyboard',
     speakButtonInKeyboard: 'Speak Button in Keyboard',
     speakButtonInKeyboardDesc: 'Show the speak button as part of the keyboard instead of above it',
+    symbolsInSuggestions: 'Symbols in Suggestions',
+    symbolsInSuggestionsDesc: 'Show picture symbols above word suggestions',
     advancedSettings: 'Advanced Settings',
     keyboardHeight: 'Keyboard Height',
     fontSize: 'Font Size',
@@ -767,6 +771,8 @@ const he: Strings = {
     settingsButtonDesc: 'הצג סמל הגדרות על המקלדת',
     speakButtonInKeyboard: 'כפתור הקראה במקלדת',
     speakButtonInKeyboardDesc: 'הצג את כפתור ההקראה כחלק מהמקלדת במקום מעליה',
+    symbolsInSuggestions: 'סמלים בהצעות',
+    symbolsInSuggestionsDesc: 'הצג סמלי תמונה מעל הצעות מילים',
     advancedSettings: 'הגדרות מתקדמות',
     keyboardHeight: 'גובה מקלדת',
     fontSize: 'גודל גופן',
@@ -1075,6 +1081,8 @@ const ar: Strings = {
     settingsButtonDesc: 'إظهار أيقونة الإعدادات على لوحة المفاتيح',
     speakButtonInKeyboard: 'زر التحدث في لوحة المفاتيح',
     speakButtonInKeyboardDesc: 'عرض زر التحدث كجزء من لوحة المفاتيح بدلاً من فوقها',
+    symbolsInSuggestions: 'رموز في الاقتراحات',
+    symbolsInSuggestionsDesc: 'عرض رموز مصورة فوق اقتراحات الكلمات',
     advancedSettings: 'إعدادات متقدمة',
     keyboardHeight: 'ارتفاع لوحة المفاتيح',
     fontSize: 'حجم الخط',

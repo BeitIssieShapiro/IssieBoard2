@@ -74,11 +74,15 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
 
   // Speak button in keyboard setting (IssieVoice only)
   const [speakButtonInKeyboard, setSpeakButtonInKeyboard] = useState(false);
+  // Symbols in suggestions setting (IssieVoice only, default off)
+  const [symbolsInSuggestions, setSymbolsInSuggestions] = useState(false);
   useEffect(() => {
     if (appContext !== 'issievoice') return;
     const load = async () => {
-      const value = await KeyboardPreferences.getString('issievoice_speakButtonInKeyboard');
-      setSpeakButtonInKeyboard(value === 'true');
+      const speakVal = await KeyboardPreferences.getString('issievoice_speakButtonInKeyboard');
+      setSpeakButtonInKeyboard(speakVal === 'true');
+      const symbolsVal = await KeyboardPreferences.getString('issievoice_symbolsInSuggestions');
+      setSymbolsInSuggestions(symbolsVal === 'true');
     };
     load();
   }, [appContext]);
@@ -87,6 +91,11 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
     setSpeakButtonInKeyboard(value);
     await KeyboardPreferences.setString('issievoice_speakButtonInKeyboard', value ? 'true' : 'false');
     onSpeakButtonInKeyboardChange?.(value);
+  };
+
+  const handleSymbolsInSuggestionsToggle = async (value: boolean) => {
+    setSymbolsInSuggestions(value);
+    await KeyboardPreferences.setString('issievoice_symbolsInSuggestions', value ? 'true' : 'false');
   };
 
   // Get current settings (moved before local state initialization)
@@ -380,6 +389,22 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
                     <ToggleSwitch
                       value={speakButtonInKeyboard}
                       onChange={handleSpeakButtonInKeyboardToggle}
+                      labelOn=""
+                      labelOff=""
+                      size="medium"
+                    />
+                  </View>
+                  <View style={styles.separator} />
+                  <View style={styles.featureRow}>
+                    <View style={[styles.featureInfo, isRTL && { marginRight: 0, marginLeft: 12 }]}>
+                      <Text allowFontScaling={false} style={styles.featureLabel}>{strings.globalSettings.symbolsInSuggestions}</Text>
+                      <Text allowFontScaling={false} style={styles.featureDescription}>
+                        {strings.globalSettings.symbolsInSuggestionsDesc}
+                      </Text>
+                    </View>
+                    <ToggleSwitch
+                      value={symbolsInSuggestions}
+                      onChange={handleSymbolsInSuggestionsToggle}
                       labelOn=""
                       labelOff=""
                       size="medium"

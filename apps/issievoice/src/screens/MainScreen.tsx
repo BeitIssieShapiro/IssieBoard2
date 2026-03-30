@@ -47,6 +47,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
   const keyboardConfigRef = useRef<any>(null);
   const keyboardHeightRef = useRef<number>(350);
   const [speakButtonInKeyboard, setSpeakButtonInKeyboard] = useState(false);
+  const [symbolsInSuggestions, setSymbolsInSuggestions] = useState(false);
 
   // Load symbol cache and clean up debounce on unmount
   useEffect(() => {
@@ -309,6 +310,9 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
 
           const speakInKb = await KeyboardPreferences.getString('issievoice_speakButtonInKeyboard');
           setSpeakButtonInKeyboard(speakInKb === 'true');
+
+          const symbolsVal = await KeyboardPreferences.getString('issievoice_symbolsInSuggestions');
+          setSymbolsInSuggestions(symbolsVal === 'true');
         } catch (error) {
           console.error('Failed to load settings:', error);
         }
@@ -489,7 +493,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
       clearTimeout(symbolDebounceRef.current);
     }
     symbolDebounceRef.current = setTimeout(async () => {
-      if (suggestions.length === 0) {
+      if (!symbolsInSuggestions || suggestions.length === 0) {
         setSymbolUrls(new Map());
         return;
       }
@@ -607,7 +611,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
           <SuggestionsBar
             currentText={currentText}
             kbSuggestions={kbSuggestions}
-            symbolUrls={symbolUrls}
+            symbolUrls={symbolsInSuggestions ? symbolUrls : new Map()}
             language={currentLanguage}
             onSuggestionPress={handleSuggestionFromBar}
             onBrowse={handleBrowse}
