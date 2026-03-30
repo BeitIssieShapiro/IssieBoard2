@@ -654,8 +654,8 @@ class KeyboardRenderer(private val context: Context) {
         val bgColorString = config.backgroundColor
         if (bgColorString != null) {
             if (bgColorString.lowercase() == "default" || bgColorString.isEmpty()) {
-                // For "default" background on Android, use 70% opaque light gray (#D2D3D9 with 70% alpha = #B3D2D3D9)
-                container.setBackgroundColor(Color.parseColor("#B3D2D3D9"))
+                // For "default" background on Android, use opaque light gray matching system keyboard
+                container.setBackgroundColor(Color.parseColor("#D2D3D9"))
             } else {
                 val bgColor = parseColor(bgColorString)
                 if (bgColor != null) {
@@ -663,8 +663,8 @@ class KeyboardRenderer(private val context: Context) {
                 }
             }
         } else {
-            // If backgroundColor is null, also use 70% opaque gray
-            container.setBackgroundColor(Color.parseColor("#B3D2D3D9"))
+            // If backgroundColor is null, also use opaque gray
+            container.setBackgroundColor(Color.parseColor("#D2D3D9"))
         }
         
         // Find current keyset

@@ -31,6 +31,7 @@ interface AddStyleRuleModalProps {
   presetId?: string; // The predefined rule ID (e.g., "top-row") — stored on the group for auto-update on variant switch
   profileName?: string; // Current profile name for breadcrumb
   hideGlobeButton?: boolean; // Hide globe button in keyboard preview
+  hideCloseKey?: boolean; // Hide close button in keyboard preview
   onClose: () => void;
 }
 
@@ -46,6 +47,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
   presetId,
   profileName,
   hideGlobeButton,
+  hideCloseKey,
   onClose,
 }) => {
   const {
@@ -297,12 +299,28 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
       }
     }
 
-    return {
+    // Filter close/settings keys for IssieVoice context
+    const hideKeys = new Set<string>();
+    if (hideCloseKey) hideKeys.add('close');
+    if (hideGlobeButton) hideKeys.add('settings');
+
+    const baseConfig = hideKeys.size > 0 ? {
       ...state.config,
+      keysets: state.config.keysets.map((keyset: any) => ({
+        ...keyset,
+        rows: keyset.rows.map((row: any) => ({
+          ...row,
+          keys: row.keys.filter((key: any) => !hideKeys.has(key.type)),
+        })),
+      })),
+    } : state.config;
+
+    return {
+      ...baseConfig,
       groups, // Only the current group being edited, not other groups
       wordSuggestionsEnabled: false, // Disable word suggestions in modal preview
     };
-  }, [state.config, selectedKeyValues, bgColor, textColor, visibilityMode]);
+  }, [state.config, selectedKeyValues, bgColor, textColor, visibilityMode, hideCloseKey, hideGlobeButton]);
 
   const previewConfigJson = useMemo(() => JSON.stringify(transformConfigForPreview(previewConfig)), [previewConfig]);
 

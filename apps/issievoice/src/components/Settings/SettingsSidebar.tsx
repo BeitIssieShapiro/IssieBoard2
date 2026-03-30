@@ -526,7 +526,7 @@ const styles = StyleSheet.create({
   },
   tabRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     paddingHorizontal: 12,
     paddingTop: 8,
     paddingBottom: 4,
@@ -556,7 +556,7 @@ const styles = StyleSheet.create({
   },
   subTabRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     paddingHorizontal: 12,
     paddingBottom: 8,
     paddingTop: 4,

@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, LayoutChangeEvent } from 'react-native';
 
 export interface ButtonOption {
   id: string;
@@ -29,6 +29,12 @@ export const ButtonGroupRow: React.FC<ButtonGroupRowProps> = ({
 }) => {
   const { width } = useWindowDimensions();
   const isSmallScreen = width < 700;
+  const [maxWidth, setMaxWidth] = useState(0);
+
+  const handleButtonLayout = useCallback((e: LayoutChangeEvent) => {
+    const w = e.nativeEvent.layout.width;
+    setMaxWidth(prev => Math.max(prev, w));
+  }, []);
 
   return (
     <View style={[styles.container, isSmallScreen && styles.containerSmall, isRTL && { direction: 'rtl' }]}>
@@ -37,8 +43,10 @@ export const ButtonGroupRow: React.FC<ButtonGroupRowProps> = ({
         {options.map(option => (
           <TouchableOpacity
             key={option.id}
+            onLayout={handleButtonLayout}
             style={[
               styles.button,
+              maxWidth > 0 && { minWidth: maxWidth },
               selectedId === option.id && styles.buttonActive,
             ]}
             onPress={() => onSelect(option.id)}

@@ -2,10 +2,10 @@ import React from 'react';
 import {
   View,
   Text,
-  Image,
+  ImageBackground,
   StyleSheet,
   ScrollView,
-  Pressable,
+  TouchableOpacity,
 } from 'react-native';
 import { useText } from '../../context/TextContext';
 import { colors, sizes } from '../../constants';
@@ -110,6 +110,7 @@ const SuggestionsBar: React.FC<SuggestionsBarProps> = ({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        keyboardShouldPersistTaps="always"
         contentContainerStyle={[
           styles.scrollContent,
           isRTL && styles.rtlScrollContent,
@@ -117,30 +118,26 @@ const SuggestionsBar: React.FC<SuggestionsBarProps> = ({
         {displaySuggestions.map((suggestion, index) => {
           const symbolUrl = symbolUrls.get(suggestion);
           return (
-            <Pressable
+            <TouchableOpacity
               key={`${suggestion}-${index}`}
-              style={({ pressed }) => [
+              style={[
                 styles.suggestionButton,
                 showSymbols && { minWidth: 85 },
-                pressed && { opacity: 0.7 },
               ]}
-              onTouchEnd={(e) => {
-                e.stopPropagation();
-                handleSuggestionPress(suggestion);
-              }}
+              activeOpacity={0.7}
+              onPress={() => handleSuggestionPress(suggestion)}
               >
               {showSymbols && symbolUrl && (
-                <Image
+                <ImageBackground
                   source={{ uri: symbolUrl }}
                   style={{
                     width: imageSize,
                     height: imageSize,
                     borderRadius: 4,
                     marginBottom: 2,
+                    overflow: 'hidden',
                   }}
                   resizeMode="contain"
-                  accessibilityLabel={suggestion}
-                  accessibilityRole="image"
                 />
               )}
               <Text
@@ -152,7 +149,7 @@ const SuggestionsBar: React.FC<SuggestionsBarProps> = ({
                 numberOfLines={1}>
                 {suggestion}
               </Text>
-            </Pressable>
+            </TouchableOpacity>
           );
         })}
       </ScrollView>

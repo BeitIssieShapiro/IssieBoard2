@@ -4,6 +4,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Text,
+  Platform,
 } from 'react-native';
 import { useText } from '../context/TextContext';
 import { useTTS } from '../context/TTSContext';
@@ -32,7 +33,8 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
   const { language: deviceLanguage, strings } = useLocalization();
   const { showNotification } = useNotification();
   const [keyboardConfig, setKeyboardConfig] = useState<string>('');
-  const [keyboardBgColor, setKeyboardBgColor] = useState<string>('#F1F2F4');
+  const defaultKbBg = Platform.OS === 'android' ? '#D2D3D9' : '#CBCFD8';
+  const [keyboardBgColor, setKeyboardBgColor] = useState<string>(defaultKbBg);
   const [kbSuggestions, setKbSuggestions] = useState<string[]>([]);
   const [symbolUrls, setSymbolUrls] = useState<Map<string, string | null>>(new Map());
   const symbolDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -160,7 +162,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
             const configString = JSON.stringify(savedConfig);
             console.log('📤 Setting keyboard config from saved profile, length:', configString.length);
             const bg = savedConfig.backgroundColor;
-            setKeyboardBgColor(!bg || bg === 'default' ? '#F1F2F4' : bg);
+            setKeyboardBgColor(!bg || bg === 'default' ? defaultKbBg : bg);
             setKeyboardConfig(configString);
             return;
           } catch (parseError) {
@@ -195,12 +197,12 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
         ...keyset,
         rows: keyset.rows.map((row: any) => {
           const filteredKeys = row.keys.filter((key: any) =>
-            key.type !== 'next-keyboard' && key.type !== 'close'
+            key.type !== 'next-keyboard' && key.type !== 'close' && key.type !== 'settings'
           );
 
           const hasSpaceKey = row.keys.some((k: any) => k.type === 'space' || k.value === ' ');
           const hasControlKeys = row.keys.some((k: any) =>
-            k.type === 'keyset' || k.type === 'next-keyboard' || k.type === 'close'
+            k.type === 'keyset' || k.type === 'next-keyboard' || k.type === 'close' || k.type === 'settings'
           );
           const isBottomRow = row.alwaysInclude || hasSpaceKey || hasControlKeys;
 
@@ -239,7 +241,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
       console.log('📤 Setting keyboard config, length:', configString.length);
 
       const bg = issieVoiceConfig.backgroundColor;
-      setKeyboardBgColor(!bg || bg === 'default' ? '#F1F2F4' : bg);
+      setKeyboardBgColor(!bg || bg === 'default' ? defaultKbBg : bg);
       setKeyboardConfig(configString);
     } catch (error) {
       console.error('❌ Failed to load keyboard config:', error);
@@ -655,6 +657,7 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   sideButton: {
+    marginVertical: 10,
     width: 52,
     height: 52,
     borderRadius: 14,
@@ -677,14 +680,14 @@ const styles = StyleSheet.create({
   },
   speakFabWrapper: {
     position: 'absolute',
-    top: 0,
-    bottom: 0,
+    bottom: 8,
     right: 14,
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
   },
   speakFab: {
     paddingHorizontal: 14,
     paddingVertical: 13,
+    marginVertical: 5,
     borderRadius: 12,
     backgroundColor: colors.primary,
     flexDirection: 'row',
@@ -714,6 +717,8 @@ const styles = StyleSheet.create({
     padding: 8,
     marginHorizontal: 8,
     boxShadow: '4px 4px 20px rgba(0, 0, 0, 0.4)',
+    zIndex: 20,
+    elevation: 20,
   },
   keyboard: {
     flex: 1,

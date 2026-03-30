@@ -8,20 +8,12 @@
   <!-- Blue Background (no rounded corners) -->
   <rect x="-500" y="-500" width="1620" height="1620" fill="#00BCF5"/>
 
-<!-- Speaker/Readout Icon in White (Upper Area) -->
-  <g transform="translate(300, 100) scale(7)">
+  <!-- Speaker/Readout Icon in White (Upper Area) -->
+  <g transform="translate(-450, -450) scale(1.6)">
     <!-- Speaker cone -->
-    <path fill="#ffffff" d="M -30,-35 L -30,35 L 0,50 L 0,-50 Z"/>
-    <!-- Speaker box -->
-    <rect x="-50" y="-25" width="20" height="50" fill="#ffffff"/>
-
-    <!-- Sound waves (output) - Three curved lines emanating from speaker -->
-    <path fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"
-          d="M 15,-20 Q 30,-15 30,0 Q 30,15 15,20"/>
-    <path fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"
-          d="M 30,-35 Q 55,-25 55,0 Q 55,25 30,35"/>
-    <path fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"
-          d="M 45,-50 Q 80,-35 80,0 Q 80,35 45,50"/>
+    <path d="M477.125 207.398L377.778 300.844C376.851 301.717 375.626 302.202 374.353 302.202H291C288.239 302.202 286 304.441 286 307.202V425.707C286 428.469 288.239 430.707 291 430.707H372.906C374.18 430.707 375.406 431.194 376.333 432.067L477.125 526.952V480.348V207.398Z" fill="white" stroke="white" stroke-width="33.3333" stroke-linejoin="round"/>
+    
+    <path d="M569.148 295.378C597.893 339.172 597.893 395.853 569.148 439.648M624.093 247.512C676.689 318.868 676.689 416.158 624.093 487.514M678.026 203.691C754.897 299.379 754.897 435.647 678.026 531.334" stroke="white" stroke-width="33.3333" stroke-linecap="round" fill="none"/>
   </g>
 
 

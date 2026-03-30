@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
     margin: 8,
     marginLeft: 0,
     width: "100%",
-    zIndex: 1000,
+    zIndex: 10,
   },
   innerContainer: {
     flex: 1,

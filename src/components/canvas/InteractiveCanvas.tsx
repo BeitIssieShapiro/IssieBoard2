@@ -47,6 +47,7 @@ interface InteractiveCanvasProps {
   height: number;
   hideHeader?: boolean;
   hideSettingsKey?: boolean;
+  hideCloseKey?: boolean;
   hideGlobeButton?: boolean;
   /** When 'advanced', the preview uses the native-reported keyboard height for a realistic preview */
   activeTab?: string;
@@ -59,7 +60,7 @@ const LANGUAGE_NAMES: Record<string, string> = {
   'ar': 'العربية',
 };
 
-export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInput, height, hideHeader, hideSettingsKey, hideGlobeButton, activeTab }) => {
+export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInput, height, hideHeader, hideSettingsKey, hideCloseKey, hideGlobeButton, activeTab }) => {
   const { state, dispatch } = useEditor();
   const { strings } = useLocalization();
   const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
@@ -167,12 +168,13 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
     // Get settingsButtonEnabled setting (default to true, but force false if hideSettingsKey)
     const settingsButtonEnabled = hideSettingsKey ? false : state.config.settingsButtonEnabled !== false;
 
-    // Filter out settings button if disabled
+    // Filter out settings button if disabled, and close button if hidden
     const filteredKeysets = state.config.keysets.map(keyset => ({
       ...keyset,
       rows: keyset.rows.map(row => ({
         ...row,
-        keys: filterSettingsButton(row.keys, settingsButtonEnabled),
+        keys: filterSettingsButton(row.keys, settingsButtonEnabled)
+          .filter(key => !(hideCloseKey && key.type === 'close')),
       })),
     }));
 
@@ -187,7 +189,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
     };
 
     return previewConfig;
-  }, [state.config, state.styleGroups]);
+  }, [state.config, state.styleGroups, hideCloseKey]);
 
   const configJson = useMemo(() => {
     return JSON.stringify(transformConfigForPreview(configWithGroups));
