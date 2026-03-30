@@ -22,7 +22,7 @@ const HORIZONTAL_PADDING = 8 + sizes.spacing.md * 2;
 // padding inside each favorite button
 const BUTTON_H_PADDING = sizes.spacing.sm * 2; // paddingHorizontal on each side
 const ICON_WIDTH = 36; // approximate width for emoji icon + gap
-const MIN_ITEM_WIDTH = 60;
+const MIN_ITEM_WIDTH = 80;
 const MAX_ITEM_WIDTH = 200;
 
 interface FavoritesBarProps {
@@ -44,7 +44,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [itemWidths, setItemWidths] = useState<Record<string, number>>({});
-  const { strings } = useLocalization();
+  const { strings, isRTL: isDeviceRTL } = useLocalization();
 
   const isMobile = screenWidth < 600;
 
@@ -94,7 +94,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
       try {
         const result = await measureText(caption, textStyle);
         const hasIcon = !!item.sentence.icon;
-        const contentWidth = result.width + BUTTON_H_PADDING + (hasIcon ? ICON_WIDTH : 0);
+        const contentWidth = result.width + BUTTON_H_PADDING + (hasIcon ? ICON_WIDTH : 0) + 8; // +8 for font weight rendering margin
         const finalWidth = Math.min(MAX_ITEM_WIDTH, Math.max(MIN_ITEM_WIDTH, Math.ceil(contentWidth)));
         console.log(`⭐ [measure] "${caption}" textW=${result.width.toFixed(1)} hasIcon=${hasIcon} → ${finalWidth}px`);
         widths[item.favorite.id] = finalWidth;
@@ -315,7 +315,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
           style={[styles.navButton, { height: itemH, width: NAV_BUTTON_WIDTH }]}
           onPress={() => setCurrentPage(p => Math.max(0, p - 1))}
           activeOpacity={0.7}>
-          <MyIcon info={{ name: isRTL ? 'navigate-next' : 'navigate-before', type: 'MI', color: '#FFFFFF', size: 32 }} />
+          <MyIcon info={{ name: isDeviceRTL ? 'navigate-next' : 'navigate-before', type: 'MI', color: '#FFFFFF', size: 32 }} />
         </TouchableOpacity>
       );
     }
@@ -323,10 +323,10 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
       return (
         <TouchableOpacity
           key="next"
-          style={[styles.navButton, { height: itemH, width: NAV_BUTTON_WIDTH }, isRTL ? { marginRight: 'auto' } : { marginLeft: 'auto' }]}
+          style={[styles.navButton, { height: itemH, width: NAV_BUTTON_WIDTH }, isDeviceRTL ? { marginRight: 'auto' } : { marginLeft: 'auto' }]}
           onPress={() => setCurrentPage(p => p + 1)}
           activeOpacity={0.7}>
-          <MyIcon info={{ name: isRTL ? 'navigate-before' : 'navigate-next', type: 'MI', color: '#FFFFFF', size: 32 }} />
+          <MyIcon info={{ name: isDeviceRTL ? 'navigate-before' : 'navigate-next', type: 'MI', color: '#FFFFFF', size: 32 }} />
         </TouchableOpacity>
       );
     }
@@ -399,7 +399,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
 
         <View style={styles.innerContainer}>
           {currentRows.map((row, rowIndex) => (
-            <View key={rowIndex} style={[styles.favoritesRow, isRTL && { flexDirection: 'row-reverse' }]}>
+            <View key={rowIndex} style={[styles.favoritesRow, isDeviceRTL && { flexDirection: 'row-reverse' }]}>
               {row.map((gridItem) => renderGridItem(gridItem, itemHeight))}
             </View>
           ))}

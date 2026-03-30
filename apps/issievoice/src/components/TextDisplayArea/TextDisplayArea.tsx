@@ -8,6 +8,9 @@ import {
   ScrollView,
   InputAccessoryView,
   useWindowDimensions,
+  NativeModules,
+  Platform,
+  findNodeHandle,
 } from 'react-native';
 import { useText } from '../../context/TextContext';
 import { useTTS } from '../../context/TTSContext';
@@ -54,6 +57,18 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1
   useEffect(() => {
     textInputRef.current?.focus();
   }, [text]);
+
+  // Strip dictation mic and system keyboard from the native UITextView
+  useEffect(() => {
+    if (Platform.OS !== 'ios') return;
+    const timer = setTimeout(() => {
+      const tag = findNodeHandle(textInputRef.current);
+      if (tag) {
+        NativeModules.KeyboardDisabler?.disableSystemKeyboard(tag);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Apply pending selection (e.g. after suggestion press) then release control
   useEffect(() => {

@@ -136,6 +136,7 @@ class SuggestionsBarView {
             button.setTitle(suggestion, for: .normal)
             let fontWeight: UIFont.Weight = isHighlighted ? .medium : .regular
             button.titleLabel?.font = UIFont.systemFont(ofSize: fontSize, weight: fontWeight)
+            button.titleLabel?.adjustsFontForContentSizeCategory = false
             button.titleLabel?.adjustsFontSizeToFitWidth = true
             button.titleLabel?.minimumScaleFactor = 0.6
             button.titleLabel?.textAlignment = .center

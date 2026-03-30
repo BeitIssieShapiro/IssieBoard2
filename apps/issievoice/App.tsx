@@ -3,6 +3,7 @@ import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
 import * as ScreenSizer from '@bam.tech/react-native-screen-sizer';
+import { Text, TextInput } from 'react-native';
 import MainScreen from './src/screens/MainScreen';
 import BrowseScreen from './src/screens/BrowseScreen';
 import NewSettingsScreen from './src/screens/NewSettingsScreen';
@@ -12,6 +13,10 @@ import {LocalizationProvider} from './src/context/LocalizationContext';
 import {NotificationProvider} from './src/context/NotificationContext';
 import { initializeFirebase } from '../../src/firebase-config';
 import { loadLanguage, LANGUAGE_SETTINGS } from '@beitissieshapiro/issie-shared';
+
+// Disable font scaling globally for accessibility keyboard app
+(Text as any).defaultProps = { ...((Text as any).defaultProps || {}), allowFontScaling: false };
+(TextInput as any).defaultProps = { ...((TextInput as any).defaultProps || {}), allowFontScaling: false };
 
 ScreenSizer.setup();
 

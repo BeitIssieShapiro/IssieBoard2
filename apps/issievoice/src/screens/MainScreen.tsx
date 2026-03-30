@@ -72,8 +72,18 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
   const isPhoneLandscape = isLandscape && Math.min(frame.width, frame.height) < 600;
   const isRTL = currentLanguage === 'he';
 
-  // Inject speak key into the abc keyset's bottom row, replacing the rightmost keyset key
+  // Inject speak key into the abc keyset's bottom row
   const injectSpeakKey = (keysets: any[], speakLabel: string) => {
+    const speakKey = {
+      type: 'event',
+      value: 'speak',
+      label: `🔊 ${speakLabel}`,
+      caption: `🔊 ${speakLabel}`,
+      width: 2,
+      bgColor: colors.primary,
+      textColor: '#FFFFFF',
+    };
+
     return keysets.map((keyset: any) => {
       // Only modify the abc keyset (main alphabetic view)
       if (keyset.id !== 'abc' && keyset.id !== 'abc_large') return keyset;
@@ -86,22 +96,14 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
         const isBottomRow = row.alwaysInclude || hasSpaceKey || hasControlKeys;
         if (!isBottomRow) return row;
 
-        // Find the rightmost keyset key and replace it with the speak key
-        const lastKeysetIndex = row.keys.reduce((lastIdx: number, key: any, idx: number) =>
-          key.type === 'keyset' ? idx : lastIdx, -1);
-
-        if (lastKeysetIndex === -1) return row;
-
+        // Replace the enter key with speak, or append speak at the end if no enter
         const newKeys = [...row.keys];
-        newKeys[lastKeysetIndex] = {
-          type: 'event',
-          value: 'speak',
-          label: `🔊 ${speakLabel}`,
-          caption: `🔊 ${speakLabel}`,
-          width: 2,
-          bgColor: '#2196F3',
-          textColor: '#FFFFFF',
-        };
+        const enterIndex = newKeys.findIndex((k: any) => k.type === 'enter');
+        if (enterIndex >= 0) {
+          newKeys[enterIndex] = speakKey;
+        } else {
+          newKeys.push(speakKey);
+        }
         return { ...row, keys: newKeys };
       });
       return { ...keyset, rows };
@@ -139,7 +141,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
               caption: language === 'en' ? 'עב' : 'En',
               value: '',
               width: 1,
-              bgColor: '#2196F3',
+              bgColor: colors.primary,
             };
 
             console.log(`🔑 Creating language key for ${language} keyboard:`, languageKey);
@@ -233,7 +235,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
         caption: language === 'en' ? 'עב' : 'En',
         value: '',
         width: 1,
-        bgColor: '#2196F3',
+        bgColor: colors.primary,
       };
 
       // Inject IssieVoice keys (language switch) into each keyset

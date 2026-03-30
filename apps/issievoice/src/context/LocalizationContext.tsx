@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
-import { NativeModules, Platform } from 'react-native';
+import * as RNLocalize from 'react-native-localize';
 import { Language, Strings, getStrings as getRawStrings } from '../localization/strings';
 
 export type { Language, Strings } from '../localization/strings';
@@ -32,24 +32,14 @@ const LocalizationContext = createContext<LocalizationContextType | undefined>(
   undefined,
 );
 
+const supportedLanguages = ['he', 'en', 'ar'];
+
 const getDeviceLanguage = (): Language => {
-  let deviceLanguage = 'en';
+  const locales = RNLocalize.getLocales();
+  const langCode = (locales[0]?.languageTag || 'en').split(/[-_]/)[0].toLowerCase();
 
-  if (Platform.OS === 'ios') {
-    deviceLanguage =
-      NativeModules.SettingsManager?.settings?.AppleLocale ||
-      NativeModules.SettingsManager?.settings?.AppleLanguages?.[0] ||
-      'en';
-  } else {
-    deviceLanguage = NativeModules.I18nManager?.localeIdentifier || 'en';
-  }
-
-  const langCode = deviceLanguage.split('_')[0].split('-')[0].toLowerCase();
-
-    // return 'he'
-
-  if (langCode === 'he' || langCode === 'iw') return 'he';
-  if (langCode === 'ar') return 'ar';
+  if (langCode === 'iw') return 'he';
+  if (supportedLanguages.includes(langCode)) return langCode as Language;
   return 'en';
 };
 

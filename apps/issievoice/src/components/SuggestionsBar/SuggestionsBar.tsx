@@ -163,6 +163,7 @@ const SuggestionsBar: React.FC<SuggestionsBarProps> = ({
                 />
               )}
               <Text
+                allowFontScaling={false}
                 style={[
                   styles.suggestionText,
                   { fontSize },
