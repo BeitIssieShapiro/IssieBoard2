@@ -48,6 +48,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
   const keyboardHeightRef = useRef<number>(350);
   const [speakButtonInKeyboard, setSpeakButtonInKeyboard] = useState(false);
   const [symbolsInSuggestions, setSymbolsInSuggestions] = useState(false);
+  const [favoritesUnusedHeight, setFavoritesUnusedHeight] = useState(0);
 
   // Load symbol cache and clean up debounce on unmount
   useEffect(() => {
@@ -565,7 +566,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
 
         {/* Text Area Row */}
         <View style={[styles.textAreaRow, {
-          maxHeight: Math.min(availableHeight * 0.3, frame.height * 0.18),
+          maxHeight: Math.min(availableHeight * 0.3, frame.height * 0.18) + favoritesUnusedHeight,
         }, isRTL && { flexDirection: 'row-reverse' }]}>
           {/* Text Area with Floating Speak Button */}
           <View style={styles.textAreaContainer}>
@@ -602,6 +603,10 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
             reloadTrigger={favoritesReloadTrigger}
             screenWidth={frame.width}
             isRTL={isRTL}
+            isLandscape={isLandscape}
+            isTablet={Math.min(frame.width, frame.height) >= 600}
+            symbolsInSuggestions={symbolsInSuggestions}
+            onUnusedHeight={setFavoritesUnusedHeight}
           />
         )}
 

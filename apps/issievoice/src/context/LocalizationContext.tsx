@@ -46,7 +46,7 @@ const getDeviceLanguage = (): Language => {
 
   const langCode = deviceLanguage.split('_')[0].split('-')[0].toLowerCase();
 
-   // return 'he'
+    return 'he'
 
   if (langCode === 'he' || langCode === 'iw') return 'he';
   if (langCode === 'ar') return 'ar';
