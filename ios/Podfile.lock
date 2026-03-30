@@ -2087,6 +2087,8 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
+  - react-native-text-measure (1.0.2):
+    - React
   - react-native-vector-icons-ant-design (12.5.0)
   - react-native-vector-icons-ionicons (12.5.0)
   - react-native-vector-icons-material-design-icons (12.5.0)
@@ -2939,6 +2941,7 @@ DEPENDENCIES:
   - React-Mapbuffer (from `../node_modules/react-native/ReactCommon`)
   - React-microtasksnativemodule (from `../node_modules/react-native/ReactCommon/react/nativemodule/microtasks`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
+  - react-native-text-measure (from `../node_modules/react-native-text-measure`)
   - "react-native-vector-icons-ant-design (from `../node_modules/@react-native-vector-icons/ant-design`)"
   - "react-native-vector-icons-ionicons (from `../node_modules/@react-native-vector-icons/ionicons`)"
   - "react-native-vector-icons-material-design-icons (from `../node_modules/@react-native-vector-icons/material-design-icons`)"
@@ -3101,6 +3104,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/react/nativemodule/microtasks"
   react-native-safe-area-context:
     :path: "../node_modules/react-native-safe-area-context"
+  react-native-text-measure:
+    :path: "../node_modules/react-native-text-measure"
   react-native-vector-icons-ant-design:
     :path: "../node_modules/@react-native-vector-icons/ant-design"
   react-native-vector-icons-ionicons:
@@ -3261,6 +3266,7 @@ SPEC CHECKSUMS:
   React-Mapbuffer: d0c5f3793332ebec11bfbbbd962ea526ee85efff
   React-microtasksnativemodule: 1a7d806e2ec20df1c6d88b29e72787fb48aeab70
   react-native-safe-area-context: eda63a662750758c1fdd7e719c9f1026c8d161cb
+  react-native-text-measure: 615562d15433c96c4cea6cc756b10535c9224e78
   react-native-vector-icons-ant-design: 1d338bf7122a06c927f2e8c74a18d2a57f8d488d
   react-native-vector-icons-ionicons: 7e633927db6ab96e0255b5920c053777cacca505
   react-native-vector-icons-material-design-icons: 95914f2f6b18e26e5c9563afe33184e110afe674

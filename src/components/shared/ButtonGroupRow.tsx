@@ -1,5 +1,6 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, LayoutChangeEvent } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
+import { measureText } from 'react-native-text-measure';
 
 export interface ButtonOption {
   id: string;
@@ -31,10 +32,25 @@ export const ButtonGroupRow: React.FC<ButtonGroupRowProps> = ({
   const isSmallScreen = width < 700;
   const [maxWidth, setMaxWidth] = useState(0);
 
-  const handleButtonLayout = useCallback((e: LayoutChangeEvent) => {
-    const w = e.nativeEvent.layout.width;
-    setMaxWidth(prev => Math.max(prev, w));
-  }, []);
+  useEffect(() => {
+    const measure = async () => {
+      const textStyle = { fontSize: 13, fontWeight: '700' as const };
+      let widest = 0;
+      for (const option of options) {
+        try {
+          const result = await measureText(option.label, textStyle);
+          widest = Math.max(widest, Math.ceil(result.width));
+        } catch {
+          // fall back to 0, minWidth: 60 in style handles it
+        }
+      }
+      if (widest > 0) {
+        // Add horizontal padding (12 * 2 = 24)
+        setMaxWidth(widest + 24);
+      }
+    };
+    measure();
+  }, [options]);
 
   return (
     <View style={[styles.container, isSmallScreen && styles.containerSmall, isRTL && { direction: 'rtl' }]}>
@@ -43,7 +59,6 @@ export const ButtonGroupRow: React.FC<ButtonGroupRowProps> = ({
         {options.map(option => (
           <TouchableOpacity
             key={option.id}
-            onLayout={handleButtonLayout}
             style={[
               styles.button,
               maxWidth > 0 && { minWidth: maxWidth },
