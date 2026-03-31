@@ -133,7 +133,7 @@
     {
       "id": "other-keys",
       "name": "מקשים נוספים",
-      "description": "מקשים לשינוי מצב, גלובוס, סגירה",
+      "description": "מעבר למספרים, גלובוס, סגירה",
       "members": ["keyset", "next-keyboard", "settings", "close", "nikkud"],
       "style": {
         "bgColor": "#4DD0E1",

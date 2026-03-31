@@ -121,6 +121,8 @@ export interface Strings {
     middleThird: string;
     leftThird: string;
     typeCharacters: string;
+    showAll: string;
+    tapKeysToShow: string;
   };
   toolbox: {
     generalAppearance: string;
@@ -431,6 +433,8 @@ const en: Strings = {
     middleThird: 'Middle Third',
     leftThird: 'Left Third',
     typeCharacters: 'Type characters to highlight',
+    showAll: 'Show All',
+    tapKeysToShow: 'Tap keys you wish to be visible',
   },
   toolbox: {
     generalAppearance: 'General Appearance',
@@ -741,6 +745,8 @@ const he: Strings = {
     middleThird: 'שליש אמצעי',
     leftThird: 'שליש שמאלי',
     typeCharacters: 'הקלד תווים להדגשה',
+    showAll: 'הצג הכל',
+    tapKeysToShow: 'לחץ על המקשים שברצונך להציג',
   },
   toolbox: {
     generalAppearance: 'מראה כללי',
@@ -1051,6 +1057,8 @@ const ar: Strings = {
     middleThird: 'الثلث الأوسط',
     leftThird: 'الثلث الأيسر',
     typeCharacters: 'اكتب أحرفًا لتمييزها',
+    showAll: 'إظهار الكل',
+    tapKeysToShow: 'اضغط على المفاتيح التي تريد إظهارها',
   },
   toolbox: {
     generalAppearance: 'المظهر العام',

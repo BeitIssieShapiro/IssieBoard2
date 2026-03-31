@@ -1384,6 +1384,7 @@ class KeyboardRenderer {
             
             // Add long-press gesture for space key (for cursor movement mode)
             if keyType == "space" || key.value == " " {
+                print("🔧 SPACE KEY: Adding long-press gesture recognizer (keyType='\(keyType)', value='\(key.value)', onCursorMove=\(onCursorMove != nil))")
                 let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(spaceLongPressed(_:)))
                 longPressGesture.minimumPressDuration = 0.5
                 button.addGestureRecognizer(longPressGesture)
@@ -1575,7 +1576,7 @@ class KeyboardRenderer {
             imageView.translatesAutoresizingMaskIntoConstraints = false
 
             // Scale icon size: keyboard-hide is complex so use 180%, others use 100%
-            let iconSize = key.type.lowercased() == "close" ? finalFontSize * 1.8 : finalFontSize
+            let iconSize = key.type.lowercased() == "close" ? finalFontSize * 1.5 : finalFontSize
 
             NSLayoutConstraint.activate([
                 imageView.centerXAnchor.constraint(equalTo: visualKeyView.centerXAnchor),

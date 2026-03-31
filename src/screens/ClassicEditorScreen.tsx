@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { extractClassicState, ClassicState, matchesPreset } from './classic/clas
 import ClassicSectionsList, { SettingId } from './classic/ClassicSectionsList';
 import ClassicDetailView from './classic/ClassicDetailView';
 import ClassicColorPicker from './classic/ClassicColorPicker';
+import { KeyPressEvent } from '../components/KeyboardPreview';
 
 // Import keyboard files
 import enKeyboard from '../../keyboards/en.json';
@@ -376,8 +377,19 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
     const config = buildConfiguration(newProfileDef);
     const groupConfigs = convertStyleGroupsToGroupConfig(newStyleGroups);
     const configWithGroups = { ...config, groups: groupConfigs };
-    setConfigJson(JSON.stringify(transformConfigForPreview(configWithGroups)));
-  }, [currentLanguage]);
+    const showOnlyOpacity = activeSetting === 'visible-keys-text' ? 0.3 : undefined;
+    setConfigJson(JSON.stringify(transformConfigForPreview(configWithGroups, { showOnlyOpacity })));
+  }, [currentLanguage, activeSetting]);
+
+  // Re-transform config when entering/leaving visible-keys-text mode
+  useEffect(() => {
+    if (!profileDef) return;
+    const config = buildConfiguration(profileDef);
+    const groupConfigs = convertStyleGroupsToGroupConfig(styleGroups);
+    const configWithGroups = { ...config, groups: groupConfigs };
+    const showOnlyOpacity = activeSetting === 'visible-keys-text' ? 0.3 : undefined;
+    setConfigJson(JSON.stringify(transformConfigForPreview(configWithGroups, { showOnlyOpacity })));
+  }, [activeSetting]);
 
   // Save the current profile and push config to keyboard
   const saveProfile = useCallback(async (
@@ -776,6 +788,61 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
     await saveProfile(profileDef, updatedGroups);
   }, [profileDef, styleGroups, refreshState, saveProfile, strings]);
 
+  // Handle key tap on preview keyboard for special-keys-text and visible-keys-text
+  const handlePreviewKeyPress = useCallback((event: KeyPressEvent) => {
+    const { type, value } = event.nativeEvent;
+    // Skip non-character keys
+    if (type === 'keyset-changed' || type === 'keyset' || type === 'language' || type === 'longpress' ||
+        type === 'enter' || type === 'backspace' || type === 'space' || type === 'shift' ||
+        type === 'next-keyboard' || type === 'settings' || type === 'close' || type === 'nikkud') {
+      return;
+    }
+    const keyValue = value;
+    if (!keyValue || !keyValue.trim()) return;
+
+    if (activeSetting === 'special-keys-text') {
+      const currentMembers = classicState.specialKeysGroup?.members || [];
+      const newMembers = currentMembers.includes(keyValue)
+        ? currentMembers.filter(k => k !== keyValue)
+        : [...currentMembers, keyValue];
+      handleSpecialKeysTextChange(newMembers.join(''));
+    } else if (activeSetting === 'visible-keys-text') {
+      const currentMembers = classicState.visibleKeysGroup?.members || [];
+      const newMembers = currentMembers.includes(keyValue)
+        ? currentMembers.filter(k => k !== keyValue)
+        : [...currentMembers, keyValue];
+      handleVisibleKeysTextChange(newMembers.join(''));
+    }
+  }, [activeSetting, classicState, handleSpecialKeysTextChange, handleVisibleKeysTextChange]);
+
+  // Compute selectedKeysJson for highlighting on the preview keyboard
+  const selectedKeysJson = useMemo(() => {
+    if (activeSetting !== 'special-keys-text' && activeSetting !== 'visible-keys-text') return undefined;
+    const members = activeSetting === 'special-keys-text'
+      ? (classicState.specialKeysGroup?.members || [])
+      : (classicState.visibleKeysGroup?.members || []);
+    if (members.length === 0) return undefined;
+    try {
+      const config = JSON.parse(configJson);
+      const positionIds: string[] = [];
+      for (const keyset of (config.keysets || [])) {
+        for (let rowIndex = 0; rowIndex < keyset.rows.length; rowIndex++) {
+          const row = keyset.rows[rowIndex];
+          for (let keyIndex = 0; keyIndex < row.keys.length; keyIndex++) {
+            const key = row.keys[keyIndex];
+            const kv = key.value || key.caption || key.label || key.type;
+            if (kv && members.includes(kv)) {
+              positionIds.push(`${keyset.id}:${rowIndex}:${keyIndex}`);
+            }
+          }
+        }
+      }
+      return JSON.stringify(positionIds);
+    } catch {
+      return undefined;
+    }
+  }, [activeSetting, classicState, configJson]);
+
   // Handle reset
   const handleReset = useCallback(async () => {
     if (!profileDef) return;
@@ -1095,6 +1162,8 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
             onBack={() => setActiveSetting(null)}
             configJson={activeSetting !== 'nikkud' && activeSetting !== 'my-issieboards' ? configJson : undefined}
             language={currentLanguage}
+            selectedKeys={(activeSetting === 'special-keys-text' || activeSetting === 'visible-keys-text') ? selectedKeysJson : undefined}
+            onKeyPress={(activeSetting === 'special-keys-text' || activeSetting === 'visible-keys-text') ? handlePreviewKeyPress : undefined}
           >
           {isColorSetting(activeSetting) ? (
             <ClassicColorPicker
@@ -1142,32 +1211,37 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
           ) : activeSetting === 'special-keys-text' ? (
             <View style={styles.textInputContainer}>
               <Text allowFontScaling={false} style={styles.textInputLabel}>
-                {strings.classic.typeCharacters}
+                {strings.styleRuleModal.tapKeysToSelect}
               </Text>
               <TextInput
                 style={styles.textInput}
                 value={classicState.specialKeysGroup?.members.join('') || ''}
-                onChangeText={handleSpecialKeysTextChange}
+                editable={false}
                 placeholder={strings.classic.typeCharacters}
-                autoCorrect={false}
-                autoCapitalize="none"
-                spellCheck={false}
               />
             </View>
           ) : activeSetting === 'visible-keys-text' ? (
             <View style={styles.textInputContainer}>
               <Text allowFontScaling={false} style={styles.textInputLabel}>
-                {strings.classic.visibleKeys}
+                {strings.classic.tapKeysToShow}
               </Text>
-              <TextInput
-                style={styles.textInput}
-                value={classicState.visibleKeysGroup?.members.join('') || ''}
-                onChangeText={handleVisibleKeysTextChange}
-                placeholder={strings.classic.typeCharacters}
-                autoCorrect={false}
-                autoCapitalize="none"
-                spellCheck={false}
-              />
+              <View style={styles.visibleKeysRow}>
+                <TextInput
+                  style={[styles.textInput, {flex: 1}]}
+                  value={classicState.visibleKeysGroup?.members.join('') || ''}
+                  editable={false}
+                  placeholder={strings.classic.tapKeysToShow}                />
+                {classicState.visibleKeysGroup && classicState.visibleKeysGroup.members.length > 0 && (
+                  <TouchableOpacity
+                    style={styles.showAllButton}
+                    onPress={() => handleVisibleKeysTextChange('')}
+                  >
+                    <Text allowFontScaling={false} style={styles.showAllButtonText}>
+                      {strings.classic.showAll}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
           ) : activeSetting === 'my-issieboards' ? (
             <ScrollView style={styles.profileList}>
@@ -1295,6 +1369,24 @@ const styles = StyleSheet.create({
     padding: 14,
     fontSize: 20,
     minHeight: 50,
+  },
+  visibleKeysRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  showAllButton: {
+    backgroundColor: '#F0F0F0',
+    borderWidth: 1,
+    borderColor: '#C6C6C8',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  showAllButtonText: {
+    fontSize: 15,
+    color: '#007AFF',
+    fontWeight: '500',
   },
   profileList: {
     flex: 1,

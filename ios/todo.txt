@@ -4,13 +4,35 @@ Android Bugs:
 - 
 
 
+
+Arabic:
+- icon for nikkud - from Alla
+
 todo - IssieBoard:
+- share keyboard
+V- other keys preset (don't use keyset, change-to-numbers)
+V- in classic - highlight keys - use the preview kb to type (hide soft kb)
+  also for visible keys
+  also select them on the kb
+V- close-kb icon is too large?
+V- remove y from vowel 
+- in "123" remove nikkud button
+
+
 ----
 Android:
   - x is invisible in Nikkud
 - not offer suggestion for certain input type? then ommit the header row?
 - URL/email no auto-shift
-- Globe icon color
+
+IssieVoice:
+----
+- style the en/he button
+- space swipe to locate curret
+- capitalize I?
+- reorder favortites does not work
+
+
 
 
 V- gaps: 

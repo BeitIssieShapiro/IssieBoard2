@@ -395,6 +395,22 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
       return;
     }
 
+    // Handle cursor movement from swipe gesture on space key
+    // The native renderer already inverts the offset for RTL (for the system keyboard's
+    // adjustTextPosition API which works in reading order). But in IssieVoice, cursorPosition
+    // is a string index where higher = further in text, and the TextInput handles RTL display.
+    // So we need to undo the RTL inversion — the raw swipe direction maps directly to index change.
+    if (type === 'cursor_move') {
+      const offset = parseInt(value, 10);
+      if (!isNaN(offset)) {
+        const isRTL = currentLanguage === 'he' || currentLanguage === 'ar';
+        const adjustedOffset = isRTL ? -offset : offset;
+        const newPos = Math.max(0, Math.min(currentText.length, cursorPosition + adjustedOffset));
+        setCursorPosition(newPos);
+      }
+      return;
+    }
+
     // Handle language switch button
     if (type === 'language') {
       console.log('🌐 Language switch button pressed');

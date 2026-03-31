@@ -21,7 +21,7 @@
       { "id": "wasla", "mark": "\u0671", "name": "وصلة", "onlyFor": ["ا"], "isReplacement": true, "isAdvanced": true },
       { "id": "hamzaAbove", "mark": "\u0623", "name": "همزة فوق", "onlyFor": ["ا"], "isReplacement": true, "isAdvanced": false },
       { "id": "hamzaBelow", "mark": "\u0625", "name": "همزة تحت", "onlyFor": ["ا"], "isReplacement": true, "isAdvanced": false },
-      { "id": "madda", "mark": "\u0622", "name": "مدّة", "onlyFor": ["ا"], "isReplacement": true, "isAdvanced": false }
+      { "id": "madda", "mark": "\u0622", "name": "مدّة", "onlyFor": ["ا"], "isReplacement": true, "isAdvanced": true }
     ],
     "modifier": {
       "id": "shadda",

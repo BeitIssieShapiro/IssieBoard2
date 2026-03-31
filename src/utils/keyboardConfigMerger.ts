@@ -624,7 +624,7 @@ export function transformConfigForPreview(config: {
   keysets: { id: string; rows: { keys: any[] }[] }[];
   groups?: { name: string; items: string[]; template: any }[];
   [key: string]: any;
-}): typeof config {
+}, options?: { showOnlyOpacity?: number }): typeof config {
   // 1. Fix placeholder keys in keysets
   const transformedKeysets = config.keysets.map(keyset => ({
     ...keyset,
@@ -687,10 +687,11 @@ export function transformConfigForPreview(config: {
       const showOnlySet = new Set(group.items);
       const inverseKeys = Array.from(allKeyValues).filter(k => !showOnlySet.has(k) && !essentialKeys.has(k));
       if (inverseKeys.length > 0) {
+        const inverseOpacity = options?.showOnlyOpacity ?? 0;
         inverseGroups.push({
           name: `_${group.name}_inverse_`,
           items: inverseKeys,
-          template: { color: '', bgColor: '', opacity: 0 },
+          template: { color: '', bgColor: '', opacity: inverseOpacity },
         });
       }
     } else {

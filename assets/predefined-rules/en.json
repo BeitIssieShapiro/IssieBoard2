@@ -94,7 +94,7 @@
       "id": "vowels",
       "name": "Vowels",
       "description": "All vowel keys",
-      "members": ["a", "e", "i", "o", "u", "y", "A", "E", "I", "O", "U", "Y"],
+      "members": ["a", "e", "i", "o", "u", "A", "E", "I", "O", "U"],
       "style": {
         "bgColor": "#E1BEE7",
         "color": "#6A1B9A"
@@ -133,7 +133,7 @@
     {
       "id": "other-keys",
       "name": "Other Keys",
-      "description": "Mode change, globe, dismiss keys",
+      "description": "Change-to-numbers, globe, dismiss keys",
       "members": ["keyset", "next-keyboard", "settings", "close", "nikkud"],
       "style": {
         "bgColor": "#4DD0E1",

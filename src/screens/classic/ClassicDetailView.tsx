@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
-import { KeyboardPreview } from '../../components/KeyboardPreview';
+import { KeyboardPreview, KeyPressEvent } from '../../components/KeyboardPreview';
 import { useLocalization } from '../../localization';
 
 interface ClassicDetailViewProps {
@@ -8,6 +8,8 @@ interface ClassicDetailViewProps {
     onBack: () => void;
     configJson?: string;
     language?: string;
+    selectedKeys?: string;
+    onKeyPress?: (event: KeyPressEvent) => void;
     children: React.ReactNode;
 }
 
@@ -16,6 +18,8 @@ const ClassicDetailView: React.FC<ClassicDetailViewProps> = ({
     onBack,
     configJson,
     language,
+    selectedKeys,
+    onKeyPress,
     children,
 }) => {
     const { strings } = useLocalization();
@@ -42,6 +46,8 @@ const ClassicDetailView: React.FC<ClassicDetailViewProps> = ({
                         style={styles.preview}
                         configJson={configJson}
                         language={language}
+                        selectedKeys={selectedKeys}
+                        onKeyPress={onKeyPress}
                     />
                 </View>
             )}

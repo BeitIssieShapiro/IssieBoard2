@@ -133,7 +133,7 @@
     {
       "id": "other-keys",
       "name": "مفاتيح أخرى",
-      "description": "مفاتيح تغيير الوضع والكرة الأرضية والإغلاق",
+      "description": "التبديل إلى الأرقام، الكرة الأرضية، الإغلاق",
       "members": ["keyset", "next-keyboard", "settings", "close", "nikkud"],
       "style": {
         "bgColor": "#4DD0E1",

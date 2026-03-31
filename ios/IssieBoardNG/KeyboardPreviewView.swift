@@ -89,6 +89,11 @@ class KeyboardPreviewView: UIView {
             return
         }
 
+        // Skip if config hasn't changed (avoids unnecessary re-renders)
+        if configJson == lastStoredConfigJson {
+            return
+        }
+
         // Store the config for comparison
         lastStoredConfigJson = configJson
         parseAndRender(configJson)
@@ -211,6 +216,16 @@ class KeyboardPreviewView: UIView {
             }
         }
 
+        proxy.onCursorMove = { [weak self] offset in
+            guard let self = self else { return }
+            self.onKeyPress?([
+                "type": "cursor_move",
+                "value": String(offset),
+                "label": "",
+                "hasNikkud": false
+            ])
+        }
+
         // Initialize synced text with initial value
         self.syncedText = initialText
 
@@ -315,6 +330,7 @@ class KeyboardPreviewView: UIView {
                     // Reset renderer's keyset to default when language changes
                     // so it doesn't try to use a stale keyset ID from the old config
                     if let engine = keyboardEngine {
+                        engine.language = lang
                         engine.renderer.currentKeysetId = "abc"
                         engine.suggestionController.setLanguage(lang)
                         WordCompletionManager.shared.setLanguage(lang)
@@ -331,13 +347,8 @@ class KeyboardPreviewView: UIView {
                 // Refresh the picker with new options
                 renderer?.refreshNikkudPickerIfOpen(in: self, config: parsedConfig!)
             } else {
+                // renderKeyboard() handles both input mode (via engine) and config mode
                 renderKeyboard()
-            }
-
-            // If we already have input mode initialized but didn't have config before, render now
-            if let engine = keyboardEngine, parsedConfig != nil {
-                print("📱 Config set after input mode initialized - rendering now")
-                renderKeyboardWithEngine(config: parsedConfig!, engine: engine)
             }
         } catch {
             errorLog("Failed to parse config: \(error)")

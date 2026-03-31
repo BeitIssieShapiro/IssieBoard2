@@ -30,7 +30,7 @@ class KeyboardEngine {
     let suggestionController: WordSuggestionController
 
     /// Keyboard language (e.g., "en", "he", "ar")
-    let language: String
+    var language: String
 
     /// Double-space shortcut (". " instead of "  ")
     private var lastSpaceTime: Date?
