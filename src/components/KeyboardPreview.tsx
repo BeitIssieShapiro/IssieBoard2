@@ -10,6 +10,8 @@ interface KeyPressEvent {
     keysetValue?: string;
     returnKeysetValue?: string;
     returnKeysetLabel?: string;
+    prevLength?: number;
+    deletedTo?: number;
   };
 }
 

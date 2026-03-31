@@ -367,30 +367,41 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
 
     // Handle text_changed event from KeyboardEngine (new architecture)
     if (type === 'text_changed') {
-      // The native engine manages its own text buffer (always appends at end).
-      // Compute the delta and apply it at the cursor position instead.
+      // The native engine manages its own text buffer (always appends/deletes at end).
+      // Native sends prevLength (buffer length before) and deletedTo (min length reached)
+      // to compute exact deltas even for compound ops (e.g. "i"→"I" auto-capitalize).
       const engineText = value;
+      const prevLength: number | undefined = event.nativeEvent.prevLength;
+      const deletedTo: number | undefined = event.nativeEvent.deletedTo;
       const pos = cursorPosition;
-      const before = currentText.slice(0, pos);
       const after = currentText.slice(pos);
 
-      if (engineText.length > currentText.length) {
-        // Character(s) added — find what was inserted
-        // The engine appends at end, so the new chars are at the tail
-        const inserted = engineText.slice(currentText.length);
-        const newText = before + inserted + after;
-        setCursorPosition(pos + inserted.length);
-        setText(newText);
-      } else if (engineText.length < currentText.length) {
-        // Character(s) deleted (backspace)
-        const deletedCount = currentText.length - engineText.length;
-        const deleteFrom = Math.max(0, pos - deletedCount);
-        const newText = currentText.slice(0, deleteFrom) + after;
-        setCursorPosition(deleteFrom);
+      if (prevLength != null && deletedTo != null) {
+        // Use precise delta from native
+        const deleted = prevLength - deletedTo;
+        const inserted = engineText.slice(deletedTo);
+        const deleteFrom = Math.max(0, pos - deleted);
+        const newBefore = currentText.slice(0, deleteFrom);
+        const newText = newBefore + inserted + after;
+        const newCursor = deleteFrom + inserted.length;
+        setCursorPosition(newCursor);
         setText(newText);
       } else {
-        // Same length — could be a replacement, just use engine text
-        setText(engineText);
+        // Fallback: compare lengths against currentText
+        if (engineText.length > currentText.length) {
+          const inserted = engineText.slice(currentText.length);
+          const newText = currentText.slice(0, pos) + inserted + after;
+          setCursorPosition(pos + inserted.length);
+          setText(newText);
+        } else if (engineText.length < currentText.length) {
+          const deletedCount = currentText.length - engineText.length;
+          const deleteFrom = Math.max(0, pos - deletedCount);
+          const newText = currentText.slice(0, deleteFrom) + after;
+          setCursorPosition(deleteFrom);
+          setText(newText);
+        } else {
+          setText(engineText);
+        }
       }
       return;
     }

@@ -83,6 +83,7 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1
 
   const handleClear = () => {
     setText('');
+    setCursorPosition(0);
   };
 
   // Build highlighted text segments when speaking

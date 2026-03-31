@@ -8,7 +8,7 @@ Android Bugs:
 Arabic:
 - icon for nikkud - from Alla
 
-todo - IssieBoard:
+IssieBoard:
 - share keyboard
 V- other keys preset (don't use keyset, change-to-numbers)
 V- in classic - highlight keys - use the preview kb to type (hide soft kb)
@@ -16,7 +16,7 @@ V- in classic - highlight keys - use the preview kb to type (hide soft kb)
   also select them on the kb
 V- close-kb icon is too large?
 V- remove y from vowel 
-- in "123" remove nikkud button
+V- in "123" remove nikkud button
 
 
 ----

@@ -57,8 +57,18 @@ class KeyboardPreviewView: UIView {
     // Synced text that mirrors React Native state (single source of truth proxy)
     private var syncedText: String = ""
 
+    // The last text value sent to React Native via text_changed
+    private var lastNotifiedText: String = ""
+
     // Track if we're processing a keyboard operation to prevent double-handling
     private var isProcessingKeyboardOperation: Bool = false
+
+    // Whether a deferred text notification is pending (coalesces rapid changes)
+    private var hasPendingTextNotification: Bool = false
+
+    // Minimum length syncedText reached during a pending coalesced operation.
+    // Used to tell React how many chars were deleted before new chars were added.
+    private var pendingMinLength: Int = Int.max
 
     // MARK: - Mode Detection
 
@@ -132,6 +142,8 @@ class KeyboardPreviewView: UIView {
             print("📝 KeyboardPreviewView: setText syncing '\(newText.suffix(20))', fromKeyboard: \(isProcessingKeyboardOperation)")
             let oldText = syncedText
             syncedText = newText
+            // Keep lastNotifiedText in sync — React already knows this text
+            lastNotifiedText = newText
 
             // If text was cleared (became empty or much shorter), force update even during keyboard operation
             let wasCleared = newText.isEmpty && !oldText.isEmpty
@@ -140,6 +152,7 @@ class KeyboardPreviewView: UIView {
             if wasCleared || wasShortenedSignificantly {
                 print("📝 Text cleared or shortened significantly - forcing handleTextChanged()")
                 keyboardEngine?.handleTextChanged()
+                keyboardEngine?.autoShiftAfterPunctuation()
                 return
             }
 
@@ -193,12 +206,8 @@ class KeyboardPreviewView: UIView {
             self.isProcessingKeyboardOperation = true
             // Update synced text immediately
             self.syncedText += text
-            // Notify React Native
-            self.notifyReactNativeOfTextChange(self.syncedText)
-            // Clear flag after React Native has time to process
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                self.isProcessingKeyboardOperation = false
-            }
+            // Defer notification to coalesce compound operations (e.g. delete+insert for "i"→"I")
+            self.scheduleDeferredTextNotification()
         }
 
         proxy.onDeleteBackward = { [weak self] in
@@ -207,12 +216,8 @@ class KeyboardPreviewView: UIView {
                 // Set flag to prevent double-processing in setText
                 self.isProcessingKeyboardOperation = true
                 self.syncedText.removeLast()
-                // Notify React Native
-                self.notifyReactNativeOfTextChange(self.syncedText)
-                // Clear flag after React Native has time to process
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                    self.isProcessingKeyboardOperation = false
-                }
+                // Defer notification to coalesce compound operations
+                self.scheduleDeferredTextNotification()
             }
         }
 
@@ -228,6 +233,7 @@ class KeyboardPreviewView: UIView {
 
         // Initialize synced text with initial value
         self.syncedText = initialText
+        self.lastNotifiedText = initialText
 
         // Create keyboard engine with the proxy
         let language = currentLanguage ?? "en"
@@ -295,16 +301,52 @@ class KeyboardPreviewView: UIView {
         }
     }
 
-    private func notifyReactNativeOfTextChange(_ newText: String) {
-        print("📝 KeyboardPreviewView: Notifying React Native of text change: '\(newText)'")
+    private func notifyReactNativeOfTextChange(_ newText: String, deletedDownTo minLength: Int? = nil) {
+        let prevLen = lastNotifiedText.count
+        lastNotifiedText = newText
+        // deletedTo: the number of chars that survived deletion.
+        // For pure inserts: equals prevLen (nothing deleted).
+        // For pure deletes: equals newText.count (chars removed from tail).
+        // For compound delete+insert (e.g. "i"→"I"): the minimum length reached mid-operation.
+        let deletedTo = minLength ?? min(prevLen, newText.count)
+        print("📝 KeyboardPreviewView: Notifying React Native of text change: '\(newText)' (prevLen: \(prevLen), deletedTo: \(deletedTo))")
 
-        // Emit text change event to React Native
         onKeyPress?([
             "type": "text_changed",
             "value": newText,
+            "prevLength": prevLen,
+            "deletedTo": deletedTo,
             "label": "",
             "hasNikkud": false
         ])
+    }
+
+    /// Schedule a deferred text notification.
+    /// Multiple calls within the same run-loop iteration are coalesced — only the final
+    /// syncedText value is sent. This prevents stale-state races in React when a single
+    /// key operation does multiple insert/delete steps (e.g., "i"→"I" auto-capitalize).
+    private func scheduleDeferredTextNotification() {
+        // Track the minimum length reached during this operation.
+        // Initialize from lastNotifiedText (the pre-operation baseline) on first call.
+        if !hasPendingTextNotification {
+            pendingMinLength = lastNotifiedText.count
+        }
+        pendingMinLength = min(pendingMinLength, syncedText.count)
+
+        hasPendingTextNotification = true
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            guard self.hasPendingTextNotification else { return }
+            self.hasPendingTextNotification = false
+            let minLen = self.pendingMinLength
+            self.pendingMinLength = Int.max
+            self.notifyReactNativeOfTextChange(self.syncedText, deletedDownTo: minLen)
+            // Clear the keyboard operation flag after React Native has time to process
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                self.isProcessingKeyboardOperation = false
+            }
+        }
     }
 
     // MARK: - Config Parsing & Rendering
@@ -334,6 +376,7 @@ class KeyboardPreviewView: UIView {
                         engine.renderer.currentKeysetId = "abc"
                         engine.suggestionController.setLanguage(lang)
                         WordCompletionManager.shared.setLanguage(lang)
+                        engine.autoShiftAfterPunctuation()
                     } else if let renderer = configModeRenderer {
                         renderer.currentKeysetId = "abc"
                     }
