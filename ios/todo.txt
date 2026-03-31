@@ -28,7 +28,7 @@ Android:
 IssieVoice:
 ----
 - style the en/he button
-- space swipe to locate curret
+V- space swipe to locate curret
 - capitalize I?
 - reorder favortites does not work
 

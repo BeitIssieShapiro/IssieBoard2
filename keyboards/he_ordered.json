@@ -142,7 +142,6 @@
             { "type": "next-keyboard", "width": 1 },
             { "type": "settings" },
             { "caption": "רווח", "value": " ", "width": 4 },
-            { "type": "nikkud" },
             { "type": "enter" }
           ]
         }
@@ -197,7 +196,6 @@
             { "type": "next-keyboard", "width": 1 },
             { "type": "settings" },
             { "caption": "רווח", "value": " ", "width": 4 },
-            { "type": "nikkud" },
             { "type": "enter" }
           ]
         }

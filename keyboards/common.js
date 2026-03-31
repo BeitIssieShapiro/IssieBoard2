@@ -44,7 +44,7 @@ module.exports = {
         { type: "settings" },
         { type: "space", flex: true },
         { caption: "@", value: "@", width: 1, showForField: ["email"], forLanguages: ["en"] },
-        { type: "nikkud", ifHasDiacritics: true },
+        { type: "nikkud", ifHasDiacritics: true, forKeysets: ["abc"] },
         { type: "enter", width: 2 }
       ]
     },
@@ -103,7 +103,7 @@ module.exports = {
         { type: "space", flex: true },
         { caption: "@", value: "@", width: 1, showForField: ["email"], forLanguages: ["en"] },
         { type: "keyset", width: 1 },
-        { type: "nikkud", ifHasDiacritics: true },
+        { type: "nikkud", ifHasDiacritics: true, forKeysets: ["abc"] },
         { type: "close" }
       ]
     }

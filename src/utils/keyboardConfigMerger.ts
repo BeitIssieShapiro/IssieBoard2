@@ -35,6 +35,7 @@ export interface KeyboardKey {
   nikkud?: Array<{ value: string; caption?: string }>;
   forLanguages?: string[];
   ifHasDiacritics?: boolean;
+  forKeysets?: string[];
   showForField?: string[];
   flex?: boolean;
   fontSize?: number;
@@ -187,13 +188,14 @@ export function filterRowsByLanguage(rows: KeyboardRow[], language: string): Key
 // ============================================
 
 /**
- * Filter structural keys by language and diacritics availability.
- * Strips forLanguages and ifHasDiacritics from output.
+ * Filter structural keys by language, diacritics availability, and keyset.
+ * Strips forLanguages, ifHasDiacritics, and forKeysets from output.
  */
 export function filterStructuralKeys(
   keys: KeyboardKey[],
   language: string,
-  hasDiacritics: boolean
+  hasDiacritics: boolean,
+  keysetId?: string
 ): KeyboardKey[] {
   return keys.filter(key => {
     if (key.forLanguages && !key.forLanguages.includes(language)) {
@@ -202,11 +204,15 @@ export function filterStructuralKeys(
     if (key.ifHasDiacritics && !hasDiacritics) {
       return false;
     }
+    if (key.forKeysets && keysetId && !key.forKeysets.includes(keysetId)) {
+      return false;
+    }
     return true;
   }).map(key => {
     const clean = { ...key };
     delete clean.forLanguages;
     delete clean.ifHasDiacritics;
+    delete clean.forKeysets;
     return clean;
   });
 }
@@ -407,8 +413,7 @@ export function buildBottomRow(
   variant: 'mobile' | 'large'
 ): KeyboardRow {
   const suffix = variant === 'large' ? '_large' : '';
-  const filtered = filterStructuralKeys(template, language, hasDiacritics);
-
+  const filtered = filterStructuralKeys(template, language, hasDiacritics, targetKeysetId);
   const keys = filtered.map(key => {
     // Resolve space type
     if (key.type === 'space') {
