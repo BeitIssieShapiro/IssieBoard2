@@ -70,7 +70,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
   // Determine if landscape or portrait
   const isLandscape = frame.width > frame.height;
   const isPhoneLandscape = isLandscape && Math.min(frame.width, frame.height) < 600;
-  const isRTL = currentLanguage === 'he';
+  const isRTL = deviceLanguage === 'he' || deviceLanguage === 'ar';
 
   // Inject speak key into the abc keyset's bottom row
   const injectSpeakKey = (keysets: any[], speakLabel: string) => {
@@ -85,15 +85,9 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
     };
 
     return keysets.map((keyset: any) => {
-      // Only modify the abc keyset (main alphabetic view)
-      if (keyset.id !== 'abc' && keyset.id !== 'abc_large') return keyset;
-
       const rows = keyset.rows.map((row: any) => {
         const hasSpaceKey = row.keys.some((k: any) => k.type === 'space' || k.value === ' ');
-        const hasControlKeys = row.keys.some((k: any) =>
-          k.type === 'keyset' || k.type === 'next-keyboard' || k.type === 'close'
-        );
-        const isBottomRow = row.alwaysInclude || hasSpaceKey || hasControlKeys;
+        const isBottomRow = row.alwaysInclude || hasSpaceKey;
         if (!isBottomRow) return row;
 
         // Replace the enter key with speak, or append speak at the end if no enter
@@ -155,10 +149,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
                 );
 
                 const hasSpaceKey = row.keys.some((k: any) => k.type === 'space' || k.value === ' ');
-                const hasControlKeys = row.keys.some((k: any) =>
-                  k.type === 'keyset' || k.type === 'next-keyboard' || k.type === 'close' || k.type === 'settings'
-                );
-                const isBottomRow = row.alwaysInclude || hasSpaceKey || hasControlKeys;
+                const isBottomRow = row.alwaysInclude || hasSpaceKey;
 
                 if (isBottomRow) {
                   const hasLanguageKey = row.keys.some((k: any) => k.type === 'language');
@@ -247,10 +238,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
           );
 
           const hasSpaceKey = row.keys.some((k: any) => k.type === 'space' || k.value === ' ');
-          const hasControlKeys = row.keys.some((k: any) =>
-            k.type === 'keyset' || k.type === 'next-keyboard' || k.type === 'close' || k.type === 'settings'
-          );
-          const isBottomRow = row.alwaysInclude || hasSpaceKey || hasControlKeys;
+          const isBottomRow = row.alwaysInclude || hasSpaceKey;
 
           if (isBottomRow) {
             const hasLanguageKey = row.keys.some((k: any) => k.type === 'language');

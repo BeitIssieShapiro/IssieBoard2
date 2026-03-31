@@ -186,13 +186,11 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
     textAlign: 'left',
     paddingTop: 8,
-    paddingLeft: 12, // Space for delete button
-    paddingRight: 48, // Space for save button
+    paddingLeft: 64,
+    paddingRight: 64,
   },
   textInputRTL: {
     textAlign: 'right',
-    paddingLeft: 48, // Space for save button on left
-    paddingRight: 48, // Space for delete button on right
   },
   topButton: {
     position: 'absolute',
@@ -233,10 +231,9 @@ const styles = StyleSheet.create({
     color: colors.text,
     textAlignVertical: 'top',
     textAlign: 'left',
-    // iOS TextInput has ~4px extra internal content inset vs Text
-    paddingTop: 17,
-    paddingLeft: 48,
-    paddingRight: 48,
+    paddingTop: 13,
+    paddingLeft: 64,
+    paddingRight: 64,
   },
   highlightedWord: {
     backgroundColor: '#FFD700',

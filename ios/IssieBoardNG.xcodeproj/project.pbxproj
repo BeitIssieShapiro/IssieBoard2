@@ -14,7 +14,6 @@
 		6A0CBD02002F500100035455 /* KeyboardDisabler.m in Sources */ = {isa = PBXBuildFile; fileRef = 6A0CBD05002F500100035456 /* KeyboardDisabler.m */; };
 		6A0CBD03002F500100035455 /* KeyboardDisabler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A0CBD00002F500100035455 /* KeyboardDisabler.swift */; };
 		6A0CBD04002F500100035455 /* KeyboardDisabler.m in Sources */ = {isa = PBXBuildFile; fileRef = 6A0CBD05002F500100035456 /* KeyboardDisabler.m */; };
-
 		6A1E33702F220FCA00035455 /* KeyboardPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A1E336D2F220FCA00035455 /* KeyboardPreferences.swift */; };
 		6A1E33722F2216ED00035455 /* KeyboardPreferencesModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 6A1E33712F2216ED00035455 /* KeyboardPreferencesModule.m */; };
 		6A1E33752F22170C00035455 /* KeyboardPreferencesModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A1E33742F22170B00035455 /* KeyboardPreferencesModule.swift */; };
@@ -216,7 +215,6 @@
 		4DC95CEF6EC880EFAEE5AA4F /* Pods-IssieVoice.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-IssieVoice.debug.xcconfig"; path = "Target Support Files/Pods-IssieVoice/Pods-IssieVoice.debug.xcconfig"; sourceTree = "<group>"; };
 		6A0CBD00002F500100035455 /* KeyboardDisabler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KeyboardDisabler.swift; path = IssieBoardNG/KeyboardDisabler.swift; sourceTree = "<group>"; };
 		6A0CBD05002F500100035456 /* KeyboardDisabler.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = KeyboardDisabler.m; path = IssieBoardNG/KeyboardDisabler.m; sourceTree = "<group>"; };
-
 		6A1E336B2F220E8700035455 /* IssieBoardNG.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = IssieBoardNG.entitlements; path = IssieBoardNG/IssieBoardNG.entitlements; sourceTree = "<group>"; };
 		6A1E336D2F220FCA00035455 /* KeyboardPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardPreferences.swift; sourceTree = "<group>"; };
 		6A1E33712F2216ED00035455 /* KeyboardPreferencesModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = KeyboardPreferencesModule.m; path = IssieBoardNG/KeyboardPreferencesModule.m; sourceTree = "<group>"; };
@@ -378,7 +376,6 @@
 		13B07FAE1A68108700A75B9A /* IssieBoardNG */ = {
 			isa = PBXGroup;
 			children = (
-
 				6A265B032F6F0FDA00C08AE6 /* GoogleService-Info.plist */,
 				6AAAEACE2F68BF1E00085361 /* V1Migration.swift */,
 				6AAAEAC92F68BAC100085361 /* V1DataModel.xcdatamodeld */,
@@ -394,7 +391,6 @@
 				6A73B68C2F24E9B1003898A5 /* KeyboardPreviewViewManager.m */,
 				6A73B68D2F24E9B1003898A5 /* KeyboardPreviewViewManager.swift */,
 				6A0CBD00002F500100035455 /* KeyboardDisabler.swift */,
-
 				6A0CBD05002F500100035456 /* KeyboardDisabler.m */,
 				6A1E33742F22170B00035455 /* KeyboardPreferencesModule.swift */,
 				6ADAC3662F3DDC9400C85EBD /* he_predictions.bin */,
@@ -1247,7 +1243,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = IssieBoardNG/IssieBoardNG.entitlements;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = "IssieVoice/IssieVoice-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = IssieVoice;
@@ -1284,7 +1280,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = IssieBoardNG/IssieBoardNG.entitlements;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				INFOPLIST_FILE = "IssieVoice/IssieVoice-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = IssieVoice;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
