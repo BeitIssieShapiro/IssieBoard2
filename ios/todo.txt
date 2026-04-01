@@ -9,7 +9,7 @@ Arabic:
 - icon for nikkud - from Alla
 
 IssieBoard:
-- share keyboard
+V- share keyboard
 V- other keys preset (don't use keyset, change-to-numbers)
 V- in classic - highlight keys - use the preview kb to type (hide soft kb)
   also for visible keys
@@ -27,10 +27,11 @@ Android:
 
 IssieVoice:
 ----
-- style the en/he button
 V- space swipe to locate curret
-- capitalize I?
+V- capitalize I?
+- style the en/he button
 - reorder favortites does not work
+- Arabic
 
 
 
@@ -39,8 +40,8 @@ V- gaps:
   - large gaps is too much
   - gaps should be equial vert and horiz
 V- key height preview is misleading
-- classic view - the groups colors (if missing) should follow the global settings
-- next-kb button is missing in preview
+V- classic view - the groups colors (if missing) should follow the global settings
+V- next-kb button is missing in preview
 V- 123 on left is larger than 123 on right in iPad
 
 

@@ -10,7 +10,7 @@
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, StyleSheet, Linking } from 'react-native';
+import { View, StyleSheet, Linking, Alert } from 'react-native';
 import { ClassicEditorScreen } from './screens/ClassicEditorScreen';
 import KeyboardPreferences from './native/KeyboardPreferences';
 import { LocalizationProvider } from './localization';
@@ -19,6 +19,9 @@ import { initializeFirebase } from './firebase-config';
 import { loadLanguage, LANGUAGE_SETTINGS } from '@beitissieshapiro/issie-shared';
 import NewSettingsScreen from '../apps/issievoice/src/screens/NewSettingsScreen';
 import { LocalizationProvider as VoiceLocalizationProvider } from '../apps/issievoice/src/context/LocalizationContext';
+import { useIncomingURL } from './common/linking-hook';
+import { importPackage, ImportInfo } from './import-export';
+import { ImportInfoDialog } from './common/import-info-dialog';
 
 type LanguageId = 'he' | 'en' | 'ar';
 
@@ -45,6 +48,23 @@ export const AppNavigator: React.FC = () => {
   const [isV1User, setIsV1User] = useState(false);
   // Key to force EditorScreen to remount when opened from keyboard
   const [editorKey, setEditorKey] = useState(0);
+  const [importResult, setImportResult] = useState<ImportInfo | null>(null);
+
+  const handleImportURL = useCallback(async (url: string) => {
+    try {
+      const info: ImportInfo = { importedProfiles: [], skippedExistingProfiles: [] };
+      await importPackage(url, info);
+      if (info.importedProfiles.length > 0 || info.skippedExistingProfiles.length > 0) {
+        setImportResult(info);
+        setEditorKey(prev => prev + 1);
+      }
+    } catch (error) {
+      console.warn('Import failed:', error);
+      Alert.alert('Import Failed', 'This file is not a valid IssieBoard keyboard file.');
+    }
+  }, []);
+
+  useIncomingURL(handleImportURL);
 
   // Initialize Firebase
   useEffect(() => {
@@ -217,6 +237,12 @@ export const AppNavigator: React.FC = () => {
             />
           </View>
         </SafeAreaProvider>
+        {importResult && (
+          <ImportInfoDialog
+            importInfo={importResult}
+            onClose={() => setImportResult(null)}
+          />
+        )}
       </LocalizationProvider>
     );
   }
@@ -235,6 +261,12 @@ export const AppNavigator: React.FC = () => {
           </View>
         </VoiceLocalizationProvider>
       </SafeAreaProvider>
+      {importResult && (
+        <ImportInfoDialog
+          importInfo={importResult}
+          onClose={() => setImportResult(null)}
+        />
+      )}
     </LocalizationProvider>
   );
 };

@@ -310,6 +310,18 @@ export interface Strings {
     fullAccessStep2: string;
     fullAccessStep3: string;
   };
+  importExport: {
+    exportProfile: string;
+    backupAll: string;
+    importSuccessTitle: string;
+    importedProfiles: string;
+    skippedProfiles: string;
+    skippedNote: string;
+    importFailed: string;
+    invalidFile: string;
+    ok: string;
+    noProfilesToExport: string;
+  };
 }
 
 const en: Strings = {
@@ -377,7 +389,7 @@ const en: Strings = {
     clearAll: 'Clear All',
     cannotDelete: 'Cannot Delete',
     cannotDeleteDefault: 'Built-in keyboards cannot be deleted.',
-    cannotDeleteActive: 'Cannot delete the active keyboard. Switch to another keyboard first.',
+    cannotDeleteActive: 'This is the active keyboard. Deleting it will switch to the default keyboard.',
     deleteProfile: 'Delete an IssieBoard',
     deleteConfirm: 'Are you sure you want to delete "{{name}}"?',
     renameProfile: 'Rename Keyboard',
@@ -622,6 +634,18 @@ const en: Strings = {
     fullAccessStep2: '2. Tap "IssieBoard"',
     fullAccessStep3: '3. Enable "Allow Full Access"',
   },
+  importExport: {
+    exportProfile: 'Share Keyboard',
+    backupAll: 'Backup All Keyboards',
+    importSuccessTitle: 'Import Complete',
+    importedProfiles: 'Imported Keyboards',
+    skippedProfiles: 'Skipped (already exist)',
+    skippedNote: 'Keyboards with existing names were skipped.',
+    importFailed: 'Import Failed',
+    invalidFile: 'This file is not a valid IssieBoard keyboard file.',
+    ok: 'OK',
+    noProfilesToExport: 'No custom keyboards to export.',
+  },
 };
 
 const he: Strings = {
@@ -689,7 +713,7 @@ const he: Strings = {
     clearAll: 'נקה הכל',
     cannotDelete: 'לא ניתן למחוק',
     cannotDeleteDefault: 'לא ניתן למחוק מקלדות מובנות.',
-    cannotDeleteActive: 'לא ניתן למחוק את המקלדת הפעילה. עבור למקלדת אחרת תחילה.',
+    cannotDeleteActive: 'זוהי המקלדת הפעילה. מחיקתה תחזיר למקלדת ברירת המחדל.',
     deleteProfile: 'מחיקת מקלדת',
     deleteConfirm: 'האם אתה בטוח שברצונך למחוק את "{{name}}"?',
     renameProfile: 'שינוי שם מקלדת',
@@ -934,6 +958,18 @@ const he: Strings = {
     fullAccessStep2: '2. לחצו על "IssieBoard"',
     fullAccessStep3: '3. הפעילו "גישה מלאה"',
   },
+  importExport: {
+    exportProfile: 'שתף מקלדת',
+    backupAll: 'גיבוי כל המקלדות',
+    importSuccessTitle: 'ייבוא הושלם',
+    importedProfiles: 'מקלדות שיובאו',
+    skippedProfiles: 'דולגו (כבר קיימות)',
+    skippedNote: 'מקלדות עם שמות קיימים דולגו.',
+    importFailed: 'הייבוא נכשל',
+    invalidFile: 'קובץ זה אינו קובץ מקלדת תקין של IssieBoard.',
+    ok: 'אישור',
+    noProfilesToExport: 'אין מקלדות מותאמות לייצוא.',
+  },
 };
 
 const ar: Strings = {
@@ -1001,7 +1037,7 @@ const ar: Strings = {
     clearAll: 'مسح الكل',
     cannotDelete: 'لا يمكن الحذف',
     cannotDeleteDefault: 'لا يمكن حذف لوحات المفاتيح الافتراضية.',
-    cannotDeleteActive: 'لا يمكن حذف لوحة المفاتيح النشطة. انتقل إلى لوحة مفاتيح أخرى أولاً.',
+    cannotDeleteActive: 'هذه هي لوحة المفاتيح النشطة. سيؤدي حذفها إلى التبديل إلى لوحة المفاتيح الافتراضية.',
     deleteProfile: 'حذف لوحة المفاتيح',
     deleteConfirm: 'هل أنت متأكد أنك تريد حذف "{{name}}"؟',
     renameProfile: 'إعادة تسمية لوحة المفاتيح',
@@ -1245,6 +1281,18 @@ const ar: Strings = {
     fullAccessStep1: '1. افتح الإعدادات > عام > لوحة المفاتيح > لوحات المفاتيح',
     fullAccessStep2: '2. اضغط على "IssieBoard"',
     fullAccessStep3: '3. فعّل "السماح بالوصول الكامل"',
+  },
+  importExport: {
+    exportProfile: 'مشاركة لوحة مفاتيح',
+    backupAll: 'نسخ احتياطي لجميع لوحات المفاتيح',
+    importSuccessTitle: 'اكتمل الاستيراد',
+    importedProfiles: 'لوحات المفاتيح المستوردة',
+    skippedProfiles: 'تم تخطيها (موجودة بالفعل)',
+    skippedNote: 'تم تخطي لوحات المفاتيح ذات الأسماء الموجودة.',
+    importFailed: 'فشل الاستيراد',
+    invalidFile: 'هذا الملف ليس ملف لوحة مفاتيح IssieBoard صالحًا.',
+    ok: 'موافق',
+    noProfilesToExport: 'لا توجد لوحات مفاتيح مخصصة للتصدير.',
   },
 };
 

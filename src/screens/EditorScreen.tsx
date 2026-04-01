@@ -30,6 +30,8 @@ import { useLocalization } from '../localization';
 import { useKeyboardSetupStatus } from '../hooks/useKeyboardSetupStatus';
 import { SetupStatusStrip } from '../components/SetupStatusStrip';
 import { AboutScreen } from '../components/AboutScreen';
+import Share from 'react-native-share';
+import { exportProfile, exportAll } from '../import-export';
 import { ISSIEBOARD_ABOUT, ISSIEVOICE_ABOUT } from '../components/about-content';
 
 // Import keyboard files
@@ -1266,15 +1268,14 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       return;
     }
 
-    // Don't allow deleting the active profile
-    if (profileToDelete.isSystemActive) {
-      Alert.alert(strings.alerts.cannotDelete, strings.alerts.cannotDeleteActive);
-      return;
-    }
+    // Different warning message if this is the active keyboard
+    const message = profileToDelete.isSystemActive
+      ? `${strings.alerts.deleteConfirm.replace('{{name}}', profileToDelete.name)}\n\n${strings.alerts.cannotDeleteActive}`
+      : strings.alerts.deleteConfirm.replace('{{name}}', profileToDelete.name);
 
     Alert.alert(
       strings.alerts.deleteProfile,
-      strings.alerts.deleteConfirm.replace('{{name}}', profileToDelete.name),
+      message,
       [
         { text: strings.common.cancel, style: 'cancel' },
         {
@@ -1282,13 +1283,17 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
           style: 'destructive',
           onPress: async () => {
             try {
-              await onDelete(profileToDelete.id, profileToDelete.name);
-              showToast(`✓ ${strings.alerts.deleted} "${profileToDelete.name}"`);
-              await loadProfilesList();
-
-              // If we deleted the currently selected profile, switch to default
-              if (profileToDelete.id === currentProfileId) {
+              // If deleting the active profile, switch to default first
+              if (profileToDelete.isSystemActive || profileToDelete.id === currentProfileId) {
                 const defaultProfileId = getDefaultProfileId(currentLanguage);
+                // Persist the default as the active profile
+                try {
+                  await onSetActiveForProfile(defaultProfileId);
+                } catch (e) {
+                  // Fallback: persist active profile key directly
+                  const activeProfileKey = getActiveProfileKey(currentLanguage, appContext);
+                  await KeyboardPreferences.setProfile(defaultProfileId, activeProfileKey);
+                }
                 const loaded = await loadProfileById(defaultProfileId);
                 if (loaded) {
                   const config = buildConfiguration(loaded.profileDef);
@@ -1299,8 +1304,21 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
                   setCurrentProfileId(defaultProfileId);
                   setCurrentKeyboardId(loaded.profileDef.keyboardId);
                   onProfileChange(defaultProfileId, delDisplayName, currentLanguage, loaded.profileDef.keyboardId);
+                } else {
+                  // Built-in profile not yet saved — just persist the active key
+                  const activeProfileKey = getActiveProfileKey(currentLanguage, appContext);
+                  await KeyboardPreferences.setProfile(defaultProfileId, activeProfileKey);
+                  const delTemplateId = extractTemplateId(defaultProfileId);
+                  const delDisplayName = delTemplateId ? getLocalizedProfileName(delTemplateId, uiLanguage) : strings.common.default;
+                  setCurrentProfileName(delDisplayName);
+                  setCurrentProfileId(defaultProfileId);
+                  onProfileChange(defaultProfileId, delDisplayName, currentLanguage, currentKeyboardId);
                 }
               }
+
+              await onDelete(profileToDelete.id, profileToDelete.name);
+              showToast(`✓ ${strings.alerts.deleted} "${profileToDelete.name}"`);
+              await loadProfilesList();
             } catch (error) {
               showToast('✗ ' + strings.alerts.failedToDeleteProfile);
             }
@@ -1308,7 +1326,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         },
       ]
     );
-  }, [currentProfileId, currentLanguage, onDelete, showToast, loadProfilesList, setConfig, onProfileChange, strings.alerts.cannotDelete, strings.alerts.cannotDeleteActive, strings.alerts.cannotDeleteDefault, strings.alerts.deleteConfirm, strings.alerts.deleteProfile, strings.alerts.deleted, strings.alerts.failedToDeleteProfile, strings.common.cancel, strings.common.delete]);
+  }, [currentProfileId, currentLanguage, currentKeyboardId, appContext, onDelete, onSetActiveForProfile, showToast, loadProfilesList, setConfig, onProfileChange, strings]);
 
   const handleRenameProfile = useCallback((profileToRename: ProfileOption) => {
     if (profileToRename.isBuiltIn) return;
@@ -1467,6 +1485,40 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     }
   }, [onSetActiveForProfile, showToast, loadProfilesList, strings.alerts.failedToSwitchProfile, strings.status.switchedTo]);
 
+  const handleExportProfile = async (profileId: string, profileName: string) => {
+    try {
+      const zipPath = await exportProfile(profileId, profileName);
+      await Share.open({
+        url: Platform.OS === 'android' ? `file://${zipPath}` : zipPath,
+        type: 'application/zip',
+      });
+    } catch (error: any) {
+      if (error?.message !== 'User did not share') {
+        console.warn('Export failed:', error);
+        Alert.alert(strings.common.error, strings.importExport.importFailed);
+      }
+    }
+  };
+
+  const handleBackupAll = async () => {
+    try {
+      const zipPath = await exportAll();
+      await Share.open({
+        url: Platform.OS === 'android' ? `file://${zipPath}` : zipPath,
+        type: 'application/zip',
+      });
+    } catch (error: any) {
+      if (error?.message !== 'User did not share') {
+        console.warn('Backup all failed:', error);
+        if ((error as Error)?.message?.includes('No profiles')) {
+          Alert.alert(strings.common.error, strings.importExport.noProfilesToExport);
+        } else {
+          Alert.alert(strings.common.error, strings.importExport.importFailed);
+        }
+      }
+    }
+  };
+
   const handleTestInput = useCallback((char: string) => {
     if (char === '\b' || char === 'backspace') {
       setTestText(prev => prev.slice(0, -1));
@@ -1602,10 +1654,42 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
                           <Text allowFontScaling={false} style={[styles.profilePillBadgeText, item.id === currentProfileId && styles.profilePillBadgeTextActive]}>{strings.editor.builtIn}</Text>
                         </View>
                       )}
+                      {!item.isBuiltIn && (
+                        <TouchableOpacity
+                          style={styles.profilePillExport}
+                          onPress={() => {
+                            handleExportProfile(item.id, item.name);
+                          }}
+                          activeOpacity={0.7}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                          <MyIcon info={{ name: 'share-outline', type: 'Ionicons', color: item.id === currentProfileId ? '#FFFFFF' : '#6B7280', size: 18 }} />
+                        </TouchableOpacity>
+                      )}
+                      {!item.isBuiltIn && (
+                        <TouchableOpacity
+                          style={styles.profilePillDelete}
+                          onPress={() => {
+                            handleDeleteProfile(item);
+                          }}
+                          activeOpacity={0.7}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                          <MyIcon info={{ name: 'trash-outline', type: 'Ionicons', color: item.id === currentProfileId ? '#FFFFFF' : '#EF4444', size: 18 }} />
+                        </TouchableOpacity>
+                      )}
                     </TouchableOpacity>
                   )}
                 />
               )}
+              <TouchableOpacity
+                style={styles.backupAllButton}
+                onPress={handleBackupAll}
+                activeOpacity={0.7}
+              >
+                <MyIcon info={{ name: 'cloud-download-outline', type: 'Ionicons', color: '#3B82F6', size: 20 }} />
+                <Text allowFontScaling={false} style={styles.backupAllText}>{strings.importExport.backupAll}</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </Modal>
@@ -2961,6 +3045,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+  },
+  profilePillExport: {
+    marginLeft: 'auto',
+    padding: 4,
+  },
+  profilePillDelete: {
+    padding: 4,
+  },
+  backupAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    marginTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    gap: 8,
+  },
+  backupAllText: {
+    color: '#3B82F6',
+    fontSize: 15,
+    fontWeight: '600',
   },
   toast: {
     position: 'absolute',

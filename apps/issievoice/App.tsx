@@ -3,7 +3,7 @@ import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
 import * as ScreenSizer from '@bam.tech/react-native-screen-sizer';
-import { Text, TextInput } from 'react-native';
+import { Alert, Text, TextInput } from 'react-native';
 import MainScreen from './src/screens/MainScreen';
 import BrowseScreen from './src/screens/BrowseScreen';
 import NewSettingsScreen from './src/screens/NewSettingsScreen';
@@ -13,6 +13,9 @@ import {LocalizationProvider} from './src/context/LocalizationContext';
 import {NotificationProvider} from './src/context/NotificationContext';
 import { initializeFirebase } from '../../src/firebase-config';
 import { loadLanguage, LANGUAGE_SETTINGS } from '@beitissieshapiro/issie-shared';
+import { useIncomingURL } from '../../src/common/linking-hook';
+import { importPackage, ImportInfo } from '../../src/import-export';
+import { ImportInfoDialog } from '../../src/common/import-info-dialog';
 
 // Disable font scaling globally for accessibility keyboard app
 (Text as any).defaultProps = { ...((Text as any).defaultProps || {}), allowFontScaling: false };
@@ -27,6 +30,23 @@ const App = () => {
     initializeFirebase();
     loadLanguage(LANGUAGE_SETTINGS.hebrew);
   }, []);
+
+  const [importResult, setImportResult] = React.useState<ImportInfo | null>(null);
+
+  const handleImportURL = React.useCallback(async (url: string) => {
+    try {
+      const info: ImportInfo = { importedProfiles: [], skippedExistingProfiles: [] };
+      await importPackage(url, info);
+      if (info.importedProfiles.length > 0 || info.skippedExistingProfiles.length > 0) {
+        setImportResult(info);
+      }
+    } catch (error) {
+      console.warn('Import failed:', error);
+      Alert.alert('Import Failed', 'This file is not a valid IssieBoard keyboard file.');
+    }
+  }, []);
+
+  useIncomingURL(handleImportURL);
 
   return (
     <SafeAreaProvider>
@@ -70,6 +90,12 @@ const App = () => {
           </TTSProvider>
         </NotificationProvider>
       </LocalizationProvider>
+      {importResult && (
+        <ImportInfoDialog
+          importInfo={importResult}
+          onClose={() => setImportResult(null)}
+        />
+      )}
     </SafeAreaProvider>
   );
 };
