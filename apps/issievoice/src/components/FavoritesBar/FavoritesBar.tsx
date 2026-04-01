@@ -66,7 +66,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
     return text.trim().split(/\s+/)[0] || text.substring(0, 15);
   };
 
-  const loadFavorites = async () => {
+  const loadFavorites = async (resetPage = true) => {
     const favs = await FavoritesManager.getFavorites();
     const sentences = await SavedSentencesManager.getSavedSentences();
 
@@ -79,7 +79,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
 
     matched.sort((a, b) => a.favorite.order - b.favorite.order);
     setFavorites(matched);
-    setCurrentPage(0);
+    if (resetPage) setCurrentPage(0);
 
     // Measure all favorite text widths
     measureFavoriteWidths(matched);
@@ -145,7 +145,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
     const newOrder = [...favorites];
     [newOrder[currentIndex - 1], newOrder[currentIndex]] = [newOrder[currentIndex], newOrder[currentIndex - 1]];
     await FavoritesManager.reorderFavorites(newOrder.map(f => f.favorite.id));
-    await loadFavorites();
+    setFavorites(newOrder);
   };
 
   const handleMoveRight = async () => {
@@ -155,7 +155,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
     const newOrder = [...favorites];
     [newOrder[currentIndex], newOrder[currentIndex + 1]] = [newOrder[currentIndex + 1], newOrder[currentIndex]];
     await FavoritesManager.reorderFavorites(newOrder.map(f => f.favorite.id));
-    await loadFavorites();
+    setFavorites(newOrder);
   };
 
   const rowCount = useMemo(() => {
@@ -300,6 +300,24 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
     return { currentRows: [row], usedRowCount: 1 };
   }, [favorites, currentPage, rowCount, packIntoRows, itemWidths]);
 
+  // When a selected item is moved off the current page, navigate to find it
+  useEffect(() => {
+    if (!selectedId) return;
+    // Check if selected item is visible on current page
+    const isVisible = currentRows.some(row =>
+      row.some(item => item.type === 'favorite' && item.data.favorite.id === selectedId)
+    );
+    if (isVisible) return;
+
+    // Selected item not on current page — try adjacent pages
+    // Since we only move by one position, it's either on prev or next page
+    if (currentPage > 0) {
+      setCurrentPage(p => p - 1);
+    } else {
+      setCurrentPage(p => p + 1);
+    }
+  }, [favorites, selectedId, currentRows, currentPage]);
+
   // Report unused height to parent
   const unusedRows = rowCount - usedRowCount;
   const unusedHeight = unusedRows > 0 ? unusedRows * (itemHeight + GAP) : 0;
@@ -379,24 +397,25 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
         />
       )}
 
-      <View style={[styles.container, { height: computedHeight - unusedHeight }]}>
-        {selectedId && (
-          <View style={styles.toolbar}>
-            <TouchableOpacity style={styles.toolbarButton} onPress={handleMoveLeft}>
-              <Text style={styles.toolbarButtonText}>{strings.favorites.moveLeft}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.toolbarButton} onPress={handleDelete}>
-              <Text style={[styles.toolbarButtonText, styles.deleteText]}>{strings.favorites.remove}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.toolbarButton} onPress={handleMoveRight}>
-              <Text style={styles.toolbarButtonText}>{strings.favorites.moveRight}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.closeButton} onPress={() => setSelectedId(null)}>
-              <Text style={styles.closeButtonText}>✕</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+      {selectedId && (
+        <View style={styles.toolbar}>
+          <TouchableOpacity style={styles.toolbarButton} onPress={isDeviceRTL ? handleMoveRight : handleMoveLeft}>
+            <Text style={styles.toolbarButtonText}>{strings.favorites.moveLeft}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.toolbarButton, styles.deleteButton]} onPress={handleDelete}>
+            <MyIcon info={{ name: 'trash-outline', type: 'Ionicons', color: '#FFFFFF', size: 20 }} />
+            <Text style={styles.toolbarButtonText}>{strings.favorites.remove}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.toolbarButton} onPress={isDeviceRTL ? handleMoveLeft : handleMoveRight}>
+            <Text style={styles.toolbarButtonText}>{strings.favorites.moveRight}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.closeButton} onPress={() => setSelectedId(null)}>
+            <MyIcon info={{ name: 'close', type: 'Ionicons', color: '#FFFFFF', size: 18 }} />
+          </TouchableOpacity>
+        </View>
+      )}
 
+      <View style={[styles.container, { height: computedHeight - unusedHeight }, selectedId && styles.containerSelected]}>
         <View style={styles.innerContainer}>
           {currentRows.map((row, rowIndex) => (
             <View key={rowIndex} style={[styles.favoritesRow, isDeviceRTL && { flexDirection: 'row-reverse' }]}>
@@ -424,6 +443,9 @@ const styles = StyleSheet.create({
     marginLeft: 0,
     width: "100%",
     zIndex: 10,
+  },
+  containerSelected: {
+    zIndex: 1000,
   },
   innerContainer: {
     flex: 1,
@@ -504,51 +526,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   toolbar: {
-    position: 'absolute',
-    bottom: '100%',
-    left: 0,
-    right: 0,
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.surfaceDark,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    padding: sizes.spacing.md,
-    height: 80,
+    gap: 12,
+    paddingVertical: 8,
+    paddingHorizontal: sizes.spacing.md,
     zIndex: 1001,
   },
   toolbarButton: {
-    paddingVertical: sizes.spacing.sm,
-    paddingHorizontal: sizes.spacing.md,
-    backgroundColor: colors.primary,
-    borderRadius: sizes.borderRadius.medium,
-    minWidth: 100,
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: colors.primary,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  deleteButton: {
+    backgroundColor: colors.clear,
   },
   toolbarButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
   },
-  deleteText: {
-    color: '#FF6B6B',
-  },
   closeButton: {
-    position: 'absolute',
-    top: sizes.spacing.sm,
-    right: sizes.spacing.sm,
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.border,
+    backgroundColor: colors.textSecondary,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  closeButtonText: {
-    color: '#FFFFFF',
-    fontSize: 20,
-    fontWeight: 'bold',
   },
 });
 

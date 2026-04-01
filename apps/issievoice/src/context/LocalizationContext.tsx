@@ -35,6 +35,7 @@ const LocalizationContext = createContext<LocalizationContextType | undefined>(
 const supportedLanguages = ['he', 'en', 'ar'];
 
 const getDeviceLanguage = (): Language => {
+  // return 'en'
   const locales = RNLocalize.getLocales();
   const langCode = (locales[0]?.languageTag || 'en').split(/[-_]/)[0].toLowerCase();
 

@@ -20,6 +20,7 @@ interface SuggestionsBarProps {
   symbolUrls?: Map<string, string | null>;
   height?: number; // Optional responsive height
   screenWidth?: number; // Optional screen width for responsive scaling
+  isRTL?: boolean; // Layout direction — should follow device language, not keyboard language
 }
 
 // Helper function to find the last word boundary, handling Hebrew and other scripts
@@ -50,9 +51,10 @@ const SuggestionsBar: React.FC<SuggestionsBarProps> = ({
   symbolUrls = new Map(),
   height = 70, // Default height
   screenWidth = 1000, // Default screen width
+  isRTL: isRTLProp,
 }) => {
-  // Determine text direction based on language
-  const isRTL = language === 'he';
+  // Layout direction from prop (device language), fall back to keyboard language
+  const isRTL = isRTLProp ?? (language === 'he');
   const { setText } = useText();
 
   const isMobile = screenWidth < 600;

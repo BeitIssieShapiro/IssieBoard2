@@ -737,6 +737,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
             onBrowse={handleBrowse}
             height={Math.max(minSymbolHeight, suggestionsHeight)}
             screenWidth={frame.width}
+            isRTL={isRTL}
           />
 
           {/* IssieBoard Custom Keyboard */}
