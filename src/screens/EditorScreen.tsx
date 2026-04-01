@@ -429,6 +429,8 @@ interface EditorScreenInnerProps {
   changeLanguageRef?: React.MutableRefObject<((lang: LanguageId) => void) | null>;
   /** Callback to report state changes (language, profile, dirty) to parent */
   onStateChange?: (state: { language: LanguageId; profileName: string; isDirty: boolean }) => void;
+  /** Selected languages for IssieVoice language key injection */
+  selectedLanguages?: string[];
 }
 // StyleGroup.members now stores key values directly (e.g., ["א", "ב"]) not position IDs
 // Only include active groups in the output config
@@ -484,6 +486,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   saveRef,
   changeLanguageRef,
   onStateChange,
+  selectedLanguages,
 }) => {
   const { strings, isRTL, language: uiLanguage } = useLocalization();
   const LANGUAGES = useMemo(() => getLanguages(strings), [strings]);
@@ -1559,6 +1562,8 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
             section={activeTab}
             appContext={appContext}
             onSpeakButtonInKeyboardChange={appContext === 'issievoice' ? setSpeakButtonInKeyboard : undefined}
+            selectedLanguages={selectedLanguages}
+            speakButtonInKeyboard={speakButtonInKeyboard}
           />
         </View>
 
@@ -1571,7 +1576,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
           return (
             <View style={[styles.headlessPreview, { backgroundColor: (state.config.backgroundColor && state.config.backgroundColor !== 'default') ? state.config.backgroundColor : '#CBCFD8' }]}>
               <View style={styles.headlessPreviewInner}>
-                <InteractiveCanvas onTestInput={handleTestInput} height={previewH} hideHeader hideSettingsKey={appContext === 'issievoice'} hideCloseKey={appContext === 'issievoice'} hideGlobeButton={appContext === 'issievoice'} activeTab={activeTab} speakButtonInKeyboard={speakButtonInKeyboard} />
+                <InteractiveCanvas onTestInput={handleTestInput} height={previewH} hideHeader hideSettingsKey={appContext === 'issievoice'} hideCloseKey={appContext === 'issievoice'} hideGlobeButton={appContext === 'issievoice'} activeTab={activeTab} speakButtonInKeyboard={speakButtonInKeyboard} selectedLanguages={selectedLanguages} />
               </View>
             </View>
           );
@@ -2070,6 +2075,8 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
             currentKeyboardId={currentKeyboardId}
             onKeyboardVariantChange={handleKeyboardChange}
             profileName={currentProfileName}
+            selectedLanguages={selectedLanguages}
+            speakButtonInKeyboard={speakButtonInKeyboard}
           />
         </View>
       </KeyboardAvoidingView>
@@ -2097,6 +2104,8 @@ interface EditorScreenProps {
   headless?: boolean;
   activeTab?: string;
   saveRef?: React.MutableRefObject<(() => void) | null>;
+  /** Selected languages for IssieVoice language key injection */
+  selectedLanguages?: string[];
 }
 
 export const EditorScreen: React.FC<EditorScreenProps> = ({
@@ -2112,6 +2121,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
   headless,
   activeTab,
   saveRef,
+  selectedLanguages,
 }) => {
   const { strings, isRTL, language: uiLanguage } = useLocalization();
   const [loading, setLoading] = useState(true);
@@ -2658,6 +2668,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
         saveRef={saveRef}
         changeLanguageRef={changeLanguageRef}
         onStateChange={onStateChange}
+        selectedLanguages={selectedLanguages}
       />
     </EditorProvider>
   );

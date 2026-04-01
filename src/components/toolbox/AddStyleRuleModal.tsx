@@ -32,6 +32,8 @@ interface AddStyleRuleModalProps {
   profileName?: string; // Current profile name for breadcrumb
   hideGlobeButton?: boolean; // Hide globe button in keyboard preview
   hideCloseKey?: boolean; // Hide close button in keyboard preview
+  selectedLanguages?: string[]; // Selected languages for IssieVoice language key
+  speakButtonInKeyboard?: boolean; // Show speak button in keyboard preview
   onClose: () => void;
 }
 
@@ -48,6 +50,8 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
   profileName,
   hideGlobeButton,
   hideCloseKey,
+  selectedLanguages,
+  speakButtonInKeyboard,
   onClose,
 }) => {
   const {
@@ -140,7 +144,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
     const { type, value } = event.nativeEvent;
 
     // Skip navigation/system keys that aren't selectable via tap
-    if (type === 'keyset-changed' || type === 'language') {
+    if (type === 'keyset-changed') {
       return;
     }
 
@@ -167,7 +171,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
 
     // For special keys (enter, shift, backspace, space, nikkud), use the type as the value for storage
     // This ensures they can be selected and styled consistently
-    const specialKeyTypes = ['enter', 'shift', 'backspace', 'space', 'settings', 'close', 'nikkud', 'next-keyboard'];
+    const specialKeyTypes = ['enter', 'shift', 'backspace', 'space', 'settings', 'close', 'nikkud', 'next-keyboard', 'language'];
     const keyValue = specialKeyTypes.includes(type) ? type : (value || type);
 
     if (!keyValue) return;
@@ -299,12 +303,12 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
       }
     }
 
-    // Filter close/settings keys for IssieVoice context
+    // Filter close/settings/globe keys for IssieVoice context
     const hideKeys = new Set<string>();
     if (hideCloseKey) hideKeys.add('close');
-    if (hideGlobeButton) hideKeys.add('settings');
+    if (hideGlobeButton) { hideKeys.add('settings'); hideKeys.add('next-keyboard'); }
 
-    const baseConfig = hideKeys.size > 0 ? {
+    const filteredConfig = hideKeys.size > 0 ? {
       ...state.config,
       keysets: state.config.keysets.map((keyset: any) => ({
         ...keyset,
@@ -315,12 +319,93 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
       })),
     } : state.config;
 
+    // Inject language key for IssieVoice when multiple languages are selected
+    const LANG_CYCLE: string[] = ['he', 'en', 'ar'];
+    const LANG_LABELS: Record<string, string> = { he: 'עב', en: 'En', ar: 'عر' };
+    const activeLangs = selectedLanguages && selectedLanguages.length > 1
+      ? LANG_CYCLE.filter(l => selectedLanguages.includes(l))
+      : [];
+    const kbLang = state.config.language || state.config.keyboards?.[0]?.split('_')[0] || 'he';
+    const langLabel = activeLangs.length > 1
+      ? LANG_LABELS[activeLangs[(activeLangs.indexOf(kbLang) + 1) % activeLangs.length]] || ''
+      : '';
+
+    // Don't hardcode bgColor — let the group being edited control the color
+    const langKeyHasGroup = selectedKeyValues.includes('language') || state.styleGroups.some(g => g.active !== false && g.members.includes('language'));
+    const langKeyBgColor = langKeyHasGroup ? undefined : '#2563EB';
+
+    const baseConfig = langLabel ? {
+      ...filteredConfig,
+      keysets: filteredConfig.keysets.map((keyset: any) => ({
+        ...keyset,
+        rows: keyset.rows.map((row: any) => {
+          const hasSpaceKey = row.keys.some((k: any) => k.type === 'space' || k.value === ' ');
+          const isBottomRow = row.alwaysInclude || hasSpaceKey;
+          if (!isBottomRow) return row;
+          const hasLanguageKey = row.keys.some((k: any) => k.type === 'language');
+          if (hasLanguageKey) {
+            return { ...row, keys: row.keys.map((k: any) =>
+              k.type === 'language' ? { ...k, label: langLabel, caption: langLabel } : k
+            )};
+          }
+          const newKeys = row.keys.reduce((acc: any[], key: any, idx: number) => {
+            acc.push(key);
+            if (idx === 0) {
+              acc.push({ type: 'language', label: langLabel, caption: langLabel, value: '', width: 1, ...(langKeyBgColor && { bgColor: langKeyBgColor }) });
+            }
+            return acc;
+          }, []);
+          return { ...row, keys: newKeys };
+        }),
+      })),
+    } : filteredConfig;
+
+    // Inject speak key into abc keyset if speak-in-keyboard is enabled
+    const hasSpeakGroup = selectedKeyValues.includes('speak') || state.styleGroups.some(g => g.active !== false && g.members.includes('speak'));
+    const speakKeyBgColor = hasSpeakGroup ? undefined : '#2196F3';
+    const speakKeyTextColor = hasSpeakGroup ? undefined : '#FFFFFF';
+    const finalConfig = speakButtonInKeyboard
+      ? {
+          ...baseConfig,
+          keysets: baseConfig.keysets.map((keyset: any) => {
+            if (keyset.id !== 'abc' && keyset.id !== 'abc_large') return keyset;
+            return {
+              ...keyset,
+              rows: keyset.rows.map((row: any) => {
+                const hasSpaceKey = row.keys.some((k: any) => k.type === 'space' || k.value === ' ');
+                const hasControlKeys = row.keys.some((k: any) =>
+                  k.type === 'keyset' || k.type === 'next-keyboard' || k.type === 'close'
+                );
+                const isBottomRow = row.alwaysInclude || hasSpaceKey || hasControlKeys;
+                if (!isBottomRow) return row;
+
+                const lastKeysetIndex = row.keys.reduce((lastIdx: number, key: any, idx: number) =>
+                  key.type === 'keyset' ? idx : lastIdx, -1);
+                if (lastKeysetIndex === -1) return row;
+
+                const newKeys = [...row.keys];
+                newKeys[lastKeysetIndex] = {
+                  type: 'event',
+                  value: 'speak',
+                  label: '🔊 Speak',
+                  caption: '🔊 Speak',
+                  width: 2,
+                  ...(speakKeyBgColor && { bgColor: speakKeyBgColor }),
+                  ...(speakKeyTextColor && { textColor: speakKeyTextColor }),
+                } as any;
+                return { ...row, keys: newKeys };
+              }),
+            };
+          }),
+        }
+      : baseConfig;
+
     return {
-      ...baseConfig,
+      ...finalConfig,
       groups, // Only the current group being edited, not other groups
       wordSuggestionsEnabled: false, // Disable word suggestions in modal preview
     };
-  }, [state.config, selectedKeyValues, bgColor, textColor, visibilityMode, hideCloseKey, hideGlobeButton]);
+  }, [state.config, state.styleGroups, selectedKeyValues, bgColor, textColor, visibilityMode, hideCloseKey, hideGlobeButton, selectedLanguages, speakButtonInKeyboard]);
 
   const previewConfigJson = useMemo(() => JSON.stringify(transformConfigForPreview(previewConfig)), [previewConfig]);
 
@@ -334,10 +419,11 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
   // Build selected keys JSON for highlighting in the preview
   const selectedKeysJson = useMemo(() => {
     if (selectedKeyValues.length === 0) return undefined;
-    
+
     // Convert key values to position IDs for highlighting
+    // Use previewConfig.keysets (not state.config.keysets) so injected keys like language are included
     const positionIds: string[] = [];
-    for (const keyset of state.config.keysets) {
+    for (const keyset of previewConfig.keysets) {
       for (let rowIndex = 0; rowIndex < keyset.rows.length; rowIndex++) {
         const row = keyset.rows[rowIndex];
         for (let keyIndex = 0; keyIndex < row.keys.length; keyIndex++) {
@@ -355,7 +441,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
       }
     }
     return JSON.stringify(positionIds);
-  }, [selectedKeyValues, state.config.keysets]);
+  }, [selectedKeyValues, previewConfig.keysets]);
 
   if (!visible) return null;
 

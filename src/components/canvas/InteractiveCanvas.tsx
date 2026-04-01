@@ -53,6 +53,8 @@ interface InteractiveCanvasProps {
   activeTab?: string;
   /** When true, replaces the rightmost keyset key in abc bottom row with a speak button */
   speakButtonInKeyboard?: boolean;
+  /** Selected languages for IssieVoice language key injection */
+  selectedLanguages?: string[];
 }
 
 // Language display names
@@ -62,7 +64,7 @@ const LANGUAGE_NAMES: Record<string, string> = {
   'ar': 'العربية',
 };
 
-export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInput, height, hideHeader, hideSettingsKey, hideCloseKey, hideGlobeButton, activeTab, speakButtonInKeyboard }) => {
+export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInput, height, hideHeader, hideSettingsKey, hideCloseKey, hideGlobeButton, activeTab, speakButtonInKeyboard, selectedLanguages }) => {
   const { state, dispatch } = useEditor();
   const { strings } = useLocalization();
   const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
@@ -170,19 +172,63 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
     // Get settingsButtonEnabled setting (default to true, but force false if hideSettingsKey)
     const settingsButtonEnabled = hideSettingsKey ? false : state.config.settingsButtonEnabled !== false;
 
-    // Filter out settings button if disabled, and close button if hidden
+    // Filter out settings button if disabled, and close button/globe button if hidden
     const filteredKeysets = state.config.keysets.map(keyset => ({
       ...keyset,
       rows: keyset.rows.map(row => ({
         ...row,
         keys: filterSettingsButton(row.keys, settingsButtonEnabled)
-          .filter(key => !(hideCloseKey && key.type === 'close')),
+          .filter(key => !(hideCloseKey && key.type === 'close'))
+          .filter(key => !(hideGlobeButton && key.type === 'next-keyboard')),
       })),
     }));
 
+    // Inject language key for IssieVoice when multiple languages are selected
+    const LANG_CYCLE: string[] = ['he', 'en', 'ar'];
+    const LANG_LABELS: Record<string, string> = { he: 'עב', en: 'En', ar: 'عر' };
+    const activeLangs = selectedLanguages && selectedLanguages.length > 1
+      ? LANG_CYCLE.filter(l => selectedLanguages.includes(l))
+      : [];
+    const kbLang = state.config.language || state.config.keyboards?.[0]?.split('_')[0] || 'he';
+    const langLabel = activeLangs.length > 1
+      ? LANG_LABELS[activeLangs[(activeLangs.indexOf(kbLang) + 1) % activeLangs.length]] || ''
+      : '';
+
+    // Only use default blue if no style group targets the language key
+    const hasLangGroup = state.styleGroups.some(g => g.active !== false && g.members.includes('language'));
+    const langKeyBgColor = hasLangGroup ? undefined : '#2563EB';
+
+    const langKeysets = langLabel
+      ? filteredKeysets.map(keyset => ({
+          ...keyset,
+          rows: keyset.rows.map(row => {
+            const hasSpaceKey = row.keys.some((k: any) => k.type === 'space' || k.value === ' ');
+            const isBottomRow = (row as any).alwaysInclude || hasSpaceKey;
+            if (!isBottomRow) return row;
+            const hasLanguageKey = row.keys.some((k: any) => k.type === 'language');
+            if (hasLanguageKey) {
+              return { ...row, keys: row.keys.map((k: any) =>
+                k.type === 'language' ? { ...k, label: langLabel, caption: langLabel } : k
+              )};
+            }
+            const newKeys = row.keys.reduce((acc: any[], key: any, idx: number) => {
+              acc.push(key);
+              if (idx === 0) {
+                acc.push({ type: 'language', label: langLabel, caption: langLabel, value: '', width: 1, ...(langKeyBgColor && { bgColor: langKeyBgColor }) });
+              }
+              return acc;
+            }, []);
+            return { ...row, keys: newKeys };
+          }),
+        }))
+      : filteredKeysets;
+
     // Inject speak key into abc keyset if speak-in-keyboard is enabled
+    const hasSpeakGroup = state.styleGroups.some(g => g.active !== false && g.members.includes('speak'));
+    const speakKeyBgColor = hasSpeakGroup ? undefined : '#2196F3';
+    const speakKeyTextColor = hasSpeakGroup ? undefined : '#FFFFFF';
     const finalKeysets = speakButtonInKeyboard
-      ? filteredKeysets.map(keyset => {
+      ? langKeysets.map(keyset => {
           if (keyset.id !== 'abc' && keyset.id !== 'abc_large') return keyset;
           return {
             ...keyset,
@@ -205,14 +251,14 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
                 label: '🔊 Speak',
                 caption: '🔊 Speak',
                 width: 2,
-                bgColor: '#2196F3',
-                textColor: '#FFFFFF',
+                ...(speakKeyBgColor && { bgColor: speakKeyBgColor }),
+                ...(speakKeyTextColor && { textColor: speakKeyTextColor }),
               } as any;
               return { ...row, keys: newKeys };
             }),
           };
         })
-      : filteredKeysets;
+      : langKeysets;
 
     // Return the base config with the current groups and filtered keysets
     // Disable word suggestions for preview
@@ -225,7 +271,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
     };
 
     return previewConfig;
-  }, [state.config, state.styleGroups, hideCloseKey, speakButtonInKeyboard]);
+  }, [state.config, state.styleGroups, hideCloseKey, hideGlobeButton, speakButtonInKeyboard, selectedLanguages]);
 
   const configJson = useMemo(() => {
     return JSON.stringify(transformConfigForPreview(configWithGroups));

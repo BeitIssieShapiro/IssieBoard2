@@ -22,6 +22,7 @@ import { colors } from '../constants';
 import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 import KeyboardPreferences from '../../../../src/native/KeyboardPreferences';
 import { symbolService } from '../services/SymbolService';
+import { LANGUAGE_CYCLE_ORDER, KbLanguage } from '../components/Settings/LanguageSettingsPanel';
 
 interface MainScreenProps {
   navigation: any;
@@ -40,9 +41,12 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
   const symbolDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suggestionsRef = useRef<string[]>([]);
   const [keyboardHeight, setKeyboardHeight] = useState(350);
-  const [currentLanguage, setCurrentLanguage] = useState<'en' | 'he'>(deviceLanguage === 'ar' ? 'he' : deviceLanguage);
+  const [selectedLanguages, setSelectedLanguages] = useState<KbLanguage[]>(['he', 'en']);
+  const [currentLanguage, setCurrentLanguage] = useState<KbLanguage>('he');
+  const [languagesLoaded, setLanguagesLoaded] = useState(false);
   const [englishVoice, setEnglishVoice] = useState<string | undefined>(undefined);
   const [hebrewVoice, setHebrewVoice] = useState<string | undefined>(undefined);
+  const [arabicVoice, setArabicVoice] = useState<string | undefined>(undefined);
   const [favoritesReloadTrigger, setFavoritesReloadTrigger] = useState(0);
   const keyboardConfigRef = useRef<any>(null);
   const keyboardHeightRef = useRef<number>(350);
@@ -61,6 +65,38 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
     };
   }, []);
 
+  // Load selected languages and last language from preferences
+  useEffect(() => {
+    const loadLanguagePrefs = async () => {
+      let langs: KbLanguage[] = ['he', 'en'];
+      try {
+        const savedLangs = await KeyboardPreferences.getString('issievoice_selectedLanguages');
+        if (savedLangs) {
+          const parsed = JSON.parse(savedLangs) as KbLanguage[];
+          if (parsed.length > 0) langs = parsed;
+        }
+      } catch {}
+
+      setSelectedLanguages(langs);
+
+      // Determine initial language
+      let initial: KbLanguage = langs[0];
+      try {
+        const lastLang = await KeyboardPreferences.getString('issievoice_lastLanguage');
+        if (lastLang && langs.includes(lastLang as KbLanguage)) {
+          initial = lastLang as KbLanguage;
+        } else if (langs.includes(deviceLanguage as KbLanguage)) {
+          initial = deviceLanguage as KbLanguage;
+        }
+      } catch {}
+
+      setCurrentLanguage(initial);
+      setLanguagesLoaded(true);
+    };
+    loadLanguagePrefs();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Get window dimensions using useSafeAreaFrame (works with ScreenSizer)
   const frame = useSafeAreaFrame();
   const insets = useSafeAreaInsets();
@@ -73,15 +109,16 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
   const isRTL = deviceLanguage === 'he' || deviceLanguage === 'ar';
 
   // Inject speak key into the abc keyset's bottom row
-  const injectSpeakKey = (keysets: any[], speakLabel: string) => {
+  const injectSpeakKey = (keysets: any[], speakLabel: string, groups?: any[]) => {
+    // Only use default colors if no style group targets the speak key
+    const hasSpeakGroup = groups?.some((g: any) => g.items?.includes('speak'));
     const speakKey = {
       type: 'event',
       value: 'speak',
       label: `🔊 ${speakLabel}`,
       caption: `🔊 ${speakLabel}`,
       width: 2,
-      bgColor: colors.primary,
-      textColor: '#FFFFFF',
+      ...(hasSpeakGroup ? {} : { bgColor: colors.primary, textColor: '#FFFFFF' }),
     };
 
     return keysets.map((keyset: any) => {
@@ -102,6 +139,20 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
       });
       return { ...keyset, rows };
     });
+  };
+
+  // Compute the label for the language key (shows the NEXT language in cycle)
+  const getLanguageKeyLabel = (language: string): string => {
+    const activeLangs = LANGUAGE_CYCLE_ORDER.filter(l => selectedLanguages.includes(l));
+    if (activeLangs.length <= 1) return '';
+    const currentIndex = activeLangs.indexOf(language as KbLanguage);
+    const nextIndex = (currentIndex + 1) % activeLangs.length;
+    const nextLang = activeLangs[nextIndex];
+    switch (nextLang) {
+      case 'he': return 'עב';
+      case 'en': return 'En';
+      case 'ar': return 'عر';
+    }
   };
 
   // Function to load keyboard configuration for a specific language
@@ -129,14 +180,18 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
             savedConfig.language = language;
 
             // Add language switch key to saved config
-            const languageKey = {
+            const langLabel = getLanguageKeyLabel(language);
+            const showLanguageKey = langLabel !== '';
+            // Only use default bgColor if no style group targets the language key
+            const hasLangGroup = savedConfig.groups?.some((g: any) => g.items?.includes('language'));
+            const languageKey = showLanguageKey ? {
               type: 'language',
-              label: language === 'en' ? 'עב' : 'En',
-              caption: language === 'en' ? 'עב' : 'En',
+              label: langLabel,
+              caption: langLabel,
               value: '',
               width: 1,
-              bgColor: colors.primary,
-            };
+              ...(hasLangGroup ? {} : { bgColor: colors.primary }),
+            } : null;
 
             console.log(`🔑 Creating language key for ${language} keyboard:`, languageKey);
 
@@ -151,7 +206,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
                 const hasSpaceKey = row.keys.some((k: any) => k.type === 'space' || k.value === ' ');
                 const isBottomRow = row.alwaysInclude || hasSpaceKey;
 
-                if (isBottomRow) {
+                if (isBottomRow && showLanguageKey) {
                   const hasLanguageKey = row.keys.some((k: any) => k.type === 'language');
                   if (!hasLanguageKey) {
                     const newKeys = filteredKeys.reduce((acc: any[], key: any, index: number) => {
@@ -163,7 +218,10 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
                     }, []);
                     return { ...row, keys: newKeys };
                   }
-                  return { ...row, keys: filteredKeys };
+                  // Update existing language key label
+                  return { ...row, keys: filteredKeys.map((k: any) =>
+                    k.type === 'language' ? { ...k, label: langLabel, caption: langLabel } : k
+                  )};
                 }
                 return { ...row, keys: filteredKeys };
               }),
@@ -171,7 +229,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
 
             // Inject speak key if setting is enabled
             if (speakButtonInKeyboard) {
-              savedConfig.keysets = injectSpeakKey(savedConfig.keysets, strings.actionBar.speak.trim());
+              savedConfig.keysets = injectSpeakKey(savedConfig.keysets, strings.actionBar.speak.trim(), savedConfig.groups);
             }
 
             // Store the config object for height calculations
@@ -212,22 +270,29 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
       console.log('📋 No saved config found, loading default keyboard config');
 
       // Load source keyboard based on language
-      const sourceKeyboard = language === 'en'
-        ? require('../../../../keyboards/en.json')
-        : require('../../../../keyboards/he.json');
+      let sourceKeyboard;
+      if (language === 'en') {
+        sourceKeyboard = require('../../../../keyboards/en.json');
+      } else if (language === 'ar') {
+        sourceKeyboard = require('../../../../keyboards/ar.json');
+      } else {
+        sourceKeyboard = require('../../../../keyboards/he.json');
+      }
 
       // Build config using the same merger IssieBoard uses
       const baseConfig = buildKeyboardConfig(sourceKeyboard, language);
 
       // Create IssieVoice-specific keys
-      const languageKey = {
+      const langLabel = getLanguageKeyLabel(language);
+      const showLanguageKey = langLabel !== '';
+      const languageKey = showLanguageKey ? {
         type: 'language',
-        label: language === 'en' ? 'עב' : 'En',
-        caption: language === 'en' ? 'עב' : 'En',
+        label: langLabel,
+        caption: langLabel,
         value: '',
         width: 1,
         bgColor: colors.primary,
-      };
+      } : null;
 
       // Inject IssieVoice keys (language switch) into each keyset
       const modifiedKeysets = baseConfig.keysets.map((keyset: any) => ({
@@ -240,7 +305,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
           const hasSpaceKey = row.keys.some((k: any) => k.type === 'space' || k.value === ' ');
           const isBottomRow = row.alwaysInclude || hasSpaceKey;
 
-          if (isBottomRow) {
+          if (isBottomRow && showLanguageKey) {
             const hasLanguageKey = row.keys.some((k: any) => k.type === 'language');
             if (!hasLanguageKey) {
               const newKeys = filteredKeys.reduce((acc: any[], key: any, index: number) => {
@@ -252,7 +317,9 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
               }, []);
               return { ...row, keys: newKeys };
             }
-            return { ...row, keys: filteredKeys };
+            return { ...row, keys: filteredKeys.map((k: any) =>
+              k.type === 'language' ? { ...k, label: langLabel, caption: langLabel } : k
+            )};
           }
           return { ...row, keys: filteredKeys };
         }),
@@ -299,6 +366,11 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
             setHebrewVoice(savedHeVoice);
           }
 
+          const savedArVoice = await KeyboardPreferences.getProfile('issievoice_arabicVoice');
+          if (savedArVoice) {
+            setArabicVoice(savedArVoice);
+          }
+
           const speakInKb = await KeyboardPreferences.getString('issievoice_speakButtonInKeyboard');
           setSpeakButtonInKeyboard(speakInKb === 'true');
 
@@ -314,6 +386,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
 
   // Effect for loading keyboard config when language or speak-in-keyboard setting changes
   useEffect(() => {
+    if (!languagesLoaded) return;
     const loadConfig = async () => {
       console.log(`🔄 Language change effect triggered: ${currentLanguage}, speakInKb: ${speakButtonInKeyboard}`);
       // Reset keyboard height to allow fresh measurement
@@ -322,7 +395,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
       await loadKeyboardConfig(currentLanguage);
     };
     loadConfig();
-  }, [currentLanguage, speakButtonInKeyboard]);
+  }, [currentLanguage, speakButtonInKeyboard, languagesLoaded, selectedLanguages]);
 
   // Native keyboard now handles scaling automatically with presets
   // No need for manual height adjustment
@@ -338,12 +411,35 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
     return () => clearTimeout(timer);
   }, [currentLanguage, setTTSLanguage]);
 
+  // Persist last language
+  useEffect(() => {
+    if (languagesLoaded) {
+      KeyboardPreferences.setString('issievoice_lastLanguage', currentLanguage);
+    }
+  }, [currentLanguage, languagesLoaded]);
+
   // Reload keyboard config when screen comes into focus (e.g., returning from settings)
   useFocusEffect(
     React.useCallback(() => {
       console.log('📱 MainScreen focused - reloading keyboard config and favorites');
+      const reloadPrefs = async () => {
+        try {
+          const savedLangs = await KeyboardPreferences.getString('issievoice_selectedLanguages');
+          if (savedLangs) {
+            const parsed = JSON.parse(savedLangs) as KbLanguage[];
+            if (parsed.length > 0) {
+              setSelectedLanguages(parsed);
+              // If current language was deselected, switch to first selected language
+              if (!parsed.includes(currentLanguage)) {
+                setCurrentLanguage(parsed[0]);
+                return; // currentLanguage change will trigger config reload
+              }
+            }
+          }
+        } catch {}
+      };
+      reloadPrefs();
       loadKeyboardConfig(currentLanguage);
-      // Trigger favorites reload
       setFavoritesReloadTrigger(prev => prev + 1);
     }, [currentLanguage])
   );
@@ -425,7 +521,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
     // Handle language switch button
     if (type === 'language') {
       console.log('🌐 Language switch button pressed');
-      toggleLanguage();
+      cycleLanguage();
       return;
     }
 
@@ -468,7 +564,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
 
   const handleSpeak = async () => {
     if (currentText.trim()) {
-      await speak(currentText, 'detect', englishVoice, hebrewVoice);
+      await speak(currentText, 'detect', englishVoice, hebrewVoice, arabicVoice);
     }
   };
 
@@ -549,16 +645,18 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
   // Handle favorite press - speak the text
   const handleFavoritePress = async (text: string) => {
     console.log('⭐ Favorite selected:', text);
-    await speak(text, 'detect', englishVoice, hebrewVoice);
+    await speak(text, 'detect', englishVoice, hebrewVoice, arabicVoice);
   };
 
-  // Function to toggle between languages
-  const toggleLanguage = () => {
-    const newLanguage = currentLanguage === 'en' ? 'he' : 'en';
+  // Function to cycle between selected languages
+  const cycleLanguage = () => {
+    const activeLangs = LANGUAGE_CYCLE_ORDER.filter(l => selectedLanguages.includes(l));
+    if (activeLangs.length <= 1) return;
+    const currentIndex = activeLangs.indexOf(currentLanguage);
+    const nextIndex = (currentIndex + 1) % activeLangs.length;
+    const newLanguage = activeLangs[nextIndex];
     console.log(`🌐 Switching language from ${currentLanguage} to ${newLanguage}`);
     setCurrentLanguage(newLanguage);
-
-    // Clear suggestions when language changes to prevent showing suggestions from wrong language
     setKbSuggestions([]);
   };
 

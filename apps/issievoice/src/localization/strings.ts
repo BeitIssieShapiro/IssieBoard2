@@ -78,6 +78,7 @@ export interface Strings {
       features: string;
       advanced: string;
       voice: string;
+      language: string;
     };
   };
   settingsModal: {
@@ -100,6 +101,12 @@ export interface Strings {
     savedSuccess: string;
     failedToSave: string;
     alreadyExists: string;
+  };
+  languageSettings: {
+    hebrew: string;
+    english: string;
+    arabic: string;
+    atLeastOne: string;
   };
 }
 
@@ -181,6 +188,7 @@ const en: Strings = {
       features: 'Features',
       advanced: 'Advanced',
       voice: 'Voice',
+      language: 'Language',
     },
   },
   settingsModal: {
@@ -203,6 +211,12 @@ const en: Strings = {
     savedSuccess: 'Your text has been saved successfully.',
     failedToSave: 'Failed to save text. Please try again.',
     alreadyExists: 'This sentence is already saved.',
+  },
+  languageSettings: {
+    hebrew: 'Hebrew',
+    english: 'English',
+    arabic: 'Arabic',
+    atLeastOne: 'At least one language must be selected',
   },
 };
 
@@ -284,6 +298,7 @@ const he: Strings = {
       features: 'תכונות',
       advanced: 'מתקדם',
       voice: 'קול',
+      language: 'שפה',
     },
   },
   settingsModal: {
@@ -306,6 +321,12 @@ const he: Strings = {
     savedSuccess: 'הטקסט שלך נשמר בהצלחה.',
     failedToSave: 'שמירת הטקסט נכשלה. אנא נסה שוב.',
     alreadyExists: 'המשפט הזה כבר שמור.',
+  },
+  languageSettings: {
+    hebrew: 'עברית',
+    english: 'אנגלית',
+    arabic: 'ערבית',
+    atLeastOne: 'יש לבחור לפחות שפה אחת',
   },
 };
 
@@ -387,6 +408,7 @@ const ar: Strings = {
       features: 'ميزات',
       advanced: 'متقدم',
       voice: 'صوت',
+      language: 'لغة',
     },
   },
   settingsModal: {
@@ -409,6 +431,12 @@ const ar: Strings = {
     savedSuccess: 'تم حفظ النص بنجاح.',
     failedToSave: 'فشل حفظ النص. يرجى المحاولة مرة أخرى.',
     alreadyExists: 'هذه الجملة محفوظة بالفعل.',
+  },
+  languageSettings: {
+    hebrew: 'العبرية',
+    english: 'الإنجليزية',
+    arabic: 'العربية',
+    atLeastOne: 'يجب اختيار لغة واحدة على الأقل',
   },
 };
 

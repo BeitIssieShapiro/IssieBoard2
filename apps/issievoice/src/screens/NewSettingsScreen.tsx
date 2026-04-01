@@ -13,6 +13,7 @@ import { useLocalization } from '../context/LocalizationContext';
 import SettingsSidebar from '../components/Settings/SettingsSidebar';
 import KeyboardHeader from '../components/Settings/KeyboardHeader';
 import VoiceSettingsPanel from '../components/Settings/VoiceSettingsPanel';
+import LanguageSettingsPanel, { KbLanguage } from '../components/Settings/LanguageSettingsPanel';
 import { EditorScreen } from '../../../../src/screens/EditorScreen';
 import { LocalizationProvider as EditorLocalizationProvider, useLocalization as useEditorLocalization } from '../../../../src/localization';
 import { getStrings as getEditorStrings } from '../../../../src/localization/strings';
@@ -102,6 +103,7 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
   const [englishVoice, setEnglishVoice] = useState<string | undefined>(undefined);
   const [hebrewVoice, setHebrewVoice] = useState<string | undefined>(undefined);
   const [arabicVoice, setArabicVoice] = useState<string | undefined>(undefined);
+  const [selectedLanguages, setSelectedLanguages] = useState<KbLanguage[]>(['he', 'en']);
 
   // Load saved voice settings on mount (only for issievoice)
   useEffect(() => {
@@ -113,6 +115,13 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
       if (savedHeVoice) setHebrewVoice(savedHeVoice);
       const savedArVoice = await KeyboardPreferences.getProfile('issievoice_arabicVoice');
       if (savedArVoice) setArabicVoice(savedArVoice);
+      const savedLangs = await KeyboardPreferences.getString('issievoice_selectedLanguages');
+      if (savedLangs) {
+        try {
+          const parsed = JSON.parse(savedLangs) as KbLanguage[];
+          if (parsed.length > 0) setSelectedLanguages(parsed);
+        } catch {}
+      }
     };
     loadVoiceSettings();
   }, []);
@@ -128,6 +137,11 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
       setArabicVoice(voiceId);
       await KeyboardPreferences.setProfile(voiceId, 'issievoice_arabicVoice');
     }
+  };
+
+  const handleSelectedLanguagesChange = async (languages: KbLanguage[]) => {
+    setSelectedLanguages(languages);
+    await KeyboardPreferences.setString('issievoice_selectedLanguages', JSON.stringify(languages));
   };
 
   const confirmUnsavedChanges = useCallback((onDiscard: () => void) => {
@@ -174,6 +188,17 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
       );
     }
 
+    if (!isKeyboardOnly && activeTab === 'language') {
+      return (
+        <View style={styles.voicePanel}>
+          <LanguageSettingsPanel
+            selectedLanguages={selectedLanguages}
+            onSelectedLanguagesChange={handleSelectedLanguagesChange}
+          />
+        </View>
+      );
+    }
+
     // For keyboard tabs, render KeyboardHeader strip + EditorScreen
     return (
       <View style={{ flex: 1 }}>
@@ -199,6 +224,7 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
               headless
               activeTab={activeTab}
               saveRef={saveRef}
+              selectedLanguages={selectedLanguages}
             />
           </EditorLanguageSync>
         </EditorLocalizationProvider>

@@ -14,7 +14,7 @@ export interface SettingsSidebarProps {
   mode?: 'voice' | 'keyboard';
 }
 
-type TabId = 'general' | 'keys-groups' | 'nikkud' | 'features' | 'advanced' | 'voice';
+type TabId = 'general' | 'keys-groups' | 'nikkud' | 'features' | 'advanced' | 'voice' | 'language';
 
 interface TabDef {
   id: TabId;
@@ -41,12 +41,19 @@ const getVoiceTab = (label: string): TabDef => ({
   iconColor: '#D97706',
 });
 
+const getLanguageTab = (label: string): TabDef => ({
+  id: 'language' as TabId,
+  label,
+  iconName: 'globe-outline',
+  iconType: 'Ionicons',
+  iconColor: '#2563EB',
+});
+
 const KEYBOARD_CHILD_IDS: string[] = ['general', 'keys-groups', 'nikkud', 'features', 'advanced'];
 
 const isKeyboardTab = (tabId: string): boolean =>
   KEYBOARD_CHILD_IDS.includes(tabId);
 
-const PHONE_MAX_WIDTH = 500;
 
 /** Renders a sidebar/tab item with icon circle + label, matching the card design */
 const TabItem: React.FC<{
@@ -124,6 +131,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   const tabLabels = strings.settings.tabs;
   const KEYBOARD_CHILDREN = getKeyboardChildren(tabLabels);
   const VOICE_TAB = getVoiceTab(tabLabels.voice);
+  const LANGUAGE_TAB = getLanguageTab(tabLabels.language);
 
   if (isLandscape) {
     return (
@@ -171,6 +179,15 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
               tab={VOICE_TAB}
               isActive={activeTab === VOICE_TAB.id}
               onPress={() => onTabChange(VOICE_TAB.id)}
+              compact={isPhone}
+              extraCompact={isPhoneVoice}
+              isRTL={isRTL}
+            />
+            <View style={styles.divider} />
+            <TabItem
+              tab={LANGUAGE_TAB}
+              isActive={activeTab === LANGUAGE_TAB.id}
+              onPress={() => onTabChange(LANGUAGE_TAB.id)}
               compact={isPhone}
               extraCompact={isPhoneVoice}
               isRTL={isRTL}
@@ -294,6 +311,33 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
               activeTab === 'voice' && styles.tabTextActive,
             ]}>
             {tabLabels.voice}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'language' && styles.tabActive, isRTL && { flexDirection: 'row-reverse' }]}
+          onPress={() => onTabChange('language')}
+          activeOpacity={0.7}>
+          <View
+            style={[
+              styles.iconCircleSmall,
+              {backgroundColor: activeTab === 'language' ? 'rgba(255,255,255,0.25)' : LANGUAGE_TAB.iconColor + '18'},
+            ]}>
+            <MyIcon
+              info={{
+                name: LANGUAGE_TAB.iconName!,
+                type: LANGUAGE_TAB.iconType!,
+                color: activeTab === 'language' ? '#FFFFFF' : LANGUAGE_TAB.iconColor,
+                size: 16,
+              }}
+            />
+          </View>
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === 'language' && styles.tabTextActive,
+            ]}>
+            {tabLabels.language}
           </Text>
         </TouchableOpacity>
       </View>

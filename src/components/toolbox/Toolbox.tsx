@@ -67,6 +67,10 @@ export interface ToolboxProps {
   appContext?: 'issievoice' | 'issieboard';
   /** Callback when speak-button-in-keyboard setting changes (IssieVoice only) */
   onSpeakButtonInKeyboardChange?: (value: boolean) => void;
+  /** Selected languages for IssieVoice language key injection */
+  selectedLanguages?: string[];
+  /** Whether speak button is shown in keyboard (IssieVoice only) */
+  speakButtonInKeyboard?: boolean;
 }
 
 export const Toolbox: React.FC<ToolboxProps> = ({
@@ -77,6 +81,8 @@ export const Toolbox: React.FC<ToolboxProps> = ({
   section,
   appContext,
   onSpeakButtonInKeyboardChange,
+  selectedLanguages,
+  speakButtonInKeyboard,
 }) => {
   const { state, clearSelection } = useEditor();
   const { strings, isRTL } = useLocalization();
@@ -340,6 +346,8 @@ export const Toolbox: React.FC<ToolboxProps> = ({
           profileName={profileName}
           hideGlobeButton={appContext === 'issievoice'}
           hideCloseKey={appContext === 'issievoice'}
+          selectedLanguages={selectedLanguages}
+          speakButtonInKeyboard={speakButtonInKeyboard}
           onClose={handleCloseModal}
         />
       </ScrollView>
@@ -455,6 +463,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
         profileName={profileName}
         hideGlobeButton={appContext === 'issievoice'}
         hideCloseKey={appContext === 'issievoice'}
+        selectedLanguages={selectedLanguages}
         onClose={handleCloseModal}
       />
     </ScrollView>
