@@ -79,5 +79,7 @@
 	</array>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app does not access your photo library.</string>
 </dict>
 </plist>

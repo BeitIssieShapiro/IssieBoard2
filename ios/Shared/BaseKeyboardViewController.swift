@@ -53,7 +53,12 @@ class BaseKeyboardViewController: UIInputViewController {
 
         setupKeyboard()
         setupKeyboardEngine()
+        // Load config and render keyboard — this sets the correct height constraint
+        // before the first layout pass, avoiding an oversized initial keyboardDidShow
         loadPreferences()
+        // Force layout immediately so iOS sees the correct height
+        // before firing the first keyboardDidShow to the host app
+        view.layoutIfNeeded()
         startObservingPreferences()
     }
     
@@ -133,12 +138,15 @@ class BaseKeyboardViewController: UIInputViewController {
         keyboardView = UIView()
         keyboardView.backgroundColor = .clear
         view.addSubview(keyboardView)
-        
+
         keyboardView.translatesAutoresizingMaskIntoConstraints = false
-        
-        let heightConstraint = keyboardView.heightAnchor.constraint(equalToConstant: 216)
+
+        // Use persisted height from last session to avoid the initial oversized
+        // keyboardDidShow (216pt default) followed by a corrected one
+        let initialHeight = cachedKeyboardHeight()
+        let heightConstraint = keyboardView.heightAnchor.constraint(equalToConstant: initialHeight)
         keyboardHeightConstraint = heightConstraint
-        
+
         NSLayoutConstraint.activate([
             keyboardView.leftAnchor.constraint(equalTo: view.leftAnchor),
             keyboardView.rightAnchor.constraint(equalTo: view.rightAnchor),
@@ -156,8 +164,38 @@ class BaseKeyboardViewController: UIInputViewController {
         let suggestionsEnabled = config.isWordSuggestionsEnabled && !shouldDisable
 
         let requiredHeight = keyboardEngine.renderer.calculateKeyboardHeight(for: config, keysetId: keyboardEngine.renderer.currentKeysetId, suggestionsEnabled: suggestionsEnabled)
-        keyboardHeightConstraint?.constant = requiredHeight
-        view.setNeedsLayout()
+
+        // Only update if height actually changed — avoid triggering
+        // an extra keyboardDidShow in the host app for the same height
+        if keyboardHeightConstraint?.constant != requiredHeight {
+            keyboardHeightConstraint?.constant = requiredHeight
+            view.setNeedsLayout()
+            persistKeyboardHeight(requiredHeight)
+        }
+    }
+
+    // MARK: - Height Caching
+
+    private func heightCacheKey() -> String {
+        let isLandscape = UIScreen.main.bounds.width > UIScreen.main.bounds.height
+        let orientation = isLandscape ? "landscape" : "portrait"
+        return "cachedKbHeight_\(keyboardLanguage)_\(orientation)"
+    }
+
+    private func cachedKeyboardHeight() -> CGFloat {
+        let key = heightCacheKey()
+        if let stored = preferences.getString(forKey: key),
+           let height = Double(stored), height > 0 {
+            debugLog("📐 Using cached keyboard height: \(height) for key: \(key)")
+            return CGFloat(height)
+        }
+        return 216 // fallback for first launch
+    }
+
+    private func persistKeyboardHeight(_ height: CGFloat) {
+        let key = heightCacheKey()
+        preferences.setString(String(Double(height)), forKey: key)
+        debugLog("📐 Persisted keyboard height: \(height) for key: \(key)")
     }
     
     private func setupKeyboardEngine() {
