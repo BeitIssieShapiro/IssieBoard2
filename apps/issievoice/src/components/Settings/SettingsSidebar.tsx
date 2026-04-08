@@ -87,7 +87,7 @@ const TabItem: React.FC<{
         {backgroundColor: isActive ? 'rgba(255,255,255,0.25)' : tab.iconColor + '18'},
       ]}>
       {tab.iconText ? (
-        <Text style={{fontSize: extraCompact ? 13 : compact ? 15 : 18, color: isActive ? '#FFFFFF' : tab.iconColor, fontWeight: '700'}}>
+        <Text allowFontScaling={false} style={{fontSize: extraCompact ? 13 : compact ? 15 : 18, color: isActive ? '#FFFFFF' : tab.iconColor, fontWeight: '700'}}>
           {tab.iconText}
         </Text>
       ) : (
@@ -103,6 +103,7 @@ const TabItem: React.FC<{
     </View>
     {!hideLabel && (
     <Text
+      allowFontScaling={false}
       style={[
         extraCompact ? styles.sidebarCardTextExtraCompact : compact ? styles.sidebarCardTextCompact : styles.sidebarCardText,
         isActive && styles.sidebarCardTextActive,
@@ -152,7 +153,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                 }}
               />
             </View>
-            <Text style={[styles.groupHeaderText, isPhoneVoice ? styles.groupHeaderTextExtraCompact : isPhone && styles.groupHeaderTextCompact]}>{tabLabels.keyboard}</Text>
+            <Text allowFontScaling={false} style={[styles.groupHeaderText, isPhoneVoice ? styles.groupHeaderTextExtraCompact : isPhone && styles.groupHeaderTextCompact]}>{tabLabels.keyboard}</Text>
           </TouchableOpacity>
         )}
 
@@ -221,7 +222,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                     isDisabled && {opacity: 0.35},
                   ]}>
                   {tab.iconText ? (
-                    <Text style={{fontSize: 13, color: isActive ? '#FFFFFF' : tab.iconColor, fontWeight: '700'}}>
+                    <Text allowFontScaling={false} style={{fontSize: 13, color: isActive ? '#FFFFFF' : tab.iconColor, fontWeight: '700'}}>
                       {tab.iconText}
                     </Text>
                   ) : (
@@ -237,6 +238,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                 </View>
                 {!isPhone && (
                   <Text
+                    allowFontScaling={false}
                     style={[
                       styles.subTabText,
                       isActive && styles.subTabTextActive,
@@ -282,7 +284,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
               }}
             />
           </View>
-          <Text style={[styles.tabText, keyboardActive && styles.tabTextActive]}>
+          <Text allowFontScaling={false} style={[styles.tabText, keyboardActive && styles.tabTextActive]}>
             {tabLabels.keyboard}
           </Text>
         </TouchableOpacity>
@@ -306,6 +308,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
             />
           </View>
           <Text
+            allowFontScaling={false}
             style={[
               styles.tabText,
               activeTab === 'voice' && styles.tabTextActive,
@@ -333,6 +336,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
             />
           </View>
           <Text
+            allowFontScaling={false}
             style={[
               styles.tabText,
               activeTab === 'language' && styles.tabTextActive,
@@ -362,7 +366,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                     isDisabled && {opacity: 0.35},
                   ]}>
                   {tab.iconText ? (
-                    <Text style={{fontSize: 13, color: isActive ? '#FFFFFF' : tab.iconColor, fontWeight: '700'}}>
+                    <Text allowFontScaling={false} style={{fontSize: 13, color: isActive ? '#FFFFFF' : tab.iconColor, fontWeight: '700'}}>
                       {tab.iconText}
                     </Text>
                   ) : (
@@ -378,6 +382,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                 </View>
                 {!isPhone && (
                   <Text
+                    allowFontScaling={false}
                     style={[
                       styles.subTabText,
                       isActive && styles.subTabTextActive,

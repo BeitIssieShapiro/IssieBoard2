@@ -1395,6 +1395,8 @@ class KeyboardRenderer(private val context: Context) {
                 nikkudBg?.setStroke(dpToPx(3), Color.parseColor("#2196F3"))  // systemBlue border (2.5pt iOS ~ 3dp Android)
             }
         }
+
+        val needsOutline = isSelected || (key.type.lowercase() == "nikkud" && nikkudActive)
         
         // Determine if this is a special key that uses an icon instead of text
         val isNikkudKey = key.type.lowercase() == "nikkud"
@@ -1579,6 +1581,23 @@ class KeyboardRenderer(private val context: Context) {
         // Get key gap from config or use defaults (matching iOS logic)
         val horizontalGap = scaledKeyGap
         val verticalGap = horizontalGap  // Same gap in both directions
+
+        // White outline behind blue border for contrast on any background
+        if (needsOutline) {
+            val outlineView = View(context).apply {
+                background = GradientDrawable().apply {
+                    setColor(Color.TRANSPARENT)
+                    cornerRadius = scaledCornerRadius + dpToPx(2)
+                    setStroke(dpToPx(2), Color.WHITE)
+                }
+            }
+            buttonContainer.addView(outlineView, FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            ).apply {
+                setMargins(horizontalGap - dpToPx(2), verticalGap - dpToPx(2), horizontalGap - dpToPx(2), verticalGap - dpToPx(2))
+            })
+        }
 
         // Add visual key view with padding
         buttonContainer.addView(visualKeyView, FrameLayout.LayoutParams(
@@ -2321,9 +2340,9 @@ class KeyboardRenderer(private val context: Context) {
         debugLog("🎨 updateNikkudKeyVisual: nikkudActive=$nikkudActive")
 
         // keyView is the button container (FrameLayout)
-        // The visual key is the first child (also a FrameLayout with background)
+        // The visual key is tagged with VISUAL_KEY_TAG
         val container = keyView as? ViewGroup ?: return
-        val visualKeyView = container.getChildAt(0) as? ViewGroup ?: return
+        val visualKeyView = container.findViewWithTag<View>(VISUAL_KEY_TAG) as? ViewGroup ?: return
 
         val bgDrawable = visualKeyView.background as? GradientDrawable
         if (bgDrawable != null) {

@@ -1432,6 +1432,7 @@ class KeyboardRenderer {
         visualKeyView.layer.shadowRadius = 1 * effectiveDimensionScale
         
         // Selection highlight for edit mode
+        let needsOutline = isSelected || (key.type.lowercased() == "nikkud" && nikkudActive) || (key.type.lowercased() == "shift" && shiftState.isActive())
         if isSelected {
             visualKeyView.layer.borderWidth = 3.0
             visualKeyView.layer.borderColor = UIColor.systemBlue.cgColor
@@ -1695,6 +1696,24 @@ class KeyboardRenderer {
         let verticalGap = horizontalGap  // Same gap in both directions
 
         // Add visual key view to button (with padding for visual gap)
+        // White outline behind blue border for contrast on any background
+        if needsOutline {
+            let outlineView = UIView()
+            outlineView.isUserInteractionEnabled = false
+            outlineView.backgroundColor = .clear
+            outlineView.layer.cornerRadius = scaledCornerRadius + 2
+            outlineView.layer.borderWidth = 2.0
+            outlineView.layer.borderColor = UIColor.white.cgColor
+            button.addSubview(outlineView)
+            outlineView.translatesAutoresizingMaskIntoConstraints = false
+            NSLayoutConstraint.activate([
+                outlineView.topAnchor.constraint(equalTo: button.topAnchor, constant: verticalGap - 2),
+                outlineView.leadingAnchor.constraint(equalTo: button.leadingAnchor, constant: horizontalGap - 2),
+                outlineView.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -(horizontalGap - 2)),
+                outlineView.bottomAnchor.constraint(equalTo: button.bottomAnchor, constant: -(verticalGap - 2))
+            ])
+        }
+
         button.addSubview(visualKeyView)
         visualKeyView.tag = 8888
         visualKeyView.translatesAutoresizingMaskIntoConstraints = false
