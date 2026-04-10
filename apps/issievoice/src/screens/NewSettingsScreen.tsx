@@ -224,7 +224,7 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
               headless
               activeTab={activeTab}
               saveRef={saveRef}
-              selectedLanguages={selectedLanguages}
+              selectedLanguages={isKeyboardOnly ? undefined : selectedLanguages}
             />
           </EditorLanguageSync>
         </EditorLocalizationProvider>
