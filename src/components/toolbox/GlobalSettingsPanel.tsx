@@ -104,6 +104,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
   const wordSuggestionsEnabled = state.config.wordSuggestionsEnabled !== false;
   const autoCorrectEnabled = state.config.autoCorrectEnabled === true;
   const currentFontName = state.config.fontName;
+  const hasCustomFont = !!currentFontName;
   const currentFontSizePreset = state.config.fontSizePreset || 'normal';
   const currentHeightPreset = state.config.heightPreset || 'normal';
   const currentFontWeight = state.config.fontWeight || 'regular'; // Default to regular
@@ -260,6 +261,10 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
                 onSelect={(id) => {
                   const option = hebrewFontOptions.find(o => o.id === id);
                   updateFontName(option?.fontFamily);
+                  // Custom font only supports regular weight - always reset
+                  if (option?.fontFamily) {
+                    updateFontWeight('regular');
+                  }
                 }}
               />
             </>
@@ -481,6 +486,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
                   options={fontWeightOptions.map(opt => ({
                     id: opt.id,
                     label: opt.label,
+                    disabled: hasCustomFont && opt.id !== 'regular',
                   }))}
                   selectedId={fontWeightOptions.find(opt => opt.value === currentFontWeight)?.id || 'bold'}
                   onSelect={(id) => {

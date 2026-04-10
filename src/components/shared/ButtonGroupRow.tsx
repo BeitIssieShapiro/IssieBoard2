@@ -6,6 +6,7 @@ export interface ButtonOption {
   id: string;
   label: string;
   customStyle?: any; // For font family, etc.
+  disabled?: boolean; // If true, button is grayed out and not tappable
 }
 
 interface ButtonGroupRowProps {
@@ -63,8 +64,10 @@ export const ButtonGroupRow: React.FC<ButtonGroupRowProps> = ({
               styles.button,
               maxWidth > 0 && { minWidth: maxWidth },
               selectedId === option.id && styles.buttonActive,
+              option.disabled && styles.buttonDisabled,
             ]}
-            onPress={() => onSelect(option.id)}
+            onPress={() => !option.disabled && onSelect(option.id)}
+            activeOpacity={option.disabled ? 1 : 0.2}
           >
             <Text
               allowFontScaling={false}
@@ -72,6 +75,7 @@ export const ButtonGroupRow: React.FC<ButtonGroupRowProps> = ({
                 styles.buttonText,
                 option.customStyle,
                 selectedId === option.id && styles.buttonTextActive,
+                option.disabled && styles.buttonTextDisabled,
               ]}
             >
               {option.label}
@@ -125,6 +129,7 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
+  buttonDisabled: {},
   buttonText: {
     fontSize: 13,
     fontWeight: 'semibold',
@@ -133,6 +138,9 @@ const styles = StyleSheet.create({
   buttonTextActive: {
     color: '#FFF',
     fontWeight: '700',
+  },
+  buttonTextDisabled: {
+    color: '#D1D5DB',
   },
 });
 
