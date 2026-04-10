@@ -1658,10 +1658,10 @@ class KeyboardRenderer {
                             key.type.lowercased() != "language"
         
         // Check if we're in an "abc" keyset (not "123" or "#+=" keysets)
-        let isAbcKeyset = currentKeysetId.hasSuffix("_abc") || currentKeysetId == "abc"
+        let isAbcKeyset = currentKeysetId.contains("abc")
         
         let shouldUseCustomFont = isCharacterKey && isAbcKeyset && config?.fontName != nil
-        
+
         if shouldUseCustomFont, let fontName = config?.fontName, let customFont = UIFont(name: fontName, size: finalFontSize + 2) {
             label.font = customFont
             // Add spacing for single character labels when using custom font to prevent glyph cutoff

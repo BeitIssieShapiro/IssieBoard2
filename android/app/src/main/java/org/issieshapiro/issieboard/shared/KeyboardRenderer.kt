@@ -1486,7 +1486,7 @@ class KeyboardRenderer(private val context: Context) {
             )
             
             // Check if we're in an "abc" keyset (not "123" or "#+=" keysets)
-            val isAbcKeyset = currentKeysetId.endsWith("_abc") || currentKeysetId == "abc"
+            val isAbcKeyset = currentKeysetId.contains("abc")
             
             val shouldUseCustomFont = isCharacterKey && isAbcKeyset && config?.fontName != null
 
