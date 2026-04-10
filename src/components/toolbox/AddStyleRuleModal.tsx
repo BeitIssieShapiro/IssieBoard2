@@ -247,17 +247,24 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
         });
       } else if (visibilityMode === 'showOnly') {
         // For "showOnly" mode: apply opacity to NON-selected keys (they will be hidden)
-        // First, collect all key values from the keyboard
+        // Essential keys (functional keys) should never be dimmed
+        const essentialTypes = new Set(['space', 'backspace', 'enter', 'next-keyboard', 'settings', 'shift', 'keyset', 'nikkud', 'close', 'language']);
+        const essentialValues = new Set([' ', ',', '.']);
+
+        // Collect all non-essential key values from the keyboard
         const allKeyValues = new Set<string>();
         for (const keyset of state.config.keysets) {
           for (const row of keyset.rows) {
             for (const key of row.keys) {
+              const keyType = (key.type || '').toLowerCase();
+              // Skip essential keys - they should never be dimmed
+              if (essentialTypes.has(keyType)) continue;
               const keyValue = key.value || key.caption || key.label || key.type;
-              if (keyValue) allKeyValues.add(keyValue);
+              if (keyValue && !essentialValues.has(keyValue)) allKeyValues.add(keyValue);
             }
           }
         }
-        // Find keys that are NOT selected
+        // Find keys that are NOT selected (essential keys already excluded above)
         const nonSelectedKeys = Array.from(allKeyValues).filter(k => !selectedKeyValues.includes(k));
 
         // Add group for selected keys with colors (they will be shown)

@@ -9,6 +9,12 @@ Arabic:
 - icon for nikkud - from Alla
 
 IssieBoard:
+V- en/he from issie IssieVoice
+V- shifts, 123, close kb and nikkud should stay in showOnly
+V- fonts
+V- suggestion seperation
+
+
 V- share keyboard
 V- other keys preset (don't use keyset, change-to-numbers)
 V- in classic - highlight keys - use the preview kb to type (hide soft kb)

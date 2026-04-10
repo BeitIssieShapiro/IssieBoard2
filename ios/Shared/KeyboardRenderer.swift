@@ -995,25 +995,18 @@ class KeyboardRenderer {
         // If there's a "showOnly" rule active, check if this key is in the whitelist
         if let showOnly = showOnlyKeys {
             // Essential keys that are NEVER hidden by showOnly rule (only by explicit hide)
-            // These keys are critical for typing and should always remain visible
+            // These keys are critical for keyboard operation and should always remain visible
             // unless the user explicitly creates a hide rule for them
             let essentialValues: Set<String> = [" ", ",", "."]  // space, comma, period
-            let essentialTypes: Set<String> = ["space", "backspace", "enter", "next-keyboard", "settings"]
-            
+            let essentialTypes: Set<String> = ["space", "backspace", "enter", "next-keyboard", "settings", "shift", "keyset", "nikkud", "close", "language"]
+
             // Check if this is an essential key by value or type
             if essentialValues.contains(keyValue) || essentialTypes.contains(parsedKey.type.lowercased()) {
                 // Essential keys are NOT hidden by showOnly rule
                 // They can only be hidden by explicit hide rule (checked above)
                 return false
             }
-            
-            // Other special keys (shift, keyset, etc.) should check if they're in the whitelist
-            let specialTypes: Set<String> = ["shift", "keyset", "nikkud", "settings", "close", "next-keyboard", "language"]
-            if specialTypes.contains(parsedKey.type.lowercased()) {
-                // Check if this special key is explicitly in the showOnly set
-                return !showOnly.contains(keyValue) && !showOnly.contains(parsedKey.type.lowercased())
-            }
-            
+
             // For regular keys, hide if not in the showOnly set
             return !showOnly.contains(keyValue)
         }
