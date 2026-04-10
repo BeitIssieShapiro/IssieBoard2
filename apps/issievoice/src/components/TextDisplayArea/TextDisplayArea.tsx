@@ -28,7 +28,7 @@ interface TextDisplayAreaProps {
 
 const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1000, speakButtonPadding = 0, onSave }) => {
   const { setText, cursorPosition, setCursorPosition, pendingSelection, clearPendingSelection } = useText();
-  const { isSpeaking, spokenRange } = useTTS();
+  const { isSpeaking, spokenRange, spokenText } = useTTS();
   const { strings, isRTL, language } = useLocalization();
   const textInputRef = useRef<TextInput>(null);
   const [selection, setSelection] = useState<{ start: number; end: number } | undefined>(undefined);
@@ -115,7 +115,7 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1
           { fontSize, lineHeight, height: '100%' },
           isPhoneLandscape && { paddingTop: 4 },
           isTextRTL && styles.textInputRTL,
-          isSpeaking && styles.hiddenTextInput,
+          isSpeaking && spokenText === text && styles.hiddenTextInput,
           speakButtonPadding > 0 && { paddingBottom: speakButtonPadding },
         ]}
         value={text}
@@ -145,7 +145,7 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1
       <InputAccessoryView nativeID="emptyAccessory">
         <View />
       </InputAccessoryView>
-      {isSpeaking && text.length > 0 && (
+      {isSpeaking && text.length > 0 && spokenText === text && (
         <ScrollView style={styles.highlightOverlay} pointerEvents="none">
           {renderHighlightedText()}
         </ScrollView>

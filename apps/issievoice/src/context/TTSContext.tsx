@@ -10,6 +10,7 @@ interface TTSContextType {
   speak: (text: string, languageMode?: 'en-only' | 'he-only' | 'detect', englishVoice?: string, hebrewVoice?: string, arabicVoice?: string) => Promise<void>;
   stop: () => Promise<void>;
   isSpeaking: boolean;
+  spokenText: string | null;
   spokenRange: SpokenRange | null;
   settings: TTSSettings;
   updateSettings: (settings: Partial<TTSSettings>) => Promise<void>;
@@ -32,6 +33,7 @@ const hasArabicCharacters = (text: string): boolean => /[\u0600-\u06FF]/.test(te
 
 export const TTSProvider = ({children}: {children: ReactNode}) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [spokenText, setSpokenText] = useState<string | null>(null);
   const [spokenRange, setSpokenRange] = useState<SpokenRange | null>(null);
   const [settings, setSettings] = useState<TTSSettings>({
     rate: 0.5,
@@ -59,6 +61,7 @@ export const TTSProvider = ({children}: {children: ReactNode}) => {
     TTS.onTtsFinish(() => {
       setIsSpeaking(false);
       setSpokenRange(null);
+      setSpokenText(null);
     });
     TTS.onTtsProgress((event) => {
       setSpokenRange({location: event.location, length: event.length});
@@ -116,6 +119,7 @@ export const TTSProvider = ({children}: {children: ReactNode}) => {
       }
 
       await TTS.speak(text);
+      setSpokenText(text);
     } catch (error) {
       console.error('Failed to speak:', error);
       setIsSpeaking(false);
@@ -127,6 +131,7 @@ export const TTSProvider = ({children}: {children: ReactNode}) => {
       await TTS.stop();
       setIsSpeaking(false);
       setSpokenRange(null);
+      setSpokenText(null);
     } catch (error) {
       console.error('Failed to stop:', error);
     }
@@ -185,7 +190,7 @@ export const TTSProvider = ({children}: {children: ReactNode}) => {
   };
 
   return (
-    <TTSContext.Provider value={{speak, stop, isSpeaking, spokenRange, settings, updateSettings, setLanguage, getAvailableVoices, setVoice}}>
+    <TTSContext.Provider value={{speak, stop, isSpeaking, spokenText, spokenRange, settings, updateSettings, setLanguage, getAvailableVoices, setVoice}}>
       {children}
     </TTSContext.Provider>
   );

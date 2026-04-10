@@ -183,7 +183,7 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation}) => {
       <View style={[styles.sentenceCard, isLandscape && styles.sentenceCardLandscape]}>
         <TouchableOpacity
           style={styles.sentenceTextContainer}
-          onPress={() => handleReplaceText(item)}
+          onPress={() => handleSpeakPress(item)}
           activeOpacity={0.7}>
 
           {hasCustomDisplay ? (
