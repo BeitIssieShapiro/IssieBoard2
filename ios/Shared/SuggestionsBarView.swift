@@ -121,7 +121,6 @@ class SuggestionsBarView {
         }
         
         let cellWidth = barWidth / CGFloat(suggestionCount)
-        let dividerWidth: CGFloat = 1.0
         
         // Check if we should use RTL layout
         let isRTL = isCurrentKeyboardRTL()
@@ -181,22 +180,22 @@ class SuggestionsBarView {
             
             // Add divider after each cell except the last
             if index < suggestionCount - 1 {
-                let divider = UIView()
-                divider.backgroundColor = (customTextColor ?? UIColor.systemGray3).withAlphaComponent(0.3)
-                
                 let dividerX: CGFloat
                 if isRTL {
-                    dividerX = x - (dividerWidth / 2)
+                    dividerX = x - 2
                 } else {
-                    dividerX = x + cellWidth - (dividerWidth / 2)
+                    dividerX = x + cellWidth - 2
                 }
-                
-                divider.frame = CGRect(
-                    x: dividerX,
-                    y: barViewHeight * 0.2,
-                    width: dividerWidth,
-                    height: barViewHeight * 0.6
-                )
+
+                let dividerY = barViewHeight * 0.15
+                let dividerH = barViewHeight * 0.7
+
+                let divider = UIView()
+                divider.backgroundColor = UIColor.systemGray2
+                divider.layer.borderColor = UIColor.white.cgColor
+                divider.layer.borderWidth = 1
+                divider.layer.cornerRadius = 2
+                divider.frame = CGRect(x: dividerX, y: dividerY, width: 4, height: dividerH)
                 bar.addSubview(divider)
             }
         }

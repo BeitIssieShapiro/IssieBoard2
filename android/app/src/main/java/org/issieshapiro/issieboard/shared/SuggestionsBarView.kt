@@ -3,6 +3,7 @@ package org.issieshapiro.issieboard.shared
 import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
@@ -154,7 +155,6 @@ class SuggestionsBarView(private val context: Context) {
         val barViewHeight = if (bar.height > 0) bar.height else barHeight
         
         val cellWidth = barWidth / suggestionCount
-        val dividerWidth = dpToPx(1)
         
         // Check if we should use RTL layout
         val isRTL = isCurrentKeyboardRTL()
@@ -223,19 +223,19 @@ class SuggestionsBarView(private val context: Context) {
             
             // Add divider after each cell except the last
             if (displayIndex < suggestionCount - 1) {
+                val dividerHeight = (barViewHeight * 0.7).toInt()
+                val dividerTopMargin = (barViewHeight * 0.15).toInt()
+                val onePixel = dpToPx(1)
+
                 val divider = View(context).apply {
-                    // Use customTextColor with 0.3 alpha, or systemGray3 equivalent at 0.3 alpha
-                    val baseColor = customTextColor ?: Color.parseColor("#C7C7CC")
-                    val dividerColor = Color.argb(
-                        (0.3f * 255).toInt(),
-                        Color.red(baseColor),
-                        Color.green(baseColor),
-                        Color.blue(baseColor)
-                    )
-                    setBackgroundColor(dividerColor)
+                    background = GradientDrawable().apply {
+                        setColor(Color.parseColor("#AEAEB2"))
+                        setStroke(onePixel, Color.WHITE)
+                        cornerRadius = dpToPx(2).toFloat()
+                    }
                 }
-                val dividerParams = LinearLayout.LayoutParams(dividerWidth, (barViewHeight * 0.6).toInt())
-                dividerParams.topMargin = (barViewHeight * 0.2).toInt()
+                val dividerParams = LinearLayout.LayoutParams(onePixel * 4, dividerHeight)
+                dividerParams.topMargin = dividerTopMargin
                 bar.addView(divider, dividerParams)
             }
         }
