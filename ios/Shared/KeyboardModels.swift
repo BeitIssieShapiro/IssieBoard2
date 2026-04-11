@@ -469,6 +469,15 @@ extension UIColor {
         
         self.init(red: r, green: g, blue: b, alpha: a)
     }
+
+    /// Returns white or black depending on the luminance of this color
+    func contrastingTextColor() -> UIColor {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        getRed(&r, green: &g, blue: &b, alpha: &a)
+        // W3C relative luminance formula
+        let luminance = 0.299 * r + 0.587 * g + 0.114 * b
+        return luminance > 0.5 ? .black : .white
+    }
 }
 
 // MARK: - Diacritics Generator

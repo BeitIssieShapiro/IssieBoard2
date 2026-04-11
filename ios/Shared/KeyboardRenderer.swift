@@ -73,8 +73,7 @@ class KeyboardRenderer {
     private var showGlobeButton: Bool = true
     
     // Callbacks for system keyboard actions (only used by actual keyboard)
-    var onNextKeyboard: (() -> Void)?
-    var onShowKeyboardList: ((UIView, UILongPressGestureRecognizer) -> Void)?  // Pass button and gesture for positioning
+    var onHandleInputModeList: ((UIView, UIEvent) -> Void)?  // Forward all touch events to handleInputModeList
     var onDismissKeyboard: (() -> Void)?
     var onOpenSettings: (() -> Void)?
     var onLanguageSwitch: (() -> Void)?
@@ -771,6 +770,21 @@ class KeyboardRenderer {
             } else {
                 suggestionsBarView.customTextColor = nil
             }
+            // If bg and text colors are too similar, override with a contrasting color
+            if let bgColor = suggestionsBarView.customBackgroundColor {
+                let textColor = suggestionsBarView.customTextColor ?? .label
+                let contrastingColor = bgColor.contrastingTextColor()
+                // Check if current text color has poor contrast with background
+                var tr: CGFloat = 0, tg: CGFloat = 0, tb: CGFloat = 0
+                var br: CGFloat = 0, bg2: CGFloat = 0, bb: CGFloat = 0
+                textColor.getRed(&tr, green: &tg, blue: &tb, alpha: nil)
+                bgColor.getRed(&br, green: &bg2, blue: &bb, alpha: nil)
+                let textLum = 0.299 * tr + 0.587 * tg + 0.114 * tb
+                let bgLum = 0.299 * br + 0.587 * bg2 + 0.114 * bb
+                if abs(textLum - bgLum) < 0.3 {
+                    suggestionsBarView.customTextColor = contrastingColor
+                }
+            }
 
             // Real keyboard - show native suggestions bar at the very top
             let bar = suggestionsBarView.createBar(width: container.bounds.width * currentScale, height: scaledSuggestionsBarHeight)
@@ -1351,13 +1365,14 @@ class KeyboardRenderer {
             // Settings and close: always tap-selectable
             button.addTarget(self, action: #selector(keyTapped(_:)), for: .touchUpInside)
         } else if keyType == "next-keyboard" {
-            // Next-keyboard (globe): tap to advance, long-press to show keyboard list
-            button.addTarget(self, action: #selector(keyTapped(_:)), for: .touchUpInside)
-
-            // Add long-press gesture to show keyboard picker
-            let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(nextKeyboardLongPressed(_:)))
-            longPressGesture.minimumPressDuration = 0.5
-            button.addGestureRecognizer(longPressGesture)
+            if onHandleInputModeList != nil {
+                // Actual keyboard: forward all touch events to handleInputModeList
+                // iOS handles tap (cycle keyboard) and long-press (show picker) automatically
+                button.addTarget(self, action: #selector(globeButtonTouchEvent(_:event:)), for: .allTouchEvents)
+            } else {
+                // Preview mode: use normal tap handler for selection/language switch
+                button.addTarget(self, action: #selector(keyTapped(_:)), for: .touchUpInside)
+            }
         } else if keyType == "shift" {
             // Shift: normal tap for toggle, long-press for selection in edit mode
             button.addTarget(self, action: #selector(keyTapped(_:)), for: .touchUpInside)
@@ -1657,30 +1672,39 @@ class KeyboardRenderer {
 
         if shouldUseCustomFont, let fontName = config?.fontName, let customFont = UIFont(name: fontName, size: finalFontSize + 2) {
             label.font = customFont
-            // Add spacing for single character labels when using custom font to prevent glyph cutoff
-            if finalText.count == 1 {
-                label.text = " \(finalText) "
-            }
         } else {
             label.font = UIFont.systemFont(ofSize: finalFontSize, weight: fontWeight)
         }
-        
+
         label.adjustsFontSizeToFitWidth = isNikkudKey ? false : true
         label.minimumScaleFactor = 0.3
         label.numberOfLines = 1
         label.textAlignment = .center
         label.textColor = textColor
-        
+
         // Add label to visual key view (centered)
         if key.type.lowercased() != "settings" {
             visualKeyView.addSubview(label)
             label.translatesAutoresizingMaskIntoConstraints = false
-            NSLayoutConstraint.activate([
-                label.centerXAnchor.constraint(equalTo: visualKeyView.centerXAnchor),
-                label.centerYAnchor.constraint(equalTo: visualKeyView.centerYAnchor),
-                label.leadingAnchor.constraint(greaterThanOrEqualTo: visualKeyView.leadingAnchor, constant: 2),
-                label.trailingAnchor.constraint(lessThanOrEqualTo: visualKeyView.trailingAnchor, constant: -2)
-            ])
+            if shouldUseCustomFont {
+                // Custom fonts: allow label to overflow the visual key view
+                // Some glyphs (e.g. נ, ת, ף, ץ in gveret-levin) extend beyond their cell
+                visualKeyView.clipsToBounds = false
+                label.clipsToBounds = false
+                NSLayoutConstraint.activate([
+                    label.centerXAnchor.constraint(equalTo: visualKeyView.centerXAnchor),
+                    label.centerYAnchor.constraint(equalTo: visualKeyView.centerYAnchor),
+                    label.widthAnchor.constraint(equalTo: visualKeyView.widthAnchor, multiplier: 1.4),
+                    label.heightAnchor.constraint(equalTo: visualKeyView.heightAnchor, multiplier: 1.4),
+                ])
+            } else {
+                NSLayoutConstraint.activate([
+                    label.centerXAnchor.constraint(equalTo: visualKeyView.centerXAnchor),
+                    label.centerYAnchor.constraint(equalTo: visualKeyView.centerYAnchor),
+                    label.leadingAnchor.constraint(greaterThanOrEqualTo: visualKeyView.leadingAnchor, constant: 2),
+                    label.trailingAnchor.constraint(lessThanOrEqualTo: visualKeyView.trailingAnchor, constant: -2)
+                ])
+            }
         }
 
         // Get key gap from config or use defaults
@@ -1716,7 +1740,7 @@ class KeyboardRenderer {
             visualKeyView.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -horizontalGap),
             visualKeyView.bottomAnchor.constraint(equalTo: button.bottomAnchor, constant: -verticalGap)
         ])
-        
+
         return button
     }
     
@@ -1941,17 +1965,9 @@ class KeyboardRenderer {
         }
     }
 
-    /// Handle long-press on next-keyboard (globe) button to show keyboard list
-    @objc private func nextKeyboardLongPressed(_ gesture: UILongPressGestureRecognizer) {
-        // Only trigger on initial recognition, not continued updates
-        guard gesture.state == .began else { return }
-
-        guard let button = gesture.view as? UIButton else {
-            return
-        }
-
-        print("🌐 Globe button long-pressed - showing keyboard list")
-        onShowKeyboardList?(button, gesture)
+    /// Forward all touch events from globe button to handleInputModeList
+    @objc private func globeButtonTouchEvent(_ sender: UIView, event: UIEvent) {
+        onHandleInputModeList?(sender, event)
     }
 
     // MARK: - Key Press Popup Bubble
@@ -2399,14 +2415,12 @@ class KeyboardRenderer {
                         
         case "next-keyboard":
             // In selection mode, emit key press for selection
-            // In normal mode, handle next-keyboard action
+            // In preview mode, switch language and emit event
+            // In actual keyboard mode, handleInputModeList handles everything via .allTouchEvents
             if onKeyLongPress != nil {
                 print("   → Selection mode: emitting key press")
                 onKeyPress?(key)
-            } else if let onNextKeyboard = onNextKeyboard {
-                print("   → Calling onNextKeyboard (actual keyboard)")
-                onNextKeyboard()
-            } else {
+            } else if onHandleInputModeList == nil {
                 print("   → Preview mode: switching language and emitting event")
                 switchLanguage()
                 // Emit key press so React can sync its state

@@ -41,11 +41,8 @@ class KeyboardEngine {
 
     // MARK: - Callbacks
 
-    /// Called when next keyboard button is pressed (for system keyboard only)
-    var onNextKeyboard: (() -> Void)?
-
-    /// Called when globe button is long-pressed to show keyboard list
-    var onShowKeyboardList: ((UIView, UILongPressGestureRecognizer) -> Void)?
+    /// Called when globe button touch events should be forwarded to handleInputModeList
+    var onHandleInputModeList: ((UIView, UIEvent) -> Void)?
 
     /// Called when dismiss keyboard button is pressed
     var onDismissKeyboard: (() -> Void)?
@@ -112,12 +109,8 @@ class KeyboardEngine {
             self?.handleSuggestionSelected(suggestion)
         }
 
-        renderer.onNextKeyboard = { [weak self] in
-            self?.onNextKeyboard?()
-        }
-
-        renderer.onShowKeyboardList = { [weak self] button, gesture in
-            self?.onShowKeyboardList?(button, gesture)
+        renderer.onHandleInputModeList = { [weak self] button, event in
+            self?.onHandleInputModeList?(button, event)
         }
 
         renderer.onDismissKeyboard = { [weak self] in
@@ -243,7 +236,9 @@ class KeyboardEngine {
             break
 
         case "next-keyboard":
-            onNextKeyboard?()
+            // In actual keyboard, handleInputModeList handles this via .allTouchEvents
+            // This case is only reached in preview mode, which the renderer handles directly
+            break
 
         default:
             // Determine which value to use based on shift state
