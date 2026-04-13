@@ -290,7 +290,9 @@ class KeyboardRenderer {
     private let keyCornerRadius: CGFloat = 5
     private let fontSize: CGFloat = 24
     private let largeFontSize: CGFloat = 28
-    private let suggestionsBarHeight: CGFloat = 32  // Reduced by 20% from 40
+    private var suggestionsBarHeight: CGFloat {
+        return rowHeight * 0.75
+    }
     private let suggestionsFontSize: CGFloat = 26  // Larger than key font (24) for better readability
 
     // Use the same rowSpacing as KeyboardHeightConstants for consistency
@@ -498,7 +500,7 @@ class KeyboardRenderer {
 
         let rowsHeight = CGFloat(numberOfRows) * calculatedRowHeight
         let spacingHeight = CGFloat(max(0, numberOfRows - 1)) * rowSpacing
-        let suggestionsHeight = suggestionsEnabled ? suggestionsBarHeight : 0
+        let suggestionsHeight = suggestionsEnabled ? calculatedRowHeight * 0.75 : 0
         let topPadding: CGFloat = 0
         let bottomPadding: CGFloat = 4
 
@@ -625,6 +627,9 @@ class KeyboardRenderer {
         print("⚙️ [Config] fontSizePreset from config: \(config.fontSizePreset ?? "nil")")
         print("⚙️ [Config] fontName from config: \(config.fontName ?? "nil")")
         print("⚙️ [Config] fontWeight from config: \(config.fontWeight ?? "nil")")
+        print("⚙️ [Config] backgroundColor from config: \(config.backgroundColor ?? "nil")")
+        print("⚙️ [Config] textColor from config: \(config.textColor ?? "nil")")
+        print("⚙️ [Config] keysBgColor from config: \(config.keysBgColor ?? "nil")")
         print("📐 RENDER CALL STACK:")
         Thread.callStackSymbols.prefix(10).forEach { print("  \($0)") }
 
@@ -753,37 +758,19 @@ class KeyboardRenderer {
         var topOffset: CGFloat = 0  // Start at 0 to push suggestions bar to very top
 
         if wordSuggestionsEnabled && !isPreviewMode {
-            // Pass keyboard colors to suggestions bar
-            if let bgColorString = config.backgroundColor,
-               !bgColorString.isEmpty,
-               bgColorString.lowercased() != "default",
-               let bgColor = UIColor(hexString: bgColorString) {
-                suggestionsBarView.customBackgroundColor = bgColor
+            // Suggestion pills use same colors as default keys
+            suggestionsBarView.customBackgroundColor = getDefaultKeyBgColor()
+            suggestionsBarView.customTextColor = getDefaultTextColor()
+
+            // Pass font settings to suggestions bar
+            suggestionsBarView.customFontWeight = configFontWeight
+            suggestionsBarView.customFontSize = baseFontSize
+
+            // Pass custom font if configured
+            if let fontName = config.fontName, let font = UIFont(name: fontName, size: 16) {
+                suggestionsBarView.customFont = font
             } else {
-                suggestionsBarView.customBackgroundColor = nil
-            }
-            if let textColorString = config.textColor,
-               !textColorString.isEmpty,
-               textColorString.lowercased() != "default",
-               let textColor = UIColor(hexString: textColorString) {
-                suggestionsBarView.customTextColor = textColor
-            } else {
-                suggestionsBarView.customTextColor = nil
-            }
-            // If bg and text colors are too similar, override with a contrasting color
-            if let bgColor = suggestionsBarView.customBackgroundColor {
-                let textColor = suggestionsBarView.customTextColor ?? .label
-                let contrastingColor = bgColor.contrastingTextColor()
-                // Check if current text color has poor contrast with background
-                var tr: CGFloat = 0, tg: CGFloat = 0, tb: CGFloat = 0
-                var br: CGFloat = 0, bg2: CGFloat = 0, bb: CGFloat = 0
-                textColor.getRed(&tr, green: &tg, blue: &tb, alpha: nil)
-                bgColor.getRed(&br, green: &bg2, blue: &bb, alpha: nil)
-                let textLum = 0.299 * tr + 0.587 * tg + 0.114 * tb
-                let bgLum = 0.299 * br + 0.587 * bg2 + 0.114 * bb
-                if abs(textLum - bgLum) < 0.3 {
-                    suggestionsBarView.customTextColor = contrastingColor
-                }
+                suggestionsBarView.customFont = nil
             }
 
             // Real keyboard - show native suggestions bar at the very top

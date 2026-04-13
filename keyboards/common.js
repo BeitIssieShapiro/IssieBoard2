@@ -81,6 +81,7 @@ module.exports = {
           }
         },
         "123": {
+          firstRow: { append: [{ type: "backspace", width: 1.5 }] },
           lastRow: {
             append: [
               { type: "enter", width: 1.5 }
@@ -88,6 +89,7 @@ module.exports = {
           }
         },
         "#+=" : {
+          firstRow: { append: [{ type: "backspace", width: 1.5 }] },
           lastRow: {
             append: [
               { type: "enter", width: 1.5 }

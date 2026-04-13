@@ -692,7 +692,7 @@ struct KeyboardHeightConstants {
 
     // MARK: - Component Heights
 
-    /// Suggestions bar height (reduced by 20% from 40)
+    /// Suggestions bar height (used for height budget calculations)
     static let suggestionsBarHeight: CGFloat = 32
 
     /// Vertical spacing between rows (0 — gap is handled by key's vertical padding via keyGap)

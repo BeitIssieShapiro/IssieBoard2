@@ -9,6 +9,12 @@ Arabic:
 - icon for nikkud - from Alla
 
 IssieBoard:
+- change suggestions to look like issie IssieVoice
+- control over the style (bg, color) is same as any key - add explanation in the advanced
+
+
+
+
 V- en/he from issie IssieVoice
 V- shifts, 123, close kb and nikkud should stay in showOnly
 V- fonts
