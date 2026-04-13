@@ -155,7 +155,7 @@ class WordCompletionManager {
         let language = languageCode ?? currentLanguage ?? "en"
         
         guard !prefix.isEmpty else {
-            let defaults = getDefaultSuggestions(for: language)
+            let defaults = WordCompletionManager.getDefaultSuggestions(for: language)
             return SuggestionResult(
                 suggestions: defaults,
                 hasFuzzyOnly: false,
@@ -217,7 +217,7 @@ class WordCompletionManager {
             if combinedExact.isEmpty {
                 print("📚 WordCompletionManager: No exact matches for single-letter prefix '\(normalizedPrefix)' - returning defaults")
                 // Return default suggestions instead of empty
-                let defaults = getDefaultSuggestions(for: language)
+                let defaults = WordCompletionManager.getDefaultSuggestions(for: language)
                 return SuggestionResult(
                     suggestions: defaults,
                     hasFuzzyOnly: false,
@@ -439,11 +439,11 @@ class WordCompletionManager {
     /// These are common words that users frequently start typing
     /// Language-specific defaults for: en, he, ar
     private func getDefaultSuggestions() -> [String] {
-        return getDefaultSuggestions(for: currentLanguage)
+        return WordCompletionManager.getDefaultSuggestions(for: currentLanguage)
     }
     
     /// Get language-specific default suggestions
-    private func getDefaultSuggestions(for languageCode: String?) -> [String] {
+    static func getDefaultSuggestions(for languageCode: String?) -> [String] {
         switch languageCode {
         case "he":
             return ["אני", "זה", "לא"]

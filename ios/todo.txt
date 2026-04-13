@@ -9,8 +9,8 @@ Arabic:
 - icon for nikkud - from Alla
 
 IssieBoard:
-- change suggestions to look like issie IssieVoice
-- control over the style (bg, color) is same as any key - add explanation in the advanced
+V- change suggestions to look like issie IssieVoice
+V- control over the style (bg, color) is same as any key - add explanation in the advanced
 
 
 

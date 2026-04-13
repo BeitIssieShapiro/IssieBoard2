@@ -524,7 +524,7 @@ class KeyboardPreviewView: UIView {
         lastRenderedWidth = bounds.width
 
         // Calculate and report keyboard height to React Native
-        let suggestionsEnabled = false // Preview has suggestions disabled
+        let suggestionsEnabled = config.wordSuggestionsEnabled ?? true
         let calculatedHeight = renderer.calculateKeyboardHeight(for: config, keysetId: currentKeysetId, suggestionsEnabled: suggestionsEnabled)
 
         print("📐 [KeyboardPreviewView-ConfigMode] Calculated height: \(calculatedHeight)")

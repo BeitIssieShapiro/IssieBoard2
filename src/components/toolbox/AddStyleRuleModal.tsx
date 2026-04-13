@@ -171,7 +171,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
 
     // For special keys (enter, shift, backspace, space, nikkud), use the type as the value for storage
     // This ensures they can be selected and styled consistently
-    const specialKeyTypes = ['enter', 'shift', 'backspace', 'space', 'settings', 'close', 'nikkud', 'next-keyboard', 'language'];
+    const specialKeyTypes = ['enter', 'shift', 'backspace', 'space', 'settings', 'close', 'nikkud', 'next-keyboard', 'language', 'suggestion'];
     const keyValue = specialKeyTypes.includes(type) ? type : (value || type);
 
     if (!keyValue) return;
@@ -410,7 +410,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
     return {
       ...finalConfig,
       groups, // Only the current group being edited, not other groups
-      wordSuggestionsEnabled: false, // Disable word suggestions in modal preview
+      wordSuggestionsEnabled: state.config.wordSuggestionsEnabled ?? true,
     };
   }, [state.config, state.styleGroups, selectedKeyValues, bgColor, textColor, visibilityMode, hideCloseKey, hideGlobeButton, selectedLanguages, speakButtonInKeyboard]);
 
@@ -449,6 +449,17 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
     }
     return JSON.stringify(positionIds);
   }, [selectedKeyValues, previewConfig.keysets]);
+
+  // Also pass "suggestion" as a selected key if it's in the selection
+  // The native renderer checks for this directly to highlight suggestion pills
+  const finalSelectedKeysJson = useMemo(() => {
+    if (!selectedKeysJson && !selectedKeyValues.includes('suggestion')) return undefined;
+    const ids: string[] = selectedKeysJson ? JSON.parse(selectedKeysJson) : [];
+    if (selectedKeyValues.includes('suggestion')) {
+      ids.push('suggestion');
+    }
+    return JSON.stringify(ids);
+  }, [selectedKeysJson, selectedKeyValues]);
 
   if (!visible) return null;
 
@@ -524,7 +535,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
                   key="modal-preview"
                   style={{ height: modalPreviewHeight }}
                   configJson={previewConfigJson}
-                  selectedKeys={selectedKeysJson}
+                  selectedKeys={finalSelectedKeysJson}
                   maxHeight={modalPreviewHeight}
                   hideGlobeButton={hideGlobeButton}
                   onKeyPress={handleKeyPress}

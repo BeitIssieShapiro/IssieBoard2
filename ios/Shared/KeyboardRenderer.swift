@@ -374,7 +374,19 @@ class KeyboardRenderer {
         
         // SuggestionsBarView callbacks
         suggestionsBarView.onSuggestionSelected = { [weak self] suggestion in
-            self?.onSuggestionSelected?(suggestion)
+            guard let self = self else { return }
+            if self.isPreviewMode {
+                // Config mode: emit as key press with type "suggestion" for group selection
+                let tempKey = Key(value: "suggestion", sValue: nil, caption: suggestion, sCaption: nil,
+                                  type: "suggestion", width: nil, offset: nil, hidden: nil, opacity: nil,
+                                  color: nil, bgColor: nil, fontSizePreset: nil, label: nil,
+                                  keysetValue: nil, returnKeysetValue: nil, returnKeysetLabel: nil,
+                                  nikkud: nil, showOn: nil, flex: nil, showForField: nil)
+                let parsed = ParsedKey(from: tempKey, groups: [:], defaultTextColor: .black, defaultBgColor: .white)
+                self.onKeyPress?(parsed)
+            } else {
+                self.onSuggestionSelected?(suggestion)
+            }
         }
         
         // NikkudPickerController callbacks
@@ -451,7 +463,12 @@ class KeyboardRenderer {
         }
         return UIColor(hexString: bgColorString) ?? .white
     }
-    
+
+    /// Get placeholder suggestion words for preview mode
+    private func getPlaceholderSuggestions() -> [String] {
+        return WordCompletionManager.getDefaultSuggestions(for: currentKeyboardId)
+    }
+
     // MARK: - Public Methods
     
     /// Calculate the required keyboard height based on the current config
@@ -757,10 +774,23 @@ class KeyboardRenderer {
         // Show suggestions bar in real keyboard, hide in preview (preview sends to React Native)
         var topOffset: CGFloat = 0  // Start at 0 to push suggestions bar to very top
 
-        if wordSuggestionsEnabled && !isPreviewMode {
-            // Suggestion pills use same colors as default keys
-            suggestionsBarView.customBackgroundColor = getDefaultKeyBgColor()
-            suggestionsBarView.customTextColor = getDefaultTextColor()
+        if wordSuggestionsEnabled {
+            // Suggestion pills: start with default key colors, then apply group override if exists
+            var suggestionBgColor = getDefaultKeyBgColor()
+            var suggestionTextColor = getDefaultTextColor()
+
+            // Check if "suggestion" has a group style override
+            if let groupTemplate = groupsMap["suggestion"] {
+                if let bgStr = groupTemplate.bgColor, !bgStr.isEmpty, let color = UIColor(hexString: bgStr) {
+                    suggestionBgColor = color
+                }
+                if let colorStr = groupTemplate.color, !colorStr.isEmpty, let color = UIColor(hexString: colorStr) {
+                    suggestionTextColor = color
+                }
+            }
+
+            suggestionsBarView.customBackgroundColor = suggestionBgColor
+            suggestionsBarView.customTextColor = suggestionTextColor
 
             // Pass font settings to suggestions bar
             suggestionsBarView.customFontWeight = configFontWeight
@@ -773,13 +803,22 @@ class KeyboardRenderer {
                 suggestionsBarView.customFont = nil
             }
 
-            // Real keyboard - show native suggestions bar at the very top
+            // Show native suggestions bar at the very top
             let bar = suggestionsBarView.createBar(width: container.bounds.width * currentScale, height: scaledSuggestionsBarHeight)
             container.addSubview(bar)
-            topOffset = scaledSuggestionsBarHeight  // Use scaled bar height
-            suggestionsBar = bar  // Store UIView reference for legacy code
+            topOffset = scaledSuggestionsBarHeight
+            suggestionsBar = bar
+
+            // Selection state for editor
+            suggestionsBarView.isSelected = selectedKeyIds.contains("suggestion")
+
+            // In preview mode, show placeholder suggestions
+            if isPreviewMode {
+                suggestionsBarView.currentKeyboardId = currentKeyboardId
+                let placeholders = getPlaceholderSuggestions()
+                suggestionsBarView.updateSuggestions(placeholders)
+            }
         } else {
-            // Preview mode - don't show bar (React Native handles it)
             suggestionsBar = nil
         }
 

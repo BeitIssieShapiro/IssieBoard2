@@ -267,7 +267,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
       ...state.config,
       keysets: finalKeysets,
       groups: groupConfigs,
-      wordSuggestionsEnabled: false,
+      wordSuggestionsEnabled: state.config.wordSuggestionsEnabled ?? true,
     };
 
     return previewConfig;

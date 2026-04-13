@@ -38,6 +38,9 @@ class SuggestionsBarView {
     /// Current keyboard ID for RTL detection
     var currentKeyboardId: String?
 
+    /// Whether suggestion type is selected (for editor blue border)
+    var isSelected: Bool = false
+
     /// Custom background color from keyboard config
     var customBackgroundColor: UIColor?
 
@@ -214,6 +217,12 @@ class SuggestionsBarView {
             } else {
                 pillBgView.backgroundColor = customBackgroundColor ?? .white
                 label.textColor = customTextColor ?? .label
+            }
+
+            // Selection border (editor mode)
+            if isSelected {
+                pillBgView.layer.borderWidth = 3.0
+                pillBgView.layer.borderColor = UIColor.systemBlue.cgColor
             }
 
             // Store suggestion for retrieval on tap
