@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="1620"
+    android:viewportHeight="1620">
+
+  <!-- Adaptive icon: 108dp canvas, 72dp safe zone = 66.7% centered -->
+  <!-- Content must fit within center 1080 of 1620 viewport (270 inset each side) -->
+  <group
+      android:scaleX="0.62"
+      android:scaleY="0.62"
+      android:pivotX="810"
+      android:pivotY="810">
+
+    <!-- Offset to account for SVG viewBox starting at -500,-500 -->
+    <group
+        android:translateX="500"
+        android:translateY="500">
+
+      <!-- Keyboard Keys (Upper Area) — replaces IssieVoice speaker -->
+      <group
+          android:translateX="-450"
+          android:translateY="-420"
+          android:scaleX="1.6"
+          android:scaleY="1.6">
+
+        <!-- Star -->
+        <path
+            android:fillColor="#faa919"
+            android:pathData="M175,195 L185,165 L195,195 L225,195 L200,210 L210,240 L185,222 L160,240 L170,210 L145,195 Z"/>
+
+        <!-- Top row: 5 keys -->
+        <path
+            android:fillColor="#ffffff"
+            android:pathData="M215,200 Q215,190 225,190 L285,190 Q295,190 295,200 L295,250 Q295,260 285,260 L225,260 Q215,260 215,250 Z"/>
+        <path
+            android:fillColor="#ffffff"
+            android:pathData="M310,200 Q310,190 320,190 L380,190 Q390,190 390,200 L390,250 Q390,260 380,260 L320,260 Q310,260 310,250 Z"/>
+        <path
+            android:fillColor="#ffffff"
+            android:pathData="M405,200 Q405,190 415,190 L475,190 Q485,190 485,200 L485,250 Q485,260 475,260 L415,260 Q405,260 405,250 Z"/>
+        <path
+            android:fillColor="#ffffff"
+            android:pathData="M500,200 Q500,190 510,190 L570,190 Q580,190 580,200 L580,250 Q580,260 570,260 L510,260 Q500,260 500,250 Z"/>
+        <path
+            android:fillColor="#ffffff"
+            android:pathData="M595,200 Q595,190 605,190 L665,190 Q675,190 675,200 L675,250 Q675,260 665,260 L605,260 Q595,260 595,250 Z"/>
+
+        <!-- Second row: 4 keys -->
+        <path
+            android:fillColor="#ffffff"
+            android:pathData="M215,280 Q215,270 225,270 L285,270 Q295,270 295,280 L295,330 Q295,340 285,340 L225,340 Q215,340 215,330 Z"/>
+        <path
+            android:fillColor="#ffffff"
+            android:pathData="M310,280 Q310,270 320,270 L380,270 Q390,270 390,280 L390,330 Q390,340 380,340 L320,340 Q310,340 310,330 Z"/>
+        <path
+            android:fillColor="#ffffff"
+            android:pathData="M405,280 Q405,270 415,270 L475,270 Q485,270 485,280 L485,330 Q485,340 475,340 L415,340 Q405,340 405,330 Z"/>
+        <path
+            android:fillColor="#ffffff"
+            android:pathData="M500,280 Q500,270 510,270 L570,270 Q580,270 580,280 L580,330 Q580,340 570,340 L510,340 Q500,340 500,330 Z"/>
+
+        <!-- Third row: spacebar -->
+        <path
+            android:fillColor="#ffffff"
+            android:pathData="M310,360 Q310,350 320,350 L570,350 Q580,350 580,360 L580,410 Q580,420 570,420 L320,420 Q310,420 310,410 Z"/>
+      </group>
+
+      <!-- Bird and Person (Lower Area) — IDENTICAL to IssieVoice -->
+      <group
+          android:translateX="-320"
+          android:translateY="0"
+          android:scaleX="1.6"
+          android:scaleY="1.6">
+        <!-- Yellow wing -->
+        <path
+            android:fillColor="#faa919"
+            android:pathData="M345.678,523.781C345.678,523.781 315.952,576.843 377.015,662.422C438.069,747.006 483.61,707.185 483.61,707.185L471.059,645.168L450.866,551.988L345.678,523.781"/>
+        <!-- White bird body -->
+        <path
+            android:fillColor="#ffffff"
+            android:pathData="M525.099,654.847C403.982,696.246 238.908,620.259 177.863,556.339C73.066,446.556 -1.774,522.862 -29.89,536.724C-34.4,538.97 -34.643,540.671 -30.631,541.409C-8.738,545.554 63.007,565.158 84.645,645.957C175.857,986.63 462.91,1015.758 613.404,981.065C687.481,963.982 705.372,932.471 655.204,947.753C612.63,960.712 579.921,949.135 579.496,927.852C578.799,893.753 628.365,887.577 752.998,823.123C952.145,720.16 871.728,480.44 871.728,480.44C871.728,480.44 755.811,575.954 525.099,654.847z"/>
+        <!-- Yellow beak -->
+        <path
+            android:fillColor="#faa919"
+            android:pathData="M619.933,475.807C619.933,475.807 568.572,477.72 514.705,458.079C492.701,450.033 465.188,414.417 442.071,402.281C368.143,363.401 351.828,412.149 351.828,412.149L355.376,422.86C349.763,432.5 346.698,443.003 347.153,455.258C348.145,482.535 366.209,504.73 389.781,511.464C402.927,516.249 438.045,526.468 488.734,521.883C553.858,515.976 619.933,475.807 619.933,475.807"/>
+        <!-- Yellow accent stripe -->
+        <path
+            android:fillColor="#faa919"
+            android:pathData="M209.43,426.954C209.43,426.954 251.517,474.577 345.993,506.468C440.479,538.35 495.235,533.215 560.742,581.793C612.867,620.426 644.906,677.093 644.906,677.093C644.906,677.093 589.269,604.888 473.582,595.696C357.886,586.49 207.274,482.463 209.43,426.954"/>
+      </group>
+
+    </group>
+  </group>
+</vector>
