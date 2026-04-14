@@ -313,7 +313,7 @@ class SuggestionsBarView {
     /// Check if the current keyboard is RTL (Hebrew or Arabic)
     private func isCurrentKeyboardRTL() -> Bool {
         guard let keyboardId = currentKeyboardId else { return false }
-        return keyboardId == "he" || keyboardId == "ar"
+        return keyboardId.hasPrefix("he") || keyboardId.hasPrefix("ar")
     }
 
     // MARK: - Actions

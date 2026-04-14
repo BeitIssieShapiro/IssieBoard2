@@ -13,7 +13,6 @@ import { useNotification } from '../context/NotificationContext';
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView, useSafeAreaInsets, useSafeAreaFrame } from 'react-native-safe-area-context';
 import TextDisplayArea from '../components/TextDisplayArea/TextDisplayArea';
-import SuggestionsBar from '../components/SuggestionsBar/SuggestionsBar';
 import FavoritesBar from '../components/FavoritesBar/FavoritesBar';
 
 import { KeyboardPreview, KeyPressEvent } from '../../../../src/components/KeyboardPreview';
@@ -21,7 +20,6 @@ import { buildKeyboardConfig } from '../../../../src/utils/keyboardConfigMerger'
 import { colors } from '../constants';
 import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 import KeyboardPreferences from '../../../../src/native/KeyboardPreferences';
-import { symbolService } from '../services/SymbolService';
 import { LANGUAGE_CYCLE_ORDER, KbLanguage } from '../components/Settings/LanguageSettingsPanel';
 
 interface MainScreenProps {
@@ -36,10 +34,6 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
   const [keyboardConfig, setKeyboardConfig] = useState<string>('');
   const defaultKbBg = Platform.OS === 'android' ? '#D2D3D9' : '#CBCFD8';
   const [keyboardBgColor, setKeyboardBgColor] = useState<string>(defaultKbBg);
-  const [kbSuggestions, setKbSuggestions] = useState<string[]>([]);
-  const [symbolUrls, setSymbolUrls] = useState<Map<string, string | null>>(new Map());
-  const symbolDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const suggestionsRef = useRef<string[]>([]);
   const [keyboardHeight, setKeyboardHeight] = useState(350);
   const [selectedLanguages, setSelectedLanguages] = useState<KbLanguage[]>(['he', 'en']);
   const [currentLanguage, setCurrentLanguage] = useState<KbLanguage>('he');
@@ -53,17 +47,6 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
   const [speakButtonInKeyboard, setSpeakButtonInKeyboard] = useState(false);
   const [symbolsInSuggestions, setSymbolsInSuggestions] = useState(false);
   const [favoritesUnusedHeight, setFavoritesUnusedHeight] = useState(0);
-
-  // Load symbol cache and clean up debounce on unmount
-  useEffect(() => {
-    symbolService.loadCache();
-    return () => {
-      // Clean up debounce timeout on unmount
-      if (symbolDebounceRef.current) {
-        clearTimeout(symbolDebounceRef.current);
-      }
-    };
-  }, []);
 
   // Load selected languages and last language from preferences
   useEffect(() => {
@@ -592,56 +575,6 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
     }
   };
 
-  const handleBrowse = () => {
-    navigation.navigate('Browse');
-  };
-
-  const handleSuggestionsChange = (event: any) => {
-    const suggestions = event.nativeEvent.suggestions || [];
-    console.log('🔮 KB Suggestions received:', suggestions);
-    setKbSuggestions(suggestions);
-    suggestionsRef.current = suggestions;
-
-    // Debounce symbol lookups
-    if (symbolDebounceRef.current) {
-      clearTimeout(symbolDebounceRef.current);
-    }
-    symbolDebounceRef.current = setTimeout(async () => {
-      if (!symbolsInSuggestions || suggestions.length === 0) {
-        setSymbolUrls(new Map());
-        return;
-      }
-      const urls = await symbolService.getSymbolUrls(suggestions);
-      // Only update if suggestions haven't changed
-      if (suggestionsRef.current === suggestions) {
-        setSymbolUrls(urls);
-      }
-    }, 300);
-  };
-
-  // Handle suggestion press from the SuggestionsBar
-  const handleSuggestionFromBar = (suggestion: string) => {
-    const pos = cursorPosition;
-
-    // Find the word boundaries around the cursor
-    let wordStart = pos;
-    while (wordStart > 0 && !/\s/.test(currentText[wordStart - 1])) {
-      wordStart--;
-    }
-    let wordEnd = pos;
-    while (wordEnd < currentText.length && !/\s/.test(currentText[wordEnd])) {
-      wordEnd++;
-    }
-
-    // Replace the entire word at cursor with suggestion + space
-    const before = currentText.slice(0, wordStart);
-    const after = currentText.slice(wordEnd);
-    const newText = before + suggestion + ' ' + after;
-    const newCursor = wordStart + suggestion.length + 1;
-    setCursorPosition(newCursor);
-    setText(newText);
-  };
-
   // Handle favorite press - speak the text
   const handleFavoritePress = async (text: string) => {
     console.log('⭐ Favorite selected:', text);
@@ -657,13 +590,9 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
     const newLanguage = activeLangs[nextIndex];
     console.log(`🌐 Switching language from ${currentLanguage} to ${newLanguage}`);
     setCurrentLanguage(newLanguage);
-    setKbSuggestions([]);
   };
 
 
-
-  const suggestionsHeight = isLandscape ? availableHeight * 0.22 : availableHeight * 0.18;
-  const minSymbolHeight = availableHeight * 0.4 >= 120 ? 120 : suggestionsHeight;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -727,19 +656,6 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
 
         {/* Unified Keyboard + Suggestions Container */}
         <View style={[styles.keyboardWrapper, { backgroundColor: keyboardBgColor }]}>
-          {/* Suggestions Bar - seamlessly integrated */}
-          <SuggestionsBar
-            currentText={currentText}
-            kbSuggestions={kbSuggestions}
-            symbolUrls={symbolsInSuggestions ? symbolUrls : new Map()}
-            language={currentLanguage}
-            onSuggestionPress={handleSuggestionFromBar}
-            onBrowse={handleBrowse}
-            height={Math.max(minSymbolHeight, suggestionsHeight)}
-            screenWidth={frame.width}
-            isRTL={isRTL}
-          />
-
           {/* IssieBoard Custom Keyboard */}
           <View style={{ height: keyboardHeight }}>
             <KeyboardPreview
@@ -749,10 +665,9 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
               text={currentText}
               hideGlobeButton
               onKeyPress={handleKeyPress}
-              onSuggestionsChange={handleSuggestionsChange}
               onHeightChange={(e) => {
-                const newHeight = e.nativeEvent.height - 40;
-                console.log('⌨️ Keyboard reported height:', e.nativeEvent.height, '→ setting container to:', newHeight);
+                const newHeight = e.nativeEvent.height;
+                console.log('⌨️ Keyboard reported height:', newHeight);
                 keyboardHeightRef.current = newHeight;
                 setKeyboardHeight(newHeight);
               }}

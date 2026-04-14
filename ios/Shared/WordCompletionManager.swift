@@ -444,13 +444,12 @@ class WordCompletionManager {
     
     /// Get language-specific default suggestions
     static func getDefaultSuggestions(for languageCode: String?) -> [String] {
-        switch languageCode {
-        case "he":
+        guard let code = languageCode else { return ["I", "the", "I'm"] }
+        if code.hasPrefix("he") {
             return ["אני", "זה", "לא"]
-        case "ar":
+        } else if code.hasPrefix("ar") {
             return ["أنا", "هذا", "لا"]
-        default:
-            // Default to English
+        } else {
             return ["I", "the", "I'm"]
         }
     }

@@ -375,8 +375,11 @@ class KeyboardRenderer {
         // SuggestionsBarView callbacks
         suggestionsBarView.onSuggestionSelected = { [weak self] suggestion in
             guard let self = self else { return }
-            if self.isPreviewMode {
-                // Config mode: emit as key press with type "suggestion" for group selection
+            if let handler = self.onSuggestionSelected {
+                // Engine mode (IssieVoice / real keyboard): route through engine
+                handler(suggestion)
+            } else {
+                // Config mode (IssieBoard editor): emit as key press for group selection
                 let tempKey = Key(value: "suggestion", sValue: nil, caption: suggestion, sCaption: nil,
                                   type: "suggestion", width: nil, offset: nil, hidden: nil, opacity: nil,
                                   color: nil, bgColor: nil, fontSizePreset: nil, label: nil,
@@ -384,8 +387,6 @@ class KeyboardRenderer {
                                   nikkud: nil, showOn: nil, flex: nil, showForField: nil)
                 let parsed = ParsedKey(from: tempKey, groups: [:], defaultTextColor: .black, defaultBgColor: .white)
                 self.onKeyPress?(parsed)
-            } else {
-                self.onSuggestionSelected?(suggestion)
             }
         }
         
@@ -1625,12 +1626,11 @@ class KeyboardRenderer {
             let imageName: String
             // Note: currentKeyboardId is optional, so unwrap it first
             if let keyboardId = currentKeyboardId {
-                switch keyboardId {
-                case "he":
+                if keyboardId.hasPrefix("he") {
                     imageName = "NikkudHatafKamatz"
-                case "ar":
-                    imageName = "NikkudShadda"
-                default:
+                } else if keyboardId.hasPrefix("ar") {
+                    imageName = "NikkudTashkeel"
+                } else {
                     imageName = "NikkudHatafKamatz"  // Default to Hebrew
                 }
             } else {
@@ -1818,13 +1818,12 @@ class KeyboardRenderer {
             // The dotted circle (U+25CC) is the standard base for displaying combining marks
             // Hebrew: hataf-kamatz (חתף-קמץ)
             // Arabic: shadda (شَدّة)
-            switch currentKeyboardId {
-            case "he":
+            if let keyboardId = currentKeyboardId, keyboardId.hasPrefix("he") {
                 return " \u{05B3}"  // Dotted circle + Hataf-kamatz
-            case "ar":
+            } else if let keyboardId = currentKeyboardId, keyboardId.hasPrefix("ar") {
                 return "◌\u{0651}"  // Dotted circle + Shadda
-            default:
-                return "◌"  
+            } else {
+                return "◌"
             }
         case "space":
             return "SPACE"
@@ -2781,7 +2780,7 @@ class KeyboardRenderer {
     /// Check if the current keyboard is RTL (Hebrew or Arabic)
     private func isCurrentKeyboardRTL() -> Bool {
         guard let keyboardId = currentKeyboardId else { return false }
-        return keyboardId == "he" || keyboardId == "ar"
+        return keyboardId.hasPrefix("he") || keyboardId.hasPrefix("ar")
     }
     
     /// Detect the actual text direction at the cursor position
