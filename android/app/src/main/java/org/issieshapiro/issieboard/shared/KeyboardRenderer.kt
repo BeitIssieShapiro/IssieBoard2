@@ -366,6 +366,11 @@ class KeyboardRenderer(private val context: Context) {
         }
         return parseColor(bgColorString) ?: Color.WHITE
     }
+
+    /** Get placeholder suggestion words for preview mode */
+    private fun getPlaceholderSuggestions(): List<String> {
+        return WordCompletionManager.getDefaultSuggestions(currentKeyboardId)
+    }
     
     // MARK: - Initialization
     
@@ -386,7 +391,37 @@ class KeyboardRenderer(private val context: Context) {
         
         // SuggestionsBarView callbacks
         suggestionsBarView.onSuggestionSelected = { suggestion ->
-            onSuggestionSelected?.invoke(suggestion)
+            val handler = onSuggestionSelected
+            if (handler != null) {
+                // Engine mode (IssieVoice / real keyboard): route through engine
+                handler.invoke(suggestion)
+            } else {
+                // Config mode (IssieBoard editor): emit as key press for group selection
+                val tempKey = Key(
+                    value = "suggestion",
+                    sValue = null,
+                    caption = suggestion,
+                    sCaption = null,
+                    type = "suggestion",
+                    width = null,
+                    offset = null,
+                    hidden = null,
+                    opacity = null,
+                    color = null,
+                    bgColor = null,
+                    fontSizePreset = null,
+                    label = null,
+                    keysetValue = null,
+                    returnKeysetValue = null,
+                    returnKeysetLabel = null,
+                    nikkud = null,
+                    showOn = null,
+                    flex = null,
+                    showForField = null
+                )
+                val parsed = ParsedKey.from(tempKey, emptyMap(), Color.BLACK, Color.WHITE)
+                onKeyPress?.invoke(parsed)
+            }
         }
         
         // NikkudPickerController callbacks
@@ -493,6 +528,11 @@ class KeyboardRenderer(private val context: Context) {
     /** Update word suggestions displayed in the suggestions bar */
     fun updateSuggestions(suggestions: List<String>, highlightIndex: Int? = null) {
         debugLog("📝 KeyboardRenderer updateSuggestions: $suggestions, highlight: ${highlightIndex?.toString() ?: "none"}, suggestionsBar=${suggestionsBar != null}")
+        // In preview mode, ignore controller updates — only renderKeyboard sets placeholders
+        if (isPreviewMode) {
+            debugLog("📝 KeyboardRenderer: Ignoring updateSuggestions in preview mode")
+            return
+        }
         currentSuggestions = suggestions
         suggestionHighlightIndex = highlightIndex
         updateSuggestionsBar()
@@ -700,23 +740,57 @@ class KeyboardRenderer(private val context: Context) {
         val isLinearContainer = container is LinearLayout
         debugLog("📐 Container is LinearLayout: $isLinearContainer")
 
-        // Show suggestions bar in real keyboard, hide in preview (preview sends to React Native)
-        if (wordSuggestionsEnabled && !isPreviewMode) {
-            // Pass keyboard colors to suggestions bar
-            val bgColorString = config.backgroundColor
-            if (!bgColorString.isNullOrEmpty() && bgColorString.lowercase() != "default") {
-                suggestionsBarView.customBackgroundColor = parseColor(bgColorString)
-            } else {
-                suggestionsBarView.customBackgroundColor = null
-            }
-            val textColorString = config.textColor
-            if (!textColorString.isNullOrEmpty() && textColorString.lowercase() != "default") {
-                suggestionsBarView.customTextColor = parseColor(textColorString)
-            } else {
-                suggestionsBarView.customTextColor = null
+        // Show suggestions bar in both real keyboard and preview mode
+        if (wordSuggestionsEnabled) {
+            // Suggestion pills: start with default key colors, then apply group override if exists
+            var suggestionBgColor: Int? = getDefaultKeyBgColor()
+            var suggestionTextColor: Int? = getDefaultTextColor()
+
+            // Check if "suggestion" has a group style override
+            val suggestionGroupTemplate = groupsMap["suggestion"]
+            if (suggestionGroupTemplate != null) {
+                val bgStr = suggestionGroupTemplate.bgColor
+                if (!bgStr.isNullOrEmpty()) {
+                    parseColor(bgStr)?.let { suggestionBgColor = it }
+                }
+                val colorStr = suggestionGroupTemplate.color
+                if (!colorStr.isNullOrEmpty()) {
+                    parseColor(colorStr)?.let { suggestionTextColor = it }
+                }
             }
 
-            // Real keyboard - show native suggestions bar
+            suggestionsBarView.customBackgroundColor = suggestionBgColor
+            suggestionsBarView.customTextColor = suggestionTextColor
+
+            // Pass font settings to suggestions bar
+            suggestionsBarView.customFontWeight = configFontWeight
+            // baseFontSize is in sp; convert to px and apply preview scale
+            val spToPx = TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_SP, 1f, context.resources.displayMetrics
+            )
+            suggestionsBarView.customFontSize = baseFontSize * spToPx * effectiveDimensionScale
+
+            // Pass custom font if configured
+            val fontName = config.fontName
+            if (fontName != null) {
+                try {
+                    val typeface = try {
+                        Typeface.createFromAsset(context.assets, "fonts/$fontName.ttf")
+                    } catch (_: Exception) {
+                        try {
+                            Typeface.createFromAsset(context.assets, "fonts/$fontName.otf")
+                        } catch (_: Exception) {
+                            Typeface.createFromAsset(context.assets, "fonts/$fontName")
+                        }
+                    }
+                    suggestionsBarView.customFont = typeface
+                } catch (e: Exception) {
+                    suggestionsBarView.customFont = null
+                }
+            } else {
+                suggestionsBarView.customFont = null
+            }
+
             suggestionsBarView.currentKeyboardId = currentKeyboardId
 
             // Create suggestions bar with scaled height
@@ -738,9 +812,20 @@ class KeyboardRenderer(private val context: Context) {
             }
             container.addView(bar)
             suggestionsBar = bar
-            suggestionsBarView.updateSuggestions(currentSuggestions, suggestionHighlightIndex)
+
+            // Selection state for editor
+            suggestionsBarView.isSelected = selectedKeyIds.contains("suggestion")
+            debugLog("📝 Suggestions bar isSelected=${suggestionsBarView.isSelected}, selectedKeyIds=$selectedKeyIds")
+
+            // In preview mode, show placeholder suggestions
+            if (isPreviewMode) {
+                suggestionsBarView.currentKeyboardId = currentKeyboardId
+                val placeholders = getPlaceholderSuggestions()
+                suggestionsBarView.updateSuggestions(placeholders)
+            } else {
+                suggestionsBarView.updateSuggestions(currentSuggestions, suggestionHighlightIndex)
+            }
         } else {
-            // Preview mode - don't show bar (React Native handles it)
             suggestionsBar = null
         }
 
@@ -1490,9 +1575,17 @@ class KeyboardRenderer(private val context: Context) {
                 try {
                     val fontName = config?.fontName
                     if (fontName != null) {
-                        // Load font from assets/fonts/
-                        val typeface = Typeface.createFromAsset(context.assets, "fonts/$fontName")
-                        setTypeface(typeface, fontWeight)
+                        // Load font from assets/fonts/ — try with .ttf then .otf extension
+                        val customTypeface = try {
+                            Typeface.createFromAsset(context.assets, "fonts/$fontName.ttf")
+                        } catch (_: Exception) {
+                            try {
+                                Typeface.createFromAsset(context.assets, "fonts/$fontName.otf")
+                            } catch (_: Exception) {
+                                Typeface.createFromAsset(context.assets, "fonts/$fontName")
+                            }
+                        }
+                        setTypeface(customTypeface, fontWeight)
                         // Add spacing for single character labels when using custom font to prevent glyph cutoff
                         if (finalText.length == 1) {
                             text = " $finalText "
@@ -1513,9 +1606,11 @@ class KeyboardRenderer(private val context: Context) {
             // Determine which drawable to use
             val drawableResId = if (isNikkudKey) {
                 // Nikkud keys use language-specific diacritical mark icons
-                when (currentKeyboardId) {
-                    "he" -> context.resources.getIdentifier("ic_nikkud_hataf_kamatz", "drawable", context.packageName)
-                    "ar" -> context.resources.getIdentifier("ic_nikkud_shadda", "drawable", context.packageName)
+                // The icons are: ic_nikkud_hataf_kamatz for Hebrew, ic_nikkud_tashkeel for Arabic
+                val kbId = currentKeyboardId
+                when {
+                    kbId != null && kbId.startsWith("he") -> context.resources.getIdentifier("ic_nikkud_hataf_kamatz", "drawable", context.packageName)
+                    kbId != null && kbId.startsWith("ar") -> context.resources.getIdentifier("ic_nikkud_tashkeel", "drawable", context.packageName)
                     else -> context.resources.getIdentifier("ic_nikkud_hataf_kamatz", "drawable", context.packageName)
                 }
             } else {
@@ -1903,10 +1998,17 @@ class KeyboardRenderer(private val context: Context) {
             "close" -> "icon:ic_keyboard_hide"
             "language" -> "<->"
             "next-keyboard" -> "🌐"
-            "nikkud" -> when (currentKeyboardId) {
-                "he" -> " \u05B3"  // Hataf-kamatz
-                "ar" -> "◌\u0651"  // Shadda
-                else -> "◌"
+            "nikkud" -> {
+                // Language-specific nikkud caption with dotted circle as base
+                // The dotted circle (U+25CC) is the standard base for displaying combining marks
+                // Hebrew: hataf-kamatz (חתף-קמץ)
+                // Arabic: shadda (شَدّة)
+                val kbId = currentKeyboardId
+                when {
+                    kbId != null && kbId.startsWith("he") -> " \u05B3"  // Hataf-kamatz
+                    kbId != null && kbId.startsWith("ar") -> "◌\u0651"  // Shadda
+                    else -> "◌"
+                }
             }
             "space" -> "SPACE"
             else -> type.uppercase()
@@ -2446,7 +2548,7 @@ class KeyboardRenderer(private val context: Context) {
     /** Check if the current keyboard is RTL (Hebrew or Arabic) */
     private fun isCurrentKeyboardRTL(): Boolean {
         val keyboardId = currentKeyboardId ?: return false
-        return keyboardId == "he" || keyboardId == "ar"
+        return keyboardId.startsWith("he") || keyboardId.startsWith("ar")
     }
     
     /** Check if currently in cursor movement mode */

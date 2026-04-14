@@ -18,6 +18,19 @@ class WordCompletionManager private constructor() {
     companion object {
         /** Singleton instance */
         val shared: WordCompletionManager by lazy { WordCompletionManager() }
+
+        /**
+         * Get language-specific default suggestions
+         * Static method accessible from outside (e.g., KeyboardRenderer for placeholder suggestions)
+         */
+        fun getDefaultSuggestions(languageCode: String?): List<String> {
+            val code = languageCode ?: return listOf("I", "the", "I'm")
+            return when {
+                code.startsWith("he") -> listOf("אני", "זה", "לא")
+                code.startsWith("ar") -> listOf("أنا", "هذا", "لا")
+                else -> listOf("I", "the", "I'm")  // Default to English
+            }
+        }
     }
     
     // MARK: - Suggestion Result Types
@@ -450,18 +463,7 @@ class WordCompletionManager private constructor() {
      * Language-specific defaults for: en, he, ar
      */
     private fun getDefaultSuggestions(): List<String> {
-        return getDefaultSuggestions(currentLanguage)
-    }
-    
-    /**
-     * Get language-specific default suggestions
-     */
-    private fun getDefaultSuggestions(languageCode: String?): List<String> {
-        return when (languageCode) {
-            "he" -> listOf("אני", "זה", "לא")
-            "ar" -> listOf("أنا", "هذا", "لا")
-            else -> listOf("I", "the", "I'm")  // Default to English
-        }
+        return WordCompletionManager.getDefaultSuggestions(currentLanguage)
     }
     
     /**
