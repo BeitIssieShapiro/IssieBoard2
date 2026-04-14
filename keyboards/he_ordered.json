@@ -1,6 +1,12 @@
 {
   "id": "he_ordered",
   "name": "Hebrew Ordered (אבג)",
+  "includeKeysets": ["123", "#+="],
+  "labels": {
+    "abcLabel": "אבג",
+    "symbolsLabel": "123",
+    "spaceCaption": ""
+  },
   "diacritics": {
     "appliesTo": ["א", "ב", "ג", "ד", "ה", "ו", "ז", "ח", "ט", "י", "כ", "ך", "ל", "מ", "ם", "נ", "ן", "ס", "ע", "פ", "ף", "צ", "ץ", "ק", "ר", "ש", "ת"],
     "items": [
@@ -13,6 +19,9 @@
       { "id": "cholam", "mark": "\u05B9", "name": "חוֹלָם" },
       { "id": "kubutz", "mark": "\u05BB", "name": "קֻבּוּץ" },
       { "id": "shva", "mark": "\u05B0", "name": "שְׁוָא" },
+      { "id": "chatafPatach", "mark": "\u05B2", "name": "חֲטַף פַּתַח", "isAdvanced": true },
+      { "id": "chatafSegol", "mark": "\u05B1", "name": "חֲטַף סֶגוֹל", "isAdvanced": true },
+      { "id": "chatafKamatz", "mark": "\u05B3", "name": "חֲטַף קָמָץ", "isAdvanced": true },
       { "id": "cholamVav", "mark": "וֹ", "name": "חוֹלָם מָלֵא", "onlyFor": ["ו"], "isReplacement": true },
       { "id": "shuruk", "mark": "וּ", "name": "שׁוּרוּק", "onlyFor": ["ו"], "isReplacement": true }
     ],
@@ -40,7 +49,6 @@
       "rows": [
         {
           "keys": [
-            { "value": "ט" },
             { "value": "ח" },
             { "value": "ז" },
             { "value": "ו" },
@@ -48,14 +56,11 @@
             { "value": "ד" },
             { "value": "ג" },
             { "value": "ב" },
-            { "value": "א" },
-            { "type": "backspace", "width": 1 }
-
+            { "value": "א" }
           ]
         },
         {
           "keys": [
-            { "hidden":true, "width":0.5},
             { "value": "ס" },
             { "value": "ן" },
             { "value": "נ" },
@@ -64,7 +69,9 @@
             { "value": "ל" },
             { "value": "ך" },
             { "value": "כ" },
-            { "value": "י" }
+            { "value": "י" },
+            { "value": "ט" }
+
           ]
         },
         {
@@ -78,125 +85,6 @@
             { "value": "ף" },
             { "value": "פ" },
             { "value": "ע" }
-          ]
-        },
-        {
-          "keys": [
-            { "hidden":true, "width":0.5},
-            { "type": "keyset", "keysetValue": "123", "label": "123", "width": 1.5 },
-            { "type": "next-keyboard", "width": 1 },
-            { "type": "settings" },
-            { "caption": "רווח", "value": " ", "width": 4 },
-            { "type": "nikkud" },
-            { "type": "enter" }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "123",
-      "rows": [
-        {
-          "keys": [
-            { "value": "1" },
-            { "value": "2" },
-            { "value": "3" },
-            { "value": "4" },
-            { "value": "5" },
-            { "value": "6" },
-            { "value": "7" },
-            { "value": "8" },
-            { "value": "9" },
-            { "value": "0" }
-          ]
-        },
-        {
-          "keys": [
-            { "value": "-" },
-            { "value": "/" },
-            { "value": ":" },
-            { "value": ";" },
-            { "value": "(" },
-            { "value": ")" },
-            { "value": "₪" },
-            { "value": "&" },
-            { "value": "@" },
-            { "value": "\"" }
-          ]
-        },
-        {
-          "keys": [
-            { "type": "keyset", "keysetValue": "#+=", "label": "#+=", "width": 1.5 },
-            { "value": "." },
-            { "value": "," },
-            { "value": "?" },
-            { "value": "!" },
-            { "value": "'" },
-            { "type": "backspace", "width": 2.5 }
-          ]
-        },
-        {
-          "keys": [
-            { "hidden":true, "width":0.5},
-            { "type": "keyset", "keysetValue": "abc", "label": "אבג", "width": 1.5 },
-            { "type": "next-keyboard", "width": 1 },
-            { "type": "settings" },
-            { "caption": "רווח", "value": " ", "width": 4 },
-            { "type": "enter" }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "#+=",
-      "rows": [
-        {
-          "keys": [
-            { "value": "[" },
-            { "value": "]" },
-            { "value": "{" },
-            { "value": "}" },
-            { "value": "#" },
-            { "value": "%" },
-            { "value": "^" },
-            { "value": "*" },
-            { "value": "+" },
-            { "value": "=" }
-          ]
-        },
-        {
-          "keys": [
-            { "value": "_" },
-            { "value": "\\" },
-            { "value": "|" },
-            { "value": "~" },
-            { "value": "<" },
-            { "value": ">" },
-            { "value": "€" },
-            { "value": "£" },
-            { "value": "¥" },
-            { "value": "•" }
-          ]
-        },
-        {
-          "keys": [
-            { "type": "keyset", "keysetValue": "123", "label": "123", "width": 1.5 },
-            { "value": "." },
-            { "value": "," },
-            { "value": "?" },
-            { "value": "!" },
-            { "value": "'" },
-            { "type": "backspace", "width": 2.5 }
-          ]
-        },
-        {
-          "keys": [
-            { "hidden":true, "width":0.5},
-            { "type": "keyset", "keysetValue": "abc", "label": "אבג", "width": 1.5 },
-            { "type": "next-keyboard", "width": 1 },
-            { "type": "settings" },
-            { "caption": "רווח", "value": " ", "width": 4 },
-            { "type": "enter" }
           ]
         }
       ]

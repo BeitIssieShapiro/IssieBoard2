@@ -44,7 +44,6 @@
         },
         {
           "keys": [
-            { "hidden": true, "width": 0.5 },
             { "value": "ش" }, { "value": "س" }, { "value": "ي" }, { "value": "ب" }, { "value": "ل" },
             { "value": "ا" }, { "value": "ت" }, { "value": "ن" }, { "value": "م" }, { "value": "ك" },
             { "value": "ط" }

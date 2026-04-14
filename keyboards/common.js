@@ -27,7 +27,17 @@ module.exports = {
       // (does not affect bottomRow — that's always shared)
       keysetOverrides: {
         "abc": {
-          firstRow: { append: [{ type: "backspace", width: 1.5, forLanguages: ["he"] }] },
+          firstRow: { 
+            prepend: [
+              { "hidden": true, width: 0.5, forLanguages: ["he"] }
+            ],
+            append: [{ type: "backspace", width: 1.5, forLanguages: ["he"] }] 
+          },
+          secondRow: {
+            prepend: [
+              { "hidden": true, width: 0.5, forLanguages: ["en", "ar"] }
+            ],
+          },
           lastRow: {
             prepend: [
               { type: "shift", width: 1.5, forLanguages: ["en"] },
@@ -59,10 +69,16 @@ module.exports = {
       lastRow: {},
       keysetOverrides: {
         "abc": {
-          firstRow: { append: [{ type: "backspace", width: 1.5 }] },
+          firstRow: { append: [
+            { type: "backspace", width: 1.5 }
+          ],
+          prepend: [
+            { value: ",",  forLanguages: ["he"] },
+            { value: ".",  forLanguages: ["he"] }
+          ] },
           secondRow: {
             prepend: [
-              { "hidden": true, width: 0.5, forLanguages: ["he"] }],
+              { "hidden": true, width: 0.5 }],
             append: [
               { type: "enter", width: 2, forLanguages: ["en"] },
               
