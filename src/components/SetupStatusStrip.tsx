@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, TouchableOpacity, Alert, StyleSheet } from 'react-native';
+import { Text, TouchableOpacity, Alert, StyleSheet, Platform } from 'react-native';
 import { useLocalization } from '../localization';
 
 interface SetupStatusStripProps {
@@ -18,16 +18,23 @@ export const SetupStatusStrip: React.FC<SetupStatusStripProps> = ({ isAdded, lan
   const stripText = strings.setup.keyboardNotAdded.replace('{{language}}', languageName);
 
   const showInstructions = () => {
-    const message = [
-      strings.setup.setupStep1,
-      strings.setup.setupStep2,
-      strings.setup.setupStep3,
-      strings.setup.setupStep4,
-      strings.setup.setupStep5,
-      strings.setup.setupStep6,
-    ].join('\n');
+    const steps = Platform.OS === 'android'
+      ? [
+          strings.setup.androidSetupStep1,
+          strings.setup.androidSetupStep2,
+          strings.setup.androidSetupStep3,
+          strings.setup.androidSetupStep4,
+        ]
+      : [
+          strings.setup.setupStep1,
+          strings.setup.setupStep2,
+          strings.setup.setupStep3,
+          strings.setup.setupStep4,
+          strings.setup.setupStep5,
+          strings.setup.setupStep6,
+        ];
 
-    Alert.alert(strings.setup.setupInstructionsTitle, message);
+    Alert.alert(strings.setup.setupInstructionsTitle, steps.join('\n'));
   };
 
   return (

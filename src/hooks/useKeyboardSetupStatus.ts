@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { AppState, Platform } from 'react-native';
+import { AppState } from 'react-native';
 import KeyboardPreferences from '../native/KeyboardPreferences';
 import type { KeyboardSetupStatus } from '../native/KeyboardPreferences';
 
@@ -19,10 +19,6 @@ export function useKeyboardSetupStatus(language: string): KeyboardSetupStatus {
   });
 
   const checkStatus = useCallback(async () => {
-    if (Platform.OS !== 'ios') {
-      setStatus({ isAdded: true, hasFullAccess: true });
-      return;
-    }
     try {
       const result = await KeyboardPreferences.getKeyboardSetupStatus(language);
       setStatus(result);

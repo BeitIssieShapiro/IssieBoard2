@@ -1,4 +1,5 @@
 import DefaultPreference from 'react-native-default-preference';
+import { NativeModules } from 'react-native';
 
 export interface PreferenceInfo {
   appGroup: string;
@@ -289,10 +290,23 @@ class KeyboardPreferences {
 
   /**
    * Get the keyboard setup status for a specific language
-   * Android stub - always reports as configured since Android setup is different
+   * Checks if the IssieBoard IME service is enabled in Android system settings
    */
   async getKeyboardSetupStatus(language: string): Promise<KeyboardSetupStatus> {
-    return { isAdded: true, hasFullAccess: true };
+    try {
+      const { KeyboardSetupModule } = NativeModules;
+      console.log('📱 [KeyboardSetup] Module available:', !!KeyboardSetupModule, 'language:', language);
+      if (KeyboardSetupModule) {
+        const result = await KeyboardSetupModule.getKeyboardSetupStatus(language);
+        console.log('📱 [KeyboardSetup] Result:', JSON.stringify(result));
+        return result;
+      }
+      console.log('📱 [KeyboardSetup] Module not available, returning null');
+      return { isAdded: null, hasFullAccess: null };
+    } catch (e) {
+      console.log('📱 [KeyboardSetup] Error:', e);
+      return { isAdded: null, hasFullAccess: null };
+    }
   }
 }
 

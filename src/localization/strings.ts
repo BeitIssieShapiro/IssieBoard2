@@ -305,6 +305,10 @@ export interface Strings {
     setupStep4: string;
     setupStep5: string;
     setupStep6: string;
+    androidSetupStep1: string;
+    androidSetupStep2: string;
+    androidSetupStep3: string;
+    androidSetupStep4: string;
     fullAccessTitle: string;
     fullAccessStep1: string;
     fullAccessStep2: string;
@@ -629,6 +633,10 @@ const en: Strings = {
     setupStep4: '4. Find and select "IssieBoard"',
     setupStep5: '5. Toggle on the language you want (e.g. "IssieBoard - English")',
     setupStep6: '6. Tap the > arrow and enable "Allow Full Access"',
+    androidSetupStep1: '1. Open Settings > System > Languages & input > On-screen keyboard',
+    androidSetupStep2: '2. Enable "IssieBoard"',
+    androidSetupStep3: '3. Tap OK on the confirmation dialog',
+    androidSetupStep4: '4. Return to your app and switch to IssieBoard when typing',
     fullAccessTitle: 'Enable Full Access',
     fullAccessStep1: '1. Open Settings > General > Keyboard > Keyboards',
     fullAccessStep2: '2. Tap "IssieBoard"',
@@ -953,6 +961,10 @@ const he: Strings = {
     setupStep4: '4. מצאו ובחרו "IssieBoard"',
     setupStep5: '5. הפעילו את השפה הרצויה (למשל "IssieBoard - עברית")',
     setupStep6: '6. לחצו על החץ > והפעילו "גישה מלאה"',
+    androidSetupStep1: '1. פתחו הגדרות > מערכת > שפות וקלט > מקלדת על המסך',
+    androidSetupStep2: '2. הפעילו את "IssieBoard"',
+    androidSetupStep3: '3. לחצו אישור בחלון האישור',
+    androidSetupStep4: '4. חזרו לאפליקציה והחליפו ל-IssieBoard בזמן הקלדה',
     fullAccessTitle: 'הפעלת גישה מלאה',
     fullAccessStep1: '1. פתחו הגדרות > כללי > מקלדת > מקלדות',
     fullAccessStep2: '2. לחצו על "IssieBoard"',
@@ -1277,6 +1289,10 @@ const ar: Strings = {
     setupStep4: '4. ابحث عن "IssieBoard" واختره',
     setupStep5: '5. فعّل اللغة المطلوبة (مثلاً "IssieBoard - العربية")',
     setupStep6: '6. اضغط على السهم > وفعّل "السماح بالوصول الكامل"',
+    androidSetupStep1: '1. افتح الإعدادات > النظام > اللغات والإدخال > لوحة المفاتيح على الشاشة',
+    androidSetupStep2: '2. فعّل "IssieBoard"',
+    androidSetupStep3: '3. اضغط موافق في نافذة التأكيد',
+    androidSetupStep4: '4. ارجع إلى التطبيق وانتقل إلى IssieBoard أثناء الكتابة',
     fullAccessTitle: 'تفعيل الوصول الكامل',
     fullAccessStep1: '1. افتح الإعدادات > عام > لوحة المفاتيح > لوحات المفاتيح',
     fullAccessStep2: '2. اضغط على "IssieBoard"',
