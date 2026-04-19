@@ -21,8 +21,20 @@ if linkage != nil
   use_frameworks! :linkage => linkage.to_sym
 end
 
+# To fix react-native-firebase modular headers issue
+# pre_install do |installer|
+#   installer.pod_targets.each do |pod|
+#     if pod.name.start_with?('RNFB')
+#       def pod.build_type
+#         Pod::BuildType.static_library
+#       end
+#     end
+#   end
+# end
+
 use_frameworks! :linkage => :static
 $RNFirebaseAsStaticFramework = true
+ENV['RCT_USE_PREBUILT_RNCORE'] = '0'
 
 def shared_pods
   config = use_native_modules!
