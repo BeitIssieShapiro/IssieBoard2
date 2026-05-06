@@ -1,3 +1,14 @@
+IssieVoice:
+- Icon?
+V- built-in group for language selection button
+V- remove globus and close button from text of built in special keys
+V- emojis - change cat all gone
+?- changes in issievoice settings, save modal disapear and default kb is back
+- different colors - which?
+- 
+
+
+
 Android Bugs:
 - in mobile font wight options go out of screen
 - trying to edit fontSize/keyHeight - a kb is shown hiding
@@ -6,7 +17,7 @@ Android Bugs:
 
 
 Arabic:
-- icon for nikkud - from Alla
+V- icon for nikkud - from Alla
 
 IssieBoard:
 V- change suggestions to look like issie IssieVoice
