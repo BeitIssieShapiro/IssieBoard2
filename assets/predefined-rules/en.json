@@ -133,8 +133,8 @@
     {
       "id": "other-keys",
       "name": "Other Keys",
-      "description": "Change-to-numbers, globe, dismiss keys",
-      "members": ["keyset", "next-keyboard", "settings", "close", "nikkud"],
+      "description": "Change-to-numbers, language-selection, dismiss keys",
+      "members": ["keyset", "next-keyboard", "language", "settings", "close", "nikkud"],
       "style": {
         "bgColor": "#4DD0E1",
         "color": "#000000"

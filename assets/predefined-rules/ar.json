@@ -133,8 +133,8 @@
     {
       "id": "other-keys",
       "name": "مفاتيح أخرى",
-      "description": "التبديل إلى الأرقام، الكرة الأرضية، الإغلاق",
-      "members": ["keyset", "next-keyboard", "settings", "close", "nikkud"],
+      "description": "التبديل إلى الأرقام، اختيار اللغة، الإغلاق",
+      "members": ["keyset", "next-keyboard", "language", "settings", "close", "nikkud"],
       "style": {
         "bgColor": "#4DD0E1",
         "color": "#000000"

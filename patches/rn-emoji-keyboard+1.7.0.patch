@@ -66,6 +66,38 @@ index 6869a04..18a9d34 100644
              renderItem={renderItem}
              onScroll={handleOnScroll}
              ListFooterComponent={<ListFooterComponent categoryPosition={categoryPosition} />}
+diff --git a/node_modules/rn-emoji-keyboard/src/components/EmojiStaticKeyboard.tsx b/node_modules/rn-emoji-keyboard/src/components/EmojiStaticKeyboard.tsx
+index ff00d44..206cb91 100644
+--- a/node_modules/rn-emoji-keyboard/src/components/EmojiStaticKeyboard.tsx
++++ b/node_modules/rn-emoji-keyboard/src/components/EmojiStaticKeyboard.tsx
+@@ -133,7 +133,7 @@ export const EmojiStaticKeyboard = React.memo(
+           styles.containerShadow,
+           categoryPosition === 'top' && disableSafeArea && styles.containerReverse,
+           themeStyles.container,
+-          { backgroundColor: theme.container },
++          { backgroundColor: theme.container, direction: 'ltr' },
+         ]}
+         onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+       >
+diff --git a/node_modules/rn-emoji-keyboard/src/components/ModalWithBackdrop.tsx b/node_modules/rn-emoji-keyboard/src/components/ModalWithBackdrop.tsx
+index b1aad6d..db27dc7 100644
+--- a/node_modules/rn-emoji-keyboard/src/components/ModalWithBackdrop.tsx
++++ b/node_modules/rn-emoji-keyboard/src/components/ModalWithBackdrop.tsx
+@@ -45,7 +45,13 @@ export const ModalWithBackdrop = ({
+   }
+ 
+   return (
+-    <Modal visible={isOpen} animationType="fade" transparent={true} {...rest}>
++    <Modal
++      visible={isOpen}
++      animationType="fade"
++      transparent={true}
++      supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']}
++      {...rest}
++    >
+       <TouchableOpacity
+         style={[styles.modalContainer, { backgroundColor: theme.backdrop }]}
+         activeOpacity={1}
 diff --git a/node_modules/rn-emoji-keyboard/src/components/SearchBar.tsx b/node_modules/rn-emoji-keyboard/src/components/SearchBar.tsx
 index 4a62562..cd67b6c 100644
 --- a/node_modules/rn-emoji-keyboard/src/components/SearchBar.tsx
@@ -285,22 +317,3 @@ index 0000000..fe4ed95
 +}
 +
 +export default he
-diff --git a/node_modules/rn-emoji-keyboard/src/components/ModalWithBackdrop.tsx b/node_modules/rn-emoji-keyboard/src/components/ModalWithBackdrop.tsx
-index a1b2c3d..e4f5g6h 100644
---- a/node_modules/rn-emoji-keyboard/src/components/ModalWithBackdrop.tsx
-+++ b/node_modules/rn-emoji-keyboard/src/components/ModalWithBackdrop.tsx
-@@ -45,7 +45,13 @@ export const ModalWithBackdrop = ({
-   }
- 
-   return (
--    <Modal visible={isOpen} animationType="fade" transparent={true} {...rest}>
-+    <Modal
-+      visible={isOpen}
-+      animationType="fade"
-+      transparent={true}
-+      supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']}
-+      {...rest}
-+    >
-       <TouchableOpacity
-         style={[styles.modalContainer, { backgroundColor: theme.backdrop }]}
-         activeOpacity={1}
