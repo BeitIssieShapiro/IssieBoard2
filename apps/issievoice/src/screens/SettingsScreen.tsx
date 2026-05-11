@@ -118,13 +118,12 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({navigation}) => {
           <Text style={styles.aboutRowArrow}>›</Text>
         </TouchableOpacity>
       </ScrollView>
-      {showAbout && (
-        <AboutScreen
-          appName="IssieVoice"
-          onClose={() => setShowAbout(false)}
-          paragraphs={ISSIEVOICE_ABOUT}
-        />
-      )}
+      <AboutScreen
+        visible={showAbout}
+        appName="IssieVoice"
+        onClose={() => setShowAbout(false)}
+        paragraphs={ISSIEVOICE_ABOUT}
+      />
     </SafeAreaView>
   );
 };

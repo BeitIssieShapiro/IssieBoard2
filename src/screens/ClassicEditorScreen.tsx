@@ -1329,13 +1329,12 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
         </ClassicDetailView>
         </View>
       )}
-      {showAbout && (
-        <AboutScreen
-          appName="IssieBoard"
-          onClose={() => setShowAbout(false)}
-          paragraphs={ISSIEBOARD_ABOUT}
-        />
-      )}
+      <AboutScreen
+        visible={showAbout}
+        appName="IssieBoard"
+        onClose={() => setShowAbout(false)}
+        paragraphs={ISSIEBOARD_ABOUT}
+      />
       <SaveAsModal
         visible={showSaveAsModal}
         onClose={() => {

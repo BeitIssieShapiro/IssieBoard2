@@ -5,6 +5,8 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
+  Linking,
+  Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FeedbackDialog } from '@beitissieshapiro/issie-shared';
@@ -23,9 +25,10 @@ interface AboutScreenProps {
   appName: string;
   onClose: () => void;
   paragraphs: Record<string, string[]>;
+  visible?: boolean;
 }
 
-export function AboutScreen({ appName, onClose, paragraphs }: AboutScreenProps) {
+export function AboutScreen({ appName, onClose, paragraphs, visible = true }: AboutScreenProps) {
   const [lang, setLang] = useState('he');
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
   const currentLang = languages.find(l => l.code === lang) || languages[1];
@@ -35,7 +38,13 @@ export function AboutScreen({ appName, onClose, paragraphs }: AboutScreenProps) 
   const buildNumber = getBuildNumber();
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      onRequestClose={onClose}
+      supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']}
+    >
+      <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Title row: title + feedback button + close button */}
       <View style={styles.titleRow}>
         <Text allowFontScaling={false} style={styles.title}>
@@ -94,6 +103,17 @@ export function AboutScreen({ appName, onClose, paragraphs }: AboutScreenProps) 
         <Text style={[styles.versionText, { writingDirection: currentLang.dir }]}>
           {lang === 'he' ? 'גרסה' : lang === 'ar' ? 'الإصدار' : 'Version'} {version} ({buildNumber})
         </Text>
+
+        {/* Beit Issie Shapiro website link */}
+        <TouchableOpacity
+          onPress={() => Linking.openURL(lang === 'he' ? 'https://beitissie.org.il/' : 'https://beitissie.org.il/en/')}
+          activeOpacity={0.7}
+          style={styles.websiteLink}>
+          <Text allowFontScaling={false} style={styles.websiteLinkText}>
+            {lang === 'he' ? 'בית איזי שפירא' : lang === 'ar' ? 'بيت إيزي شابيرو' : 'Beit Issie Shapiro'}
+          </Text>
+          <Text allowFontScaling={false} style={styles.websiteLinkUrl}>beitissie.org.il</Text>
+        </TouchableOpacity>
       </ScrollView>
 
       <FeedbackDialog
@@ -101,13 +121,14 @@ export function AboutScreen({ appName, onClose, paragraphs }: AboutScreenProps) 
         visible={showFeedbackDialog}
         onClose={() => setShowFeedbackDialog(false)}
       />
-    </View>
+      </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    ...StyleSheet.absoluteFillObject,
+    flex: 1,
     backgroundColor: '#EFF6FF',
     zIndex: 1000,
   },
@@ -194,5 +215,25 @@ const styles = StyleSheet.create({
     color: '#999',
     marginTop: 20,
     textAlign: 'center',
+  },
+  websiteLink: {
+    alignItems: 'center',
+    marginTop: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    gap: 2,
+  },
+  websiteLinkText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: ACCENT,
+  },
+  websiteLinkUrl: {
+    fontSize: 12,
+    color: '#93C5FD',
   },
 });

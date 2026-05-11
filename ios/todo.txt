@@ -16,15 +16,17 @@ V- when scaled, the suggested words are not cnetered/nor scaled
   - beep/vibrate
 ?- rename texts for new key groups and templates
 ?- in ios18 (or upgraded device), the keygroup template is not saved when switching order (not a bug?)
-- keys group
-  - rename rule to key-group in the default name
-  - in key-group header; remove count, and make circles for the colors.
-- nikkud custom: all unselected, plus add description
-- description on each tab of settings
-- link to beit issie in abount
-- להגדיל טקסט בשורת הגדרת
-- nikkud sign on nikkud tab is not the same as on kb
--  הצבעים של כפתור הכיבוי הדלקת חוקים משתנים. לפעמים מודגש ולפעמים לא
+?- description on each tab of settings
+?- להגדיל טקסט בשורת הגדרת
+
+V- keys group
+  V- rename rule to key-group in the default name
+  V- in key-group header; remove count, and make circles for the colors.
+V- nikkud custom: all unselected, plus add description
+V- link to beit issie in about
+
+?- nikkud sign on nikkud tab is not the same as on kb
+?-  הצבעים של כפתור הכיבוי הדלקת חוקים משתנים. לפעמים מודגש ולפעמים לא
 ⁠בגלל גודל הפונט באפליקציה יכול להיות יותר גדול
 
 

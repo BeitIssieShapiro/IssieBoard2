@@ -293,13 +293,12 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
           </View>
         )}
       </View>
-      {showAbout && (
-        <AboutScreen
-          appName={isKeyboardOnly ? 'IssieBoard' : 'IssieVoice'}
-          onClose={() => setShowAbout(false)}
-          paragraphs={isKeyboardOnly ? ISSIEBOARD_ABOUT : ISSIEVOICE_ABOUT}
-        />
-      )}
+      <AboutScreen
+        visible={showAbout}
+        appName={isKeyboardOnly ? 'IssieBoard' : 'IssieVoice'}
+        onClose={() => setShowAbout(false)}
+        paragraphs={isKeyboardOnly ? ISSIEBOARD_ABOUT : ISSIEVOICE_ABOUT}
+      />
     </SafeAreaView>
   );
 };

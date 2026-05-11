@@ -2080,13 +2080,12 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
           />
         </View>
       </KeyboardAvoidingView>
-      {showAbout && (
-        <AboutScreen
-          appName={appContext === 'issievoice' ? 'IssieVoice' : 'IssieBoard'}
-          onClose={() => setShowAbout(false)}
-          paragraphs={appContext === 'issievoice' ? ISSIEVOICE_ABOUT : ISSIEBOARD_ABOUT}
-        />
-      )}
+      <AboutScreen
+        visible={showAbout}
+        appName={appContext === 'issievoice' ? 'IssieVoice' : 'IssieBoard'}
+        onClose={() => setShowAbout(false)}
+        paragraphs={appContext === 'issievoice' ? ISSIEVOICE_ABOUT : ISSIEBOARD_ABOUT}
+      />
     </SafeAreaView>
   );
 };
