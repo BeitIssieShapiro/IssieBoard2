@@ -143,22 +143,28 @@ export const DiacriticsPanel: React.FC = () => {
         });
         break;
       
-      case 'custom':
-        // Enable custom mode - add a non-existent item to hidden to force custom mode
-        // This ensures getCurrentMode() returns 'custom'
+      case 'custom': {
+        // Default to all items hidden and all modifiers disabled
+        const allDiacriticsItems = diacritics
+          ? [...(diacritics.items || []).filter(i => i.id !== 'plain')]
+          : [];
+        const allModifiers: DiacriticModifier[] = diacritics
+          ? (diacritics.modifiers || (diacritics.modifier ? [diacritics.modifier] : []))
+          : [];
         dispatch({
           type: 'UPDATE_DIACRITICS_SETTINGS',
           payload: {
             keyboardId: currentKeyboardId,
-            settings: { 
-              disabled: false, 
+            settings: {
+              disabled: false,
               simpleMode: true,
-              hidden: hiddenItems.length > 0 ? hiddenItems : ['__custom_mode_marker__'],
-              disabledModifiers: disabledModifiers.length > 0 ? disabledModifiers : [],
+              hidden: allDiacriticsItems.map(i => i.id),
+              disabledModifiers: allModifiers.map(m => m.id),
             },
           },
         });
         break;
+      }
     }
   };
 
