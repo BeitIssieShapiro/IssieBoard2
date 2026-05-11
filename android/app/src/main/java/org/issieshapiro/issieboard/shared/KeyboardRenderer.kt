@@ -765,10 +765,13 @@ class KeyboardRenderer(private val context: Context) {
             // Pass font settings to suggestions bar
             suggestionsBarView.customFontWeight = configFontWeight
             // baseFontSize is in sp; convert to px and apply preview scale
+            // When using transform scaling for the bar, use full font size (transform handles visual scaling)
             val spToPx = TypedValue.applyDimension(
                 TypedValue.COMPLEX_UNIT_SP, 1f, context.resources.displayMetrics
             )
-            suggestionsBarView.customFontSize = baseFontSize * spToPx * effectiveDimensionScale
+            val useTransformScalingForBar = isPreviewMode && currentScale < 1.0f
+            val barFontScale = if (useTransformScalingForBar) 1.0f else effectiveDimensionScale
+            suggestionsBarView.customFontSize = baseFontSize * spToPx * barFontScale
 
             // Pass custom font if configured
             val fontName = config.fontName
@@ -793,25 +796,48 @@ class KeyboardRenderer(private val context: Context) {
 
             suggestionsBarView.currentKeyboardId = currentKeyboardId
 
-            // Create suggestions bar with scaled height
+            // When transform-scaling, render bar at full size then scale it down
+            // (same approach as iOS uses for rowsContainer)
+            val barFullHeight = suggestionsBarHeight  // always full size; transform will shrink it
+            val barFullWidth = currentWidth
+
+            // Create suggestions bar
             val bar = suggestionsBarView.createBar(
-                width = (currentWidth * currentScale).toInt(),
-                height = scaledSuggestionsBarHeight
+                width = if (useTransformScalingForBar) barFullWidth else (barFullWidth * currentScale).toInt(),
+                height = if (useTransformScalingForBar) barFullHeight else scaledSuggestionsBarHeight
             )
             // Override layout params for the container type
+            // When using transform scaling, set height to full size (transform will shrink visually)
+            val barLayoutHeight = if (useTransformScalingForBar) barFullHeight else scaledSuggestionsBarHeight
             if (isLinearContainer) {
                 bar.layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    scaledSuggestionsBarHeight
-                )
+                    barLayoutHeight
+                ).apply {
+                    // When transform-scaling, the bar visually occupies barFullHeight * currentScale,
+                    // but its layout bounds are barFullHeight. Use negative bottom margin to pull
+                    // the next sibling up so it starts right after the visual bottom of the bar.
+                    if (useTransformScalingForBar) {
+                        bottomMargin = -(barFullHeight - (barFullHeight * currentScale).toInt())
+                    }
+                }
             } else {
                 bar.layoutParams = FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.MATCH_PARENT,
-                    scaledSuggestionsBarHeight
+                    barLayoutHeight
                 )
             }
             container.addView(bar)
             suggestionsBar = bar
+
+            // Apply scale transform to the bar for preview mode
+            if (useTransformScalingForBar) {
+                // Scale from top-center so it stays pinned to the top edge
+                bar.pivotX = barFullWidth / 2f
+                bar.pivotY = 0f
+                bar.scaleX = currentScale
+                bar.scaleY = currentScale
+            }
 
             // Selection state for editor
             suggestionsBarView.isSelected = selectedKeyIds.contains("suggestion")
@@ -866,7 +892,15 @@ class KeyboardRenderer(private val context: Context) {
                     FrameLayout.LayoutParams.MATCH_PARENT,
                     FrameLayout.LayoutParams.WRAP_CONTENT  // Let content determine height
                 ).apply {
-                    val topMargin = if (wordSuggestionsEnabled && !isPreviewMode) scaledSuggestionsBarHeight + (dpToPx(4) * effectiveScale).toInt() else (dpToPx(4) * effectiveScale).toInt()
+                    val barVisualHeight = if (wordSuggestionsEnabled) {
+                        if (isPreviewMode && currentScale < 1.0f) {
+                            // Transform-scaled bar: visual height = full height * scale
+                            (suggestionsBarHeight * currentScale).toInt()
+                        } else {
+                            scaledSuggestionsBarHeight
+                        }
+                    } else 0
+                    val topMargin = barVisualHeight + (dpToPx(4) * effectiveScale).toInt()
                     setMargins(0, topMargin, 0, 0)  // No bottom margin to allow overflow
                 }
             }

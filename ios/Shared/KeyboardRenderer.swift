@@ -805,9 +805,16 @@ class KeyboardRenderer {
             }
 
             // Show native suggestions bar at the very top
-            let bar = suggestionsBarView.createBar(width: container.bounds.width * currentScale, height: scaledSuggestionsBarHeight)
+            // When transform-scaling, render bar at full size then scale it down (same approach as rowsContainer)
+            let useTransformScalingForBar = isPreviewMode && currentScale < 1.0
+            let barFullHeight = suggestionsBarHeight  // always full size; transform will shrink it
+            let barFullWidth = container.bounds.width
+            let bar = suggestionsBarView.createBar(width: useTransformScalingForBar ? barFullWidth : barFullWidth * currentScale,
+                                                   height: useTransformScalingForBar ? barFullHeight : scaledSuggestionsBarHeight)
             container.addSubview(bar)
-            topOffset = scaledSuggestionsBarHeight
+            // topOffset is the visual space the bar occupies after scaling
+            let scaledBarHeight = useTransformScalingForBar ? barFullHeight * currentScale : scaledSuggestionsBarHeight
+            topOffset = scaledBarHeight
             suggestionsBar = bar
 
             // Selection state for editor
@@ -896,6 +903,16 @@ class KeyboardRenderer {
             // Apply translation in the scaled coordinate space
             let finalTransform = scaleTransform.translatedBy(x: 0, y: -heightShift / currentScale)
             rowsContainer.transform = finalTransform
+
+            // Scale and center the suggestions bar to match the scaled keyboard
+            if let bar = suggestionsBar {
+                bar.layoutIfNeeded()
+                // Scale from top-center so it stays pinned to the top edge
+                bar.layer.anchorPoint = CGPoint(x: 0.5, y: 0.0)
+                // Resetting anchorPoint shifts the frame origin — compensate
+                bar.frame.origin = CGPoint(x: bar.frame.origin.x, y: 0)
+                bar.transform = CGAffineTransform(scaleX: currentScale, y: currentScale)
+            }
 
             print("📐 Applied transform - scale: \(currentScale), containerHeight: \(containerHeight), heightShift: \(heightShift), contentHeight: \(contentHeight)")
         } else {
