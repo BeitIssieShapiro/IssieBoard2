@@ -44,15 +44,16 @@ export const StyleRulesPanel: React.FC<StyleRulesPanelProps> = ({
   }, []);
 
   // Build display string for group members
-  const getMemberDisplay = useCallback((members: string[]): string => {
-    const MAX_DISPLAY = 10;
-    const captions = members.slice(0, MAX_DISPLAY).map(getKeyCaption);
-    const display = captions.join(', ');
-    if (members.length > MAX_DISPLAY) {
-      return `${display}... (+${members.length - MAX_DISPLAY} more)`;
-    }
-    return display;
-  }, [getKeyCaption]);
+  // const getMemberDisplay = useCallback((members: string[]): string => {
+  //   const MAX_DISPLAY = 10;
+  //   const captions = members.slice(0, MAX_DISPLAY).map(getKeyCaption);
+  //   const display = captions.join(', ');
+  //   if (members.length > MAX_DISPLAY) {
+  //     return `${display}...`;
+  //     // return `${display}... (+${members.length - MAX_DISPLAY} more)`;
+  //   }
+  //   return display;
+  // }, [getKeyCaption]);
 
   const handleDeleteGroup = (group: StyleGroup) => {
     Alert.alert(
@@ -160,7 +161,7 @@ export const StyleRulesPanel: React.FC<StyleRulesPanelProps> = ({
                 </Text>
                 
                 {/* Member Count */}
-                <Text allowFontScaling={false} style={styles.memberCount}>({group.members.length})</Text>
+                {/* <Text allowFontScaling={false} style={styles.memberCount}>({group.members.length})</Text> */}
                 
                 {/* Style Indicators - inline */}
                 <View style={styles.inlineStyleIndicators}>

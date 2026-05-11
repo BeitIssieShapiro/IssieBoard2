@@ -45,15 +45,16 @@ export const GroupsPanel: React.FC = () => {
   }, [state.config.keysets]);
 
   // Build display string for group members
-  const getMemberDisplay = useCallback((members: string[]): string => {
-    const MAX_DISPLAY = 10;
-    const captions = members.slice(0, MAX_DISPLAY).map(getKeyCaption);
-    const display = captions.join(', ');
-    if (members.length > MAX_DISPLAY) {
-      return `${display}... (+${members.length - MAX_DISPLAY} more)`;
-    }
-    return display;
-  }, [getKeyCaption]);
+  // const getMemberDisplay = useCallback((members: string[]): string => {
+  //   const MAX_DISPLAY = 10;
+  //   const captions = members.slice(0, MAX_DISPLAY).map(getKeyCaption);
+  //   const display = captions.join(', ');
+  //   if (members.length > MAX_DISPLAY) {
+  //     return `${display}...`;
+  //     // return `${display}... (+${members.length - MAX_DISPLAY} more)`;
+  //   }
+  //   return display;
+  // }, [getKeyCaption]);
 
   const handleDeleteGroup = (group: StyleGroup) => {
     Alert.alert(
@@ -204,11 +205,11 @@ export const GroupsPanel: React.FC = () => {
             )}
             
             {/* Members display */}
-            <View style={styles.membersContainer}>
+            {/* <View style={styles.membersContainer}>
               <Text allowFontScaling={false} style={[styles.membersText, !isGroupActive && styles.membersTextInactive]} numberOfLines={2}>
                 {getMemberDisplay(group.members)}
               </Text>
-            </View>
+            </View> */}
             
             {/* Style indicators */}
             <View style={styles.stylePreview}>
@@ -333,7 +334,7 @@ const styles = StyleSheet.create({
   colorSwatch: {
     width: 24,
     height: 24,
-    borderRadius: 4,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#DDD',
   },

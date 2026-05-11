@@ -217,6 +217,7 @@ export interface Strings {
   };
   styleRuleModal: {
     newKeysGroup: string;
+    groupNamePrefix: string;
     nameLabel: string;
     namePlaceholder: string;
     presetKeysLocked: string;
@@ -545,6 +546,7 @@ const en: Strings = {
   },
   styleRuleModal: {
     newKeysGroup: 'New Keys Group',
+    groupNamePrefix: 'Group',
     nameLabel: 'Name',
     namePlaceholder: 'Enter group name',
     presetKeysLocked: 'Preset keys are locked and cannot be changed.',
@@ -873,6 +875,7 @@ const he: Strings = {
   },
   styleRuleModal: {
     newKeysGroup: 'קבוצת מקשים חדשה',
+    groupNamePrefix: 'קבוצה',
     nameLabel: 'שם',
     namePlaceholder: 'הזן שם קבוצה',
     presetKeysLocked: 'מקשי תבנית נעולים ולא ניתנים לשינוי.',
@@ -1201,6 +1204,7 @@ const ar: Strings = {
   },
   styleRuleModal: {
     newKeysGroup: 'مجموعة مفاتيح جديدة',
+    groupNamePrefix: 'مجموعة',
     nameLabel: 'الاسم',
     namePlaceholder: 'أدخل اسم المجموعة',
     presetKeysLocked: 'مفاتيح القالب مقفلة ولا يمكن تغييرها.',

@@ -74,13 +74,14 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
 
   // Generate a unique name for new rules
   const generateRuleName = useCallback((): string => {
+    const prefix = strings.styleRuleModal.groupNamePrefix;
     let counter = 1;
     const existingNames = new Set(state.styleGroups.map(g => g.name));
-    while (existingNames.has(`rule-${counter}`)) {
+    while (existingNames.has(`${prefix}-${counter}`)) {
       counter++;
     }
-    return `rule-${counter}`;
-  }, [state.styleGroups]);
+    return `${prefix}-${counter}`;
+  }, [state.styleGroups, strings.styleRuleModal.groupNamePrefix]);
 
   // Show local toast within the modal
   const showLocalToast = useCallback((message: string, duration: number = 2000) => {
@@ -527,8 +528,8 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
             <View style={styles.section}>
               <Text allowFontScaling={false} style={styles.sectionTitle}>
                 {isPreset && !editingGroup
-                  ? `${strings.styleRuleModal.presetKeysLocked} (${selectedKeyValues.length})`
-                  : `${strings.styleRuleModal.tapKeysToSelect} (${selectedKeyValues.length})`}
+                  ? strings.styleRuleModal.presetKeysLocked
+                  : strings.styleRuleModal.tapKeysToSelect}
               </Text>
               <View style={styles.previewContainer}>
                 <KeyboardPreview
