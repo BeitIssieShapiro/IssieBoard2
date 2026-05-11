@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import ClassicSectionsList, { SettingId } from './classic/ClassicSectionsList';
 import ClassicDetailView from './classic/ClassicDetailView';
 import ClassicColorPicker from './classic/ClassicColorPicker';
 import { KeyPressEvent } from '../components/KeyboardPreview';
+import SaveAsModal from '../../components/SaveAsModal';
 
 // Import keyboard files
 import enKeyboard from '../../keyboards/en.json';
@@ -209,6 +210,10 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
   const [classicState, setClassicState] = useState<ClassicState | null>(null);
   const [configJson, setConfigJson] = useState<string>('');
   const [showAbout, setShowAbout] = useState(false);
+  const [showSaveAsModal, setShowSaveAsModal] = useState(false);
+
+  // Queued save: stores the def+groups to apply after user names a new profile from built-in
+  const pendingSaveRef = useRef<{ def: SavedProfileDefinition; groups: StyleGroup[] } | null>(null);
 
   // Navigation state: null = sections list, SettingId = detail view for that setting
   const [activeSetting, setActiveSetting] = useState<SettingId | null>(null);
@@ -369,6 +374,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
 
   useEffect(() => {
     loadProfile(currentLanguage);
+    loadSavedProfiles();
   }, [currentLanguage, loadProfile]);
 
   // Update classic state and config JSON when style groups change
@@ -391,11 +397,17 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
     setConfigJson(JSON.stringify(transformConfigForPreview(configWithGroups, { showOnlyOpacity })));
   }, [activeSetting]);
 
-  // Save the current profile and push config to keyboard
+  // Save the current profile and push config to keyboard.
+  // If the current profile is a built-in, queue the save and show the SaveAs modal instead.
   const saveProfile = useCallback(async (
     updatedDef: SavedProfileDefinition,
     updatedStyleGroups: StyleGroup[]
   ) => {
+    if (isBuiltInProfileId(updatedDef.id)) {
+      pendingSaveRef.current = { def: updatedDef, groups: updatedStyleGroups };
+      setShowSaveAsModal(true);
+      return;
+    }
     try {
       // Save profile definition
       await KeyboardPreferences.setProfile(
@@ -421,6 +433,48 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
       console.error('ClassicEditor: Failed to save profile:', error);
     }
   }, [currentLanguage]);
+
+  // Handle "Save As" when user names the copy of a built-in profile
+  const handleSaveAs = useCallback(async (newName: string): Promise<boolean> => {
+    const pending = pendingSaveRef.current;
+    if (!pending || !profileDef) return false;
+    try {
+      const newProfileId = `custom_${Date.now()}`;
+      const newDef: SavedProfileDefinition = { ...pending.def, id: newProfileId, name: newName };
+
+      // Save new profile
+      await KeyboardPreferences.setProfile(JSON.stringify(newDef), `profile_def_${newProfileId}`);
+      await KeyboardPreferences.setProfile(JSON.stringify(pending.groups), `${newProfileId}_styleGroups`);
+
+      // Add to saved list
+      let savedList: { name: string; key: string; language: string; keyboardId: string }[] = [];
+      try {
+        const savedListJson = await KeyboardPreferences.getProfile('saved_list');
+        if (savedListJson) savedList = JSON.parse(savedListJson);
+      } catch { /* ignore */ }
+      savedList.push({ name: newName, key: newProfileId, language: currentLanguage, keyboardId: pending.def.keyboardId });
+      await KeyboardPreferences.setProfile(JSON.stringify(savedList), 'saved_list');
+
+      // Push config to keyboard and set as active
+      const config = buildConfiguration(newDef);
+      const groupConfigs = convertStyleGroupsToGroupConfig(pending.groups);
+      const configWithGroups = { ...config, groups: groupConfigs };
+      await saveKeyboardConfig(configWithGroups, currentLanguage);
+      const activeProfileKey = getActiveProfileKey(currentLanguage);
+      await KeyboardPreferences.setProfile(newProfileId, activeProfileKey);
+
+      // Switch state to new profile
+      setProfileDef(newDef);
+      setCurrentProfileId(newProfileId);
+      pendingSaveRef.current = null;
+      setShowSaveAsModal(false);
+      await loadSavedProfiles();
+      return true;
+    } catch (error) {
+      console.error('ClassicEditor: Failed to save as:', error);
+      return false;
+    }
+  }, [profileDef, currentLanguage, loadSavedProfiles]);
 
   // Helper: update a specific style group's property and save.
   // If the group doesn't exist yet, create it using the provided presetId and members.
@@ -463,10 +517,16 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
     await saveProfile(profileDef, updatedGroups);
   }, [styleGroups, profileDef, refreshState, saveProfile]);
 
-  // Handle master color changes (updates all charset groups too)
+  // Handle master color changes (updates all charset groups too).
+  // '' = system default → stored as undefined so native uses its own default.
   const updateMasterColor = useCallback(async (property: 'keysBgColor' | 'textColor', color: string) => {
     if (!profileDef) return;
-    const updatedDef = { ...profileDef, [property]: color };
+    const updatedDef: SavedProfileDefinition = { ...profileDef };
+    if (color === '') {
+      delete updatedDef[property];
+    } else {
+      updatedDef[property] = color;
+    }
     setProfileDef(updatedDef);
 
     // Also update all charset groups if changing master key/text color
@@ -484,10 +544,16 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
     await saveProfile(updatedDef, updatedGroups);
   }, [profileDef, styleGroups, refreshState, saveProfile]);
 
-  // Handle background color change
+  // Handle background color change.
+  // '' = system default → stored as undefined so native gets transparent/liquid glass.
   const updateBackgroundColor = useCallback(async (color: string) => {
     if (!profileDef) return;
-    const updatedDef = { ...profileDef, backgroundColor: color };
+    const updatedDef: SavedProfileDefinition = { ...profileDef };
+    if (color === '') {
+      delete updatedDef.backgroundColor;
+    } else {
+      updatedDef.backgroundColor = color;
+    }
     setProfileDef(updatedDef);
     refreshState(styleGroups, updatedDef);
     await saveProfile(updatedDef, styleGroups);
@@ -920,14 +986,14 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
     }
   }, [handleReset]);
 
-  // Get the current color for a setting
+  // Get the current color for a setting.
+  // Returns '' (system default) when no explicit color is set — matches new editor behavior.
   const getColorForSetting = useCallback((settingId: SettingId): string => {
-    if (!classicState || !profileDef) return '#000000';
-    // Fallbacks use the global keys/text colors so the picker shows what's actually applied
-    const globalKeysBg = profileDef.keysBgColor || '#CCCCCC';
-    const globalText = profileDef.textColor || '#000000';
+    if (!classicState || !profileDef) return '';
+    const globalKeysBg = profileDef.keysBgColor ?? '';
+    const globalText = profileDef.textColor ?? '';
     switch (settingId) {
-      case 'bg-color': return profileDef.backgroundColor || '#FFFFFF';
+      case 'bg-color': return profileDef.backgroundColor ?? '';
       case 'keys-color': return globalKeysBg;
       case 'text-color': return globalText;
       case 'space-color': return classicState.actionGroups.space?.style.bgColor || globalKeysBg;
@@ -942,7 +1008,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
       case 'group3-text-color': return classicState.charsetGroups[2]?.style.color || globalText;
       case 'special-keys-color': return classicState.specialKeysGroup?.style.bgColor || '#FFFF00';
       case 'special-keys-text-color': return classicState.specialKeysGroup?.style.color || '#000000';
-      default: return '#000000';
+      default: return '';
     }
   }, [classicState, profileDef]);
 
@@ -1143,9 +1209,9 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
         </View>
         <ClassicSectionsList
           classicState={classicState}
-          backgroundColor={profileDef.backgroundColor || '#FFFFFF'}
-          keysBgColor={profileDef.keysBgColor || '#CCCCCC'}
-          textColor={profileDef.textColor || '#000000'}
+          backgroundColor={profileDef.backgroundColor ?? ''}
+          keysBgColor={profileDef.keysBgColor ?? ''}
+          textColor={profileDef.textColor ?? ''}
           currentLanguage={currentLanguage}
           onSelectSetting={handleSelectSetting}
           onLanguageChange={handleLanguageChange}
@@ -1169,6 +1235,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
             <ClassicColorPicker
               currentColor={getColorForSetting(activeSetting)}
               onColorSelected={(color) => handleColorSelected(activeSetting, color)}
+              showSystemDefault={activeSetting === 'bg-color' || activeSetting === 'keys-color' || activeSetting === 'text-color'}
             />
           ) : activeSetting === 'key-order' ? (
             <View style={styles.pickerContainer}>
@@ -1269,6 +1336,18 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
           paragraphs={ISSIEBOARD_ABOUT}
         />
       )}
+      <SaveAsModal
+        visible={showSaveAsModal}
+        onClose={() => {
+          setShowSaveAsModal(false);
+          pendingSaveRef.current = null;
+          // Revert UI to the original built-in by reloading it
+          loadProfile(currentLanguage);
+        }}
+        onSaveAs={handleSaveAs}
+        originalName={profileDef?.name ?? ''}
+        existingNames={savedProfiles.map(p => p.name)}
+      />
     </SafeAreaView>
   );
 };
@@ -1276,7 +1355,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#F5F5F5',
   },
   sectionsLayer: {
     flex: 1,
@@ -1288,7 +1367,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     zIndex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#F5F5F5',
   },
   header: {
     flexDirection: 'row',

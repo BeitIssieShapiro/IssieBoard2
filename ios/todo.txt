@@ -1,3 +1,27 @@
+IssieBoard 11-May:
+V- classic view: 
+  V- rename back button to תצוגה חדשה
+  V- kb cut at bottom
+  V- don't override built in kb
+  V- default bg of classic
+- new view: kb cut on other than advanced if tall or more
+- when scaled, the suggested words are not cnetered/nor scaled
+- warn before leaving settings if not saved
+- rename texts for new key groups and templates - TBD
+- rename rule to key-group in the default name
+- in ios18 (or upgraded device), the keygroup template is not saved when switching order
+- in key-group header; remove count, and make circles for the colors.
+- nikkud custom: all unselected, plus add description
+- description on each tab of settings
+- link to beit issie in abount
+- להגדיל טקסט בשורת הגדרת
+- nikkud sign on nikkud tab is not the same as on kb
+-  הצבעים של כפתור הכיבוי הדלקת חוקים משתנים. לפעמים מודגש ולפעמים לא
+⁠בגלל גודל הפונט באפליקציה יכול להיות יותר גדול
+
+
+
+
 IssieVoice:
 - Icon?
 V- built-in group for language selection button

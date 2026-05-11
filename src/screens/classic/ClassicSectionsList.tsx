@@ -288,16 +288,23 @@ const ColorRow: React.FC<{
     color?: string;
     onPress: () => void;
     disabled?: boolean;
-}> = ({ title, color, onPress, disabled }) => (
-    <TouchableOpacity style={[styles.row, disabled && styles.rowDisabled]} onPress={onPress} disabled={disabled}>
-        <View style={[styles.colorDot, { backgroundColor: color || '#CCC' }, disabled && { opacity: 0.4 }]} />
-        <Text allowFontScaling={false} style={[styles.rowTitle, disabled && { color: '#C7C7CC' }]}>{title}</Text>
-        {!disabled && <Text allowFontScaling={false} style={styles.rowChevron}>{'>'}</Text>}
-    </TouchableOpacity>
-);
+}> = ({ title, color, onPress, disabled }) => {
+    const isDefault = !color;
+    return (
+        <TouchableOpacity style={[styles.row, disabled && styles.rowDisabled]} onPress={onPress} disabled={disabled}>
+            {isDefault ? (
+                <View style={[styles.colorDot, styles.colorDotDefault, disabled && { opacity: 0.4 }]} />
+            ) : (
+                <View style={[styles.colorDot, { backgroundColor: color }, disabled && { opacity: 0.4 }]} />
+            )}
+            <Text allowFontScaling={false} style={[styles.rowTitle, disabled && { color: '#C7C7CC' }]}>{title}</Text>
+            {!disabled && <Text allowFontScaling={false} style={styles.rowChevron}>{'>'}</Text>}
+        </TouchableOpacity>
+    );
+};
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#F2F2F7', overflow: 'hidden' },
+    container: { flex: 1, backgroundColor: '#F5F5F5', overflow: 'hidden' },
     languageBar: { flexDirection: 'row', padding: 12, gap: 8 },
     langButton: { flex: 1, padding: 10, alignItems: 'center', backgroundColor: '#E5E5EA', borderRadius: 8 },
     langButtonActive: { backgroundColor: '#007AFF' },
@@ -311,6 +318,7 @@ const styles = StyleSheet.create({
     rowSummary: { fontSize: 15, color: '#8E8E93', marginLeft: 8 },
     rowChevron: { fontSize: 20, color: '#C7C7CC', marginLeft: 8 },
     colorDot: { width: 28, height: 28, borderRadius: 14, borderWidth: 1, borderColor: '#DDD', marginRight: 12 },
+    colorDotDefault: { borderWidth: 2, borderColor: '#2196F3', borderStyle: 'dashed', backgroundColor: '#E3F2FD' },
     saveRow: { flexDirection: 'row', padding: 16, gap: 12 },
     loadButton: { flex: 1, borderWidth: 1, borderColor: '#007AFF', padding: 14, borderRadius: 10, alignItems: 'center' },
     loadButtonText: { color: '#007AFF', fontSize: 17 },
