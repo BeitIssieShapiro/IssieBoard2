@@ -1,19 +1,7 @@
 export const DEFAULT_COLOR_PRESETS = [
-  '#FFFFFF', // White
-  '#000000', // Black
-  '#808080', // Gray
-  '#C0C0C0', // Light Gray
-  '#404040', // Dark Gray
-  '#FF0000', // Red
-  '#00FF00', // Green
-  '#0000FF', // Blue
-  '#FFFF00', // Yellow
-  '#FF00FF', // Magenta
-  '#00FFFF', // Cyan
-  '#FF8000', // Orange
-  '#8000FF', // Purple
-  '#0080FF', // Sky Blue
-  '#FF0080', // Hot Pink
+  '#FFFFFF', '#000000', '#2C2C2E', '#48484A', '#FF0055',
+  '#00FF9F', '#00B8FF', '#BD00FF', '#FFEE00', '#FF8800',
+  '#FF0000', '#39FF14', '#7B61FF', '#FF1493', '#00D1FF',
 ];
 
 /** Returns the checkmark color that stays visible on top of `bgColor`. */
