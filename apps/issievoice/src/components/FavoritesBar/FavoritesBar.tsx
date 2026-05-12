@@ -251,50 +251,53 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
       return { currentRows: rows, usedRowCount: 1 };
     }
 
-    // Try single page: all favorites + add button
-    const singlePage = packIntoRows(favorites, rowCount, null, { type: 'add' });
+    // Try single page: add button first, then all favorites
+    const singlePage = packIntoRows(favorites, rowCount, { type: 'add' }, null);
     if (singlePage && singlePage.itemCount === favorites.length) {
       return { currentRows: singlePage.rows, usedRowCount: singlePage.rows.length };
     }
 
-    // Need pagination - no add button
+    // Need pagination - add button only on first page (as extraStart)
     const isFirstPage = currentPage === 0;
     const prevItem: GridItem | null = isFirstPage ? null : { type: 'prev' };
+    const addItem: GridItem | null = isFirstPage ? { type: 'add' } : null;
 
     // Compute start index by replaying previous pages
     let startIdx = 0;
     for (let p = 0; p < currentPage; p++) {
       const pPrev: GridItem | null = p === 0 ? null : { type: 'prev' };
+      const pAdd: GridItem | null = p === 0 ? { type: 'add' } : null;
       const slice = favorites.slice(startIdx);
       // Try fitting without next first
-      const withoutNext = packIntoRows(slice, rowCount, pPrev, null);
+      const withoutNext = packIntoRows(slice, rowCount, pAdd ?? pPrev, null);
       if (withoutNext && startIdx + withoutNext.itemCount >= favorites.length) {
         // Everything fits - this shouldn't happen since we need paging
         startIdx += withoutNext.itemCount;
         break;
       }
       // Fit with next button
-      const withNext = packIntoRows(slice, rowCount, pPrev, { type: 'next' });
+      const withNext = packIntoRows(slice, rowCount, pAdd ?? pPrev, { type: 'next' });
       startIdx += withNext ? withNext.itemCount : 1;
     }
 
     const remaining = favorites.slice(startIdx);
+    const startItem = addItem ?? prevItem;
 
     // Try fitting all remaining without next (last page)
-    const withoutNext = packIntoRows(remaining, rowCount, prevItem, null);
+    const withoutNext = packIntoRows(remaining, rowCount, startItem, null);
     if (withoutNext && withoutNext.itemCount === remaining.length) {
       return { currentRows: withoutNext.rows, usedRowCount: withoutNext.rows.length };
     }
 
     // Need next button
-    const withNext = packIntoRows(remaining, rowCount, prevItem, { type: 'next' });
+    const withNext = packIntoRows(remaining, rowCount, startItem, { type: 'next' });
     if (withNext) {
       return { currentRows: withNext.rows, usedRowCount: withNext.rows.length };
     }
 
     // Fallback - force at least 1 item
     const row: GridItem[] = [];
-    if (prevItem) row.push(prevItem);
+    if (startItem) row.push(startItem);
     if (remaining.length > 0) row.push({ type: 'favorite', data: remaining[0] });
     row.push({ type: 'next' });
     return { currentRows: [row], usedRowCount: 1 };
