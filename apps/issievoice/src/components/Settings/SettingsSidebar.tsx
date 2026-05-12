@@ -93,7 +93,7 @@ const TabItem: React.FC<{
         {backgroundColor: isActive ? 'rgba(255,255,255,0.25)' : tab.iconColor + '18'},
       ]}>
       {tab.iconText ? (
-        <Text allowFontScaling={false} style={{fontSize: extraCompact ? 13 : compact ? 15 : 18, color: isActive ? '#FFFFFF' : tab.iconColor, fontWeight: '700'}}>
+        <Text allowFontScaling={false} style={{fontSize: extraCompact ? 15 : compact ? 17 : 20, color: isActive ? '#FFFFFF' : tab.iconColor, fontWeight: '700'}}>
           {tab.iconText}
         </Text>
       ) : tab.iconImage ? (
@@ -108,7 +108,7 @@ const TabItem: React.FC<{
             name: tab.iconName!,
             type: tab.iconType!,
             color: isActive ? '#FFFFFF' : tab.iconColor,
-            size: extraCompact ? 14 : compact ? 17 : 20,
+            size: extraCompact ? 16 : compact ? 19 : 22,
           }}
         />
       )}
@@ -235,7 +235,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                     isDisabled && {opacity: 0.35},
                   ]}>
                   {tab.iconText ? (
-                    <Text allowFontScaling={false} style={{fontSize: 13, color: isActive ? '#FFFFFF' : tab.iconColor, fontWeight: '700'}}>
+                    <Text allowFontScaling={false} style={{fontSize: 15, color: isActive ? '#FFFFFF' : tab.iconColor, fontWeight: '700'}}>
                       {tab.iconText}
                     </Text>
                   ) : tab.iconImage ? (
@@ -250,7 +250,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                         name: tab.iconName!,
                         type: tab.iconType!,
                         color: isActive ? '#FFFFFF' : tab.iconColor,
-                        size: 14,
+                        size: 16,
                       }}
                     />
                   )}
@@ -299,7 +299,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                 name: 'keyboard-settings-outline',
                 type: 'MDI',
                 color: keyboardActive ? '#FFFFFF' : colors.primary,
-                size: 16,
+                size: 18,
               }}
             />
           </View>
@@ -385,7 +385,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                     isDisabled && {opacity: 0.35},
                   ]}>
                   {tab.iconText ? (
-                    <Text allowFontScaling={false} style={{fontSize: 13, color: isActive ? '#FFFFFF' : tab.iconColor, fontWeight: '700'}}>
+                    <Text allowFontScaling={false} style={{fontSize: 15, color: isActive ? '#FFFFFF' : tab.iconColor, fontWeight: '700'}}>
                       {tab.iconText}
                     </Text>
                   ) : tab.iconImage ? (
@@ -400,7 +400,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                         name: tab.iconName!,
                         type: tab.iconType!,
                         color: isActive ? '#FFFFFF' : tab.iconColor,
-                        size: 14,
+                        size: 16,
                       }}
                     />
                   )}
@@ -530,17 +530,17 @@ const styles = StyleSheet.create({
     ...cardShadow,
   },
   sidebarCardText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
     color: colors.text,
   },
   sidebarCardTextCompact: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
   },
   sidebarCardTextExtraCompact: {
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '600',
     color: colors.text,
   },
@@ -621,7 +621,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   tabText: {
-    fontSize: 15,
+    fontSize: 17,
     fontWeight: '600',
     color: colors.text,
   },
@@ -660,7 +660,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   subTabText: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '500',
     color: colors.text,
   },
