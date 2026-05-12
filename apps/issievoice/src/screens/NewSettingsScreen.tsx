@@ -286,6 +286,7 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
               isLandscape={true}
               disabledTabs={disabledTabs}
               mode={isKeyboardOnly ? 'keyboard' : 'voice'}
+              kbLanguage={kbLanguage}
             />
             <View style={styles.detailArea}>
               {renderContent()}
@@ -299,6 +300,7 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
               isLandscape={false}
               disabledTabs={disabledTabs}
               mode={isKeyboardOnly ? 'keyboard' : 'voice'}
+              kbLanguage={kbLanguage}
             />
             <View style={styles.detailArea}>
               {renderContent()}

@@ -1,5 +1,5 @@
 import React from 'react';
-import {View, Text, TouchableOpacity, StyleSheet, useWindowDimensions} from 'react-native';
+import {View, Text, TouchableOpacity, StyleSheet, useWindowDimensions, Image, ImageSourcePropType} from 'react-native';
 import {colors} from '../../constants';
 import {MyIcon, IconType} from '@beitissieshapiro/issie-shared/dist/icons';
 import {cardShadow, subtleShadow} from '../../../../../src/styles/shadows';
@@ -12,6 +12,8 @@ export interface SettingsSidebarProps {
   disabledTabs?: string[];
   /** 'voice' = IssieVoice (Keyboard group + Voice tab), 'keyboard' = IssieBoard (keyboard tabs only) */
   mode?: 'voice' | 'keyboard';
+  /** Current keyboard language — used to pick the correct nikkud icon */
+  kbLanguage?: 'en' | 'he' | 'ar';
 }
 
 type TabId = 'general' | 'keys-groups' | 'nikkud' | 'features' | 'advanced' | 'voice' | 'language';
@@ -22,13 +24,17 @@ interface TabDef {
   iconName?: string;
   iconType?: IconType;
   iconText?: string; // Unicode text icon (e.g. nikkud)
+  iconImage?: ImageSourcePropType; // PNG asset icon
   iconColor: string; // accent color for inactive state
 }
 
-const getKeyboardChildren = (tabLabels: { general: string; keysGroups: string; nikkud: string; features: string; advanced: string }): TabDef[] => [
+const NIKKUD_IMAGE_HE = require('../../../../../src/icons/nikkud_hataf_kamatz.png');
+const NIKKUD_IMAGE_AR = require('../../../../../src/icons/nikkud_tashkeel.png');
+
+const getKeyboardChildren = (tabLabels: { general: string; keysGroups: string; nikkud: string; features: string; advanced: string }, kbLanguage: 'en' | 'he' | 'ar'): TabDef[] => [
   {id: 'general', label: tabLabels.general, iconName: 'settings-outline', iconType: 'Ionicons', iconColor: colors.primary},
   {id: 'keys-groups', label: tabLabels.keysGroups, iconName: 'color-palette-outline', iconType: 'Ionicons', iconColor: '#7C3AED'},
-  {id: 'nikkud', label: tabLabels.nikkud, iconText: '\u25CC\u05B8', iconColor: '#059669'},
+  {id: 'nikkud', label: tabLabels.nikkud, iconImage: kbLanguage === 'ar' ? NIKKUD_IMAGE_AR : NIKKUD_IMAGE_HE, iconColor: '#059669'},
   {id: 'features', label: tabLabels.features, iconName: 'toggle-outline', iconType: 'Ionicons', iconColor: '#0891B2'},
   {id: 'advanced', label: tabLabels.advanced, iconName: 'cog-outline', iconType: 'Ionicons', iconColor: '#6B7280'},
 ];
@@ -90,6 +96,12 @@ const TabItem: React.FC<{
         <Text allowFontScaling={false} style={{fontSize: extraCompact ? 13 : compact ? 15 : 18, color: isActive ? '#FFFFFF' : tab.iconColor, fontWeight: '700'}}>
           {tab.iconText}
         </Text>
+      ) : tab.iconImage ? (
+        <Image
+          source={tab.iconImage}
+          style={{width: extraCompact ? 20 : compact ? 24 : 28, height: extraCompact ? 20 : compact ? 24 : 28, tintColor: isActive ? '#FFFFFF' : tab.iconColor}}
+          resizeMode="contain"
+        />
       ) : (
         <MyIcon
           info={{
@@ -120,6 +132,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   isLandscape,
   disabledTabs,
   mode = 'voice',
+  kbLanguage = 'he',
 }) => {
   const keyboardOnly = mode === 'keyboard';
   const {width: screenWidth, height: screenHeight} = useWindowDimensions();
@@ -130,7 +143,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
 
   const {strings, isRTL} = useLocalization();
   const tabLabels = strings.settings.tabs;
-  const KEYBOARD_CHILDREN = getKeyboardChildren(tabLabels);
+  const KEYBOARD_CHILDREN = getKeyboardChildren(tabLabels, kbLanguage);
   const VOICE_TAB = getVoiceTab(tabLabels.voice);
   const LANGUAGE_TAB = getLanguageTab(tabLabels.language);
 
@@ -225,6 +238,12 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                     <Text allowFontScaling={false} style={{fontSize: 13, color: isActive ? '#FFFFFF' : tab.iconColor, fontWeight: '700'}}>
                       {tab.iconText}
                     </Text>
+                  ) : tab.iconImage ? (
+                    <Image
+                      source={tab.iconImage}
+                      style={{width: 20, height: 20, tintColor: isActive ? '#FFFFFF' : tab.iconColor}}
+                      resizeMode="contain"
+                    />
                   ) : (
                     <MyIcon
                       info={{
@@ -369,6 +388,12 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                     <Text allowFontScaling={false} style={{fontSize: 13, color: isActive ? '#FFFFFF' : tab.iconColor, fontWeight: '700'}}>
                       {tab.iconText}
                     </Text>
+                  ) : tab.iconImage ? (
+                    <Image
+                      source={tab.iconImage}
+                      style={{width: 20, height: 20, tintColor: isActive ? '#FFFFFF' : tab.iconColor}}
+                      resizeMode="contain"
+                    />
                   ) : (
                     <MyIcon
                       info={{

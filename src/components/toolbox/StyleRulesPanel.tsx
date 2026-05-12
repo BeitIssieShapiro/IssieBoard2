@@ -149,8 +149,8 @@ export const StyleRulesPanel: React.FC<StyleRulesPanelProps> = ({
                 <Switch
                   value={isGroupActive}
                   onValueChange={() => toggleGroupActive(group.id)}
-                  trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
-                  thumbColor={isGroupActive ? '#3B82F6' : '#F3F4F6'}
+                  trackColor={{ false: '#D1D5DB', true: '#3B82F6' }}
+                  thumbColor={isGroupActive ? '#FFFFFF' : '#F3F4F6'}
                   ios_backgroundColor="#D1D5DB"
                   style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
                 />
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   groupName: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
     color: '#333',
     flex: 1,
@@ -259,12 +259,12 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   iconButtonTextBlue: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
     color: '#3B82F6',
   },
   iconButtonTextRed: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
     color: '#EF4444',
   },
@@ -274,13 +274,13 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   colorLabel: {
-    fontSize: 10,
-    color: '#888',
+    fontSize: 14,
+    color: 'black',
   },
   colorSwatch: {
     width: 16,
     height: 16,
-    borderRadius: 3,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: '#DDD',
   },

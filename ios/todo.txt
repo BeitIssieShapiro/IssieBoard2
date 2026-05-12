@@ -17,15 +17,15 @@ V- in ios18 the kb is not shown as keyboard (racheli)
 
 V- keys group
   V- rename rule to key-group in the default name
-  - in key-group header; remove count, and make circles for the colors. enlarge text (same as buttoms)
+  V- in key-group header; remove count, and make circles for the colors. enlarge text (same as buttoms)
 V- nikkud custom: all unselected, plus add description
 V- link to beit issie in about
 
 X- the keygroup template is not saved when switching order (not a bug?)
 - description on each tab of settings + larger font of tabs and descriptions
   also refer to the presets in the description of keys group
-- nikkud sign on nikkud tab is not the same as on kb
--  הצבעים של כפתור הכיבוי הדלקת חוקים משתנים. לפעמים מודגש ולפעמים לא
+V- nikkud sign on nikkud tab is not the same as on kb
+V-  הצבעים של כפתור הכיבוי הדלקת חוקים משתנים. לפעמים מודגש ולפעמים לא
   ⁠בגלל גודל הפונט באפליקציה יכול להיות יותר גדול
 
 
