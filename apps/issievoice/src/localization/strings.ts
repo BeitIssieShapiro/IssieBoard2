@@ -79,6 +79,13 @@ export interface Strings {
       advanced: string;
       voice: string;
       language: string;
+      tabDescriptions: {
+        general: string;
+        keysGroups: string;
+        nikkud: string;
+        features: string;
+        advanced: string;
+      };
     };
   };
   settingsModal: {
@@ -189,6 +196,13 @@ const en: Strings = {
       advanced: 'Advanced',
       voice: 'Voice',
       language: 'Language',
+      tabDescriptions: {
+        general: 'Control the overall look of your keyboard — background color, key size, font, spacing, and keys order.',
+        keysGroups: 'Customize your keyboard layout by creating groups of keys, or by using preset groups.',
+        nikkud: 'Control which Nikkud signs are available for your keyboard.',
+        features: 'Enable or disable keyboard features.',
+        advanced: 'Control advanced attributes of your keyboard.',
+      },
     },
   },
   settingsModal: {
@@ -299,6 +313,13 @@ const he: Strings = {
       advanced: 'מתקדם',
       voice: 'קול',
       language: 'שפה',
+      tabDescriptions: {
+        general: 'שליטה על המראה הכללי של המקלדת — צבע רקע, גודל מקש, גופן, ריווח וסדר מקשים.',
+        keysGroups: 'התאם אישית את פריסת המקלדת שלך על ידי יצירת קבוצות מקשים, או שימוש בתבניות המוכנות מראש.',
+        nikkud: 'שליטה על אילו סימני ניקוד זמינים במקלדת שלך.',
+        features: 'הפעל או כבה תכונות מקלדת.',
+        advanced: 'שליטה על מאפיינים מתקדמים של המקלדת שלך.',
+      },
     },
   },
   settingsModal: {
@@ -409,6 +430,13 @@ const ar: Strings = {
       advanced: 'متقدم',
       voice: 'صوت',
       language: 'لغة',
+      tabDescriptions: {
+        general: 'تحكم في المظهر العام للوحة المفاتيح — لون الخلفية، حجم المفتاح، الخط، التباعد، وترتيب المفاتيح.',
+        keysGroups: 'خصّص تخطيط لوحة مفاتيحك بإنشاء مجموعات مفاتيح، أو باستخدام مجموعات جاهزة.',
+        nikkud: 'تحكم في علامات التشكيل المتاحة للوحة مفاتيحك.',
+        features: 'تفعيل أو تعطيل ميزات لوحة المفاتيح.',
+        advanced: 'تحكم في الخصائص المتقدمة للوحة مفاتيحك.',
+      },
     },
   },
   settingsModal: {

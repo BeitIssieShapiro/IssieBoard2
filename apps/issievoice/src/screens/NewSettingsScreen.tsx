@@ -212,6 +212,16 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
     }
 
     // For keyboard tabs, render KeyboardHeader strip + EditorScreen
+    const tabDescriptions = voiceStrings.settings.tabs.tabDescriptions;
+    const TAB_DESCRIPTIONS: Record<string, string> = {
+      'general':     tabDescriptions.general,
+      'keys-groups': tabDescriptions.keysGroups,
+      'nikkud':      tabDescriptions.nikkud,
+      'features':    tabDescriptions.features,
+      'advanced':    tabDescriptions.advanced,
+    };
+    const description = TAB_DESCRIPTIONS[activeTab];
+
     return (
       <View style={{ flex: 1 }}>
         <KeyboardHeader
@@ -224,6 +234,11 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
           showFullAccessBadge={showFullAccessBadge}
           onFullAccessBadgePress={handleFullAccessBadgePress}
         />
+        {description ? (
+          <View style={styles.tabDescriptionBanner}>
+            <Text allowFontScaling={false} style={styles.tabDescriptionText}>{description}</Text>
+          </View>
+        ) : null}
         <EditorLocalizationProvider>
           <EditorLanguageSync language={uiLanguage}>
             <EditorScreen
@@ -384,6 +399,22 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     ...cardShadow,
     overflow: 'hidden',
+  },
+  tabDescriptionBanner: {
+    marginHorizontal: 12,
+    marginTop: 2,
+    marginBottom: 0,
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  tabDescriptionText: {
+    fontSize: 15,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
 

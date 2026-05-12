@@ -130,8 +130,11 @@ export const StyleRulesPanel: React.FC<StyleRulesPanelProps> = ({
   return (
     <View style={[styles.container]}>
       {state.styleGroups.length === 0 ? (
-        <View style={[styles.emptyContainer]}>
-          <Text allowFontScaling={false} style={[styles.emptyText]}>
+        <View style={styles.emptyContainer}>
+          <Text allowFontScaling={false} style={styles.emptyTitle}>
+            {strings.styleRules.noGroupsYet}
+          </Text>
+          <Text allowFontScaling={false} style={styles.emptyText}>
             {strings.styleRules.noGroupsHint}
           </Text>
         </View>
@@ -196,19 +199,30 @@ export const StyleRulesPanel: React.FC<StyleRulesPanelProps> = ({
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     backgroundColor: 'transparent',
     padding: 12,
   },
   listContainer: {
   },
   emptyContainer: {
-    padding: 12,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+    gap: 8,
+  },
+  emptyTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#555',
+    textAlign: 'center',
   },
   emptyText: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#999',
-    fontStyle: 'italic',
-    textAlign: 'left'
+    textAlign: 'center',
+    lineHeight: 20,
   },
   // Thin row layout - everything on one line
   groupRow: {
