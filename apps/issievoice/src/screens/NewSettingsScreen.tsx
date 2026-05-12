@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   useWindowDimensions,
   Alert,
+  AppState,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../constants';
@@ -65,6 +66,17 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
   const showProfilePickerRef = useRef<(() => void) | null>(null);
   const changeLanguageRef = useRef<((lang: 'en' | 'he' | 'ar') => void) | null>(null);
   const saveRef = useRef<(() => void) | null>(null);
+  const autoSaveRef = useRef<(() => void) | null>(null);
+
+  // Auto-save when app goes to background or is closed
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'background' || nextState === 'inactive') {
+        autoSaveRef.current?.();
+      }
+    });
+    return () => sub.remove();
+  }, []);
 
   // Keyboard setup status (for Full Access badge — IssieBoard only)
   const setupStatus = useKeyboardSetupStatus(kbLanguage);
@@ -224,6 +236,7 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
               headless
               activeTab={activeTab}
               saveRef={saveRef}
+              autoSaveRef={autoSaveRef}
               selectedLanguages={isKeyboardOnly ? undefined : selectedLanguages}
             />
           </EditorLanguageSync>

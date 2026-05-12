@@ -237,7 +237,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
                   onPress={handleCreatePressed}
                   activeOpacity={0.7}>
                   <MyIcon info={{ name: 'add', type: 'Ionicons', color: '#3B82F6', size: 18 }} />
-                  <Text allowFontScaling={false} style={styles.subtleButtonText}>{strings.toolbox.new}</Text>
+                  <Text allowFontScaling={false} style={styles.subtleButtonText}>{strings.toolbox.createNew}</Text>
                 </TouchableOpacity>
               </View>
               <StyleRulesPanel
@@ -388,7 +388,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
               onPress={handleCreatePressed}
               activeOpacity={0.7}>
               <MyIcon info={{ name: 'add', type: 'Ionicons', color: '#3B82F6', size: 18 }} />
-              <Text allowFontScaling={false} style={styles.subtleButtonText}>{strings.toolbox.new}</Text>
+              <Text allowFontScaling={false} style={styles.subtleButtonText}>{strings.toolbox.createNew}</Text>
             </TouchableOpacity>
           </View>
         }

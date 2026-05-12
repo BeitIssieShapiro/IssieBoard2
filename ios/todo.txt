@@ -9,37 +9,41 @@ V- new view: kb cut on other than advanced if tall or more
 V- when scaled, the suggested words are not cnetered/nor scaled
 
 
-?- different colors - which? (also issievoice)
-?- user forgets to save?
-  - notification (requires permission)
-  - auto-save (auto-name for built-in)
-  - beep/vibrate
-?- rename texts for new key groups and templates
-?- in ios18 (or upgraded device), the keygroup template is not saved when switching order (not a bug?)
-?- description on each tab of settings
-?- להגדיל טקסט בשורת הגדרת
+V- different colors - (also issievoice)
+V- user forgets to save
+  V- auto-save on baground state (auto-name for built-in)+ blinking save button
+V- rename texts for new key groups and templates: "+ Create New"
+V- in ios18 the kb is not shown as keyboard (racheli)
 
 V- keys group
   V- rename rule to key-group in the default name
-  V- in key-group header; remove count, and make circles for the colors.
+  - in key-group header; remove count, and make circles for the colors. enlarge text (same as buttoms)
 V- nikkud custom: all unselected, plus add description
 V- link to beit issie in about
 
-?- nikkud sign on nikkud tab is not the same as on kb
-?-  הצבעים של כפתור הכיבוי הדלקת חוקים משתנים. לפעמים מודגש ולפעמים לא
-⁠בגלל גודל הפונט באפליקציה יכול להיות יותר גדול
+X- the keygroup template is not saved when switching order (not a bug?)
+- description on each tab of settings + larger font of tabs and descriptions
+  also refer to the presets in the description of keys group
+- nikkud sign on nikkud tab is not the same as on kb
+-  הצבעים של כפתור הכיבוי הדלקת חוקים משתנים. לפעמים מודגש ולפעמים לא
+  ⁠בגלל גודל הפונט באפליקציה יכול להיות יותר גדול
+
+
+
 
 
 
 
 IssieVoice:
-- Icon?
+-----------
+V- Icon
 V- built-in group for language selection button
 V- remove globus and close button from text of built in special keys
 V- emojis - change cat all gone
 ?- changes in issievoice settings, save modal disapear and default kb is back
 
-- 
+- move (+) fav to begin of row
+
 
 
 

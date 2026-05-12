@@ -425,6 +425,8 @@ interface EditorScreenInnerProps {
   activeTab?: string;
   /** Ref to expose save function to parent */
   saveRef?: React.MutableRefObject<(() => void) | null>;
+  /** Ref to expose silent auto-save (background/quit) — handles built-in by saving as a copy */
+  autoSaveRef?: React.MutableRefObject<(() => void) | null>;
   /** Ref to expose language change to parent */
   changeLanguageRef?: React.MutableRefObject<((lang: LanguageId) => void) | null>;
   /** Callback to report state changes (language, profile, dirty) to parent */
@@ -484,6 +486,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   headless,
   activeTab,
   saveRef,
+  autoSaveRef,
   changeLanguageRef,
   onStateChange,
   selectedLanguages,
@@ -923,6 +926,29 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       }
     };
   }, [saveRef, handleSave]);
+
+  // Silent auto-save for background/quit: saves directly without opening any modal
+  const handleAutoSave = useCallback(async () => {
+    if (!state.isDirty) return;
+    const currentProfile = profiles.find(p => p.id === currentProfileId);
+    if (currentProfile?.isBuiltIn) {
+      const copyName = `${currentProfileName} Copy`;
+      await handleSaveAs(copyName);
+    } else {
+      await handleSave();
+    }
+  }, [state.isDirty, profiles, currentProfileId, currentProfileName, handleSaveAs, handleSave]);
+
+  useEffect(() => {
+    if (autoSaveRef) {
+      autoSaveRef.current = handleAutoSave;
+    }
+    return () => {
+      if (autoSaveRef) {
+        autoSaveRef.current = null;
+      }
+    };
+  }, [autoSaveRef, handleAutoSave]);
 
   // Expose language change to parent via ref (inner handleLanguageChange loads profiles)
   useEffect(() => {
@@ -2103,6 +2129,8 @@ interface EditorScreenProps {
   headless?: boolean;
   activeTab?: string;
   saveRef?: React.MutableRefObject<(() => void) | null>;
+  /** Ref to expose silent auto-save (background/quit) — handles built-in by saving as a copy */
+  autoSaveRef?: React.MutableRefObject<(() => void) | null>;
   /** Selected languages for IssieVoice language key injection */
   selectedLanguages?: string[];
 }
@@ -2120,6 +2148,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
   headless,
   activeTab,
   saveRef,
+  autoSaveRef,
   selectedLanguages,
 }) => {
   const { strings, isRTL, language: uiLanguage } = useLocalization();
@@ -2665,6 +2694,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
         headless={headless}
         activeTab={activeTab}
         saveRef={saveRef}
+        autoSaveRef={autoSaveRef}
         changeLanguageRef={changeLanguageRef}
         onStateChange={onStateChange}
         selectedLanguages={selectedLanguages}

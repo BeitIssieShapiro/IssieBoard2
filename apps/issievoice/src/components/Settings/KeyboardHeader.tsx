@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   useWindowDimensions,
+  Animated,
 } from 'react-native';
 import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 import { colors } from '../../constants';
@@ -48,6 +49,24 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
   const twoRows = isPhone && isPortrait;
   const { language: uiLanguage, isRTL } = useLocalization();
   const strings = getStrings(uiLanguage);
+
+  const saveOpacity = useRef(new Animated.Value(1)).current;
+  const blinkAnim = useRef<Animated.CompositeAnimation | null>(null);
+
+  useEffect(() => {
+    if (isDirty) {
+      blinkAnim.current = Animated.loop(
+        Animated.sequence([
+          Animated.timing(saveOpacity, { toValue: 0.25, duration: 500, useNativeDriver: true }),
+          Animated.timing(saveOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
+        ]),
+      );
+      blinkAnim.current.start();
+    } else {
+      blinkAnim.current?.stop();
+      saveOpacity.setValue(1);
+    }
+  }, [isDirty, saveOpacity]);
 
   return (
     <View style={[styles.container, twoRows && styles.containerTwoRows, isRTL && { direction: 'rtl' }]}>
@@ -99,21 +118,23 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
         </TouchableOpacity>
 
         <View style={styles.actions}>
-          <TouchableOpacity
-            style={[styles.saveButton, !isDirty && styles.saveButtonDisabled]}
-            onPress={onSave}
-            disabled={!isDirty}
-            activeOpacity={0.7}>
-            <MyIcon
-              info={{
-                name: 'save-outline',
-                type: 'Ionicons',
-                color: isDirty ? '#FFFFFF' : colors.textLight,
-                size: 18,
-              }}
-            />
-            <Text style={[styles.saveText, !isDirty && styles.saveTextDisabled]}>{strings.common.save}</Text>
-          </TouchableOpacity>
+          <Animated.View style={{ opacity: saveOpacity }}>
+            <TouchableOpacity
+              style={[styles.saveButton, !isDirty && styles.saveButtonDisabled]}
+              onPress={onSave}
+              disabled={!isDirty}
+              activeOpacity={0.7}>
+              <MyIcon
+                info={{
+                  name: 'save-outline',
+                  type: 'Ionicons',
+                  color: isDirty ? '#FFFFFF' : colors.textLight,
+                  size: 18,
+                }}
+              />
+              <Text style={[styles.saveText, !isDirty && styles.saveTextDisabled]}>{strings.common.save}</Text>
+            </TouchableOpacity>
+          </Animated.View>
 
           {onSaveAs && (
             <TouchableOpacity

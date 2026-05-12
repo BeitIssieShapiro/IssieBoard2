@@ -130,6 +130,7 @@ export interface Strings {
     nikkud: string;
     presets: string;
     new: string;
+    createNew: string;
     presetsModalTitle: string;
     keysLabel: string;
   };
@@ -459,6 +460,7 @@ const en: Strings = {
     nikkud: 'Nikkud',
     presets: 'Presets',
     new: 'New',
+    createNew: 'Create New',
     presetsModalTitle: 'Choose a Preset',
     keysLabel: 'Keys',
   },
@@ -788,6 +790,7 @@ const he: Strings = {
     nikkud: 'ניקוד',
     presets: 'תבניות',
     new: 'חדש',
+    createNew: 'צור חדש',
     presetsModalTitle: 'בחר תבנית',
     keysLabel: 'מקשים',
   },
@@ -1117,6 +1120,7 @@ const ar: Strings = {
     nikkud: 'تشكيل',
     presets: 'قوالب',
     new: 'جديد',
+    createNew: 'إنشاء جديد',
     presetsModalTitle: 'اختر قالبًا',
     keysLabel: 'مفاتيح',
   },
