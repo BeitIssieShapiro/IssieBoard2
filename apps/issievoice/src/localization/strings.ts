@@ -53,6 +53,9 @@ export interface Strings {
     removedFromFavorites: string;
     captionIconPromptTitle: string;
     captionIconPromptMessage: string;
+    noFavorites: string;
+    noFavoritesHint: string;
+    noFavoritesHintSuffix: string;
   };
   settings: {
     title: string;
@@ -170,6 +173,9 @@ const en: Strings = {
     removedFromFavorites: 'Removed from favorites',
     captionIconPromptTitle: 'Set Caption & Icon?',
     captionIconPromptMessage: 'Would you like to set a caption and icon for this favorite?',
+    noFavorites: 'No favorites yet',
+    noFavoritesHint: 'Tap',
+    noFavoritesHintSuffix: 'to add',
   },
   settings: {
     title: 'Settings',
@@ -287,6 +293,9 @@ const he: Strings = {
     removedFromFavorites: 'הוסר מהמועדפים',
     captionIconPromptTitle: 'להגדיר כיתוב וסמל?',
     captionIconPromptMessage: 'האם תרצה להגדיר כיתוב וסמל למועדף זה?',
+    noFavorites: 'אין מועדפים עדיין',
+    noFavoritesHint: 'לחץ',
+    noFavoritesHintSuffix: 'להוספה',
   },
   settings: {
     title: 'הגדרות',
@@ -404,6 +413,9 @@ const ar: Strings = {
     removedFromFavorites: 'تمت الإزالة من المفضلة',
     captionIconPromptTitle: 'تعيين التسمية والأيقونة؟',
     captionIconPromptMessage: 'هل تريد تعيين تسمية وأيقونة لهذه المفضلة؟',
+    noFavorites: 'لا توجد مفضلة بعد',
+    noFavoritesHint: 'اضغط',
+    noFavoritesHintSuffix: 'للإضافة',
   },
   settings: {
     title: 'الإعدادات',

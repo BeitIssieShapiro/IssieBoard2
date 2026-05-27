@@ -24,9 +24,10 @@ interface TextDisplayAreaProps {
   screenWidth?: number; // Optional screen width for responsive scaling
   speakButtonPadding?: number; // Extra bottom-right padding for floating speak button
   onSave?: () => void;
+  onBrowse?: () => void;
 }
 
-const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1000, speakButtonPadding = 0, onSave }) => {
+const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1000, speakButtonPadding = 0, onSave, onBrowse }) => {
   const { setText, cursorPosition, setCursorPosition, pendingSelection, clearPendingSelection } = useText();
   const { isSpeaking, spokenRange, spokenText } = useTTS();
   const { strings, isRTL, language } = useLocalization();
@@ -165,6 +166,12 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1
         disabled={!text.length}>
         <MyIcon info={{ name: 'save-outline', type: 'Ionicons', color: text.length ? colors.primary : colors.textLight, size: 32 }} />
       </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.topButton, styles.browseButton, isRTL ? { left: 8 } : { right: 8 }]}
+        onPress={onBrowse}
+        activeOpacity={0.7}>
+        <MyIcon info={{ name: 'list-sharp', type: 'Ionicons', color: colors.primary, size: 32 }} />
+      </TouchableOpacity>
     </View>
   );
 };
@@ -213,6 +220,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
   },
   saveButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+  },
+  browseButton: {
+    top: 68,
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
     width: 54,
     height: 54,

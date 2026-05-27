@@ -27,7 +27,6 @@ const MAX_ITEM_WIDTH = 200;
 
 interface FavoritesBarProps {
   onFavoritePress: (text: string) => void;
-  height: number;
   navigation: any;
   onEditModeChange?: (isEditMode: boolean) => void;
   reloadTrigger?: number;
@@ -36,10 +35,9 @@ interface FavoritesBarProps {
   isLandscape?: boolean;
   isTablet?: boolean;
   symbolsInSuggestions?: boolean;
-  onUnusedHeight?: (unusedHeight: number) => void;
 }
 
-const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, navigation, onEditModeChange, reloadTrigger, screenWidth = 1000, isRTL = false, isLandscape = false, isTablet = false, symbolsInSuggestions = false, onUnusedHeight }) => {
+const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, navigation, onEditModeChange, reloadTrigger, screenWidth = 1000, isRTL = false, isLandscape = false, isTablet = false, symbolsInSuggestions = false }) => {
   const [favorites, setFavorites] = useState<{ favorite: Favorite; sentence: SavedSentence }[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
@@ -112,11 +110,6 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
     return itemWidths[item.favorite.id] || DEFAULT_ITEM_WIDTH;
   }, [itemWidths]);
 
-  const handleAddPress = async () => {
-    if (selectedId) setSelectedId(null);
-    navigation.navigate('Browse');
-  };
-
   const handleFavoritePress = (item: { favorite: Favorite; sentence: SavedSentence }) => {
     if (selectedId === item.favorite.id) {
       setSelectedId(null);
@@ -159,18 +152,15 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
   };
 
   const rowCount = useMemo(() => {
-    const bonus = symbolsInSuggestions ? 0 : 1;
-    if (isLandscape) {
-      return 1 + bonus;
-    }
-    return 3 + bonus;
-  }, [isLandscape, symbolsInSuggestions]);
+    if (isLandscape) return 1;
+    return 2;
+  }, [isLandscape]);
 
   const itemHeight = isMobile ? ITEM_HEIGHT_MOBILE : ITEM_HEIGHT_DESKTOP;
-  const computedHeight = rowCount * itemHeight + (rowCount - 1) * GAP + sizes.spacing.sm * 2;
+  const emptyRowHeight = itemHeight + sizes.spacing.sm * 2;
   const availableRowWidth = screenWidth - HORIZONTAL_PADDING;
 
-  type GridItem = { type: 'favorite'; data: typeof favorites[0] } | { type: 'prev' } | { type: 'next' } | { type: 'add' };
+  type GridItem = { type: 'favorite'; data: typeof favorites[0] } | { type: 'prev' } | { type: 'next' };
 
   // Greedy row packing based on measured widths
   const packIntoRows = useCallback((
@@ -247,41 +237,37 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
 
   const { currentRows, usedRowCount } = useMemo(() => {
     if (favorites.length === 0) {
-      const rows: GridItem[][] = [[{ type: 'add' }]];
-      return { currentRows: rows, usedRowCount: 1 };
+      return { currentRows: [] as GridItem[][], usedRowCount: 0 };
     }
 
-    // Try single page: add button first, then all favorites
-    const singlePage = packIntoRows(favorites, rowCount, { type: 'add' }, null);
+    // Try single page: all favorites
+    const singlePage = packIntoRows(favorites, rowCount, null, null);
     if (singlePage && singlePage.itemCount === favorites.length) {
       return { currentRows: singlePage.rows, usedRowCount: singlePage.rows.length };
     }
 
-    // Need pagination - add button only on first page (as extraStart)
+    // Need pagination
     const isFirstPage = currentPage === 0;
     const prevItem: GridItem | null = isFirstPage ? null : { type: 'prev' };
-    const addItem: GridItem | null = isFirstPage ? { type: 'add' } : null;
 
     // Compute start index by replaying previous pages
     let startIdx = 0;
     for (let p = 0; p < currentPage; p++) {
       const pPrev: GridItem | null = p === 0 ? null : { type: 'prev' };
-      const pAdd: GridItem | null = p === 0 ? { type: 'add' } : null;
       const slice = favorites.slice(startIdx);
       // Try fitting without next first
-      const withoutNext = packIntoRows(slice, rowCount, pAdd ?? pPrev, null);
+      const withoutNext = packIntoRows(slice, rowCount, pPrev, null);
       if (withoutNext && startIdx + withoutNext.itemCount >= favorites.length) {
-        // Everything fits - this shouldn't happen since we need paging
         startIdx += withoutNext.itemCount;
         break;
       }
       // Fit with next button
-      const withNext = packIntoRows(slice, rowCount, pAdd ?? pPrev, { type: 'next' });
+      const withNext = packIntoRows(slice, rowCount, pPrev, { type: 'next' });
       startIdx += withNext ? withNext.itemCount : 1;
     }
 
     const remaining = favorites.slice(startIdx);
-    const startItem = addItem ?? prevItem;
+    const startItem = prevItem;
 
     // Try fitting all remaining without next (last page)
     const withoutNext = packIntoRows(remaining, rowCount, startItem, null);
@@ -321,12 +307,9 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
     }
   }, [favorites, selectedId, currentRows, currentPage]);
 
-  // Report unused height to parent
-  const unusedRows = rowCount - usedRowCount;
-  const unusedHeight = unusedRows > 0 ? unusedRows * (itemHeight + GAP) : 0;
-  useEffect(() => {
-    onUnusedHeight?.(unusedHeight);
-  }, [unusedHeight, onUnusedHeight]);
+  const actualHeight = favorites.length === 0
+    ? emptyRowHeight
+    : usedRowCount * itemHeight + Math.max(0, usedRowCount - 1) * GAP + sizes.spacing.sm * 2;
 
   const renderGridItem = (gridItem: GridItem, itemH: number) => {
     if (gridItem.type === 'prev') {
@@ -348,17 +331,6 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
           onPress={() => setCurrentPage(p => p + 1)}
           activeOpacity={0.7}>
           <MyIcon info={{ name: isDeviceRTL ? 'navigate-before' : 'navigate-next', type: 'MI', color: '#FFFFFF', size: 32 }} />
-        </TouchableOpacity>
-      );
-    }
-    if (gridItem.type === 'add') {
-      return (
-        <TouchableOpacity
-          key="add"
-          style={[styles.addButton, { height: itemH, width: NAV_BUTTON_WIDTH }]}
-          onPress={handleAddPress}
-          activeOpacity={0.7}>
-          <Text style={styles.addButtonText}>+</Text>
         </TouchableOpacity>
       );
     }
@@ -418,15 +390,26 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, height, na
         </View>
       )}
 
-      <View style={[styles.container, { height: computedHeight - unusedHeight }, selectedId && styles.containerSelected]}>
-        <View style={styles.innerContainer}>
-          {currentRows.map((row, rowIndex) => (
-            <View key={rowIndex} style={[styles.favoritesRow, isDeviceRTL && { flexDirection: 'row-reverse' }]}>
-              {row.map((gridItem) => renderGridItem(gridItem, itemHeight))}
-            </View>
-          ))}
+      {favorites.length === 0 ? (
+        <View style={[styles.emptyContainer, { height: emptyRowHeight, }, isDeviceRTL && { flexDirection: 'row-reverse' }]}>
+          <View style={{ flexDirection: "row", margin: 10 }}>
+            <Text style={styles.emptyText}>⭐ {strings.favorites.noFavorites}</Text>
+            <Text style={styles.emptyHint}>{strings.favorites.noFavoritesHint}</Text>
+            <MyIcon info={{ name: 'list-sharp', type: 'Ionicons', color: colors.textSecondary, size: 18 }} />
+            <Text style={styles.emptyHint}>{strings.favorites.noFavoritesHintSuffix}</Text>
+          </View>
         </View>
-      </View>
+      ) : (
+        <View style={[styles.container, { height: actualHeight }, selectedId && styles.containerSelected]}>
+          <View style={styles.innerContainer}>
+            {currentRows.map((row, rowIndex) => (
+              <View key={rowIndex} style={[styles.favoritesRow, isDeviceRTL && { flexDirection: 'row-reverse' }]}>
+                {row.map((gridItem) => renderGridItem(gridItem, itemHeight))}
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
     </>
   );
 };
@@ -501,25 +484,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  addButton: {
-    width: 50,
-    height: 69,
-    borderRadius: sizes.borderRadius.large,
-    backgroundColor: colors.background,
-    borderStyle: "dashed",
-    borderWidth: 2,
-    borderColor: colors.border,
-    justifyContent: 'center',
-    alignItems: 'center',
-    boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.3)',
+  emptyContainer: {
+    justifyContent: "center",
+    flexWrap: 'wrap',
+    gap: 6,
+    paddingHorizontal: sizes.spacing.md,
+    marginLeft: 8,
   },
-  addButtonText: {
-    color: 'gray',
-    fontSize: 28,
-    fontWeight: 'bold',
-    lineHeight: 28,
-    textAlign: 'center',
-    textAlignVertical: 'center',
+  emptyText: {
+    color: colors.textSecondary,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  emptyHint: {
+    color: colors.textSecondary,
+    fontSize: 16,
   },
   navButton: {
     width: 50,

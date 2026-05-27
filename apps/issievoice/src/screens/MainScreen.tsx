@@ -46,7 +46,6 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
   const keyboardHeightRef = useRef<number>(350);
   const [speakButtonInKeyboard, setSpeakButtonInKeyboard] = useState(false);
   const [symbolsInSuggestions, setSymbolsInSuggestions] = useState(false);
-  const [favoritesUnusedHeight, setFavoritesUnusedHeight] = useState(0);
 
   // Load selected languages and last language from preferences
   useEffect(() => {
@@ -596,7 +595,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+      <View style={[styles.content, { paddingBottom: keyboardHeight + 24 }]}>
         {/* Header Bar */}
         <View style={[styles.headerBar, isRTL && { flexDirection: 'row-reverse' }]}>
           <TouchableOpacity
@@ -609,9 +608,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
         </View>
 
         {/* Text Area Row */}
-        <View style={[styles.textAreaRow, {
-          maxHeight: Math.min(availableHeight * 0.3, frame.height * 0.18) + favoritesUnusedHeight,
-        }, isRTL && { flexDirection: 'row-reverse' }]}>
+        <View style={[styles.textAreaRow, isRTL && { flexDirection: 'row-reverse' }]}>
           {/* Text Area with Floating Speak Button */}
           <View style={styles.textAreaContainer}>
             <View style={{ flex: 1 }}>
@@ -620,6 +617,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
                 screenWidth={frame.width}
                 speakButtonPadding={speakButtonInKeyboard ? 0 : 50}
                 onSave={handleSave}
+                onBrowse={() => navigation.navigate('Browse')}
               />
             </View>
 
@@ -650,7 +648,6 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
             isLandscape={isLandscape}
             isTablet={Math.min(frame.width, frame.height) >= 600}
             symbolsInSuggestions={symbolsInSuggestions}
-            onUnusedHeight={setFavoritesUnusedHeight}
           />
         )}
 
