@@ -7,9 +7,6 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
-  KeyboardAvoidingView,
-  ScrollView,
-  Platform,
 } from 'react-native';
 
 import {useText} from '../context/TextContext';
@@ -350,73 +347,61 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation}) => {
             style={styles.modalOverlayTouchable}
             activeOpacity={1}
             onPress={handleCancelEdit}>
-            <KeyboardAvoidingView
-              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-              style={styles.modalKeyboardView}>
-              <ScrollView
-                contentContainerStyle={styles.modalScrollContent}
-                keyboardShouldPersistTaps="handled"
-                bounces={false}>
-                <TouchableOpacity
-                  activeOpacity={1}
-                  onPress={(e) => e.stopPropagation()}>
-                  <View style={styles.editModalContent}>
-                    <Text style={styles.editModalTitle}>
-                      {strings.favorites.editCaptionIcon}
+            <TouchableOpacity
+              activeOpacity={1}
+              style={styles.editModalContent}
+              onPress={(e) => e.stopPropagation()}>
+
+              <Text style={styles.editModalTitle}>
+                {strings.favorites.editCaptionIcon}
+              </Text>
+
+              {/* Caption + Icon side by side */}
+              <View style={styles.fieldsRow}>
+                {/* Caption */}
+                <View style={styles.captionGroup}>
+                  <Text style={styles.inputLabel}>{strings.favorites.caption}</Text>
+                  <TextInput
+                    style={styles.textInputField}
+                    value={editCaption}
+                    onChangeText={setEditCaption}
+                    placeholder={strings.favorites.captionPlaceholder}
+                    placeholderTextColor={colors.textLight}
+                    maxLength={20}
+                  />
+                </View>
+
+                {/* Icon */}
+                <View style={styles.iconGroup}>
+                  <Text style={styles.inputLabel}>{strings.favorites.icon}</Text>
+                  <TouchableOpacity
+                    style={styles.iconPreviewButton}
+                    onPress={() => setIsEmojiPickerOpen(true)}
+                    activeOpacity={0.7}>
+                    <Text style={styles.iconPreviewText}>
+                      {editIcon || '+'}
                     </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
 
-                    {/* Caption Input */}
-                    <View style={styles.inputGroup}>
-                      <Text style={styles.inputLabel}>{strings.favorites.caption}</Text>
-                      <TextInput
-                        style={styles.textInputField}
-                        value={editCaption}
-                        onChangeText={setEditCaption}
-                        placeholder={strings.favorites.captionPlaceholder}
-                        placeholderTextColor={colors.textLight}
-                        maxLength={20}
-                      />
-                      <Text style={styles.inputHint}>
-                        {strings.favorites.captionHint}
-                      </Text>
-                    </View>
-
-                    {/* Icon Input */}
-                    <View style={styles.inputGroup}>
-                      <Text style={styles.inputLabel}>{strings.favorites.icon}</Text>
-                      <TouchableOpacity
-                        style={styles.iconPreviewButton}
-                        onPress={() => setIsEmojiPickerOpen(true)}
-                        activeOpacity={0.7}>
-                        <Text style={styles.iconPreviewText}>
-                          {editIcon || '+'}
-                        </Text>
-                      </TouchableOpacity>
-                      <Text style={styles.inputHint}>
-                        {strings.favorites.iconHint}
-                      </Text>
-                    </View>
-
-                    {/* Buttons */}
-                    <View style={styles.editModalButtons}>
-                      <TouchableOpacity
-                        style={[styles.editModalButton, styles.cancelButton]}
-                        onPress={handleCancelEdit}
-                        activeOpacity={0.7}>
-                        <Text style={styles.cancelButtonText}>{strings.common.cancel}</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.editModalButton, styles.saveButton]}
-                        onPress={handleSaveCaptionIcon}
-                        activeOpacity={0.7}>
-                        <MyIcon info={{ name: 'checkmark', type: 'Ionicons', color: '#FFFFFF', size: 18 }} />
-                        <Text style={styles.saveButtonText}>{strings.common.save}</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
+              {/* Buttons */}
+              <View style={styles.editModalButtons}>
+                <TouchableOpacity
+                  style={[styles.editModalButton, styles.cancelButton]}
+                  onPress={handleCancelEdit}
+                  activeOpacity={0.7}>
+                  <Text style={styles.cancelButtonText}>{strings.common.cancel}</Text>
                 </TouchableOpacity>
-              </ScrollView>
-            </KeyboardAvoidingView>
+                <TouchableOpacity
+                  style={[styles.editModalButton, styles.saveButton]}
+                  onPress={handleSaveCaptionIcon}
+                  activeOpacity={0.7}>
+                  <MyIcon info={{ name: 'checkmark', type: 'Ionicons', color: '#FFFFFF', size: 18 }} />
+                  <Text style={styles.saveButtonText}>{strings.common.save}</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
           </TouchableOpacity>
         </View>
       )}
@@ -641,40 +626,43 @@ const styles = StyleSheet.create({
   },
   modalOverlayTouchable: {
     flex: 1,
-  },
-  modalKeyboardView: {
-    flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
-  },
-  modalScrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: sizes.spacing.xl,
+    paddingTop: 80,
     paddingHorizontal: sizes.spacing.lg,
-    minHeight: '100%',
   },
   editModalContent: {
     width: '100%',
-    maxWidth: 500,
-    minWidth: 300,
+    maxWidth: 560,
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
-    padding: sizes.spacing.xl,
+    padding: sizes.spacing.lg,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 8,
-    alignSelf: 'center',
   },
   editModalTitle: {
-    fontSize: sizes.fontSize.xlarge,
+    fontSize: sizes.fontSize.large,
     fontWeight: 'bold',
-    marginBottom: sizes.spacing.lg,
+    marginBottom: sizes.spacing.md,
     textAlign: 'center',
     color: colors.text,
+  },
+  fieldsRow: {
+    flexDirection: 'row',
+    gap: sizes.spacing.md,
+    alignItems: 'flex-start',
+    marginBottom: sizes.spacing.md,
+  },
+  captionGroup: {
+    flex: 1,
+  },
+  iconGroup: {
+    alignItems: 'center',
+    width: 72,
+    justifyContent: 'flex-end',
   },
   inputGroup: {
     marginBottom: sizes.spacing.lg,
@@ -686,6 +674,7 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   textInputField: {
+    height:60,
     backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.border,
@@ -698,15 +687,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     borderWidth: 2,
     borderColor: colors.primary,
-    borderRadius: 16,
-    width: 80,
-    height: 80,
+    borderRadius: 12,
+    width: 60,
+    height: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    alignSelf: 'center',
   },
   iconPreviewText: {
-    fontSize: 48,
+    fontSize: 32,
     color: colors.primary,
   },
   inputHint: {
