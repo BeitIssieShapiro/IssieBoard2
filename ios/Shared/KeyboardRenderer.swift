@@ -619,7 +619,14 @@ class KeyboardRenderer {
     func isInCursorMoveMode() -> Bool {
         return cursorMoveMode
     }
-    
+
+    /// Returns true when nikkud top-row mode is active (nikkud toggle on + config set to topRow).
+    /// Used by BaseKeyboardViewController to compute the correct keyboard height.
+    var isNikkudTopRowActive: Bool {
+        guard nikkudActive else { return false }
+        return config?.diacriticsSettings?[currentKeyboardId ?? ""]?.isTopRowMode ?? false
+    }
+
     /// Set whether word suggestions are enabled (override config setting)
     /// Called by the controller when input type should disable suggestions (e.g., URL, email)
     /// Pass nil to remove override and use config value
