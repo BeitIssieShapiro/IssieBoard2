@@ -163,7 +163,12 @@ class BaseKeyboardViewController: UIInputViewController {
         let shouldDisable = shouldDisableSuggestionsForKeyboardType()
         let suggestionsEnabled = config.isWordSuggestionsEnabled && !shouldDisable
 
-        let requiredHeight = keyboardEngine.renderer.calculateKeyboardHeight(for: config, keysetId: keyboardEngine.renderer.currentKeysetId, suggestionsEnabled: suggestionsEnabled)
+        let requiredHeight = keyboardEngine.renderer.calculateKeyboardHeight(
+            for: config,
+            keysetId: keyboardEngine.renderer.currentKeysetId,
+            suggestionsEnabled: suggestionsEnabled,
+            nikkudTopRowActive: keyboardEngine.renderer.isNikkudTopRowActive
+        )
 
         // Only update if height actually changed — avoid triggering
         // an extra keyboardDidShow in the host app for the same height
