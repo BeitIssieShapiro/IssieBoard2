@@ -479,7 +479,7 @@ class KeyboardRenderer {
     ///   - keysetId: The keyset ID to calculate height for
     ///   - suggestionsEnabled: Whether suggestions are currently enabled (accounts for input type restrictions)
     /// - Returns: The required height in points
-    func calculateKeyboardHeight(for config: KeyboardConfig, keysetId: String, suggestionsEnabled: Bool) -> CGFloat {
+    func calculateKeyboardHeight(for config: KeyboardConfig, keysetId: String, suggestionsEnabled: Bool, nikkudTopRowActive: Bool = false) -> CGFloat {
         // Find the keyset
         guard let keyset = config.keysets.first(where: { $0.id == keysetId }) else {
             return 216  // Default iOS keyboard height
@@ -513,7 +513,7 @@ class KeyboardRenderer {
             fontSizePreset: fontPreset
         )
 
-        let numberOfRows = keyset.rows.count
+        let numberOfRows = keyset.rows.count + (nikkudTopRowActive ? 1 : 0)
         let calculatedRowHeight = dimensions.calculateRowHeight(numberOfRows: numberOfRows, hasSuggestions: suggestionsEnabled)
 
         let rowsHeight = CGFloat(numberOfRows) * calculatedRowHeight
@@ -524,7 +524,7 @@ class KeyboardRenderer {
 
         let totalHeight = rowsHeight + spacingHeight + suggestionsHeight + topPadding + bottomPadding
 
-        print("📐 [calculateKeyboardHeight] preset: \(preset), rowHeight: \(calculatedRowHeight), rows: \(numberOfRows), total: \(totalHeight)")
+        print("📐 [calculateKeyboardHeight] preset: \(preset), rowHeight: \(calculatedRowHeight), rows: \(numberOfRows), nikkudTopRow: \(nikkudTopRowActive), total: \(totalHeight)")
 
         return totalHeight
     }
