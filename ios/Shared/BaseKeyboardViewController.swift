@@ -237,6 +237,10 @@ class BaseKeyboardViewController: UIInputViewController {
             self?.renderKeyboard()
         }
 
+        keyboardEngine.renderer.onNikkudStateChanged = { [weak self] in
+            self?.updateKeyboardHeight()
+        }
+
         // Configure renderer
         keyboardEngine.renderer.setShowGlobeButton(self.needsInputModeSwitchKey)
     }

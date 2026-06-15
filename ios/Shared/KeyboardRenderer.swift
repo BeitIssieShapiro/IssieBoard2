@@ -94,6 +94,9 @@ class KeyboardRenderer {
     
     // Callback to get text direction at cursor (returns true if RTL, false if LTR)
     var onGetTextDirection: (() -> Bool)?
+
+    /// Called when nikkud active state changes (so controller can update keyboard height)
+    var onNikkudStateChanged: (() -> Void)?
     
     // Word suggestions to display
     private var currentSuggestions: [String] = []
@@ -2002,6 +2005,7 @@ class KeyboardRenderer {
                 print("   → Activating NIKKUD mode after 0.5 sec press")
                 nikkudActive = true
                 rerender()
+                onNikkudStateChanged?()
             } else {
                 print("   → NIKKUD already active, ignoring long-press")
             }
@@ -2527,6 +2531,7 @@ class KeyboardRenderer {
                 print("   → Handling NIKKUD tap (deactivating)")
                 nikkudActive = false
                 rerender()
+                onNikkudStateChanged?()
             } else {
                 print("   → Ignoring quick tap on NIKKUD (requires 0.5 sec press to activate)")
                 return
