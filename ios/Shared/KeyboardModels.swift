@@ -266,20 +266,26 @@ struct DiacriticsSettings: Codable {
     let hidden: [String]?             // Array of diacritic IDs to hide
     let disabledModifiers: [String]?  // Array of modifier IDs to disable
     let disabled: Bool?               // If true, completely disable nikkud for this keyboard (hide nikkud key)
-    
+    let nikkudMode: String?           // nil = popup (default), "topRow" = top row mode
+
     enum CodingKeys: String, CodingKey {
         case hidden, disabledModifiers, disabled
+        case nikkudMode
     }
-    
+
     /// Check if a specific modifier is enabled
     func isModifierEnabled(_ modifierId: String) -> Bool {
         guard let disabled = disabledModifiers else { return true }
         return !disabled.contains(modifierId)
     }
-    
+
     /// Check if diacritics are completely disabled for this keyboard
     var isDisabled: Bool {
         return disabled ?? false
+    }
+
+    var isTopRowMode: Bool {
+        return nikkudMode == "topRow"
     }
 }
 
