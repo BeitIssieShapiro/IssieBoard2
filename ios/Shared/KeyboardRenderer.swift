@@ -870,6 +870,16 @@ class KeyboardRenderer {
         print("📐 RENDER END ===================")
         print("🎯 END OF RENDER: shiftState = \(shiftState)")
         
+        // Nikkud top row — rendered before normal rows when top-row mode is active
+        let isTopRowMode = config?.diacriticsSettings?[currentKeyboardId ?? ""]?.isTopRowMode ?? false
+        if nikkudActive && isTopRowMode {
+            let nikkudRowView = buildNikkudTopRow(availableWidth: availableWidth, height: effectiveRowHeight)
+            rowsContainer.addSubview(nikkudRowView)
+            nikkudRowView.frame = CGRect(x: effectiveHorizontalPadding, y: currentY,
+                                         width: availableWidth, height: effectiveRowHeight)
+            currentY += effectiveRowHeight + effectiveRowSpacing
+        }
+
         for (rowIndex, row) in keyset.rows.enumerated() {
             let rowView = createRow(row, groups: groupsMap, showOnlyKeys: showOnlyKeys,
                                    baselineWidth: baselineWidth, 
@@ -2612,12 +2622,22 @@ class KeyboardRenderer {
             let shouldShowDiacritics = shouldShowDiacriticsPopup(for: key)
             
             if nikkudActive && shouldShowDiacritics {
-                // Get diacritics using the generator (falls back to explicit nikkud if present)
-                let diacriticsOptions = getDiacriticsForKey(key)
-                if !diacriticsOptions.isEmpty {
-                    showNikkudPicker(diacriticsOptions, anchorView: keyView)
+                // In top-row mode, keys type normally — nikkud is applied via the top row
+                let isTopRowMode = config?.diacriticsSettings?[currentKeyboardId ?? ""]?.isTopRowMode ?? false
+                if !isTopRowMode {
+                    let diacriticsOptions = getDiacriticsForKey(key)
+                    if !diacriticsOptions.isEmpty {
+                        showNikkudPicker(diacriticsOptions, anchorView: keyView)
+                    } else {
+                        // No options available, just output the key
+                        onKeyPress?(key)
+                        if case .active = shiftState, !isSpace {
+                            shiftState = .inactive
+                            rerender()
+                        }
+                    }
                 } else {
-                    // No options available, just output the key
+                    // Top-row mode: regular letter key press, nikkud applied separately via top row
                     onKeyPress?(key)
                     if case .active = shiftState, !isSpace {
                         shiftState = .inactive
@@ -2627,7 +2647,7 @@ class KeyboardRenderer {
             } else {
                 // Output FINAL key press to container
                 onKeyPress?(key)
-                
+
                 // For shift-active (but not locked) regular keys, reset shift after key press
                 // BUT: Don't reset for space key - it's handled by controller's handleSpaceKey which calls autoShiftAfterPunctuation
                 // Locked shift stays active until explicitly toggled off
