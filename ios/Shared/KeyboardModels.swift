@@ -484,6 +484,18 @@ extension UIColor {
         let luminance = 0.299 * r + 0.587 * g + 0.114 * b
         return luminance > 0.5 ? .black : .white
     }
+
+    /// Returns a dark-mode-aware version of this color (darkens white for dark mode).
+    func adaptedForDarkMode() -> UIColor {
+        if self == .white {
+            return UIColor { traitCollection in
+                traitCollection.userInterfaceStyle == .dark
+                    ? UIColor(red: 0.35, green: 0.35, blue: 0.38, alpha: 1.0)
+                    : .white
+            }
+        }
+        return self
+    }
 }
 
 // MARK: - Diacritics Generator

@@ -958,7 +958,91 @@ class KeyboardRenderer {
         
         return (groupsMap, showOnlyKeys)
     }
-    
+
+    /// Build the nikkud top-row view showing all visible nikkud signs as tappable square buttons.
+    private func buildNikkudTopRow(availableWidth: CGFloat, height: CGFloat) -> UIView {
+        let rowView = UIView()
+
+        guard let diacriticsDefinition = config?.getDiacritics(for: currentKeyboardId) else {
+            return rowView
+        }
+
+        let hidden = config?.diacriticsSettings?[currentKeyboardId ?? ""]?.hidden ?? []
+
+        // Filter to only standalone marks (exclude plain/empty and replacement items)
+        let items = diacriticsDefinition.items.filter { item in
+            guard item.id != "plain" else { return false }
+            guard item.isReplacement != true else { return false }
+            guard !hidden.contains(item.id) else { return false }
+            return true
+        }
+
+        guard !items.isEmpty else { return rowView }
+
+        let buttonSize: CGFloat = height
+        let gap: CGFloat = scaledKeyGap
+        let totalWidth = buttonSize * CGFloat(items.count) + gap * CGFloat(items.count - 1)
+        let leftOffset = max(0, (availableWidth - totalWidth) / 2)
+
+        let bgColor = getDefaultKeyBgColor()
+        let textColor: UIColor = UIColor { traitCollection in
+            traitCollection.userInterfaceStyle == .dark ? .white : .black
+        }
+
+        for (index, item) in items.enumerated() {
+            let x = leftOffset + CGFloat(index) * (buttonSize + gap)
+
+            // Tap button (full hit area)
+            let button = UIButton(type: .system)
+            button.backgroundColor = UIColor(white: 1.0, alpha: 0.001)
+            button.frame = CGRect(x: x, y: 0, width: buttonSize, height: height)
+            button.accessibilityIdentifier = item.mark
+            button.addTarget(self, action: #selector(nikkudTopRowButtonTapped(_:)), for: .touchUpInside)
+
+            // Visual key view (with gap padding)
+            let visualKeyView = UIView()
+            visualKeyView.isUserInteractionEnabled = false
+            visualKeyView.backgroundColor = bgColor.adaptedForDarkMode()
+            visualKeyView.layer.cornerRadius = scaledCornerRadius
+            visualKeyView.layer.shadowColor = UIColor.black.cgColor
+            visualKeyView.layer.shadowOffset = CGSize(width: 0, height: 1 * effectiveDimensionScale)
+            visualKeyView.layer.shadowOpacity = 0.2
+            visualKeyView.layer.shadowRadius = 1 * effectiveDimensionScale
+
+            let gap2 = scaledKeyGap
+            visualKeyView.frame = CGRect(
+                x: gap2,
+                y: scaledKeyVerticalPadding,
+                width: buttonSize - gap2 * 2,
+                height: height - scaledKeyVerticalPadding * 2
+            )
+
+            // Label: dotted circle + combining mark so the mark is visible
+            let label = UILabel()
+            label.isUserInteractionEnabled = false
+            label.text = "◌" + item.mark
+            label.font = UIFont.systemFont(ofSize: 36, weight: configFontWeight)
+            label.textAlignment = .center
+            label.textColor = textColor
+            label.adjustsFontSizeToFitWidth = true
+            label.minimumScaleFactor = 0.5
+            label.frame = visualKeyView.bounds
+            label.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+
+            visualKeyView.addSubview(label)
+            button.addSubview(visualKeyView)
+            rowView.addSubview(button)
+        }
+
+        return rowView
+    }
+
+    @objc private func nikkudTopRowButtonTapped(_ sender: UIButton) {
+        guard let mark = sender.accessibilityIdentifier, !mark.isEmpty else { return }
+        print("🎹 Nikkud top-row tapped: '\(mark)'")
+        onNikkudSelected?(mark)
+    }
+
     private func calculateBaselineWidth(_ rows: [KeyRow], groups: [String: GroupTemplate], showOnlyKeys: Set<String>?) -> CGFloat {
         var maxRowWidth: CGFloat = 0
         
