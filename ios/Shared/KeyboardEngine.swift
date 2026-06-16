@@ -101,7 +101,7 @@ class KeyboardEngine {
         }
 
         renderer.onNikkudSelected = { [weak self] value in
-            self?.textProxy.insertText(value)
+            self?.insertNikkudMark(value)
             _ = self?.suggestionController.handleSpace()
         }
 
@@ -337,6 +337,50 @@ class KeyboardEngine {
 
         // Apply auto-shift after suggestion
         autoShiftAfterPunctuation()
+    }
+
+    /// Insert a nikkud combining mark, replacing any conflicting vowel mark already on the preceding character.
+    /// Dagesh (ּ) and shin/sin dots (ׁ, ׂ) coexist with vowels and are never replaced.
+    /// All other Hebrew vowel marks (ְ–ֻ, ׇ) are mutually exclusive.
+    private func insertNikkudMark(_ mark: String) {
+        // Hebrew vowel marks that conflict with each other (each letter can hold only one)
+        let hebrewVowels: Set<Character> = [
+            "\u{05B0}", "\u{05B1}", "\u{05B2}", "\u{05B3}", "\u{05B4}",
+            "\u{05B5}", "\u{05B6}", "\u{05B7}", "\u{05B8}", "\u{05B9}",
+            "\u{05BA}", "\u{05BB}", "\u{05C7}"
+        ]
+
+        let newMark = mark.unicodeScalars.first.map { Character($0) }
+
+        // Only attempt replacement if the incoming mark is itself a vowel
+        guard let incomingChar = newMark, hebrewVowels.contains(incomingChar) else {
+            textProxy.insertText(mark)
+            return
+        }
+
+        // Look at the text before cursor to find if the preceding composed character has a conflicting vowel
+        guard let before = textProxy.documentContextBeforeInput, !before.isEmpty else {
+            textProxy.insertText(mark)
+            return
+        }
+
+        // Get the last composed character cluster
+        let lastCluster = String(before.suffix(1))
+
+        // Check if it contains a conflicting vowel mark
+        let conflictingMarks = lastCluster.unicodeScalars.filter { hebrewVowels.contains(Character($0)) }
+        guard !conflictingMarks.isEmpty else {
+            textProxy.insertText(mark)
+            return
+        }
+
+        // Rebuild the cluster without conflicting vowel marks, then add the new one
+        let cleaned = String(lastCluster.unicodeScalars.filter { !hebrewVowels.contains(Character($0)) })
+        let replacement = cleaned + mark
+
+        // Delete the last character and re-insert with the new vowel
+        textProxy.deleteBackward()
+        textProxy.insertText(replacement)
     }
 
     private func handleSpaceKey() {

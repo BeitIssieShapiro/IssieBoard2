@@ -665,11 +665,12 @@ class KeyboardRenderer {
 
         // Calculate scale if in preview mode with maxHeight
         if isPreviewMode, let maxHeight = previewMaxHeight, maxHeight > 0 {
-            // Calculate full-size keyboard height
+            // Calculate full-size keyboard height (include nikkud top-row if active)
             let fullKeyboardHeight = calculateKeyboardHeight(
                 for: config,
                 keysetId: currentKeysetId,
-                suggestionsEnabled: wordSuggestionsOverrideEnabled ?? wordSuggestionsEnabled
+                suggestionsEnabled: wordSuggestionsOverrideEnabled ?? wordSuggestionsEnabled,
+                nikkudTopRowActive: nikkudActive && (config.diacriticsSettings?[currentKeyboardId ?? ""]?.isTopRowMode ?? false)
             )
 
             // Only scale if we have a valid keyboard height

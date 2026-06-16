@@ -471,15 +471,15 @@ class KeyboardPreviewView: UIView {
         if !hasInitialized {
             hasInitialized = true
 
-            // Show initial suggestions if enabled
-            if config.isWordSuggestionsEnabled {
-                engine.updateSuggestions()
-            }
-
             // Apply auto-shift
             DispatchQueue.main.async { [weak self] in
                 self?.keyboardEngine?.autoShiftAfterPunctuation()
             }
+        }
+
+        // Always restore suggestions after render so they aren't wiped by re-renders
+        if config.isWordSuggestionsEnabled {
+            engine.updateSuggestions()
         }
     }
 
