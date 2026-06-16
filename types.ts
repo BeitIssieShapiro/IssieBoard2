@@ -115,6 +115,7 @@ export interface DiacriticsSettings {
     modifierEnabled?: boolean;    // Backward compatibility: global toggle for all modifiers
     disabled?: boolean;           // If true, completely disable nikkud for this keyboard (hide nikkud key)
     simpleMode?: boolean;         // If true, hide advanced diacritics (default: true for out-of-box experience)
+    nikkudMode?: 'popup' | 'topRow'; // Input mode: 'popup' (default) or 'topRow'
 }
 
 // Row containing keys

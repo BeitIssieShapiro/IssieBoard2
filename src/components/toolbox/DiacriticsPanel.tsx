@@ -83,6 +83,7 @@ export const DiacriticsPanel: React.FC = () => {
   const disabledModifiers = settings.disabledModifiers || [];
   const isNikkudDisabled = settings.disabled || false;
   const isSimpleMode = settings.simpleMode ?? true;
+  const isTopRowMode = settings.nikkudMode === 'topRow';
   
   // Determine current mode based on settings
   const getCurrentMode = (): NikkudMode => {
@@ -186,12 +187,22 @@ export const DiacriticsPanel: React.FC = () => {
     const newDisabledModifiers = disabledModifiers.includes(modifierId)
       ? disabledModifiers.filter(id => id !== modifierId)
       : [...disabledModifiers, modifierId];
-    
+
     dispatch({
       type: 'UPDATE_DIACRITICS_SETTINGS',
       payload: {
         keyboardId: currentKeyboardId,
         settings: { ...settings, disabledModifiers: newDisabledModifiers },
+      },
+    });
+  };
+
+  const handleToggleInputMode = () => {
+    dispatch({
+      type: 'UPDATE_DIACRITICS_SETTINGS',
+      payload: {
+        keyboardId: currentKeyboardId,
+        settings: { ...settings, nikkudMode: isTopRowMode ? 'popup' : 'topRow' },
       },
     });
   };
@@ -228,6 +239,25 @@ export const DiacriticsPanel: React.FC = () => {
         selectedId={currentMode}
         onSelect={(id) => handleModeChange(id as NikkudMode)}
       />
+
+      {/* Input Mode toggle — visible when nikkud is enabled */}
+      {currentMode !== 'none' && (
+        <View style={styles.modifierRow}>
+          <View style={[styles.modifierInfo, isRTL && { marginRight: 0, marginLeft: 12 }]}>
+            <Text allowFontScaling={false} style={styles.modifierName}>{strings.diacritics.inputMode}</Text>
+            <Text allowFontScaling={false} style={styles.modifierOptions}>
+              {isTopRowMode ? strings.diacritics.topRow : strings.diacritics.popup}
+            </Text>
+          </View>
+          <ToggleSwitch
+            value={isTopRowMode}
+            onChange={handleToggleInputMode}
+            labelOn=""
+            labelOff=""
+            size="medium"
+          />
+        </View>
+      )}
 
       {/* Custom Mode - Show all nikkud options as toggleable keys */}
       {currentMode === 'custom' && (

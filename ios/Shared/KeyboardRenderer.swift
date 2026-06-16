@@ -874,7 +874,7 @@ class KeyboardRenderer {
         print("🎯 END OF RENDER: shiftState = \(shiftState)")
         
         // Nikkud top row — rendered before normal rows when top-row mode is active
-        let isTopRowMode = config?.diacriticsSettings?[currentKeyboardId ?? ""]?.isTopRowMode ?? false
+        let isTopRowMode = config.diacriticsSettings?[currentKeyboardId ?? ""]?.isTopRowMode ?? false
         if nikkudActive && isTopRowMode {
             let nikkudRowView = buildNikkudTopRow(availableWidth: availableWidth, height: effectiveRowHeight)
             rowsContainer.addSubview(nikkudRowView)
@@ -2518,21 +2518,19 @@ class KeyboardRenderer {
             handleShiftTap()
             
         case "nikkud":
-            // In selection mode, emit key press for selection
-            if onKeyLongPress != nil {
-                print("   → Selection mode: emitting key press for nikkud")
-                onKeyPress?(key)
-                return
-            }
-            // Nikkud toggle behavior:
-            // - When inactive: requires 0.5 sec long-press to activate (prevent accidental activation)
-            // - When active: normal tap to deactivate
+            // When nikkud is active, a tap always deactivates it (even in selection/preview mode)
             if nikkudActive {
                 print("   → Handling NIKKUD tap (deactivating)")
                 nikkudActive = false
                 rerender()
                 onNikkudStateChanged?()
+            } else if onKeyLongPress != nil {
+                // Selection mode and nikkud inactive: emit key press for selection
+                print("   → Selection mode: emitting key press for nikkud")
+                onKeyPress?(key)
+                return
             } else {
+                // Normal mode, nikkud inactive: requires 0.5 sec long-press to activate
                 print("   → Ignoring quick tap on NIKKUD (requires 0.5 sec press to activate)")
                 return
             }

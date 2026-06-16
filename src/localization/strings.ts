@@ -215,6 +215,9 @@ export interface Strings {
     diacriticsSection: string;
     modifiers: string;
     noDiacritics: string;
+    inputMode: string;
+    popup: string;
+    topRow: string;
   };
   styleRuleModal: {
     newKeysGroup: string;
@@ -545,6 +548,9 @@ const en: Strings = {
     diacriticsSection: 'Diacritics',
     modifiers: 'Modifiers',
     noDiacritics: 'No diacritics available for this language.',
+    inputMode: 'Input Mode',
+    popup: 'Popup',
+    topRow: 'Top Row',
   },
   styleRuleModal: {
     newKeysGroup: 'New Keys Group',
@@ -875,6 +881,9 @@ const he: Strings = {
     diacriticsSection: 'סימני ניקוד',
     modifiers: 'מתאמים',
     noDiacritics: 'אין סימני ניקוד זמינים לשפה זו.',
+    inputMode: 'אופן הזנה',
+    popup: 'חלון קופץ',
+    topRow: 'שורה עליונה',
   },
   styleRuleModal: {
     newKeysGroup: 'קבוצת מקשים חדשה',
@@ -1205,6 +1214,9 @@ const ar: Strings = {
     diacriticsSection: 'علامات التشكيل',
     modifiers: 'المعدّلات',
     noDiacritics: 'لا تتوفر علامات تشكيل لهذه اللغة.',
+    inputMode: 'وضع الإدخال',
+    popup: 'نافذة منبثقة',
+    topRow: 'الصف العلوي',
   },
   styleRuleModal: {
     newKeysGroup: 'مجموعة مفاتيح جديدة',
