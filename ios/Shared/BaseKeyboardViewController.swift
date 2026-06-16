@@ -86,6 +86,8 @@ class BaseKeyboardViewController: UIInputViewController {
         super.viewDidAppear(animated)
         // Write full access status so the container app can read it
         preferences.setString(self.hasFullAccess ? "true" : "false", forKey: "fullAccess_\(keyboardLanguage)")
+        // Start polling — poll method checks isNikkudTopRowActive internally
+        startContextPolling()
     }
 
     override func viewDidLayoutSubviews() {
@@ -152,21 +154,20 @@ class BaseKeyboardViewController: UIInputViewController {
         contextPollTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
             self?.pollContextForModifierUpdate()
         }
-        print("⏱ Context polling started")
     }
 
     private func stopContextPolling() {
         contextPollTimer?.invalidate()
         contextPollTimer = nil
         lastPolledContextBefore = ""
-        print("⏱ Context polling stopped")
     }
 
     private func pollContextForModifierUpdate() {
+        // Only act when top-row nikkud is active
+        guard keyboardEngine.renderer.isNikkudTopRowActive else { return }
         let current = textDocumentProxy.documentContextBeforeInput ?? ""
         guard current != lastPolledContextBefore else { return }
         lastPolledContextBefore = current
-        print("⏱ Context changed (poll): '\(current.suffix(5))'")
         keyboardEngine.renderer.updateNikkudTopRowModifierStates()
     }
     
@@ -278,12 +279,6 @@ class BaseKeyboardViewController: UIInputViewController {
 
         keyboardEngine.renderer.onNikkudStateChanged = { [weak self] in
             self?.updateKeyboardHeight()
-            // Start or stop context polling based on new state
-            if self?.keyboardEngine.renderer.isNikkudTopRowActive == true {
-                self?.startContextPolling()
-            } else {
-                self?.stopContextPolling()
-            }
         }
 
         // Configure renderer

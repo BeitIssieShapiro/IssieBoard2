@@ -1014,7 +1014,7 @@ class KeyboardRenderer {
         struct MarkEntry { let mark: String; let baseLetter: String; let isEnabled: Bool }
         var modifierMarks: [MarkEntry] = []
         let charBeforeCursor = onGetCharBeforeCursor?() ?? ""
-        print("🎹 buildNikkudTopRow: currentKeyboardId=\(currentKeyboardId ?? "nil"), charBefore='\(charBeforeCursor)', disabledModifiers=\(disabledModifiers), modifierCount=\(diacriticsDefinition.getModifiers().count)")
+        print("🎹 buildNikkudTopRow: currentKeyboardId=\(currentKeyboardId ?? "nil"), modifierCount=\(diacriticsDefinition.getModifiers().count)")
         for modifier in diacriticsDefinition.getModifiers() {
             guard !disabledModifiers.contains(modifier.id) else { continue }
 
@@ -1130,11 +1130,7 @@ class KeyboardRenderer {
         print("🔄 updateNikkudTopRowModifierStates: charBefore='\(charBefore)'")
 
         // Find the nikkud top row view — it's nested inside rowsContainer
-        guard let topRowView = container.viewWithTag(nikkudTopRowTag) else {
-            print("🔄 updateNikkudTopRowModifierStates: top row view NOT FOUND (tag \(nikkudTopRowTag))")
-            return
-        }
-        print("🔄 updateNikkudTopRowModifierStates: found top row view")
+        guard let topRowView = container.viewWithTag(nikkudTopRowTag) else { return }
 
         let modifiers = diacriticsDefinition.getModifiers()
         let disabledModifiers = config?.diacriticsSettings?[currentKeyboardId ?? ""]?.disabledModifiers ?? []

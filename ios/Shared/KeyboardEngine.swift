@@ -143,18 +143,13 @@ class KeyboardEngine {
         }
 
         renderer.onGetCharBeforeCursor = { [weak self] in
-            guard let before = self?.textProxy.documentContextBeforeInput, !before.isEmpty else {
-                print("🔤 onGetCharBeforeCursor: no context")
-                return nil
-            }
+            guard let before = self?.textProxy.documentContextBeforeInput, !before.isEmpty else { return nil }
             let lastCluster = String(before.suffix(1))
-            let result = lastCluster.unicodeScalars.first(where: {
+            return lastCluster.unicodeScalars.first(where: {
                 $0.properties.generalCategory == .otherLetter ||
                 $0.properties.generalCategory == .uppercaseLetter ||
                 $0.properties.generalCategory == .lowercaseLetter
             }).map { String($0) } ?? String(lastCluster.unicodeScalars.first.map { String($0) } ?? "")
-            print("🔤 onGetCharBeforeCursor: before='\(before.suffix(3))', result='\(result)'")
-            return result
         }
     }
 
