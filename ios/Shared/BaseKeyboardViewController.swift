@@ -19,6 +19,10 @@ class BaseKeyboardViewController: UIInputViewController {
 
     // Parsed config
     private var parsedConfig: KeyboardConfig?
+
+    // Timer to poll text context for external keyboard input (textDidChange doesn't fire for external kb)
+    private var contextPollTimer: Timer?
+    private var lastPolledContextBefore: String = ""
     
     /// Override this in subclasses to specify the keyboard language
     var keyboardLanguage: String {
@@ -103,7 +107,6 @@ class BaseKeyboardViewController: UIInputViewController {
     
     override func textDidChange(_ textInput: UITextInput?) {
         super.textDidChange(textInput)
-        print("📝 textDidChange fired, isNikkudTopRowActive=\(keyboardEngine.renderer.isNikkudTopRowActive)")
 
         // Skip suggestion detection if in cursor movement mode
         if !keyboardEngine.renderer.isInCursorMoveMode() {
@@ -133,13 +136,39 @@ class BaseKeyboardViewController: UIInputViewController {
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
         stopObservingPreferences()
+        stopContextPolling()
     }
-    
+
     deinit {
         stopObservingPreferences()
+        stopContextPolling()
     }
-    
-    // MARK: - Setup
+
+    // MARK: - Context Polling (for external keyboard support)
+
+    private func startContextPolling() {
+        guard contextPollTimer == nil else { return }
+        lastPolledContextBefore = textDocumentProxy.documentContextBeforeInput ?? ""
+        contextPollTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
+            self?.pollContextForModifierUpdate()
+        }
+        print("⏱ Context polling started")
+    }
+
+    private func stopContextPolling() {
+        contextPollTimer?.invalidate()
+        contextPollTimer = nil
+        lastPolledContextBefore = ""
+        print("⏱ Context polling stopped")
+    }
+
+    private func pollContextForModifierUpdate() {
+        let current = textDocumentProxy.documentContextBeforeInput ?? ""
+        guard current != lastPolledContextBefore else { return }
+        lastPolledContextBefore = current
+        print("⏱ Context changed (poll): '\(current.suffix(5))'")
+        keyboardEngine.renderer.updateNikkudTopRowModifierStates()
+    }
     
     private var keyboardHeightConstraint: NSLayoutConstraint?
     
@@ -249,6 +278,12 @@ class BaseKeyboardViewController: UIInputViewController {
 
         keyboardEngine.renderer.onNikkudStateChanged = { [weak self] in
             self?.updateKeyboardHeight()
+            // Start or stop context polling based on new state
+            if self?.keyboardEngine.renderer.isNikkudTopRowActive == true {
+                self?.startContextPolling()
+            } else {
+                self?.stopContextPolling()
+            }
         }
 
         // Configure renderer
