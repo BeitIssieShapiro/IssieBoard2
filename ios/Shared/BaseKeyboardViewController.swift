@@ -103,6 +103,7 @@ class BaseKeyboardViewController: UIInputViewController {
     
     override func textDidChange(_ textInput: UITextInput?) {
         super.textDidChange(textInput)
+        print("📝 textDidChange fired, isNikkudTopRowActive=\(keyboardEngine.renderer.isNikkudTopRowActive)")
 
         // Skip suggestion detection if in cursor movement mode
         if !keyboardEngine.renderer.isInCursorMoveMode() {
