@@ -19,10 +19,6 @@ class BaseKeyboardViewController: UIInputViewController {
 
     // Parsed config
     private var parsedConfig: KeyboardConfig?
-
-    // Timer to poll text context for external keyboard input (textDidChange doesn't fire for external kb)
-    private var contextPollTimer: Timer?
-    private var lastPolledContextBefore: String = ""
     
     /// Override this in subclasses to specify the keyboard language
     var keyboardLanguage: String {
@@ -57,16 +53,9 @@ class BaseKeyboardViewController: UIInputViewController {
 
         setupKeyboard()
         setupKeyboardEngine()
-        // Load config and render keyboard — this sets the correct height constraint
-        // before the first layout pass, avoiding an oversized initial keyboardDidShow
         loadPreferences()
-        // Force layout immediately so iOS sees the correct height
-        // before firing the first keyboardDidShow to the host app
         view.layoutIfNeeded()
         startObservingPreferences()
-        // Poll text context for external keyboard / paste support
-        // textDidChange does not fire for hardware keyboard input in extensions
-        startContextPolling()
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -109,88 +98,52 @@ class BaseKeyboardViewController: UIInputViewController {
         super.textWillChange(textInput)
     }
 
+    override func selectionWillChange(_ textInput: UITextInput?) {
+        super.selectionWillChange(textInput)
+    }
+
     override func selectionDidChange(_ textInput: UITextInput?) {
         super.selectionDidChange(textInput)
+        // Seed shadow context on cursor move — may briefly have valid context
+        keyboardEngine.seedShadowContext()
+        if keyboardEngine.renderer.isNikkudTopRowActive {
+            keyboardEngine.renderer.updateNikkudTopRowModifierStates()
+        }
     }
 
     override func textDidChange(_ textInput: UITextInput?) {
         super.textDidChange(textInput)
 
-        // Skip suggestion detection if in cursor movement mode
         if !keyboardEngine.renderer.isInCursorMoveMode() {
             keyboardEngine.handleTextChanged()
         }
 
-        // Update nikkud top-row modifier states when text changes from any source (incl. external keyboard)
-        // Dispatched async so documentContextBeforeInput reflects the updated text
+        keyboardEngine.seedShadowContext()
+
         if keyboardEngine.renderer.isNikkudTopRowActive {
             DispatchQueue.main.async { [weak self] in
                 self?.keyboardEngine.renderer.updateNikkudTopRowModifierStates()
             }
         }
 
-        // Check if we should auto-shift after text change (e.g., after paste, autocorrect, external keyboard)
-        // But skip if text is empty and shift is already active (avoid loops)
         let beforeText = textDocumentProxy.documentContextBeforeInput ?? ""
         if beforeText.isEmpty && keyboardEngine.renderer.isShiftActive() {
-            debugLog("📝 textDidChange: Text empty and shift already active, skipping auto-shift check")
             return
         }
-
-        debugLog("📝 textDidChange called, checking auto-shift")
         keyboardEngine.autoShiftAfterPunctuation()
     }
     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        stopContextPolling()
     }
 
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
         stopObservingPreferences()
-        stopContextPolling()
     }
 
     deinit {
         stopObservingPreferences()
-        stopContextPolling()
-    }
-
-    // MARK: - Context Polling (for external keyboard support)
-
-    private func startContextPolling() {
-        guard contextPollTimer == nil else { return }
-        lastPolledContextBefore = textDocumentProxy.documentContextBeforeInput ?? ""
-        let timer = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in
-            self?.pollContextForExternalChanges()
-        }
-        RunLoop.main.add(timer, forMode: .common)
-        contextPollTimer = timer
-        print("⏱ TIMER CREATED: \(contextPollTimer != nil)")
-    }
-
-    private func stopContextPolling() {
-        contextPollTimer?.invalidate()
-        contextPollTimer = nil
-        lastPolledContextBefore = ""
-    }
-
-    private func pollContextForExternalChanges() {
-        let current = textDocumentProxy.documentContextBeforeInput ?? ""
-        guard current != lastPolledContextBefore else { return }
-        lastPolledContextBefore = current
-        print("⏱ CONTEXT CHANGED: '\(current.suffix(5))'")
-
-        // Update suggestions for external keyboard / paste
-        if !keyboardEngine.renderer.isInCursorMoveMode() {
-            keyboardEngine.handleTextChanged()
-        }
-
-        // Update nikkud modifier button states
-        if keyboardEngine.renderer.isNikkudTopRowActive {
-            keyboardEngine.renderer.updateNikkudTopRowModifierStates()
-        }
     }
     
     private var keyboardHeightConstraint: NSLayoutConstraint?
