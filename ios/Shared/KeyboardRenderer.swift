@@ -744,7 +744,13 @@ class KeyboardRenderer {
             }
             print("📱 Current keyboard ID set to: \(self.currentKeyboardId ?? "nil") (keyset: \(self.currentKeysetId))")
         }
-        
+
+        // If nikkud is disabled in config, reset active state so it doesn't linger
+        let isNikkudDisabledInConfig = config.diacriticsSettings?[currentKeyboardId ?? ""]?.isDisabled ?? false
+        if isNikkudDisabledInConfig && nikkudActive {
+            nikkudActive = false
+        }
+
         // Clear existing views, but preserve nikkud picker overlay if present
         container.subviews.forEach { subview in
             if subview.tag != 999 {  // Don't remove nikkud picker overlay
