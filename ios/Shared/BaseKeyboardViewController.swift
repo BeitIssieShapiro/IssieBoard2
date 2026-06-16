@@ -172,8 +172,8 @@ class BaseKeyboardViewController: UIInputViewController {
     }
 
     private func pollContextForExternalChanges() {
-        print("⏱ POLL TICK")
         let current = textDocumentProxy.documentContextBeforeInput ?? ""
+        print("⏱ POLL: current='\(current.suffix(5))' last='\(lastPolledContextBefore.suffix(5))'")
         guard current != lastPolledContextBefore else { return }
         lastPolledContextBefore = current
         print("⏱ CONTEXT CHANGED: '\(current.suffix(5))'")
