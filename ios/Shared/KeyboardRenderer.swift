@@ -984,9 +984,13 @@ class KeyboardRenderer {
         return (groupsMap, showOnlyKeys)
     }
 
+    private let nikkudTopRowTag = 8001
+    private let nikkudModifierButtonTagBase = 9001 // tag = 9001 + buttonIndex
+
     /// Build the nikkud top-row view showing all visible nikkud signs as tappable square buttons.
     private func buildNikkudTopRow(availableWidth: CGFloat, height: CGFloat) -> UIView {
         let rowView = UIView()
+        rowView.tag = nikkudTopRowTag
 
         guard let diacriticsDefinition = config?.getDiacritics(for: currentKeyboardId) else {
             return rowView
@@ -1006,35 +1010,40 @@ class KeyboardRenderer {
             return true
         }
 
-        // Build modifier marks to show: each enabled modifier becomes one button per mark/option
-        // Only show modifiers that apply to the base letter currently before the cursor
-        struct MarkEntry { let mark: String; let isModifier: Bool; let baseLetter: String }
+        // Build modifier marks: always show all enabled modifiers, but disable those that don't apply
+        struct MarkEntry { let mark: String; let baseLetter: String; let isEnabled: Bool }
         var modifierMarks: [MarkEntry] = []
         let charBeforeCursor = onGetCharBeforeCursor?() ?? ""
         print("🎹 buildNikkudTopRow: currentKeyboardId=\(currentKeyboardId ?? "nil"), charBefore='\(charBeforeCursor)', disabledModifiers=\(disabledModifiers), modifierCount=\(diacriticsDefinition.getModifiers().count)")
         for modifier in diacriticsDefinition.getModifiers() {
             guard !disabledModifiers.contains(modifier.id) else { continue }
-            // Skip if modifier doesn't apply to the current letter (when we know what letter it is)
-            if !charBeforeCursor.isEmpty {
-                if let appliesTo = modifier.appliesTo, !appliesTo.contains(charBeforeCursor) { continue }
-                if let excludeFor = modifier.excludeFor, excludeFor.contains(charBeforeCursor) { continue }
-            }
-            // Per-modifier base letter: use cursor letter if applicable, else first in appliesTo
+
+            // Determine if modifier applies to the current letter
+            let applies: Bool = {
+                guard !charBeforeCursor.isEmpty else { return true } // unknown — show enabled
+                if let appliesTo = modifier.appliesTo { return appliesTo.contains(charBeforeCursor) }
+                if let excludeFor = modifier.excludeFor { return !excludeFor.contains(charBeforeCursor) }
+                return true
+            }()
+
+            // Base letter for display: shinSin always uses ש; dagesh uses cursor letter or first appliesTo
+            let isMultiOption = modifier.options != nil && !(modifier.options?.isEmpty ?? true)
             let base: String = {
-                if !charBeforeCursor.isEmpty {
-                    if let appliesTo = modifier.appliesTo {
-                        return appliesTo.contains(charBeforeCursor) ? charBeforeCursor : (appliesTo.first ?? "ב")
-                    }
-                    return charBeforeCursor
+                if isMultiOption {
+                    return modifier.appliesTo?.first ?? "ש" // shinSin → always ש
+                }
+                if !charBeforeCursor.isEmpty, let appliesTo = modifier.appliesTo {
+                    return appliesTo.contains(charBeforeCursor) ? charBeforeCursor : (appliesTo.first ?? "ב")
                 }
                 return modifier.appliesTo?.first ?? "ב"
             }()
+
             if let options = modifier.options, !options.isEmpty {
                 for option in options {
-                    modifierMarks.append(MarkEntry(mark: option.mark, isModifier: true, baseLetter: base))
+                    modifierMarks.append(MarkEntry(mark: option.mark, baseLetter: base, isEnabled: applies))
                 }
             } else if let mark = modifier.mark {
-                modifierMarks.append(MarkEntry(mark: mark, isModifier: true, baseLetter: base))
+                modifierMarks.append(MarkEntry(mark: mark, baseLetter: base, isEnabled: applies))
             }
         }
 
@@ -1056,13 +1065,14 @@ class KeyboardRenderer {
             traitCollection.userInterfaceStyle == .dark ? .white : .black
         }
 
-        func makeButton(mark: String, index: Int, isModifier: Bool, baseLetter: String) -> UIButton {
+        func makeButton(mark: String, index: Int, baseLetter: String, isEnabled: Bool) -> UIButton {
             let displayText = baseLetter + mark
             let x = leftOffset + CGFloat(index) * (buttonSize + gap)
             let button = UIButton(type: .system)
             button.backgroundColor = UIColor(white: 1.0, alpha: 0.001)
             button.frame = CGRect(x: x, y: 0, width: buttonSize, height: height)
             button.accessibilityIdentifier = mark
+            button.isEnabled = isEnabled
             button.addTarget(self, action: #selector(nikkudTopRowButtonTapped(_:)), for: .touchUpInside)
 
             let visualKeyView = UIView()
@@ -1086,7 +1096,7 @@ class KeyboardRenderer {
             label.text = displayText
             label.font = UIFont.systemFont(ofSize: baseFontSize * 1.26, weight: configFontWeight)
             label.textAlignment = .center
-            label.textColor = textColor
+            label.textColor = isEnabled ? textColor : UIColor.systemGray3
             label.adjustsFontSizeToFitWidth = true
             label.minimumScaleFactor = 0.5
             label.frame = visualKeyView.bounds
@@ -1094,17 +1104,21 @@ class KeyboardRenderer {
 
             visualKeyView.addSubview(label)
             button.addSubview(visualKeyView)
+            if !isEnabled { button.alpha = 0.4 }
             return button
         }
 
-        // Vowel buttons
+        // Vowel buttons (always enabled)
         for (index, item) in items.enumerated() {
-            rowView.addSubview(makeButton(mark: item.mark, index: index, isModifier: false, baseLetter: "◌"))
+            rowView.addSubview(makeButton(mark: item.mark, index: index, baseLetter: "◌", isEnabled: true))
         }
 
-        // Modifier buttons (after vowels)
+        // Modifier buttons (after vowels, with enabled/disabled state)
         for (offset, entry) in modifierMarks.enumerated() {
-            rowView.addSubview(makeButton(mark: entry.mark, index: items.count + offset, isModifier: true, baseLetter: entry.baseLetter))
+            let btn = makeButton(mark: entry.mark, index: items.count + offset, baseLetter: entry.baseLetter, isEnabled: entry.isEnabled)
+            btn.tag = nikkudModifierButtonTagBase + offset
+            btn.accessibilityLabel = entry.mark  // used by updateNikkudTopRowModifierStates
+            rowView.addSubview(btn)
         }
 
         return rowView
@@ -1114,6 +1128,40 @@ class KeyboardRenderer {
         guard let mark = sender.accessibilityIdentifier, !mark.isEmpty else { return }
         print("🎹 Nikkud top-row tapped: '\(mark)'")
         onNikkudSelected?(mark)
+    }
+
+    /// Update modifier button enabled/alpha states without a full re-render (no flicker).
+    private func updateNikkudTopRowModifierStates() {
+        guard let container = container,
+              let diacriticsDefinition = config?.getDiacritics(for: currentKeyboardId) else { return }
+
+        let charBefore = onGetCharBeforeCursor?() ?? ""
+
+        // Find the nikkud top row view
+        guard let topRowView = container.subviews.compactMap({ $0.viewWithTag(nikkudTopRowTag) ?? ($0.tag == nikkudTopRowTag ? $0 : nil) }).first else { return }
+
+        let modifiers = diacriticsDefinition.getModifiers()
+        let disabledModifiers = config?.diacriticsSettings?[currentKeyboardId ?? ""]?.disabledModifiers ?? []
+
+        // Build the same ordered list of modifier marks as buildNikkudTopRow
+        var modifierIndex = 0
+        for modifier in modifiers {
+            guard !disabledModifiers.contains(modifier.id) else { continue }
+            let applies: Bool = {
+                guard !charBefore.isEmpty else { return true }
+                if let appliesTo = modifier.appliesTo { return appliesTo.contains(charBefore) }
+                if let excludeFor = modifier.excludeFor { return !excludeFor.contains(charBefore) }
+                return true
+            }()
+            let markCount = modifier.options?.count ?? (modifier.mark != nil ? 1 : 0)
+            for _ in 0..<markCount {
+                if let btn = topRowView.viewWithTag(nikkudModifierButtonTagBase + modifierIndex) as? UIButton {
+                    btn.isEnabled = applies
+                    btn.alpha = applies ? 1.0 : 0.4
+                }
+                modifierIndex += 1
+            }
+        }
     }
 
     private func calculateBaselineWidth(_ rows: [KeyRow], groups: [String: GroupTemplate], showOnlyKeys: Set<String>?) -> CGFloat {
@@ -2685,14 +2733,12 @@ class KeyboardRenderer {
             let shouldShowDiacritics = shouldShowDiacriticsPopup(for: key)
             
             if nikkudActive && shouldShowDiacritics {
-                // In top-row mode, keys type normally — nikkud is applied via the top row
                 let isTopRowMode = config?.diacriticsSettings?[currentKeyboardId ?? ""]?.isTopRowMode ?? false
                 if !isTopRowMode {
                     let diacriticsOptions = getDiacriticsForKey(key)
                     if !diacriticsOptions.isEmpty {
                         showNikkudPicker(diacriticsOptions, anchorView: keyView)
                     } else {
-                        // No options available, just output the key
                         onKeyPress?(key)
                         if case .active = shiftState, !isSpace {
                             shiftState = .inactive
@@ -2700,23 +2746,21 @@ class KeyboardRenderer {
                         }
                     }
                 } else {
-                    // Top-row mode: regular letter key press, nikkud applied separately via top row
                     onKeyPress?(key)
                     if case .active = shiftState, !isSpace {
                         shiftState = .inactive
                         rerender()
+                    } else {
+                        updateNikkudTopRowModifierStates()
                     }
                 }
             } else {
-                // Output FINAL key press to container
                 onKeyPress?(key)
-
-                // For shift-active (but not locked) regular keys, reset shift after key press
-                // BUT: Don't reset for space key - it's handled by controller's handleSpaceKey which calls autoShiftAfterPunctuation
-                // Locked shift stays active until explicitly toggled off
                 if case .active = shiftState, !isSpace {
                     shiftState = .inactive
                     rerender()
+                } else if isNikkudTopRowActive {
+                    updateNikkudTopRowModifierStates()
                 }
                 // .locked stays as is - doesn't reset after key press
             }

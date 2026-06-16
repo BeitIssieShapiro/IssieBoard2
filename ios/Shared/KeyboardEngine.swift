@@ -347,61 +347,78 @@ class KeyboardEngine {
         autoShiftAfterPunctuation()
     }
 
-    /// Insert a nikkud combining mark, replacing any conflicting vowel mark already on the preceding character.
-    /// Dagesh (ּ) and shin/sin dots (ׁ, ׂ) coexist with vowels and are never replaced.
-    /// All other Hebrew vowel marks (ְ–ֻ, ׇ) are mutually exclusive.
+    /// Insert a nikkud combining mark, handling conflicts:
+    /// - Vowels (U+05B0–U+05BB, U+05C7) are mutually exclusive — replace existing vowel
+    /// - Dagesh (U+05BC) toggles: if already present remove it, otherwise add it
+    /// - Shin/sin dots (U+05C1/U+05C2) replace each other
     private func insertNikkudMark(_ mark: String) {
-        // Hebrew vowel marks that conflict with each other (each letter can hold only one)
         let hebrewVowels: Set<UInt32> = [
             0x05B0, 0x05B1, 0x05B2, 0x05B3, 0x05B4,
             0x05B5, 0x05B6, 0x05B7, 0x05B8, 0x05B9,
             0x05BA, 0x05BB, 0x05C7
         ]
+        let dagesh:  UInt32 = 0x05BC
+        let shinDot: UInt32 = 0x05C1
+        let sinDot:  UInt32 = 0x05C2
 
         guard let incomingScalar = mark.unicodeScalars.first else {
             textProxy.insertText(mark)
             return
         }
+        let inVal = incomingScalar.value
 
-        // Only attempt replacement if the incoming mark is itself a vowel
-        guard hebrewVowels.contains(incomingScalar.value) else {
+        // Determine which conflict group this mark belongs to
+        let isVowel    = hebrewVowels.contains(inVal)
+        let isDagesh   = inVal == dagesh
+        let isShinSin  = inVal == shinDot || inVal == sinDot
+
+        guard isVowel || isDagesh || isShinSin else {
             textProxy.insertText(mark)
             return
         }
 
-        // Look at the scalars immediately before the cursor
         guard let before = textProxy.documentContextBeforeInput, !before.isEmpty else {
             textProxy.insertText(mark)
             return
         }
 
-        // Walk backwards through the scalars of the last grapheme cluster looking for a vowel mark
         let lastCluster = String(before.suffix(1))
         let scalars = lastCluster.unicodeScalars.map { $0.value }
 
-        // Find position of an existing conflicting vowel mark (if any)
-        guard let vowelIndex = scalars.indices.last(where: { hebrewVowels.contains(scalars[$0]) }) else {
-            // No conflict — just insert
+        // Find an existing mark in the same conflict group
+        let conflictIndex: Int?
+        if isVowel {
+            conflictIndex = scalars.indices.last(where: { hebrewVowels.contains(scalars[$0]) })
+        } else if isDagesh {
+            conflictIndex = scalars.indices.last(where: { scalars[$0] == dagesh })
+        } else { // shinSin
+            conflictIndex = scalars.indices.last(where: { scalars[$0] == shinDot || scalars[$0] == sinDot })
+        }
+
+        guard let existingIndex = conflictIndex else {
             textProxy.insertText(mark)
             return
         }
 
-        // How many scalars are AFTER the conflicting vowel (combining marks that follow it, e.g. nothing typically)
-        let scalarsAfterVowel = scalars.count - 1 - vowelIndex
+        let scalarsAfter = scalars.count - 1 - existingIndex
 
-        // Delete forward from vowel to end of cluster, then the vowel itself
-        for _ in 0..<scalarsAfterVowel {
-            // deleteBackward on iOS keyboard deletes one scalar at a time for combining chars
-            textProxy.deleteBackward()
-        }
-        // Delete the vowel mark itself (one scalar)
-        textProxy.deleteBackward()
-        // Re-insert any scalars that were after the vowel (none in typical Hebrew, but safe)
-        if scalarsAfterVowel > 0 {
-            let tail = String(String.UnicodeScalarView(scalars.suffix(scalarsAfterVowel).compactMap { Unicode.Scalar($0) }))
+        // Delete everything from the existing mark to end of cluster
+        for _ in 0..<scalarsAfter { textProxy.deleteBackward() }
+        textProxy.deleteBackward() // delete the existing mark
+
+        // Re-insert tail (marks after the conflicting one)
+        if scalarsAfter > 0 {
+            let tail = String(String.UnicodeScalarView(scalars.suffix(scalarsAfter).compactMap { Unicode.Scalar($0) }))
             textProxy.insertText(tail)
         }
-        // Insert the new vowel mark
+
+        // For dagesh: if same mark was already there, we removed it — don't re-insert (toggle off)
+        let existingVal = scalars[existingIndex]
+        let isSameMark = existingVal == inVal
+        if isDagesh && isSameMark {
+            return // toggled off
+        }
+
         textProxy.insertText(mark)
     }
 
