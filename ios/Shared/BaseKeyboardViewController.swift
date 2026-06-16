@@ -85,7 +85,10 @@ class BaseKeyboardViewController: UIInputViewController {
         super.viewDidLayoutSubviews()
         updateGlobeButtonVisibility()
         if parsedConfig != nil {
-            keyboardEngine.renderer.rerenderIfNeeded()
+            let didRerender = keyboardEngine.renderer.rerenderIfNeeded()
+            if didRerender {
+                updateKeyboardHeight()
+            }
         }
     }
     
@@ -118,12 +121,11 @@ class BaseKeyboardViewController: UIInputViewController {
             keyboardEngine.handleTextChanged()
         }
 
+        // Seed shadow synchronously here — proxy may briefly have valid context right at textDidChange
         keyboardEngine.seedShadowContext()
 
         if keyboardEngine.renderer.isNikkudTopRowActive {
-            DispatchQueue.main.async { [weak self] in
-                self?.keyboardEngine.renderer.updateNikkudTopRowModifierStates()
-            }
+            keyboardEngine.renderer.updateNikkudTopRowModifierStates()
         }
 
         let beforeText = textDocumentProxy.documentContextBeforeInput ?? ""
@@ -256,6 +258,11 @@ class BaseKeyboardViewController: UIInputViewController {
             self?.updateKeyboardHeight()
         }
 
+        keyboardEngine.renderer.onNikkudActivePersist = { [weak self] active in
+            guard let self = self else { return }
+            self.preferences.setString(active ? "true" : "false", forKey: "nikkudActive_\(self.keyboardLanguage)")
+        }
+
         // Configure renderer
         keyboardEngine.renderer.setShowGlobeButton(self.needsInputModeSwitchKey)
     }
@@ -327,6 +334,9 @@ class BaseKeyboardViewController: UIInputViewController {
             print("⚙️ [ConfigLoad] fontSizePreset: \(parsedConfig?.fontSizePreset ?? "nil")")
             print("⚙️ [ConfigLoad] fontName: \(parsedConfig?.fontName ?? "nil")")
             print("⚙️ [ConfigLoad] fontWeight: \(parsedConfig?.fontWeight ?? "nil")")
+            // Restore persisted nikkud state before rendering
+            let persistedNikkud = preferences.getString(forKey: "nikkudActive_\(keyboardLanguage)") == "true"
+            keyboardEngine.renderer.restoreNikkudActive(persistedNikkud)
             // Seed shadow context now — documentContextBeforeInput is valid at load time
             keyboardEngine.seedShadowContext()
             renderKeyboard()

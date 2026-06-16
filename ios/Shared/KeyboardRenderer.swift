@@ -100,6 +100,9 @@ class KeyboardRenderer {
 
     /// Called when nikkud active state changes (so controller can update keyboard height)
     var onNikkudStateChanged: (() -> Void)?
+
+    /// Called when nikkud active state changes with the new value (for persistence)
+    var onNikkudActivePersist: ((Bool) -> Void)?
     
     // Word suggestions to display
     private var currentSuggestions: [String] = []
@@ -542,12 +545,15 @@ class KeyboardRenderer {
         return abs(width - lastRenderedWidth) > 1
     }
     
-    /// Trigger re-render with current config
-    func rerenderIfNeeded() {
-        guard let container = container, let config = config else { return }
+    /// Trigger re-render with current config. Returns true if a re-render was performed.
+    @discardableResult
+    func rerenderIfNeeded() -> Bool {
+        guard let container = container, let config = config else { return false }
         if needsRender(for: container.bounds.width) {
             renderKeyboard(in: container, config: config, currentKeysetId: currentKeysetId, editorContext: editorContext)
+            return true
         }
+        return false
     }
     
     /// Set selected key IDs for visual highlighting
@@ -633,6 +639,11 @@ class KeyboardRenderer {
     var isNikkudTopRowActive: Bool {
         guard nikkudActive else { return false }
         return config?.diacriticsSettings?[currentKeyboardId ?? ""]?.isTopRowMode ?? false
+    }
+
+    /// Restore persisted nikkud active state (called by controller on load, before renderKeyboard).
+    func restoreNikkudActive(_ active: Bool) {
+        nikkudActive = active
     }
 
     /// Set whether word suggestions are enabled (override config setting)
@@ -951,6 +962,11 @@ class KeyboardRenderer {
             rowsContainer.layer.anchorPoint = CGPoint(x: 0.5, y: 0.5)
             rowsContainer.transform = .identity
         }
+
+        // Repopulate suggestions bar after re-render (bar is recreated; currentSuggestions still valid)
+        if !isPreviewMode {
+            updateSuggestionsBar()
+        }
     }
 
     // MARK: - Private Helpers
@@ -1124,13 +1140,20 @@ class KeyboardRenderer {
     /// Update modifier button enabled/alpha states without a full re-render (no flicker).
     func updateNikkudTopRowModifierStates() {
         guard let container = container,
-              let diacriticsDefinition = config?.getDiacritics(for: currentKeyboardId) else { return }
+              let diacriticsDefinition = config?.getDiacritics(for: currentKeyboardId) else {
+            print("🔄 updateNikkudTopRowModifierStates: GUARD FAILED — container=\(container != nil), diacritics=\(config?.getDiacritics(for: currentKeyboardId) != nil)")
+            return
+        }
 
         let charBefore = onGetCharBeforeCursor?() ?? ""
         print("🔄 updateNikkudTopRowModifierStates: charBefore='\(charBefore)'")
 
         // Find the nikkud top row view — it's nested inside rowsContainer
-        guard let topRowView = container.viewWithTag(nikkudTopRowTag) else { return }
+        guard let topRowView = container.viewWithTag(nikkudTopRowTag) else {
+            print("🔄 updateNikkudTopRowModifierStates: TOP ROW VIEW NOT FOUND (tag \(nikkudTopRowTag))")
+            return
+        }
+        print("🔄 updateNikkudTopRowModifierStates: topRowView found, subviews=\(topRowView.subviews.count)")
 
         let modifiers = diacriticsDefinition.getModifiers()
         let disabledModifiers = config?.diacriticsSettings?[currentKeyboardId ?? ""]?.disabledModifiers ?? []
@@ -1150,6 +1173,13 @@ class KeyboardRenderer {
                 if let btn = topRowView.viewWithTag(nikkudModifierButtonTagBase + modifierIndex) as? UIButton {
                     btn.isEnabled = applies
                     btn.alpha = applies ? 1.0 : 0.4
+                    // Restore label textColor — UILabel doesn't auto-update with isEnabled
+                    let enabledColor: UIColor = UIColor { tc in tc.userInterfaceStyle == .dark ? .white : .black }
+                    btn.subviews.compactMap { $0 as? UIView }.forEach { visualView in
+                        visualView.subviews.compactMap { $0 as? UILabel }.forEach { label in
+                            label.textColor = applies ? enabledColor : UIColor.systemGray3
+                        }
+                    }
                 }
                 modifierIndex += 1
             }
@@ -2104,6 +2134,7 @@ class KeyboardRenderer {
             if !nikkudActive {
                 print("   → Activating NIKKUD mode after 0.5 sec press")
                 nikkudActive = true
+                onNikkudActivePersist?(true)
                 rerender()
                 onNikkudStateChanged?()
             } else {
@@ -2622,6 +2653,7 @@ class KeyboardRenderer {
             if nikkudActive {
                 print("   → Handling NIKKUD tap (deactivating)")
                 nikkudActive = false
+                onNikkudActivePersist?(false)
                 rerender()
                 onNikkudStateChanged?()
             } else if onKeyLongPress != nil {

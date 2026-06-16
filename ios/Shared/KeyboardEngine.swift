@@ -151,13 +151,16 @@ class KeyboardEngine {
             // Prefer live proxy context; fall back to shadow buffer (empty when hardware kb active)
             let before = self.textProxy.documentContextBeforeInput ?? ""
             let source = before.isEmpty ? self.shadowTextBefore : before
+            print("🔍 onGetCharBeforeCursor: proxy='\(before.suffix(3))', shadow='\(self.shadowTextBefore.suffix(3))', source='\(source.suffix(3))'")
             guard !source.isEmpty else { return nil }
             let lastCluster = String(source.suffix(1))
-            return lastCluster.unicodeScalars.first(where: {
+            let result = lastCluster.unicodeScalars.first(where: {
                 $0.properties.generalCategory == .otherLetter ||
                 $0.properties.generalCategory == .uppercaseLetter ||
                 $0.properties.generalCategory == .lowercaseLetter
             }).map { String($0) } ?? String(lastCluster.unicodeScalars.first.map { String($0) } ?? "")
+            print("🔍 onGetCharBeforeCursor: lastCluster='\(lastCluster)', result='\(result)'")
+            return result
         }
     }
 
@@ -166,7 +169,11 @@ class KeyboardEngine {
     /// Handle text change and update suggestions appropriately
     /// This is the SINGLE method that decides what suggestions to show based on text state
     func handleTextChanged() {
-        guard let fullText = getCurrentText?() else {
+        let liveText = getCurrentText?() ?? ""
+        // When proxy returns empty (e.g. external keyboard context restriction), fall back to shadow
+        let fullText = liveText.isEmpty ? shadowTextBefore : liveText
+
+        if fullText.isEmpty {
             suggestionController.resetCurrentWord()
             suggestionController.showDefaults()
             return
@@ -286,27 +293,58 @@ class KeyboardEngine {
                 }
             }
         }
-        // Sync shadow context after every native key operation
-        syncShadowContext()
+        // Sync shadow context after every native key operation; pass inserted text as fallback
+        // for when proxy is empty (external keyboard context restriction)
+        let insertedValue: String = {
+            switch key.type.lowercased() {
+            case "backspace", "enter", "action", "keyset", "next-keyboard": return ""
+            case "space": return " "
+            default:
+                if renderer.isShiftActive() && !key.sValue.isEmpty { return key.sValue }
+                return key.value
+            }
+        }()
+        syncShadowContext(inserted: insertedValue)
+
+        if renderer.isNikkudTopRowActive {
+            renderer.updateNikkudTopRowModifierStates()
+        }
     }
     /// Seed the shadow text buffer from the actual proxy context (call at keyboard load).
     func seedShadowContext() {
-        shadowTextBefore = textProxy.documentContextBeforeInput ?? ""
+        let live = textProxy.documentContextBeforeInput ?? ""
+        if !live.isEmpty { shadowTextBefore = live }
     }
 
     /// Update shadow buffer from live proxy after a native operation.
-    private func syncShadowContext() {
+    /// When proxy is empty (external keyboard context), append `inserted` to shadow as fallback.
+    private func syncShadowContext(inserted: String = "") {
         let live = textProxy.documentContextBeforeInput ?? ""
-        if !live.isEmpty { shadowTextBefore = live }
+        if !live.isEmpty {
+            shadowTextBefore = live
+        } else if !inserted.isEmpty {
+            shadowTextBefore += inserted
+        }
     }
 
     private func handleBackspace() {
         // Always attempt deleteBackward — hasText is unreliable when hardware keyboard
         // has typed text (documentContextBeforeInput is empty in that case)
         textProxy.deleteBackward()
-        syncShadowContext()
+        // Try live proxy first; if empty (external kb context), trim shadow manually
+        let live = textProxy.documentContextBeforeInput ?? ""
+        if !live.isEmpty {
+            shadowTextBefore = live
+        } else if !shadowTextBefore.isEmpty {
+            // Remove the last grapheme cluster from shadow to keep it in sync
+            shadowTextBefore.removeLast()
+        }
         if !suggestionController.handleBackspace() {
             suggestionController.detectCurrentWord(from: textProxy.documentContextBeforeInput ?? "")
+        }
+
+        if renderer.isNikkudTopRowActive {
+            renderer.updateNikkudTopRowModifierStates()
         }
 
         autoShiftAfterPunctuation()
