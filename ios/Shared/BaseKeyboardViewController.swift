@@ -64,6 +64,9 @@ class BaseKeyboardViewController: UIInputViewController {
         // before firing the first keyboardDidShow to the host app
         view.layoutIfNeeded()
         startObservingPreferences()
+        // Poll text context for external keyboard / paste support
+        // textDidChange does not fire for hardware keyboard input in extensions
+        startContextPolling()
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -133,6 +136,11 @@ class BaseKeyboardViewController: UIInputViewController {
         keyboardEngine.autoShiftAfterPunctuation()
     }
     
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        stopContextPolling()
+    }
+
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
         stopObservingPreferences()
@@ -150,7 +158,7 @@ class BaseKeyboardViewController: UIInputViewController {
         guard contextPollTimer == nil else { return }
         lastPolledContextBefore = textDocumentProxy.documentContextBeforeInput ?? ""
         contextPollTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
-            self?.pollContextForModifierUpdate()
+            self?.pollContextForExternalChanges()
         }
     }
 
@@ -160,13 +168,20 @@ class BaseKeyboardViewController: UIInputViewController {
         lastPolledContextBefore = ""
     }
 
-    private func pollContextForModifierUpdate() {
-        // Only act when top-row nikkud is active
-        guard keyboardEngine.renderer.isNikkudTopRowActive else { return }
+    private func pollContextForExternalChanges() {
         let current = textDocumentProxy.documentContextBeforeInput ?? ""
         guard current != lastPolledContextBefore else { return }
         lastPolledContextBefore = current
-        keyboardEngine.renderer.updateNikkudTopRowModifierStates()
+
+        // Update suggestions for external keyboard / paste
+        if !keyboardEngine.renderer.isInCursorMoveMode() {
+            keyboardEngine.handleTextChanged()
+        }
+
+        // Update nikkud modifier button states
+        if keyboardEngine.renderer.isNikkudTopRowActive {
+            keyboardEngine.renderer.updateNikkudTopRowModifierStates()
+        }
     }
     
     private var keyboardHeightConstraint: NSLayoutConstraint?
@@ -391,9 +406,6 @@ class BaseKeyboardViewController: UIInputViewController {
             renderFallbackKeyboard()
             return
         }
-
-        // Ensure context polling is running (viewDidAppear may not fire in keyboard extensions)
-        startContextPolling()
 
         // Configure suggestion controller based on config and input type
         let shouldDisable = shouldDisableSuggestionsForKeyboardType()
