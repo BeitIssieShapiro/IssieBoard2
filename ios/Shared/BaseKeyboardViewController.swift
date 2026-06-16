@@ -107,6 +107,13 @@ class BaseKeyboardViewController: UIInputViewController {
     override func textWillChange(_ textInput: UITextInput?) {
         super.textWillChange(textInput)
     }
+
+    override func selectionDidChange(_ textInput: UITextInput?) {
+        super.selectionDidChange(textInput)
+        let ctx = textDocumentProxy.documentContextBeforeInput ?? ""
+        print("🔵 selectionDidChange: ctx='\(ctx.suffix(5))'")
+    }
+    }
     
     override func textDidChange(_ textInput: UITextInput?) {
         super.textDidChange(textInput)
@@ -173,7 +180,6 @@ class BaseKeyboardViewController: UIInputViewController {
 
     private func pollContextForExternalChanges() {
         let current = textDocumentProxy.documentContextBeforeInput ?? ""
-        print("⏱ POLL: current='\(current.suffix(5))' last='\(lastPolledContextBefore.suffix(5))'")
         guard current != lastPolledContextBefore else { return }
         lastPolledContextBefore = current
         print("⏱ CONTEXT CHANGED: '\(current.suffix(5))'")
