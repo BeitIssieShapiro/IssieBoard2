@@ -1127,9 +1127,14 @@ class KeyboardRenderer {
               let diacriticsDefinition = config?.getDiacritics(for: currentKeyboardId) else { return }
 
         let charBefore = onGetCharBeforeCursor?() ?? ""
+        print("🔄 updateNikkudTopRowModifierStates: charBefore='\(charBefore)'")
 
-        // Find the nikkud top row view
-        guard let topRowView = container.subviews.compactMap({ $0.viewWithTag(nikkudTopRowTag) ?? ($0.tag == nikkudTopRowTag ? $0 : nil) }).first else { return }
+        // Find the nikkud top row view — it's nested inside rowsContainer
+        guard let topRowView = container.viewWithTag(nikkudTopRowTag) else {
+            print("🔄 updateNikkudTopRowModifierStates: top row view NOT FOUND (tag \(nikkudTopRowTag))")
+            return
+        }
+        print("🔄 updateNikkudTopRowModifierStates: found top row view")
 
         let modifiers = diacriticsDefinition.getModifiers()
         let disabledModifiers = config?.diacriticsSettings?[currentKeyboardId ?? ""]?.disabledModifiers ?? []
