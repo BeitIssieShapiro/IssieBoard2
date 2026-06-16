@@ -113,8 +113,7 @@ class BaseKeyboardViewController: UIInputViewController {
         let ctx = textDocumentProxy.documentContextBeforeInput ?? ""
         print("🔵 selectionDidChange: ctx='\(ctx.suffix(5))'")
     }
-    }
-    
+
     override func textDidChange(_ textInput: UITextInput?) {
         super.textDidChange(textInput)
 
