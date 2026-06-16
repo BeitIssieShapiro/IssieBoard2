@@ -277,7 +277,13 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
         {onSwitchToClassic && (
           <TouchableOpacity
             style={styles.classicButton}
-            onPress={onSwitchToClassic}
+            onPress={() => {
+              if (isDirty) {
+                confirmUnsavedChanges(onSwitchToClassic);
+              } else {
+                onSwitchToClassic();
+              }
+            }}
             activeOpacity={0.7}>
             <Text style={styles.classicButtonText}>Classic View</Text>
           </TouchableOpacity>

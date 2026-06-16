@@ -1026,17 +1026,8 @@ class KeyboardRenderer {
                 return true
             }()
 
-            // Base letter for display: shinSin always uses ש; dagesh uses cursor letter or first appliesTo
-            let isMultiOption = modifier.options != nil && !(modifier.options?.isEmpty ?? true)
-            let base: String = {
-                if isMultiOption {
-                    return modifier.appliesTo?.first ?? "ש" // shinSin → always ש
-                }
-                if !charBeforeCursor.isEmpty, let appliesTo = modifier.appliesTo {
-                    return appliesTo.contains(charBeforeCursor) ? charBeforeCursor : (appliesTo.first ?? "ב")
-                }
-                return modifier.appliesTo?.first ?? "ב"
-            }()
+            // Base letter for display: shinSin always uses ש; dagesh always uses ב
+            let base: String = modifier.appliesTo?.first ?? "ב"
 
             if let options = modifier.options, !options.isEmpty {
                 for option in options {
