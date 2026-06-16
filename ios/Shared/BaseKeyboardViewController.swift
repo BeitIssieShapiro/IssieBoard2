@@ -109,6 +109,11 @@ class BaseKeyboardViewController: UIInputViewController {
             keyboardEngine.handleTextChanged()
         }
 
+        // Update nikkud top-row modifier states when text changes from any source (incl. external keyboard)
+        if keyboardEngine.renderer.isNikkudTopRowActive {
+            keyboardEngine.renderer.updateNikkudTopRowModifierStates()
+        }
+
         // Check if we should auto-shift after text change (e.g., after paste, autocorrect, external keyboard)
         // But skip if text is empty and shift is already active (avoid loops)
         let beforeText = textDocumentProxy.documentContextBeforeInput ?? ""

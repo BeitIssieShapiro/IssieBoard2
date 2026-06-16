@@ -1131,7 +1131,7 @@ class KeyboardRenderer {
     }
 
     /// Update modifier button enabled/alpha states without a full re-render (no flicker).
-    private func updateNikkudTopRowModifierStates() {
+    func updateNikkudTopRowModifierStates() {
         guard let container = container,
               let diacriticsDefinition = config?.getDiacritics(for: currentKeyboardId) else { return }
 
