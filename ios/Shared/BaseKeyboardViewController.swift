@@ -175,6 +175,7 @@ class BaseKeyboardViewController: UIInputViewController {
         if keyboardHeightConstraint?.constant != requiredHeight {
             keyboardHeightConstraint?.constant = requiredHeight
             view.setNeedsLayout()
+            view.layoutIfNeeded()
             persistKeyboardHeight(requiredHeight)
         }
     }

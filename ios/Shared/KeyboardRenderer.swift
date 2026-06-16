@@ -516,18 +516,20 @@ class KeyboardRenderer {
             fontSizePreset: fontPreset
         )
 
-        let numberOfRows = keyset.rows.count + (nikkudTopRowActive ? 1 : 0)
-        let calculatedRowHeight = dimensions.calculateRowHeight(numberOfRows: numberOfRows, hasSuggestions: suggestionsEnabled)
+        let baseRowCount = keyset.rows.count
+        let calculatedRowHeight = dimensions.calculateRowHeight(numberOfRows: baseRowCount, hasSuggestions: suggestionsEnabled)
 
-        let rowsHeight = CGFloat(numberOfRows) * calculatedRowHeight
-        let spacingHeight = CGFloat(max(0, numberOfRows - 1)) * rowSpacing
+        // When nikkud top-row is active, add one full extra row on top of the normal height
+        let totalRowCount = baseRowCount + (nikkudTopRowActive ? 1 : 0)
+        let rowsHeight = CGFloat(totalRowCount) * calculatedRowHeight
+        let spacingHeight = CGFloat(max(0, totalRowCount - 1)) * rowSpacing
         let suggestionsHeight = suggestionsEnabled ? calculatedRowHeight * 0.75 : 0
         let topPadding: CGFloat = 0
         let bottomPadding: CGFloat = 4
 
         let totalHeight = rowsHeight + spacingHeight + suggestionsHeight + topPadding + bottomPadding
 
-        print("📐 [calculateKeyboardHeight] preset: \(preset), rowHeight: \(calculatedRowHeight), rows: \(numberOfRows), nikkudTopRow: \(nikkudTopRowActive), total: \(totalHeight)")
+        print("📐 [calculateKeyboardHeight] preset: \(preset), rowHeight: \(calculatedRowHeight), rows: \(totalRowCount), nikkudTopRow: \(nikkudTopRowActive), total: \(totalHeight)")
 
         return totalHeight
     }
