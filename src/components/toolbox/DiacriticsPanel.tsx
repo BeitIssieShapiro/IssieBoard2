@@ -9,7 +9,6 @@ import { useEditor } from '../../context/EditorContext';
 import { useLocalization } from '../../localization';
 import { DiacriticItem, DiacriticModifier } from '../../../types';
 import { ButtonGroupRow } from '../shared/ButtonGroupRow';
-import { ToggleSwitch } from '../shared/ToggleSwitch';
 
 type NikkudMode = 'basic' | 'full' | 'custom' | 'none';
 
@@ -197,16 +196,6 @@ export const DiacriticsPanel: React.FC = () => {
     });
   };
 
-  const handleToggleInputMode = () => {
-    dispatch({
-      type: 'UPDATE_DIACRITICS_SETTINGS',
-      payload: {
-        keyboardId: currentKeyboardId,
-        settings: { ...settings, nikkudMode: isTopRowMode ? 'popup' : 'topRow' },
-      },
-    });
-  };
-  
   if (!diacritics) {
     return (
       <View style={styles.emptyContainer}>
@@ -240,23 +229,26 @@ export const DiacriticsPanel: React.FC = () => {
         onSelect={(id) => handleModeChange(id as NikkudMode)}
       />
 
-      {/* Input Mode toggle — visible when nikkud is enabled */}
+      {/* Input Mode selector — visible when nikkud is enabled */}
       {currentMode !== 'none' && (
-        <View style={styles.modifierRow}>
-          <View style={[styles.modifierInfo, isRTL && { marginRight: 0, marginLeft: 12 }]}>
-            <Text allowFontScaling={false} style={styles.modifierName}>{strings.diacritics.inputMode}</Text>
-            <Text allowFontScaling={false} style={styles.modifierOptions}>
-              {isTopRowMode ? strings.diacritics.topRow : strings.diacritics.popup}
-            </Text>
-          </View>
-          <ToggleSwitch
-            value={isTopRowMode}
-            onChange={handleToggleInputMode}
-            labelOn=""
-            labelOff=""
-            size="medium"
-          />
-        </View>
+        <ButtonGroupRow
+          isRTL={isRTL}
+          title={strings.diacritics.inputMode}
+          options={[
+            { id: 'popup', label: strings.diacritics.popup },
+            { id: 'topRow', label: strings.diacritics.topRow },
+          ]}
+          selectedId={isTopRowMode ? 'topRow' : 'popup'}
+          onSelect={(id) => {
+            dispatch({
+              type: 'UPDATE_DIACRITICS_SETTINGS',
+              payload: {
+                keyboardId: currentKeyboardId,
+                settings: { ...settings, nikkudMode: id as 'popup' | 'topRow' },
+              },
+            });
+          }}
+        />
       )}
 
       {/* Custom Mode - Show all nikkud options as toggleable keys */}

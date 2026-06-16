@@ -299,6 +299,11 @@ class KeyboardPreviewView: UIView {
             print("⚙️ KeyboardPreviewView: Settings button pressed")
             self?.onOpenSettings?([:])
         }
+
+        // Re-report height when nikkud top-row activates/deactivates
+        engine.renderer.onNikkudStateChanged = { [weak self] in
+            self?.renderKeyboard()
+        }
     }
 
     private func notifyReactNativeOfTextChange(_ newText: String, deletedDownTo minLength: Int? = nil) {
@@ -451,7 +456,7 @@ class KeyboardPreviewView: UIView {
 
         // Calculate and report keyboard height to React Native
         let suggestionsEnabled = config.isWordSuggestionsEnabled
-        let calculatedHeight = renderer.calculateKeyboardHeight(for: config, keysetId: currentKeysetId, suggestionsEnabled: suggestionsEnabled)
+        let calculatedHeight = renderer.calculateKeyboardHeight(for: config, keysetId: currentKeysetId, suggestionsEnabled: suggestionsEnabled, nikkudTopRowActive: renderer.isNikkudTopRowActive)
 
         print("📐 [KeyboardPreviewView-InputMode] Calculated height: \(calculatedHeight)")
 

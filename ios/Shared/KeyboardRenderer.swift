@@ -1034,7 +1034,7 @@ class KeyboardRenderer {
             let label = UILabel()
             label.isUserInteractionEnabled = false
             label.text = "◌" + item.mark
-            label.font = UIFont.systemFont(ofSize: 36, weight: configFontWeight)
+            label.font = UIFont.systemFont(ofSize: baseFontSize * 1.4, weight: configFontWeight)
             label.textAlignment = .center
             label.textColor = textColor
             label.adjustsFontSizeToFitWidth = true
