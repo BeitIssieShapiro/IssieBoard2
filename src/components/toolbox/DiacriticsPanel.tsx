@@ -9,6 +9,7 @@ import { useEditor } from '../../context/EditorContext';
 import { useLocalization } from '../../localization';
 import { DiacriticItem, DiacriticModifier } from '../../../types';
 import { ButtonGroupRow } from '../shared/ButtonGroupRow';
+import { ToggleSwitch } from '../shared/ToggleSwitch';
 
 type NikkudMode = 'basic' | 'full' | 'custom' | 'none';
 
