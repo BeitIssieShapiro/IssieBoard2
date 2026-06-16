@@ -109,10 +109,9 @@ export const DiacriticsPanel: React.FC = () => {
 
   const handleModeChange = (mode: NikkudMode) => {
     setCurrentMode(mode);
-    
+
     switch (mode) {
       case 'none':
-        // Disable nikkud completely
         dispatch({
           type: 'UPDATE_DIACRITICS_SETTINGS',
           payload: {
@@ -121,31 +120,28 @@ export const DiacriticsPanel: React.FC = () => {
           },
         });
         break;
-      
+
       case 'basic':
-        // Simple mode, no hidden items or disabled modifiers
         dispatch({
           type: 'UPDATE_DIACRITICS_SETTINGS',
           payload: {
             keyboardId: currentKeyboardId,
-            settings: { disabled: false, simpleMode: true, hidden: [], disabledModifiers: [] },
+            settings: { ...settings, disabled: false, simpleMode: true, hidden: [], disabledModifiers: [] },
           },
         });
         break;
-      
+
       case 'full':
-        // Full mode (not simple), no hidden items or disabled modifiers
         dispatch({
           type: 'UPDATE_DIACRITICS_SETTINGS',
           payload: {
             keyboardId: currentKeyboardId,
-            settings: { disabled: false, simpleMode: false, hidden: [], disabledModifiers: [] },
+            settings: { ...settings, disabled: false, simpleMode: false, hidden: [], disabledModifiers: [] },
           },
         });
         break;
-      
+
       case 'custom': {
-        // Default to all items hidden and all modifiers disabled
         const allDiacriticsItems = diacritics
           ? [...(diacritics.items || []).filter(i => i.id !== 'plain')]
           : [];
@@ -157,6 +153,7 @@ export const DiacriticsPanel: React.FC = () => {
           payload: {
             keyboardId: currentKeyboardId,
             settings: {
+              ...settings,
               disabled: false,
               simpleMode: true,
               hidden: allDiacriticsItems.map(i => i.id),

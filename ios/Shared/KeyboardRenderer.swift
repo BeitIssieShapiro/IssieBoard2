@@ -1002,7 +1002,7 @@ class KeyboardRenderer {
 
         // Build modifier marks to show: each enabled modifier becomes one button per mark/option
         // Only show modifiers that apply to the base letter currently before the cursor
-        struct MarkEntry { let mark: String }
+        struct MarkEntry { let mark: String; let isModifier: Bool }
         var modifierMarks: [MarkEntry] = []
         let charBeforeCursor = onGetCharBeforeCursor?() ?? ""
         for modifier in diacriticsDefinition.getModifiers() {
@@ -1014,27 +1014,43 @@ class KeyboardRenderer {
             }
             if let options = modifier.options, !options.isEmpty {
                 for option in options {
-                    modifierMarks.append(MarkEntry(mark: option.mark))
+                    modifierMarks.append(MarkEntry(mark: option.mark, isModifier: true))
                 }
             } else if let mark = modifier.mark {
-                modifierMarks.append(MarkEntry(mark: mark))
+                modifierMarks.append(MarkEntry(mark: mark, isModifier: true))
             }
         }
 
         let totalButtons = items.count + modifierMarks.count
         guard totalButtons > 0 else { return rowView }
 
-        let buttonSize: CGFloat = height
         let gap: CGFloat = scaledKeyGap
+        // Ideal square button size, but shrink if too many buttons to fit
+        let idealSize: CGFloat = height
+        let totalIfIdeal = idealSize * CGFloat(totalButtons) + gap * CGFloat(totalButtons - 1)
+        let buttonSize: CGFloat = totalIfIdeal > availableWidth
+            ? max(24, (availableWidth - gap * CGFloat(totalButtons - 1)) / CGFloat(totalButtons))
+            : idealSize
         let totalWidth = buttonSize * CGFloat(totalButtons) + gap * CGFloat(totalButtons - 1)
         let leftOffset = max(0, (availableWidth - totalWidth) / 2)
+
+        // Sample letter for rendering modifier marks (shows where the mark actually sits)
+        let modifierBaseLetter: String = {
+            if !charBeforeCursor.isEmpty { return charBeforeCursor }
+            // Fallback: first letter in appliesTo of first modifier, or ב
+            for modifier in diacriticsDefinition.getModifiers() {
+                if let first = modifier.appliesTo?.first { return first }
+            }
+            return "ב"
+        }()
 
         let bgColor = getDefaultKeyBgColor()
         let textColor: UIColor = UIColor { traitCollection in
             traitCollection.userInterfaceStyle == .dark ? .white : .black
         }
 
-        func makeButton(mark: String, index: Int) -> UIButton {
+        func makeButton(mark: String, index: Int, isModifier: Bool) -> UIButton {
+            let displayText = isModifier ? (modifierBaseLetter + mark) : ("◌" + mark)
             let x = leftOffset + CGFloat(index) * (buttonSize + gap)
             let button = UIButton(type: .system)
             button.backgroundColor = UIColor(white: 1.0, alpha: 0.001)
@@ -1060,7 +1076,7 @@ class KeyboardRenderer {
 
             let label = UILabel()
             label.isUserInteractionEnabled = false
-            label.text = "◌" + mark
+            label.text = displayText
             label.font = UIFont.systemFont(ofSize: baseFontSize * 1.26, weight: configFontWeight)
             label.textAlignment = .center
             label.textColor = textColor
@@ -1076,12 +1092,12 @@ class KeyboardRenderer {
 
         // Vowel buttons
         for (index, item) in items.enumerated() {
-            rowView.addSubview(makeButton(mark: item.mark, index: index))
+            rowView.addSubview(makeButton(mark: item.mark, index: index, isModifier: false))
         }
 
-        // Modifier buttons (after vowels, visually separated by natural gap)
+        // Modifier buttons (after vowels)
         for (offset, entry) in modifierMarks.enumerated() {
-            rowView.addSubview(makeButton(mark: entry.mark, index: items.count + offset))
+            rowView.addSubview(makeButton(mark: entry.mark, index: items.count + offset, isModifier: true))
         }
 
         return rowView
