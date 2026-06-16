@@ -86,8 +86,6 @@ class BaseKeyboardViewController: UIInputViewController {
         super.viewDidAppear(animated)
         // Write full access status so the container app can read it
         preferences.setString(self.hasFullAccess ? "true" : "false", forKey: "fullAccess_\(keyboardLanguage)")
-        // Start polling — poll method checks isNikkudTopRowActive internally
-        startContextPolling()
     }
 
     override func viewDidLayoutSubviews() {
@@ -393,6 +391,9 @@ class BaseKeyboardViewController: UIInputViewController {
             renderFallbackKeyboard()
             return
         }
+
+        // Ensure context polling is running (viewDidAppear may not fire in keyboard extensions)
+        startContextPolling()
 
         // Configure suggestion controller based on config and input type
         let shouldDisable = shouldDisableSuggestionsForKeyboardType()
