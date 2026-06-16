@@ -141,6 +141,14 @@ class KeyboardEngine {
         renderer.onGetTextDirection = { [weak self] in
             return self?.onGetTextDirection?() ?? false
         }
+
+        renderer.onGetCharBeforeCursor = { [weak self] in
+            guard let before = self?.textProxy.documentContextBeforeInput, !before.isEmpty else { return nil }
+            // Return the first scalar of the last grapheme cluster (the base letter, skipping combining marks)
+            let lastCluster = String(before.suffix(1))
+            return lastCluster.unicodeScalars.first(where: { $0.properties.generalCategory == .otherLetter || $0.properties.generalCategory == .uppercaseLetter || $0.properties.generalCategory == .lowercaseLetter }).map { String($0) }
+                ?? String(lastCluster.unicodeScalars.first.map { String($0) } ?? "")
+        }
     }
 
     // MARK: - Public Methods

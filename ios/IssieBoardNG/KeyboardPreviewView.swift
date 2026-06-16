@@ -304,6 +304,17 @@ class KeyboardPreviewView: UIView {
         engine.renderer.onNikkudStateChanged = { [weak self] in
             self?.renderKeyboard()
         }
+
+        // Provide the base letter before cursor for modifier filtering in top-row nikkud
+        engine.renderer.onGetCharBeforeCursor = { [weak self] in
+            guard let text = self?.syncedText, !text.isEmpty else { return nil }
+            let lastCluster = String(text.suffix(1))
+            return lastCluster.unicodeScalars.first(where: {
+                $0.properties.generalCategory == .otherLetter ||
+                $0.properties.generalCategory == .uppercaseLetter ||
+                $0.properties.generalCategory == .lowercaseLetter
+            }).map { String($0) }
+        }
     }
 
     private func notifyReactNativeOfTextChange(_ newText: String, deletedDownTo minLength: Int? = nil) {

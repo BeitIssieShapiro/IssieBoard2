@@ -181,9 +181,10 @@ struct DiacriticItem: Codable {
     let onlyFor: [String]?   // If present, only show for these letters
     let excludeFor: [String]? // If present, don't show for these letters
     let isReplacement: Bool? // If true, replaces the letter entirely
-    
+    let isAdvanced: Bool?    // If true, only shown in full/custom mode (not basic)
+
     enum CodingKeys: String, CodingKey {
-        case id, mark, name, onlyFor, excludeFor, isReplacement
+        case id, mark, name, onlyFor, excludeFor, isReplacement, isAdvanced
     }
 }
 

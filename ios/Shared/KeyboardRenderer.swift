@@ -95,6 +95,9 @@ class KeyboardRenderer {
     // Callback to get text direction at cursor (returns true if RTL, false if LTR)
     var onGetTextDirection: (() -> Bool)?
 
+    // Callback to get the base letter immediately before the cursor (for modifier filtering)
+    var onGetCharBeforeCursor: (() -> String?)?
+
     /// Called when nikkud active state changes (so controller can update keyboard height)
     var onNikkudStateChanged: (() -> Void)?
     
@@ -983,21 +986,47 @@ class KeyboardRenderer {
             return rowView
         }
 
-        let hidden = config?.diacriticsSettings?[currentKeyboardId ?? ""]?.hidden ?? []
+        let settings = config?.diacriticsSettings?[currentKeyboardId ?? ""]
+        let hidden = settings?.hidden ?? []
+        let disabledModifiers = settings?.disabledModifiers ?? []
+        let isSimpleMode = settings?.simpleMode ?? true
 
-        // Filter to only standalone marks (exclude plain/empty and replacement items)
+        // Filter vowel items: plain, replacements, hidden, and advanced (in basic/simple mode)
         let items = diacriticsDefinition.items.filter { item in
             guard item.id != "plain" else { return false }
             guard item.isReplacement != true else { return false }
             guard !hidden.contains(item.id) else { return false }
+            if isSimpleMode && item.isAdvanced == true { return false }
             return true
         }
 
-        guard !items.isEmpty else { return rowView }
+        // Build modifier marks to show: each enabled modifier becomes one button per mark/option
+        // Only show modifiers that apply to the base letter currently before the cursor
+        struct MarkEntry { let mark: String }
+        var modifierMarks: [MarkEntry] = []
+        let charBeforeCursor = onGetCharBeforeCursor?() ?? ""
+        for modifier in diacriticsDefinition.getModifiers() {
+            guard !disabledModifiers.contains(modifier.id) else { continue }
+            // Skip if modifier doesn't apply to the current letter (when we know what letter it is)
+            if !charBeforeCursor.isEmpty {
+                if let appliesTo = modifier.appliesTo, !appliesTo.contains(charBeforeCursor) { continue }
+                if let excludeFor = modifier.excludeFor, excludeFor.contains(charBeforeCursor) { continue }
+            }
+            if let options = modifier.options, !options.isEmpty {
+                for option in options {
+                    modifierMarks.append(MarkEntry(mark: option.mark))
+                }
+            } else if let mark = modifier.mark {
+                modifierMarks.append(MarkEntry(mark: mark))
+            }
+        }
+
+        let totalButtons = items.count + modifierMarks.count
+        guard totalButtons > 0 else { return rowView }
 
         let buttonSize: CGFloat = height
         let gap: CGFloat = scaledKeyGap
-        let totalWidth = buttonSize * CGFloat(items.count) + gap * CGFloat(items.count - 1)
+        let totalWidth = buttonSize * CGFloat(totalButtons) + gap * CGFloat(totalButtons - 1)
         let leftOffset = max(0, (availableWidth - totalWidth) / 2)
 
         let bgColor = getDefaultKeyBgColor()
@@ -1005,17 +1034,14 @@ class KeyboardRenderer {
             traitCollection.userInterfaceStyle == .dark ? .white : .black
         }
 
-        for (index, item) in items.enumerated() {
+        func makeButton(mark: String, index: Int) -> UIButton {
             let x = leftOffset + CGFloat(index) * (buttonSize + gap)
-
-            // Tap button (full hit area)
             let button = UIButton(type: .system)
             button.backgroundColor = UIColor(white: 1.0, alpha: 0.001)
             button.frame = CGRect(x: x, y: 0, width: buttonSize, height: height)
-            button.accessibilityIdentifier = item.mark
+            button.accessibilityIdentifier = mark
             button.addTarget(self, action: #selector(nikkudTopRowButtonTapped(_:)), for: .touchUpInside)
 
-            // Visual key view (with gap padding)
             let visualKeyView = UIView()
             visualKeyView.isUserInteractionEnabled = false
             visualKeyView.backgroundColor = bgColor.adaptedForDarkMode()
@@ -1027,16 +1053,14 @@ class KeyboardRenderer {
 
             let gap2 = scaledKeyGap
             visualKeyView.frame = CGRect(
-                x: gap2,
-                y: scaledKeyVerticalPadding,
+                x: gap2, y: scaledKeyVerticalPadding,
                 width: buttonSize - gap2 * 2,
                 height: height - scaledKeyVerticalPadding * 2
             )
 
-            // Label: dotted circle + combining mark so the mark is visible
             let label = UILabel()
             label.isUserInteractionEnabled = false
-            label.text = "◌" + item.mark
+            label.text = "◌" + mark
             label.font = UIFont.systemFont(ofSize: baseFontSize * 1.26, weight: configFontWeight)
             label.textAlignment = .center
             label.textColor = textColor
@@ -1047,7 +1071,17 @@ class KeyboardRenderer {
 
             visualKeyView.addSubview(label)
             button.addSubview(visualKeyView)
-            rowView.addSubview(button)
+            return button
+        }
+
+        // Vowel buttons
+        for (index, item) in items.enumerated() {
+            rowView.addSubview(makeButton(mark: item.mark, index: index))
+        }
+
+        // Modifier buttons (after vowels, visually separated by natural gap)
+        for (offset, entry) in modifierMarks.enumerated() {
+            rowView.addSubview(makeButton(mark: entry.mark, index: items.count + offset))
         }
 
         return rowView
