@@ -23,6 +23,10 @@ class KeyboardEngine {
     /// Text document proxy for text operations (either iOS system or custom)
     private let textProxy: TextDocumentProxyProtocol
 
+    /// Shadow copy of text before cursor — updated after each native key operation.
+    /// Used as fallback when documentContextBeforeInput is empty (hardware keyboard case).
+    private var shadowTextBefore: String = ""
+
     /// Keyboard renderer - handles all UI rendering
     let renderer: KeyboardRenderer
 
@@ -143,8 +147,12 @@ class KeyboardEngine {
         }
 
         renderer.onGetCharBeforeCursor = { [weak self] in
-            guard let before = self?.textProxy.documentContextBeforeInput, !before.isEmpty else { return nil }
-            let lastCluster = String(before.suffix(1))
+            guard let self = self else { return nil }
+            // Prefer live proxy context; fall back to shadow buffer (empty when hardware kb active)
+            let before = self.textProxy.documentContextBeforeInput ?? ""
+            let source = before.isEmpty ? self.shadowTextBefore : before
+            guard !source.isEmpty else { return nil }
+            let lastCluster = String(source.suffix(1))
             return lastCluster.unicodeScalars.first(where: {
                 $0.properties.generalCategory == .otherLetter ||
                 $0.properties.generalCategory == .uppercaseLetter ||
@@ -278,16 +286,25 @@ class KeyboardEngine {
                 }
             }
         }
+        // Sync shadow context after every native key operation
+        syncShadowContext()
+    }
+    /// Seed the shadow text buffer from the actual proxy context (call at keyboard load).
+    func seedShadowContext() {
+        shadowTextBefore = textProxy.documentContextBeforeInput ?? ""
+    }
+
+    /// Update shadow buffer from live proxy after a native operation.
+    private func syncShadowContext() {
+        let live = textProxy.documentContextBeforeInput ?? ""
+        if !live.isEmpty { shadowTextBefore = live }
     }
 
     private func handleBackspace() {
-        // Check if there's any text or selection to delete
-        // hasText returns true if there's text in the document OR a text selection
-        if !textProxy.hasText {
-            return
-        }
-
+        // Always attempt deleteBackward — hasText is unreliable when hardware keyboard
+        // has typed text (documentContextBeforeInput is empty in that case)
         textProxy.deleteBackward()
+        syncShadowContext()
         if !suggestionController.handleBackspace() {
             suggestionController.detectCurrentWord(from: textProxy.documentContextBeforeInput ?? "")
         }

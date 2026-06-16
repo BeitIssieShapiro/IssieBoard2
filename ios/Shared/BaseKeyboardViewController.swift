@@ -79,6 +79,7 @@ class BaseKeyboardViewController: UIInputViewController {
         assistant.trailingBarButtonGroups = []
 
         loadPreferences()
+        keyboardEngine.seedShadowContext()
         keyboardEngine.updateSuggestions()
 
         // Apply auto-shift if at beginning of sentence
@@ -110,8 +111,6 @@ class BaseKeyboardViewController: UIInputViewController {
 
     override func selectionDidChange(_ textInput: UITextInput?) {
         super.selectionDidChange(textInput)
-        let ctx = textDocumentProxy.documentContextBeforeInput ?? ""
-        print("🔵 selectionDidChange: ctx='\(ctx.suffix(5))'")
     }
 
     override func textDidChange(_ textInput: UITextInput?) {
@@ -375,6 +374,8 @@ class BaseKeyboardViewController: UIInputViewController {
             print("⚙️ [ConfigLoad] fontSizePreset: \(parsedConfig?.fontSizePreset ?? "nil")")
             print("⚙️ [ConfigLoad] fontName: \(parsedConfig?.fontName ?? "nil")")
             print("⚙️ [ConfigLoad] fontWeight: \(parsedConfig?.fontWeight ?? "nil")")
+            // Seed shadow context now — documentContextBeforeInput is valid at load time
+            keyboardEngine.seedShadowContext()
             renderKeyboard()
         } catch {
             errorLog("Failed to parse config: \(error)")
