@@ -1008,9 +1008,10 @@ class KeyboardRenderer {
 
         // Build modifier marks to show: each enabled modifier becomes one button per mark/option
         // Only show modifiers that apply to the base letter currently before the cursor
-        struct MarkEntry { let mark: String; let isModifier: Bool }
+        struct MarkEntry { let mark: String; let isModifier: Bool; let baseLetter: String }
         var modifierMarks: [MarkEntry] = []
         let charBeforeCursor = onGetCharBeforeCursor?() ?? ""
+        print("🎹 buildNikkudTopRow: currentKeyboardId=\(currentKeyboardId ?? "nil"), charBefore='\(charBeforeCursor)', disabledModifiers=\(disabledModifiers), modifierCount=\(diacriticsDefinition.getModifiers().count)")
         for modifier in diacriticsDefinition.getModifiers() {
             guard !disabledModifiers.contains(modifier.id) else { continue }
             // Skip if modifier doesn't apply to the current letter (when we know what letter it is)
@@ -1018,12 +1019,22 @@ class KeyboardRenderer {
                 if let appliesTo = modifier.appliesTo, !appliesTo.contains(charBeforeCursor) { continue }
                 if let excludeFor = modifier.excludeFor, excludeFor.contains(charBeforeCursor) { continue }
             }
+            // Per-modifier base letter: use cursor letter if applicable, else first in appliesTo
+            let base: String = {
+                if !charBeforeCursor.isEmpty {
+                    if let appliesTo = modifier.appliesTo {
+                        return appliesTo.contains(charBeforeCursor) ? charBeforeCursor : (appliesTo.first ?? "ב")
+                    }
+                    return charBeforeCursor
+                }
+                return modifier.appliesTo?.first ?? "ב"
+            }()
             if let options = modifier.options, !options.isEmpty {
                 for option in options {
-                    modifierMarks.append(MarkEntry(mark: option.mark, isModifier: true))
+                    modifierMarks.append(MarkEntry(mark: option.mark, isModifier: true, baseLetter: base))
                 }
             } else if let mark = modifier.mark {
-                modifierMarks.append(MarkEntry(mark: mark, isModifier: true))
+                modifierMarks.append(MarkEntry(mark: mark, isModifier: true, baseLetter: base))
             }
         }
 
@@ -1040,23 +1051,13 @@ class KeyboardRenderer {
         let totalWidth = buttonSize * CGFloat(totalButtons) + gap * CGFloat(totalButtons - 1)
         let leftOffset = max(0, (availableWidth - totalWidth) / 2)
 
-        // Sample letter for rendering modifier marks (shows where the mark actually sits)
-        let modifierBaseLetter: String = {
-            if !charBeforeCursor.isEmpty { return charBeforeCursor }
-            // Fallback: first letter in appliesTo of first modifier, or ב
-            for modifier in diacriticsDefinition.getModifiers() {
-                if let first = modifier.appliesTo?.first { return first }
-            }
-            return "ב"
-        }()
-
         let bgColor = getDefaultKeyBgColor()
         let textColor: UIColor = UIColor { traitCollection in
             traitCollection.userInterfaceStyle == .dark ? .white : .black
         }
 
-        func makeButton(mark: String, index: Int, isModifier: Bool) -> UIButton {
-            let displayText = isModifier ? (modifierBaseLetter + mark) : ("◌" + mark)
+        func makeButton(mark: String, index: Int, isModifier: Bool, baseLetter: String) -> UIButton {
+            let displayText = baseLetter + mark
             let x = leftOffset + CGFloat(index) * (buttonSize + gap)
             let button = UIButton(type: .system)
             button.backgroundColor = UIColor(white: 1.0, alpha: 0.001)
@@ -1098,12 +1099,12 @@ class KeyboardRenderer {
 
         // Vowel buttons
         for (index, item) in items.enumerated() {
-            rowView.addSubview(makeButton(mark: item.mark, index: index, isModifier: false))
+            rowView.addSubview(makeButton(mark: item.mark, index: index, isModifier: false, baseLetter: "◌"))
         }
 
         // Modifier buttons (after vowels)
         for (offset, entry) in modifierMarks.enumerated() {
-            rowView.addSubview(makeButton(mark: entry.mark, index: items.count + offset, isModifier: true))
+            rowView.addSubview(makeButton(mark: entry.mark, index: items.count + offset, isModifier: true, baseLetter: entry.baseLetter))
         }
 
         return rowView
