@@ -157,9 +157,12 @@ class BaseKeyboardViewController: UIInputViewController {
     private func startContextPolling() {
         guard contextPollTimer == nil else { return }
         lastPolledContextBefore = textDocumentProxy.documentContextBeforeInput ?? ""
-        contextPollTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in
             self?.pollContextForExternalChanges()
         }
+        RunLoop.main.add(timer, forMode: .common)
+        contextPollTimer = timer
+        print("⏱ TIMER CREATED: \(contextPollTimer != nil)")
     }
 
     private func stopContextPolling() {
@@ -169,9 +172,11 @@ class BaseKeyboardViewController: UIInputViewController {
     }
 
     private func pollContextForExternalChanges() {
+        print("⏱ POLL TICK")
         let current = textDocumentProxy.documentContextBeforeInput ?? ""
         guard current != lastPolledContextBefore else { return }
         lastPolledContextBefore = current
+        print("⏱ CONTEXT CHANGED: '\(current.suffix(5))'")
 
         // Update suggestions for external keyboard / paste
         if !keyboardEngine.renderer.isInCursorMoveMode() {
