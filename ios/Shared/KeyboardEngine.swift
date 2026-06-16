@@ -344,43 +344,57 @@ class KeyboardEngine {
     /// All other Hebrew vowel marks (ְ–ֻ, ׇ) are mutually exclusive.
     private func insertNikkudMark(_ mark: String) {
         // Hebrew vowel marks that conflict with each other (each letter can hold only one)
-        let hebrewVowels: Set<Character> = [
-            "\u{05B0}", "\u{05B1}", "\u{05B2}", "\u{05B3}", "\u{05B4}",
-            "\u{05B5}", "\u{05B6}", "\u{05B7}", "\u{05B8}", "\u{05B9}",
-            "\u{05BA}", "\u{05BB}", "\u{05C7}"
+        let hebrewVowels: Set<UInt32> = [
+            0x05B0, 0x05B1, 0x05B2, 0x05B3, 0x05B4,
+            0x05B5, 0x05B6, 0x05B7, 0x05B8, 0x05B9,
+            0x05BA, 0x05BB, 0x05C7
         ]
 
-        let newMark = mark.unicodeScalars.first.map { Character($0) }
-
-        // Only attempt replacement if the incoming mark is itself a vowel
-        guard let incomingChar = newMark, hebrewVowels.contains(incomingChar) else {
+        guard let incomingScalar = mark.unicodeScalars.first else {
             textProxy.insertText(mark)
             return
         }
 
-        // Look at the text before cursor to find if the preceding composed character has a conflicting vowel
+        // Only attempt replacement if the incoming mark is itself a vowel
+        guard hebrewVowels.contains(incomingScalar.value) else {
+            textProxy.insertText(mark)
+            return
+        }
+
+        // Look at the scalars immediately before the cursor
         guard let before = textProxy.documentContextBeforeInput, !before.isEmpty else {
             textProxy.insertText(mark)
             return
         }
 
-        // Get the last composed character cluster
+        // Walk backwards through the scalars of the last grapheme cluster looking for a vowel mark
         let lastCluster = String(before.suffix(1))
+        let scalars = lastCluster.unicodeScalars.map { $0.value }
 
-        // Check if it contains a conflicting vowel mark
-        let conflictingMarks = lastCluster.unicodeScalars.filter { hebrewVowels.contains(Character($0)) }
-        guard !conflictingMarks.isEmpty else {
+        // Find position of an existing conflicting vowel mark (if any)
+        guard let vowelIndex = scalars.indices.last(where: { hebrewVowels.contains(scalars[$0]) }) else {
+            // No conflict — just insert
             textProxy.insertText(mark)
             return
         }
 
-        // Rebuild the cluster without conflicting vowel marks, then add the new one
-        let cleaned = String(lastCluster.unicodeScalars.filter { !hebrewVowels.contains(Character($0)) })
-        let replacement = cleaned + mark
+        // How many scalars are AFTER the conflicting vowel (combining marks that follow it, e.g. nothing typically)
+        let scalarsAfterVowel = scalars.count - 1 - vowelIndex
 
-        // Delete the last character and re-insert with the new vowel
+        // Delete forward from vowel to end of cluster, then the vowel itself
+        for _ in 0..<scalarsAfterVowel {
+            // deleteBackward on iOS keyboard deletes one scalar at a time for combining chars
+            textProxy.deleteBackward()
+        }
+        // Delete the vowel mark itself (one scalar)
         textProxy.deleteBackward()
-        textProxy.insertText(replacement)
+        // Re-insert any scalars that were after the vowel (none in typical Hebrew, but safe)
+        if scalarsAfterVowel > 0 {
+            let tail = String(String.UnicodeScalarView(scalars.suffix(scalarsAfterVowel).compactMap { Unicode.Scalar($0) }))
+            textProxy.insertText(tail)
+        }
+        // Insert the new vowel mark
+        textProxy.insertText(mark)
     }
 
     private func handleSpaceKey() {
