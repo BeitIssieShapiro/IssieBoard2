@@ -458,9 +458,8 @@ class NikkudPickerController {
         // Close button
         let closeButtonSize: CGFloat = 30
         let closeButton = UIButton(type: .system)
-        closeButton.setTitle("✕", for: .normal)
-        closeButton.titleLabel?.font = UIFont.systemFont(ofSize: 18, weight: .medium)
-        closeButton.setTitleColor(.systemGray, for: .normal)
+        let closeFont = UIFont.systemFont(ofSize: 18, weight: .medium)
+        setButtonTitle(closeButton, title: "✕", color: .systemGray, font: closeFont)
         closeButton.addTarget(self, action: #selector(dismissPicker), for: .touchUpInside)
         picker.addSubview(closeButton)
         closeButton.frame = CGRect(x: containerWidth + 2 * padding - closeButtonSize - 8, y: 6, width: closeButtonSize, height: closeButtonSize)
