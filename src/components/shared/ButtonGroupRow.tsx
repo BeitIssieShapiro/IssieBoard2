@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent:"space-between",
     gap: 12,
-    marginBottom: 20,
+    marginVertical: 10,
   },
   containerSmall: {
     flexDirection: 'column',

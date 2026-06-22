@@ -229,24 +229,27 @@ export const DiacriticsPanel: React.FC = () => {
 
       {/* Input Mode selector — visible when nikkud is enabled */}
       {currentMode !== 'none' && (
-        <ButtonGroupRow
-          isRTL={isRTL}
-          title={strings.diacritics.inputMode}
-          options={[
-            { id: 'popup', label: strings.diacritics.popup },
-            { id: 'topRow', label: strings.diacritics.topRow },
-          ]}
-          selectedId={isTopRowMode ? 'topRow' : 'popup'}
-          onSelect={(id) => {
-            dispatch({
-              type: 'UPDATE_DIACRITICS_SETTINGS',
-              payload: {
-                keyboardId: currentKeyboardId,
-                settings: { ...settings, nikkudMode: id as 'popup' | 'topRow' },
-              },
-            });
-          }}
-        />
+        <>
+          <View style={styles.divider} />
+          <ButtonGroupRow
+            isRTL={isRTL}
+            title={strings.diacritics.inputMode}
+            options={[
+              { id: 'popup', label: strings.diacritics.popup },
+              { id: 'topRow', label: strings.diacritics.topRow },
+            ]}
+            selectedId={isTopRowMode ? 'topRow' : 'popup'}
+            onSelect={(id) => {
+              dispatch({
+                type: 'UPDATE_DIACRITICS_SETTINGS',
+                payload: {
+                  keyboardId: currentKeyboardId,
+                  settings: { ...settings, nikkudMode: id as 'popup' | 'topRow' },
+                },
+              });
+            }}
+          />
+        </>
       )}
 
       {/* Custom Mode - Show all nikkud options as toggleable keys */}
@@ -270,18 +273,14 @@ export const DiacriticsPanel: React.FC = () => {
       {/* Modifiers - Show for all modes except None */}
       {currentMode !== 'none' && modifiers.length > 0 && (
         <View style={styles.section}>
-          <Text allowFontScaling={false} style={[styles.sectionTitle, currentMode === 'custom' && { marginTop: 16 }]}>
+          <View style={styles.divider} />
+          <Text allowFontScaling={false} style={styles.sectionTitle}>
             {strings.diacritics.modifiers}
           </Text>
           {modifiers.map((modifier) => (
             <View key={modifier.id} style={[styles.modifierRow]}>
               <View style={[styles.modifierInfo, isRTL && { marginRight: 0, marginLeft: 12 }]}>
                 <Text allowFontScaling={false} style={styles.modifierName}>{modifier.name}</Text>
-                {modifier.options && modifier.options.length > 0 && (
-                  <Text allowFontScaling={false} style={styles.modifierOptions}>
-                    {modifier.options.map(opt => opt.name).join(', ')}
-                  </Text>
-                )}
               </View>
               <ToggleSwitch
                 value={!disabledModifiers.includes(modifier.id)}
@@ -312,17 +311,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   section: {
-    marginTop: 8,
+    marginTop: 0,
+  },
+  divider: {
+    height: 0.5,
+    backgroundColor: '#DDD',
+    marginVertical: 8,
   },
   sectionTitle: {
     textAlign: 'left',
     fontSize: 14,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 12,
-    paddingBottom: 4,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#DDD',
+    marginBottom: 8,
   },
   nikkudGrid: {
     flexDirection: 'row',
