@@ -1597,7 +1597,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
 
         {/* Settings panel in rounded raised container */}
         <View style={styles.headlessPanel}>
-          {tabDescription ? (
+          {tabDescription && activeTab !== 'keys-groups' ? (
             <View style={styles.tabDescriptionBanner}>
               <Text allowFontScaling={false} style={styles.tabDescriptionText}>{tabDescription}</Text>
             </View>
@@ -1612,6 +1612,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
             onSpeakButtonInKeyboardChange={appContext === 'issievoice' ? setSpeakButtonInKeyboard : undefined}
             selectedLanguages={selectedLanguages}
             speakButtonInKeyboard={speakButtonInKeyboard}
+            tabDescription={activeTab === 'keys-groups' ? tabDescription : undefined}
           />
         </View>
 

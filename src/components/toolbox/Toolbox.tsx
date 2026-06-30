@@ -71,6 +71,8 @@ export interface ToolboxProps {
   selectedLanguages?: string[];
   /** Whether speak button is shown in keyboard (IssieVoice only) */
   speakButtonInKeyboard?: boolean;
+  /** Description text to show below the fixed action buttons (keys-groups tab only) */
+  tabDescription?: string;
 }
 
 export const Toolbox: React.FC<ToolboxProps> = ({
@@ -83,6 +85,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
   onSpeakButtonInKeyboardChange,
   selectedLanguages,
   speakButtonInKeyboard,
+  tabDescription,
 }) => {
   const { state, clearSelection } = useEditor();
   const { strings, isRTL } = useLocalization();
@@ -103,11 +106,11 @@ export const Toolbox: React.FC<ToolboxProps> = ({
   // Convert currently selected position IDs to key values
   const getSelectedKeyValues = useCallback((): string[] => {
     if (state.selectedKeys.length === 0) return [];
-    
+
     const keyValues = state.selectedKeys
       .map(posId => getKeyValueFromPositionId(posId, state.config.keysets))
       .filter((v): v is string => v !== null);
-    
+
     return [...new Set(keyValues)]; // Remove duplicates
   }, [state.selectedKeys, state.config.keysets]);
 
@@ -163,24 +166,24 @@ export const Toolbox: React.FC<ToolboxProps> = ({
     });
   };
 
-  const AccordionSection = ({ 
-    id, 
-    title, 
-    badge, 
+  const AccordionSection = ({
+    id,
+    title,
+    badge,
     actionButton,
-    children 
-  }: { 
-    id: SectionId; 
-    title: string; 
+    children
+  }: {
+    id: SectionId;
+    title: string;
     badge?: string;
     actionButton?: React.ReactNode;
     children: React.ReactNode;
   }) => {
     const isOpen = openSections.has(id);
-    
+
     return (
       <View style={styles.accordionSection}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.accordionHeader}
           onPress={() => toggleSection(id)}
           activeOpacity={0.7}
@@ -214,37 +217,19 @@ export const Toolbox: React.FC<ToolboxProps> = ({
               currentKeyboardId={currentKeyboardId}
               onKeyboardVariantChange={onKeyboardVariantChange}
               advancedExpanded={false}
-              setAdvancedExpanded={() => {}}
+              setAdvancedExpanded={() => { }}
               appContext={appContext}
               featuresExpanded={false}
-              setFeaturesExpanded={() => {}}
+              setFeaturesExpanded={() => { }}
               section="general"
             />
           );
         case 'keys-groups':
           return (
-            <>
-              <View style={[styles.keysGroupsActions, isRTL && { flexDirection: 'row-reverse' }]}>
-                <TouchableOpacity
-                  style={styles.subtleButton}
-                  onPress={() => setShowTemplatesModal(true)}
-                  activeOpacity={0.7}>
-                  <MyIcon info={{ name: 'list', type: 'Ionicons', color: '#3B82F6', size: 18 }} />
-                  <Text allowFontScaling={false} style={styles.subtleButtonText}>{strings.toolbox.presets}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.subtleButton}
-                  onPress={handleCreatePressed}
-                  activeOpacity={0.7}>
-                  <MyIcon info={{ name: 'add', type: 'Ionicons', color: '#3B82F6', size: 18 }} />
-                  <Text allowFontScaling={false} style={styles.subtleButtonText}>{strings.toolbox.createNew}</Text>
-                </TouchableOpacity>
-              </View>
-              <StyleRulesPanel
-                onEditPressed={handleEditPressed}
-                onCreatePressed={handleCreatePressed}
-              />
-            </>
+            <StyleRulesPanel
+              onEditPressed={handleEditPressed}
+              onCreatePressed={handleCreatePressed}
+            />
           );
         case 'nikkud':
           return state.config.diacritics ? <DiacriticsPanel /> : null;
@@ -255,11 +240,11 @@ export const Toolbox: React.FC<ToolboxProps> = ({
               currentKeyboardId={currentKeyboardId}
               onKeyboardVariantChange={onKeyboardVariantChange}
               advancedExpanded={false}
-              setAdvancedExpanded={() => {}}
+              setAdvancedExpanded={() => { }}
               appContext={appContext}
               onSpeakButtonInKeyboardChange={onSpeakButtonInKeyboardChange}
               featuresExpanded={true}
-              setFeaturesExpanded={() => {}}
+              setFeaturesExpanded={() => { }}
               section="features"
             />
           );
@@ -270,10 +255,10 @@ export const Toolbox: React.FC<ToolboxProps> = ({
               currentKeyboardId={currentKeyboardId}
               onKeyboardVariantChange={onKeyboardVariantChange}
               advancedExpanded={true}
-              setAdvancedExpanded={() => {}}
+              setAdvancedExpanded={() => { }}
               appContext={appContext}
               featuresExpanded={false}
-              setFeaturesExpanded={() => {}}
+              setFeaturesExpanded={() => { }}
               section="advanced"
             />
           );
@@ -283,74 +268,100 @@ export const Toolbox: React.FC<ToolboxProps> = ({
     };
 
     return (
-      <ScrollView style={[styles.container, { backgroundColor: 'transparent' }]}>
-        <View style={isRTL ? { direction: 'rtl' } : undefined}>
-        {renderSectionContent()}
-        </View>
-
-        {/* Presets Browser Modal (needed for keys-groups) */}
-        <Modal
-          visible={showTemplatesModal}
-          transparent
-          animationType="fade"
-          supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']}
-          onRequestClose={() => setShowTemplatesModal(false)}
-        >
-          <TouchableOpacity
-            style={styles.modalOverlay}
-            activeOpacity={1}
-            onPress={() => setShowTemplatesModal(false)}
-          >
-            <View style={styles.templatesModal} onStartShouldSetResponder={() => true}>
-              <View style={styles.templatesHeader}>
-                <Text allowFontScaling={false} style={styles.templatesTitle}>📋 {strings.toolbox.presetsModalTitle}</Text>
-                <TouchableOpacity onPress={() => setShowTemplatesModal(false)}>
-                  <Text allowFontScaling={false} style={styles.templatesCloseButton}>✕</Text>
-                </TouchableOpacity>
-              </View>
-              <FlatList
-                data={currentTemplates}
-                keyExtractor={(item, index) => `${item.name}_${index}`}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.templateItem}
-                    onPress={() => handleTemplateSelect(item)}
-                  >
-                    <View style={styles.templateInfo}>
-                      <Text allowFontScaling={false} style={styles.templateName}>{item.name}</Text>
-                      <Text allowFontScaling={false} style={styles.templateDescription}>{item.description}</Text>
-                      <Text allowFontScaling={false} style={styles.templateKeys}>
-                        {resolveMembers(item, currentKeyboardId).length} {strings.toolbox.keysLabel}: {resolveMembers(item, currentKeyboardId).slice(0, 8).join(', ')}
-                        {resolveMembers(item, currentKeyboardId).length > 8 ? '...' : ''}
-                      </Text>
-                    </View>
-                    <Text allowFontScaling={false} style={styles.templateArrow}>›</Text>
-                  </TouchableOpacity>
-                )}
-              />
+      <View style={{ flex: 1 }}>
+        {/* Keys-groups action buttons — fixed above scroll */}
+        {section === 'keys-groups' && (
+          <View style={[styles.keysGroupsActions, isRTL && { flexDirection: 'row-reverse' }]}>
+            <TouchableOpacity
+              style={styles.subtleButton}
+              onPress={() => setShowTemplatesModal(true)}
+              activeOpacity={0.7}>
+              <MyIcon info={{ name: 'list', type: 'Ionicons', color: '#3B82F6', size: 18 }} />
+              <Text allowFontScaling={false} style={styles.subtleButtonText}>{strings.toolbox.presets}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.subtleButton}
+              onPress={handleCreatePressed}
+              activeOpacity={0.7}>
+              <MyIcon info={{ name: 'add', type: 'Ionicons', color: '#3B82F6', size: 18 }} />
+              <Text allowFontScaling={false} style={styles.subtleButtonText}>{strings.toolbox.createNew}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        <ScrollView style={[styles.container, { backgroundColor: 'transparent' }]}>
+          {tabDescription ? (
+            <View style={styles.tabDescriptionBanner}>
+              <Text allowFontScaling={false} style={styles.tabDescriptionText}>{tabDescription}</Text>
             </View>
-          </TouchableOpacity>
-        </Modal>
+          ) : null}
+          <View style={isRTL ? { direction: 'rtl' } : undefined}>
+            {renderSectionContent()}
+          </View>
 
-        {/* Add/Edit Style Rule Modal */}
-        <AddStyleRuleModal
-          visible={showStyleRuleModal}
-          editingGroup={editingGroup}
-          initialSelectedKeys={editingGroup ? undefined : (templateData ? resolveMembers(templateData, currentKeyboardId) : getSelectedKeyValues())}
-          initialName={templateData?.name}
-          initialBgColor={templateData?.style.bgColor}
-          initialTextColor={templateData?.style.color}
-          initialVisibilityMode={templateData?.style.visibilityMode}
-          isPreset={!!(templateData && !editingGroup) || !!(editingGroup?.presetId)}
-          presetId={templateData && !editingGroup ? templateData.id : editingGroup?.presetId}
-          profileName={profileName}
-          hideGlobeButton={appContext === 'issievoice'}
-          hideCloseKey={appContext === 'issievoice'}
-          selectedLanguages={selectedLanguages}
-          speakButtonInKeyboard={speakButtonInKeyboard}
-          onClose={handleCloseModal}
-        />
-      </ScrollView>
+          {/* Presets Browser Modal (needed for keys-groups) */}
+          <Modal
+            visible={showTemplatesModal}
+            transparent
+            animationType="fade"
+            supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']}
+            onRequestClose={() => setShowTemplatesModal(false)}
+          >
+            <TouchableOpacity
+              style={styles.modalOverlay}
+              activeOpacity={1}
+              onPress={() => setShowTemplatesModal(false)}
+            >
+              <View style={styles.templatesModal} onStartShouldSetResponder={() => true}>
+                <View style={styles.templatesHeader}>
+                  <Text allowFontScaling={false} style={styles.templatesTitle}>📋 {strings.toolbox.presetsModalTitle}</Text>
+                  <TouchableOpacity onPress={() => setShowTemplatesModal(false)}>
+                    <Text allowFontScaling={false} style={styles.templatesCloseButton}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+                <FlatList
+                  data={currentTemplates}
+                  keyExtractor={(item, index) => `${item.name}_${index}`}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={styles.templateItem}
+                      onPress={() => handleTemplateSelect(item)}
+                    >
+                      <View style={styles.templateInfo}>
+                        <Text allowFontScaling={false} style={styles.templateName}>{item.name}</Text>
+                        <Text allowFontScaling={false} style={styles.templateDescription}>{item.description}</Text>
+                        <Text allowFontScaling={false} style={styles.templateKeys}>
+                          {resolveMembers(item, currentKeyboardId).length} {strings.toolbox.keysLabel}: {resolveMembers(item, currentKeyboardId).slice(0, 8).join(', ')}
+                          {resolveMembers(item, currentKeyboardId).length > 8 ? '...' : ''}
+                        </Text>
+                      </View>
+                      <Text allowFontScaling={false} style={styles.templateArrow}>›</Text>
+                    </TouchableOpacity>
+                  )}
+                />
+              </View>
+            </TouchableOpacity>
+          </Modal>
+
+          {/* Add/Edit Style Rule Modal */}
+          <AddStyleRuleModal
+            visible={showStyleRuleModal}
+            editingGroup={editingGroup}
+            initialSelectedKeys={editingGroup ? undefined : (templateData ? resolveMembers(templateData, currentKeyboardId) : getSelectedKeyValues())}
+            initialName={templateData?.name}
+            initialBgColor={templateData?.style.bgColor}
+            initialTextColor={templateData?.style.color}
+            initialVisibilityMode={templateData?.style.visibilityMode}
+            isPreset={!!(templateData && !editingGroup) || !!(editingGroup?.presetId)}
+            presetId={templateData && !editingGroup ? templateData.id : editingGroup?.presetId}
+            profileName={profileName}
+            hideGlobeButton={appContext === 'issievoice'}
+            hideCloseKey={appContext === 'issievoice'}
+            selectedLanguages={selectedLanguages}
+            speakButtonInKeyboard={speakButtonInKeyboard}
+            onClose={handleCloseModal}
+          />
+        </ScrollView>
+      </View>
     );
   }
 
@@ -370,8 +381,8 @@ export const Toolbox: React.FC<ToolboxProps> = ({
         />
       </AccordionSection>
 
-      <AccordionSection 
-        id="styleRules" 
+      <AccordionSection
+        id="styleRules"
         title={`☰ ${strings.toolbox.keysGroups}`}
         badge={state.styleGroups.length > 0 ? `${state.styleGroups.length}` : undefined}
         actionButton={
@@ -393,7 +404,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
           </View>
         }
       >
-        <StyleRulesPanel 
+        <StyleRulesPanel
           onEditPressed={handleEditPressed}
           onCreatePressed={handleCreatePressed}
         />
@@ -546,6 +557,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 4,
+  },
+  tabDescriptionBanner: {
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 8,
+  },
+  tabDescriptionText: {
+    fontSize: 13,
+    color: '#64748B',
+    textAlign: 'center',
   },
   subtleButton: {
     flexDirection: 'row',
