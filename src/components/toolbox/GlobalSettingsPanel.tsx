@@ -270,42 +270,6 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
             </>
           )}
 
-          {/* 5. Key Gap */}
-          <View style={styles.separator} />
-          <ButtonGroupRow
-            isRTL={isRTL}
-            title={strings.globalSettings.keyGap}
-            options={keyGapOptions.map(opt => ({
-              id: opt.id,
-              label: opt.label,
-            }))}
-            selectedId={
-              currentKeyGap === 3 ? 'regular' :
-                currentKeyGap === 8 ? 'medium' :
-                  currentKeyGap === 10 ? 'large' :
-                    'regular'
-            }
-            onSelect={(id) => {
-              const option = keyGapOptions.find(o => o.id === id);
-              if (option) {
-                updateKeyGap(option.value);
-              }
-            }}
-          />
-
-          {/* 6. Keyboard Layout (only show if multiple variants) */}
-          {keyboardVariants && keyboardVariants.length > 1 && (
-            <>
-              <View style={styles.separator} />
-              <ButtonGroupRow
-                isRTL={isRTL}
-                title={strings.globalSettings.keyboardLayout}
-                options={keyboardVariants.map(v => ({ id: v.id, label: v.name }))}
-                selectedId={currentKeyboardId || ''}
-                onSelect={onKeyboardVariantChange!}
-              />
-            </>
-          )}
         </>
       )}
 
@@ -331,8 +295,8 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
             <View style={section ? styles.content : styles.advancedContent}>
               <View style={[styles.featureRow]}>
                 <View style={[styles.featureInfo, isRTL && { marginRight: 0, marginLeft: 12 }]}>
-                  <Text allowFontScaling={false} style={[styles.featureLabel, ]}>{strings.globalSettings.wordSuggestions}</Text>
-                  <Text allowFontScaling={false} style={[styles.featureDescription, ]}>
+                  <Text allowFontScaling={false} style={[styles.featureLabel,]}>{strings.globalSettings.wordSuggestions}</Text>
+                  <Text allowFontScaling={false} style={[styles.featureDescription,]}>
                     {strings.globalSettings.wordSuggestionsDesc}
                   </Text>
                 </View>
@@ -442,6 +406,49 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
 
           {(section || advancedExpanded) && (
             <View style={section ? styles.content : styles.advancedContent}>
+              {/* Keyboard Layout (only show if multiple variants) */}
+              {keyboardVariants && keyboardVariants.length > 1 && (
+                <>
+                  <View style={styles.section}>
+                    <ButtonGroupRow
+                      isRTL={isRTL}
+                      title={strings.globalSettings.keyboardLayout}
+                      options={keyboardVariants.map(v => ({ id: v.id, label: v.name }))}
+                      selectedId={currentKeyboardId || ''}
+                      onSelect={onKeyboardVariantChange!}
+                    />
+                  </View>
+                </>
+              )}
+              <View style={styles.separator} />
+
+
+              {/* Key Gap */}
+              <View style={styles.section}>
+                <ButtonGroupRow
+                  isRTL={isRTL}
+                  title={strings.globalSettings.keyGap}
+                  options={keyGapOptions.map(opt => ({
+                    id: opt.id,
+                    label: opt.label,
+                  }))}
+                  selectedId={
+                    currentKeyGap === 3 ? 'regular' :
+                      currentKeyGap === 8 ? 'medium' :
+                        currentKeyGap === 10 ? 'large' :
+                          'regular'
+                  }
+                  onSelect={(id) => {
+                    const option = keyGapOptions.find(o => o.id === id);
+                    if (option) {
+                      updateKeyGap(option.value);
+                    }
+                  }}
+                />
+              </View>
+              <View style={styles.separator} />
+
+
               {/* Height Preset */}
               <View style={styles.section}>
                 <ButtonGroupRow
@@ -574,7 +581,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
     color: '#333',
-    textAlign:'left'
+    textAlign: 'left'
   },
   featureDescription: {
     fontSize: 12,
