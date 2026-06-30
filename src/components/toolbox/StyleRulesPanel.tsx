@@ -162,15 +162,7 @@ export const StyleRulesPanel: React.FC<StyleRulesPanelProps> = ({
                 <Text allowFontScaling={false} style={[styles.groupName, !isGroupActive && styles.groupNameInactive]} numberOfLines={1}>
                   {group.name}
                 </Text>
-                
-                {/* Member Count */}
-                {/* <Text allowFontScaling={false} style={styles.memberCount}>({group.members.length})</Text> */}
-                
-                {/* Style Indicators - inline */}
-                <View style={styles.inlineStyleIndicators}>
-                  {getStylePreview(group)}
-                </View>
-                
+
                 {/* Action Buttons */}
                 <View style={styles.groupActions}>
                   <TouchableOpacity

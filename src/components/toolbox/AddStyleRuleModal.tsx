@@ -137,7 +137,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
   // Handle key tap - toggle selection
   const handleKeyPress = useCallback((event: KeyPressEvent) => {
     // If in preset mode, keys are locked - show toast in modal
-    if (isPreset && !editingGroup) {
+    if (isPreset) {
       showLocalToast(`🔒 ${strings.styleRuleModal.keysLocked}`, 2000);
       return;
     }
@@ -527,7 +527,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
             {/* Keyboard Preview */}
             <View style={styles.section}>
               <Text allowFontScaling={false} style={styles.sectionTitle}>
-                {isPreset && !editingGroup
+                {isPreset
                   ? strings.styleRuleModal.presetKeysLocked
                   : strings.styleRuleModal.tapKeysToSelect}
               </Text>
