@@ -210,6 +210,7 @@ const VoiceSettingsPanel: React.FC<VoiceSettingsPanelProps> = ({
         selectedId={currentRateId}
         onSelect={handleRateChange}
       />
+      <View style={styles.separator} />
 
       {/* Voice Pitch */}
       <ButtonGroupRow
@@ -219,6 +220,7 @@ const VoiceSettingsPanel: React.FC<VoiceSettingsPanelProps> = ({
         selectedId={currentPitchId}
         onSelect={handlePitchChange}
       />
+      <View style={styles.separator} />
 
       {/* Voice Selection Section */}
       <Text style={[styles.sectionTitle, isRTL && { textAlign: 'right' }]}>{strings.settings.tabs.voice}</Text>
@@ -229,6 +231,7 @@ const VoiceSettingsPanel: React.FC<VoiceSettingsPanelProps> = ({
         hebrewVoice,
         'he',
       )}
+      <View style={styles.separator} />
 
       {renderVoicePicker(
         strings.settingsModal.englishVoice,
@@ -236,6 +239,7 @@ const VoiceSettingsPanel: React.FC<VoiceSettingsPanelProps> = ({
         englishVoice,
         'en',
       )}
+      <View style={styles.separator} />
 
       {renderVoicePicker(
         strings.settingsModal.arabicVoice,
@@ -260,6 +264,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
     marginBottom: 12,
+  },
+  separator: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#E2E8F0',
+    marginVertical: 4,
   },
 
   // Voice picker row

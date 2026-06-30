@@ -201,7 +201,7 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
 
       {/* Classic View in landscape: after row2, so it's rightmost (LTR) / leftmost (RTL via container row-reverse) */}
       {onSwitchToClassic && !twoRows && (
-        <TouchableOpacity style={styles.classicButton} onPress={onSwitchToClassic} activeOpacity={0.7}>
+        <TouchableOpacity style={[styles.classicButton, isRTL ?{marginInlineEnd: 25} : {marginInlineStart: 25}]} onPress={onSwitchToClassic} activeOpacity={0.7}>
           <Text style={styles.classicButtonText}>{strings.editor.classicView}</Text>
         </TouchableOpacity>
       )}
@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
   classicButton: {
     backgroundColor: '#3b82f6',
     paddingHorizontal: 16,
-    marginInlineEnd: 25, 
+    
     height: 44,
     borderRadius: 12,
     justifyContent: 'center',

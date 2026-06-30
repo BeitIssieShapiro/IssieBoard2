@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
-import * as RNLocalize from 'react-native-localize';
 import { Language, Strings, getStrings as getRawStrings } from '../localization/strings';
+import { getDeviceLanguage } from '../../../../src/localization';
 
 export type { Language, Strings } from '../localization/strings';
 
@@ -31,18 +31,6 @@ interface LocalizationContextType {
 const LocalizationContext = createContext<LocalizationContextType | undefined>(
   undefined,
 );
-
-const supportedLanguages = ['he', 'en', 'ar'];
-
-const getDeviceLanguage = (): Language => {
-  // return 'en'
-  const locales = RNLocalize.getLocales();
-  const langCode = (locales[0]?.languageTag || 'en').split(/[-_]/)[0].toLowerCase();
-
-  if (langCode === 'iw') return 'he';
-  if (supportedLanguages.includes(langCode)) return langCode as Language;
-  return 'en';
-};
 
 export const LocalizationProvider: React.FC<{ children: React.ReactNode }> = ({
   children,

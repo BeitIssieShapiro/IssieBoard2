@@ -22,12 +22,15 @@ export const getStrings = (language: Language): Strings => {
 };
 
 // Get device language
-const getDeviceLanguage = (): Language => {
+const SUPPORTED_LANGUAGES: Language[] = ['he', 'en', 'ar'];
+
+export const getDeviceLanguage = (): Language => {
+  //return 'en'
   const locales = RNLocalize.getLocales();
   const langCode = (locales[0]?.languageTag || 'en').split(/[-_]/)[0].toLowerCase();
 
-  if (langCode === 'he' || langCode === 'iw') return 'he';
-  if (langCode === 'ar') return 'ar';
+  if (langCode === 'iw') return 'he';
+  if (SUPPORTED_LANGUAGES.includes(langCode as Language)) return langCode as Language;
   return 'en';
 };
 

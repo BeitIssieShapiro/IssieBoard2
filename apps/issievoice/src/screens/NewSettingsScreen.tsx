@@ -222,7 +222,18 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
     const description = TAB_DESCRIPTIONS[activeTab];
 
     return (
-      <View style={{ flex: 1 }}>
+      <View style={!isKeyboardOnly ? styles.voicePanel : { flex: 1 }}>
+        {!isKeyboardOnly && (
+          <KeyboardHeader
+            currentLanguage={kbLanguage}
+            onLanguageChange={(lang) => changeLanguageRef.current?.(lang)}
+            profileName={profileName}
+            onProfilePress={() => showProfilePickerRef.current?.()}
+            onSave={() => saveRef.current?.()}
+            onDiscard={() => discardRef.current?.()}
+            isDirty={isDirty}
+          />
+        )}
         <EditorLocalizationProvider>
           <EditorLanguageSync language={uiLanguage}>
             <EditorScreen
@@ -248,8 +259,8 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Keyboard Header — full width, top level */}
-      <KeyboardHeader
+      {/* Keyboard Header — IssieBoard only: always shown at top level */}
+      {isKeyboardOnly && <KeyboardHeader
         currentLanguage={kbLanguage}
         onLanguageChange={(lang) => changeLanguageRef.current?.(lang)}
         profileName={profileName}
@@ -269,7 +280,7 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
         onAbout={() => setShowAbout(true)}
         canGoBack={canGoBack}
         onGoBack={handleGoBack}
-      />
+      />}
 
       {/* Setup status warning — shown right below header when keyboard not added */}
       {isKeyboardOnly && (
