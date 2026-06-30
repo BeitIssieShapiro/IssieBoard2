@@ -289,6 +289,10 @@ struct DiacriticsSettings: Codable {
     var isTopRowMode: Bool {
         return nikkudMode == "topRow"
     }
+
+    var isTopRowAlways: Bool {
+        return nikkudMode == "topRowAlways"
+    }
 }
 
 /// Generated diacritic option for display

@@ -281,7 +281,8 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
 
   const isLandscape = windowWidth > windowHeight;
   const windowAvailableWidth = windowWidth - insets.left - insets.right
-  // In advanced tab, use native-reported height for realistic preview
+  // In advanced tab, use native-reported height for realistic preview (no maxHeight cap).
+  // All other tabs: fixed height container, native scales KB to fit via maxHeight.
   const useRealisticHeight = activeTab === 'advanced' && keyboardHeight > 0;
   const effectiveHeight = useRealisticHeight ? keyboardHeight : height;
 
@@ -305,7 +306,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
         width: isLandscape && !hideHeader ? windowAvailableWidth * 0.8 : '100%',
         alignItems: 'center',
         justifyContent:"center",
-        height: hideHeader ? effectiveHeight : Math.max(height, keyboardHeight) - 50,
+        height: hideHeader ? effectiveHeight : (useRealisticHeight ? Math.max(height, keyboardHeight) - 50 : height - 50),
         marginTop: isLandscape && !hideHeader ? 10 : 0,
       }}>
         <KeyboardPreview
@@ -313,7 +314,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
           style={[
             styles.preview,
             {
-              height: hideHeader ? effectiveHeight : Math.max(height - 40, keyboardHeight),
+              height: hideHeader ? effectiveHeight : (useRealisticHeight ? Math.max(height - 40, keyboardHeight) : height - 40),
               width: isLandscape && !hideHeader ? windowAvailableWidth * 0.78 : '100%',
             }
           ]}

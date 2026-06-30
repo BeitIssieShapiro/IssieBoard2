@@ -185,15 +185,14 @@ class BaseKeyboardViewController: UIInputViewController {
             suggestionsEnabled: suggestionsEnabled,
             nikkudTopRowActive: keyboardEngine.renderer.isNikkudTopRowActive
         )
+        print("📏 updateKeyboardHeight: required=\(requiredHeight), current=\(keyboardHeightConstraint?.constant ?? -1), isNikkudTopRowActive=\(keyboardEngine.renderer.isNikkudTopRowActive)")
 
-        // Only update if height actually changed — avoid triggering
-        // an extra keyboardDidShow in the host app for the same height
-        if keyboardHeightConstraint?.constant != requiredHeight {
-            keyboardHeightConstraint?.constant = requiredHeight
-            view.setNeedsLayout()
-            view.layoutIfNeeded()
-            persistKeyboardHeight(requiredHeight)
-        }
+        // Always apply the height after a full re-render — config may have changed
+        // the nikkud mode (topRowAlways↔topRow) which affects row count
+        keyboardHeightConstraint?.constant = requiredHeight
+        view.setNeedsLayout()
+        view.layoutIfNeeded()
+        persistKeyboardHeight(requiredHeight)
     }
 
     // MARK: - Height Caching
@@ -255,7 +254,9 @@ class BaseKeyboardViewController: UIInputViewController {
         }
 
         keyboardEngine.renderer.onNikkudStateChanged = { [weak self] in
-            self?.updateKeyboardHeight()
+            guard let self else { return }
+            print("🔔 onNikkudStateChanged fired — isNikkudTopRowActive=\(self.keyboardEngine.renderer.isNikkudTopRowActive)")
+            self.updateKeyboardHeight()
         }
 
         keyboardEngine.renderer.onNikkudActivePersist = { [weak self] active in

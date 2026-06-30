@@ -164,9 +164,12 @@ class KeyboardRenderer {
     
     // Layout tracking to prevent infinite loops
     private var lastRenderedWidth: CGFloat = 0
-    
+    private var lastRenderedRegularKeyWidth: CGFloat = 44
+
     // Preview mode flag - set by KeyboardPreviewView to disable key bubble
     private var isPreviewMode: Bool = false
+    // Re-entrancy guard: prevents onNikkudStateChanged from triggering an infinite render loop
+    private var isRendering: Bool = false
     
     // Screen size detection for showOn filtering
     private var isLargeScreen: Bool {
@@ -296,6 +299,7 @@ class KeyboardRenderer {
     private let keySpacing: CGFloat = 0       // No spacing between key tap areas
     private let keyInternalPadding: CGFloat = 3  // Visual gap between keys (internal margin)
     private let keyVerticalPadding: CGFloat = 5  // Vertical padding for visual gap between rows (2px more than horizontal)
+    private static let specialKeyTypes: Set<String> = ["space", "backspace", "shift", "keyset", "nikkud", "enter", "next-keyboard", "settings", "close", "language"]
     private let keyCornerRadius: CGFloat = 5
     private let fontSize: CGFloat = 24
     private let largeFontSize: CGFloat = 28
@@ -634,11 +638,14 @@ class KeyboardRenderer {
         return cursorMoveMode
     }
 
-    /// Returns true when nikkud top-row mode is active (nikkud toggle on + config set to topRow).
-    /// Used by BaseKeyboardViewController to compute the correct keyboard height.
+    /// Returns true when nikkud top-row should be shown.
+    /// topRowAlways: always shown regardless of nikkudActive toggle.
+    /// topRow: shown only when nikkudActive toggle is on.
     var isNikkudTopRowActive: Bool {
+        let settings = config?.diacriticsSettings?[currentKeyboardId ?? ""]
+        if settings?.isTopRowAlways == true { return true }
         guard nikkudActive else { return false }
-        return config?.diacriticsSettings?[currentKeyboardId ?? ""]?.isTopRowMode ?? false
+        return settings?.isTopRowMode ?? false
     }
 
     /// Restore persisted nikkud active state (called by controller on load, before renderKeyboard).
@@ -665,6 +672,15 @@ class KeyboardRenderer {
         currentKeysetId: String,
         editorContext: (enterVisible: Bool, enterLabel: String, enterAction: Int, fieldType: String)?
     ) {
+        let wasRendering = isRendering
+        isRendering = true
+        defer {
+            isRendering = wasRendering
+            if !wasRendering && !isPreviewMode {
+                print("📐 renderKeyboard defer: firing onNikkudStateChanged, isNikkudTopRowActive=\(isNikkudTopRowActive), isPreviewMode=\(isPreviewMode)")
+                onNikkudStateChanged?()
+            }
+        }
         let currentWidth = container.bounds.width
         print("📐 RENDER START =================")
         print("📐 RENDER: container.bounds.width = \(currentWidth), lastRenderedWidth = \(lastRenderedWidth)")
@@ -679,12 +695,16 @@ class KeyboardRenderer {
 
         // Calculate scale if in preview mode with maxHeight
         if isPreviewMode, let maxHeight = previewMaxHeight, maxHeight > 0 {
+            // Compute top-row active state from the incoming config (self.config not yet updated)
+            let incomingSettings = config.diacriticsSettings?[currentKeyboardId ?? ""]
+            let incomingTopRowActive = (incomingSettings?.isTopRowAlways == true)
+                || (nikkudActive && (incomingSettings?.isTopRowMode == true))
             // Calculate full-size keyboard height (include nikkud top-row if active)
             let fullKeyboardHeight = calculateKeyboardHeight(
                 for: config,
                 keysetId: currentKeysetId,
                 suggestionsEnabled: wordSuggestionsOverrideEnabled ?? wordSuggestionsEnabled,
-                nikkudTopRowActive: nikkudActive && (config.diacriticsSettings?[currentKeyboardId ?? ""]?.isTopRowMode ?? false)
+                nikkudTopRowActive: incomingTopRowActive
             )
 
             // Only scale if we have a valid keyboard height
@@ -897,8 +917,10 @@ class KeyboardRenderer {
         print("🎯 END OF RENDER: shiftState = \(shiftState)")
         
         // Nikkud top row — rendered before normal rows when top-row mode is active
-        let isTopRowMode = config.diacriticsSettings?[currentKeyboardId ?? ""]?.isTopRowMode ?? false
-        if nikkudActive && isTopRowMode {
+        let nikkudSettings = config.diacriticsSettings?[currentKeyboardId ?? ""]
+        let isTopRowAlways = nikkudSettings?.isTopRowAlways ?? false
+        let isTopRowMode = nikkudSettings?.isTopRowMode ?? false
+        if isTopRowAlways || (nikkudActive && isTopRowMode) {
             let nikkudRowView = buildNikkudTopRow(availableWidth: availableWidth, height: effectiveRowHeight)
             rowsContainer.addSubview(nikkudRowView)
             nikkudRowView.frame = CGRect(x: effectiveHorizontalPadding, y: currentY,
@@ -1073,7 +1095,6 @@ class KeyboardRenderer {
         }
 
         func makeButton(mark: String, index: Int, baseLetter: String, isEnabled: Bool) -> UIButton {
-            let displayText = baseLetter + mark
             let x = leftOffset + CGFloat(index) * (buttonSize + gap)
             let button = UIButton(type: .system)
             button.backgroundColor = UIColor(white: 1.0, alpha: 0.001)
@@ -1098,12 +1119,95 @@ class KeyboardRenderer {
                 height: height - scaledKeyVerticalPadding * 2
             )
 
+            let markColor = isEnabled ? textColor : UIColor.systemGray3
+            let fontSize = baseFontSize * 1.26
+            let font = UIFont.systemFont(ofSize: fontSize, weight: configFontWeight)
+
             let label = UILabel()
             label.isUserInteractionEnabled = false
-            label.text = displayText
-            label.font = UIFont.systemFont(ofSize: baseFontSize * 1.26, weight: configFontWeight)
+            label.font = font
             label.textAlignment = .center
-            label.textColor = isEnabled ? textColor : UIColor.systemGray3
+            label.adjustsFontSizeToFitWidth = true
+            label.minimumScaleFactor = 0.5
+            label.frame = visualKeyView.bounds
+            label.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+
+            if baseLetter == "●" {
+                // Draw faded circle as a CATextLayer behind the label.
+                // Use ב as the combining base so the mark attaches at correct Hebrew text metrics.
+                // The ב is rendered transparent — only the mark is visible over the circle.
+                let circleLayer = CATextLayer()
+                let circleSize = fontSize * 0.8  // smaller than label font so mark has room
+                circleLayer.font = UIFont.systemFont(ofSize: circleSize, weight: .regular) as CTFont
+                circleLayer.fontSize = circleSize
+                circleLayer.string = "●"
+                circleLayer.foregroundColor = markColor.withAlphaComponent(0.28).cgColor
+                circleLayer.alignmentMode = .center
+                circleLayer.contentsScale = UIScreen.main.scale
+                // CATextLayer draws from the top of its frame — size it to the glyph and center it
+                let layerH = circleSize * 1.4
+                let vBounds = visualKeyView.bounds
+                circleLayer.frame = CGRect(
+                    x: -1,
+                    y: (vBounds.height - layerH) / 2 + 4,
+                    width: vBounds.width,
+                    height: layerH
+                )
+                visualKeyView.layer.addSublayer(circleLayer)
+
+                // Label shows transparent ב + mark: mark attaches correctly to Hebrew base
+                let displayText = "ב" + mark
+                let attrString = NSMutableAttributedString(string: displayText,
+                    attributes: [.font: font, .foregroundColor: markColor])
+                // Make the ב invisible — only the combining mark renders
+                attrString.addAttribute(.foregroundColor, value: UIColor.clear,
+                    range: NSRange(location: 0, length: 1))
+                label.attributedText = attrString
+            } else {
+                // Modifier buttons: show the real base letter (ב, שׁ, etc.) + mark normally
+                label.text = baseLetter + mark
+                label.textColor = markColor
+            }
+
+            visualKeyView.addSubview(label)
+            button.addSubview(visualKeyView)
+            if !isEnabled { button.alpha = 0.4 }
+            return button
+        }
+
+        // Helper: dagesh modifier button shows "דגש" text label instead of a glyph
+        func makeDageshButton(mark: String, index: Int, isEnabled: Bool) -> UIButton {
+            let x = leftOffset + CGFloat(index) * (buttonSize + gap)
+            let button = UIButton(type: .system)
+            button.backgroundColor = UIColor(white: 1.0, alpha: 0.001)
+            button.frame = CGRect(x: x, y: 0, width: buttonSize, height: height)
+            button.accessibilityIdentifier = mark
+            button.isEnabled = isEnabled
+            button.addTarget(self, action: #selector(nikkudTopRowButtonTapped(_:)), for: .touchUpInside)
+
+            let visualKeyView = UIView()
+            visualKeyView.isUserInteractionEnabled = false
+            visualKeyView.backgroundColor = bgColor.adaptedForDarkMode()
+            visualKeyView.layer.cornerRadius = scaledCornerRadius
+            visualKeyView.layer.shadowColor = UIColor.black.cgColor
+            visualKeyView.layer.shadowOffset = CGSize(width: 0, height: 1 * effectiveDimensionScale)
+            visualKeyView.layer.shadowOpacity = 0.2
+            visualKeyView.layer.shadowRadius = 1 * effectiveDimensionScale
+
+            let gap2 = scaledKeyGap
+            visualKeyView.frame = CGRect(
+                x: gap2, y: scaledKeyVerticalPadding,
+                width: buttonSize - gap2 * 2,
+                height: height - scaledKeyVerticalPadding * 2
+            )
+
+            let markColor = isEnabled ? textColor : UIColor.systemGray3
+            let label = UILabel()
+            label.isUserInteractionEnabled = false
+            label.text = "דגש"
+            label.font = UIFont.systemFont(ofSize: baseFontSize * 0.72, weight: configFontWeight)
+            label.textAlignment = .center
+            label.textColor = markColor
             label.adjustsFontSizeToFitWidth = true
             label.minimumScaleFactor = 0.5
             label.frame = visualKeyView.bounds
@@ -1117,12 +1221,19 @@ class KeyboardRenderer {
 
         // Vowel buttons (always enabled)
         for (index, item) in items.enumerated() {
-            rowView.addSubview(makeButton(mark: item.mark, index: index, baseLetter: "◌", isEnabled: true))
+            rowView.addSubview(makeButton(mark: item.mark, index: index, baseLetter: "●", isEnabled: true))
         }
 
         // Modifier buttons (after vowels, with enabled/disabled state)
         for (offset, entry) in modifierMarks.enumerated() {
-            let btn = makeButton(mark: entry.mark, index: items.count + offset, baseLetter: entry.baseLetter, isEnabled: entry.isEnabled)
+            let idx = items.count + offset
+            let btn: UIButton
+            if entry.mark == "\u{05BC}" {
+                // Dagesh: show "דגש" word label instead of a glyph
+                btn = makeDageshButton(mark: entry.mark, index: idx, isEnabled: entry.isEnabled)
+            } else {
+                btn = makeButton(mark: entry.mark, index: idx, baseLetter: entry.baseLetter, isEnabled: entry.isEnabled)
+            }
             btn.tag = nikkudModifierButtonTagBase + offset
             btn.accessibilityLabel = entry.mark  // used by updateNikkudTopRowModifierStates
             rowView.addSubview(btn)
@@ -1192,12 +1303,13 @@ class KeyboardRenderer {
         // Check if we have only one language (keyboard)
         let hasOnlyOneLanguage = (config?.keyboards?.count ?? 0) <= 1
         
-        // Check if nikkud is disabled for the current keyboard
+        // Check if nikkud is disabled or always-on top-row (both hide the nikkud button)
         let isNikkudDisabled = config?.diacriticsSettings?[currentKeyboardId ?? ""]?.isDisabled ?? false
-        
+        let isNikkudAlwaysTopRow = config?.diacriticsSettings?[currentKeyboardId ?? ""]?.isTopRowAlways ?? false
+
         // Get current field type for showForField filtering
         let fieldType = editorContext?.fieldType
-        
+
         for row in rows {
             var rowWidth: CGFloat = 0
             for key in row.keys {
@@ -1216,7 +1328,7 @@ class KeyboardRenderer {
                 }
                 
                 // Skip nikkud key if disabled
-                if keyType == "nikkud" && isNikkudDisabled {
+                if keyType == "nikkud" && (isNikkudDisabled || isNikkudAlwaysTopRow) {
                     continue
                 }
                 
@@ -1328,9 +1440,10 @@ class KeyboardRenderer {
         // Check if we have only one language (keyboard)
         let hasOnlyOneLanguage = (config?.keyboards?.count ?? 0) <= 1
         
-        // Check if nikkud is disabled for the current keyboard
+        // Check if nikkud is disabled or always-on top-row (both hide the nikkud button)
         let isNikkudDisabled = config?.diacriticsSettings?[currentKeyboardId ?? ""]?.isDisabled ?? false
-        
+        let isNikkudAlwaysTopRow = config?.diacriticsSettings?[currentKeyboardId ?? ""]?.isTopRowAlways ?? false
+
         // Get current field type for showForField filtering
         let fieldType = editorContext?.fieldType
         
@@ -1476,6 +1589,9 @@ class KeyboardRenderer {
 
                 // Calculate pixel width - the keySpacing of 0 means we don't need to subtract anything
                 let keyWidth = (CGFloat(effectiveWidth) / baselineWidth) * availableWidth
+                if !KeyboardRenderer.specialKeyTypes.contains(parsedKey.type.lowercased()) && parsedKey.width == 1 {
+                    lastRenderedRegularKeyWidth = keyWidth
+                }
                 let button = createKeyButton(parsedKey, width: keyWidth, height: scaledRowHeight,
                                             editorContext: editorContext,
                                             isSelected: isSelected)
@@ -2136,7 +2252,6 @@ class KeyboardRenderer {
                 nikkudActive = true
                 onNikkudActivePersist?(true)
                 rerender()
-                onNikkudStateChanged?()
             } else {
                 print("   → NIKKUD already active, ignoring long-press")
             }
@@ -2655,16 +2770,20 @@ class KeyboardRenderer {
                 nikkudActive = false
                 onNikkudActivePersist?(false)
                 rerender()
-                onNikkudStateChanged?()
             } else if onKeyLongPress != nil {
                 // Selection mode and nikkud inactive: emit key press for selection
                 print("   → Selection mode: emitting key press for nikkud")
                 onKeyPress?(key)
                 return
             } else {
-                // Normal mode, nikkud inactive: requires 0.5 sec long-press to activate
-                print("   → Ignoring quick tap on NIKKUD (requires 0.5 sec press to activate)")
-                return
+                // Normal mode, nikkud inactive: short tap = space if layout is narrow
+                if let spaceInfo = findSpaceKeyInfo(),
+                   spaceInfo.width < lastRenderedRegularKeyWidth * 6 {
+                    print("   → Nikkud short-tap: forwarding as space (spaceWidth=\(spaceInfo.width), threshold=\(lastRenderedRegularKeyWidth * 6))")
+                    onKeyPress?(spaceInfo.key)
+                } else {
+                    print("   → Ignoring quick tap on NIKKUD (wide layout or no space key)")
+                }
             }
             
         case "keyset":
@@ -2817,6 +2936,25 @@ class KeyboardRenderer {
         showNikkudPickerInternal(forLetter: currentNikkudLetter, anchorView: container)
     }
     
+    /// Find the space button and return its ParsedKey and frame width.
+    /// Returns nil if no space key is rendered (e.g. numeric keysets).
+    /// View hierarchy: container → rowsContainer → rowView → button (3 levels deep)
+    private func findSpaceKeyInfo() -> (key: ParsedKey, width: CGFloat)? {
+        guard let container = container else { return nil }
+        for rowsContainer in container.subviews {
+            for rowView in rowsContainer.subviews {
+                for button in rowView.subviews.compactMap({ $0 as? UIButton }) {
+                    guard let info = decodeKeyInfo(button.accessibilityIdentifier),
+                          let type = info["type"] as? String,
+                          type.lowercased() == "space",
+                          let key = parseKeyFromInfo(info) else { continue }
+                    return (key: key, width: button.frame.width)
+                }
+            }
+        }
+        return nil
+    }
+
     private func encodeKeyInfo(_ key: ParsedKey) -> String {
         var dict: [String: Any] = [
             "type": key.type,

@@ -16,7 +16,7 @@
       { "id": "segol", "mark": "\u05B6", "name": "סֶגוֹל" },
       { "id": "tzere", "mark": "\u05B5", "name": "צֵירֵי" },
       { "id": "chirik", "mark": "\u05B4", "name": "חִירִיק" },
-      { "id": "cholam", "mark": "\u05B9", "name": "חוֹלָם" },
+      { "id": "cholam", "mark": "\u05B9", "name": "חוֹלָם", "sampleBase": "ו" },
       { "id": "kubutz", "mark": "\u05BB", "name": "קֻבּוּץ" },
       { "id": "shva", "mark": "\u05B0", "name": "שְׁוָא" },
       { "id": "chatafPatach", "mark": "\u05B2", "name": "חֲטַף פַּתַח", "isAdvanced": true },

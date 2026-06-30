@@ -218,8 +218,7 @@ export interface Strings {
     inputMode: string;
     popup: string;
     topRow: string;
-  };
-  styleRuleModal: {
+    topRowAlways: string;
     newKeysGroup: string;
     groupNamePrefix: string;
     nameLabel: string;
@@ -551,6 +550,7 @@ const en: Strings = {
     inputMode: 'Input Mode',
     popup: 'Popup',
     topRow: 'Top Row',
+    topRowAlways: 'Top Row Always On',
   },
   styleRuleModal: {
     newKeysGroup: 'New Keys Group',
@@ -884,6 +884,7 @@ const he: Strings = {
     inputMode: 'אופן הזנה',
     popup: 'חלון קופץ',
     topRow: 'שורה עליונה',
+    topRowAlways: 'שורה עליונה קבועה',
   },
   styleRuleModal: {
     newKeysGroup: 'קבוצת מקשים חדשה',
@@ -1217,6 +1218,7 @@ const ar: Strings = {
     inputMode: 'وضع الإدخال',
     popup: 'نافذة منبثقة',
     topRow: 'الصف العلوي',
+    topRowAlways: 'صف علوي ثابت',
   },
   styleRuleModal: {
     newKeysGroup: 'مجموعة مفاتيح جديدة',

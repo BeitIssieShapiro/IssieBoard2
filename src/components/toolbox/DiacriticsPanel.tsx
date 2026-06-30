@@ -36,7 +36,8 @@ const NikkudKey: React.FC<NikkudKeyProps> = ({
     // Modifier with options - show first option
     sample = sampleLetter + item.options[0].mark;
   } else {
-    sample = sampleLetter + item.mark;
+    const base = ('sampleBase' in item && item.sampleBase) ? item.sampleBase : sampleLetter;
+    sample = base + item.mark;
   }
 
   return (
@@ -84,6 +85,7 @@ export const DiacriticsPanel: React.FC = () => {
   const isNikkudDisabled = settings.disabled || false;
   const isSimpleMode = settings.simpleMode ?? true;
   const isTopRowMode = settings.nikkudMode === 'topRow';
+  const isTopRowAlways = settings.nikkudMode === 'topRowAlways';
   
   // Determine current mode based on settings
   const getCurrentMode = (): NikkudMode => {
@@ -237,14 +239,15 @@ export const DiacriticsPanel: React.FC = () => {
             options={[
               { id: 'popup', label: strings.diacritics.popup },
               { id: 'topRow', label: strings.diacritics.topRow },
+              { id: 'topRowAlways', label: strings.diacritics.topRowAlways },
             ]}
-            selectedId={isTopRowMode ? 'topRow' : 'popup'}
+            selectedId={isTopRowAlways ? 'topRowAlways' : isTopRowMode ? 'topRow' : 'popup'}
             onSelect={(id) => {
               dispatch({
                 type: 'UPDATE_DIACRITICS_SETTINGS',
                 payload: {
                   keyboardId: currentKeyboardId,
-                  settings: { ...settings, nikkudMode: id as 'popup' | 'topRow' },
+                  settings: { ...settings, nikkudMode: id as 'popup' | 'topRow' | 'topRowAlways' },
                 },
               });
             }}
@@ -350,7 +353,7 @@ const styles = StyleSheet.create({
     borderColor: '#FFB74D',
   },
   nikkudKeySample: {
-    fontSize: 24,
+    fontSize: 30,
     color: '#333',
     marginBottom: 4,
     textAlign: 'center',
