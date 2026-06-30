@@ -55,7 +55,7 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
   const shortSide = Math.min(width, height);
   const isPhone = shortSide < 500;
   const isPortrait = height > width;
-  const twoRows = isPhone && isPortrait;
+  const twoRows = isPortrait;
   const { language: uiLanguage, isRTL } = useLocalization();
   const strings = getStrings(uiLanguage);
 
@@ -78,57 +78,75 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
   }, [isDirty, saveOpacity]);
 
   return (
-    <View style={[styles.container, twoRows && styles.containerTwoRows, isRTL && { direction: 'rtl' }]}>
-      {/* Back button */}
-      {canGoBack && (
-        <TouchableOpacity style={styles.backButton} onPress={onGoBack} activeOpacity={0.7}>
-          <MyIcon info={{ name: isRTL ? 'arrow-forward' : 'arrow-back', type: 'Ionicons', color: '#FFFFFF', size: 20 }} />
-        </TouchableOpacity>
-      )}
+    <View style={[styles.container, twoRows && styles.containerTwoRows, !twoRows && isRTL && { flexDirection: 'row-reverse' }]}>
 
-      {/* Row 1 (or inline): Language toggle pills */}
-      <View style={[styles.languageTabs, twoRows && styles.languageTabsCentered]}>
-        {LANGUAGES.map(lang => {
-          const isActive = currentLanguage === lang.id;
-          return (
-            <TouchableOpacity
-              key={lang.id}
-              style={[styles.languageTab, isActive && styles.languageTabActive]}
-              onPress={() => onLanguageChange(lang.id)}
-              activeOpacity={0.7}>
-              <Text
-                allowFontScaling={false}
-                style={[
-                  styles.languageTabText,
-                  isActive && styles.languageTabTextActive,
-                ]}>
-                {lang.label}
-              </Text>
-              {isActive && showFullAccessBadge && (
-                <TouchableOpacity
-                  style={styles.fullAccessBadge}
-                  onPress={onFullAccessBadgePress}
-                  activeOpacity={0.7}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <View style={styles.fullAccessBadgeCircle}>
-                    <MyIcon info={{ name: 'warning-outline', type: 'Ionicons', color: '#D97706', size: 12 }} />
-                  </View>
-                </TouchableOpacity>
-              )}
-            </TouchableOpacity>
-          );
-        })}
+      {/* Row 1 (portrait) / inline elements (landscape): lang pills + classic */}
+      <View style={[styles.row1, twoRows && styles.row1TwoRows, isRTL && { flexDirection: 'row-reverse' }]}>
+        {canGoBack && !twoRows && (
+          <TouchableOpacity style={styles.backButton} onPress={onGoBack} activeOpacity={0.7}>
+            <MyIcon info={{ name: isRTL ? 'arrow-forward' : 'arrow-back', type: 'Ionicons', color: '#FFFFFF', size: 20 }} />
+          </TouchableOpacity>
+        )}
+
+        <View style={[styles.languageTabs, twoRows && styles.languageTabsFill]}>
+          {LANGUAGES.map(lang => {
+            const isActive = currentLanguage === lang.id;
+            return (
+              <TouchableOpacity
+                key={lang.id}
+                style={[styles.languageTab, isActive && styles.languageTabActive]}
+                onPress={() => onLanguageChange(lang.id)}
+                activeOpacity={0.7}>
+                <Text
+                  allowFontScaling={false}
+                  style={[
+                    styles.languageTabText,
+                    isActive && styles.languageTabTextActive,
+                  ]}>
+                  {lang.label}
+                </Text>
+                {isActive && showFullAccessBadge && (
+                  <TouchableOpacity
+                    style={styles.fullAccessBadge}
+                    onPress={onFullAccessBadgePress}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <View style={styles.fullAccessBadgeCircle}>
+                      <MyIcon info={{ name: 'warning-outline', type: 'Ionicons', color: '#D97706', size: 12 }} />
+                    </View>
+                  </TouchableOpacity>
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Classic View: absolute in portrait, removed from here in landscape (rendered at container level) */}
+        {onSwitchToClassic && twoRows && (
+          <TouchableOpacity
+            style={[styles.classicButton, isRTL ? styles.classicButtonAbsLeft : styles.classicButtonAbsRight]}
+            onPress={onSwitchToClassic}
+            activeOpacity={0.7}>
+            <Text style={styles.classicButtonText}>{strings.editor.classicView}</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
-      {/* Row 2 (or inline): Profile + Save */}
-      <View style={[styles.row2, twoRows && styles.row2TwoRows]}>
+      {/* Row 2 (portrait) / remaining inline (landscape): profile label + dropdown + cancel + save */}
+      <View style={[styles.row2, twoRows && styles.row2TwoRows, isRTL && { flexDirection: 'row-reverse' }]}>
+        {canGoBack && twoRows && (
+          <TouchableOpacity style={styles.backButton} onPress={onGoBack} activeOpacity={0.7}>
+            <MyIcon info={{ name: isRTL ? 'arrow-forward' : 'arrow-back', type: 'Ionicons', color: '#FFFFFF', size: 20 }} />
+          </TouchableOpacity>
+        )}
+
         <Text allowFontScaling={false} style={styles.profileLabel}>{strings.profiles.currentKeyboard}</Text>
         <TouchableOpacity
-          style={[styles.profileButton]}
+          style={styles.profileButton}
           onPress={onProfilePress}
           activeOpacity={0.7}>
           <MyIcon info={{ name: 'keyboard-settings-outline', type: 'MDI', color: colors.primary, size: 22 }} />
-          <Text allowFontScaling={false} style={[styles.profileName]} numberOfLines={1} ellipsizeMode="tail">
+          <Text allowFontScaling={false} style={styles.profileName} numberOfLines={1} ellipsizeMode="tail">
             {profileName}
           </Text>
           <MyIcon info={{ name: 'chevron-down', type: 'Ionicons', color: colors.textLight, size: 20 }} />
@@ -181,8 +199,8 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
         </View>
       </View>
 
-      {/* Classic View button */}
-      {onSwitchToClassic && (
+      {/* Classic View in landscape: after row2, so it's rightmost (LTR) / leftmost (RTL via container row-reverse) */}
+      {onSwitchToClassic && !twoRows && (
         <TouchableOpacity style={styles.classicButton} onPress={onSwitchToClassic} activeOpacity={0.7}>
           <Text style={styles.classicButtonText}>{strings.editor.classicView}</Text>
         </TouchableOpacity>
@@ -197,7 +215,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 20,
+    paddingVertical: 12,
     backgroundColor: '#FFFFFF',
     gap: 12,
     borderBottomWidth: 1,
@@ -207,6 +225,16 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'stretch',
     gap: 8,
+    paddingVertical: 12,
+  },
+  row1: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  row1TwoRows: {
+    justifyContent: 'center',
+    position: 'relative',
   },
   languageTabs: {
     flexDirection: 'row',
@@ -215,6 +243,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 3,
     height: 44,
+  },
+  languageTabsFill: {
+    alignSelf: 'center',
   },
   languageTabsCentered: {
     alignSelf: 'center',
@@ -267,7 +298,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   row2TwoRows: {
-    flex: 0,
+    flex: undefined,
   },
   profileLabel: {
     fontSize: 14,
@@ -362,11 +393,21 @@ const styles = StyleSheet.create({
   classicButton: {
     backgroundColor: '#3b82f6',
     paddingHorizontal: 16,
-    marginInlineStart: 25, 
+    marginInlineEnd: 25, 
     height: 44,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  classicButtonAbsLeft: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+  },
+  classicButtonAbsRight: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
   },
   classicButtonText: {
     color: '#FFF',

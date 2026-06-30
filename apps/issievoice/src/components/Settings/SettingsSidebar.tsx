@@ -297,9 +297,6 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
               <View style={[styles.iconCircleTiny, {backgroundColor: colors.primary + '18'}]}>
                 <MyIcon info={{ name: 'information-circle-outline', type: 'Ionicons', color: colors.primary, size: 16 }} />
               </View>
-              {!isPhone && (
-                <Text allowFontScaling={false} style={styles.subTabText}>i</Text>
-              )}
             </TouchableOpacity>
           )}
         </View>
