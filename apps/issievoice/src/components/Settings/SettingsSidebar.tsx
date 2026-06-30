@@ -14,6 +14,8 @@ export interface SettingsSidebarProps {
   mode?: 'voice' | 'keyboard';
   /** Current keyboard language — used to pick the correct nikkud icon */
   kbLanguage?: 'en' | 'he' | 'ar';
+  /** Called when the About (i) button is pressed */
+  onAbout?: () => void;
 }
 
 type TabId = 'general' | 'keys-groups' | 'nikkud' | 'features' | 'advanced' | 'voice' | 'language';
@@ -133,6 +135,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   disabledTabs,
   mode = 'voice',
   kbLanguage = 'he',
+  onAbout,
 }) => {
   const keyboardOnly = mode === 'keyboard';
   const {width: screenWidth, height: screenHeight} = useWindowDimensions();
@@ -208,6 +211,21 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
             />
           </>
         )}
+
+        {/* About button — pushed to bottom */}
+        {onAbout && (
+          <>
+            <View style={[ { marginTop: 'auto' }]} />
+            <TouchableOpacity
+              style={[styles.sidebarCard, isPhone && styles.sidebarCardCompact, isPhoneVoice && styles.sidebarCardExtraCompact, {justifyContent:"flex-end"}]}
+              onPress={onAbout}
+              activeOpacity={0.7}>
+              <View style={[isPhoneVoice ? styles.iconCircleExtraCompact : isPhone ? styles.iconCircleCompact : styles.iconCircle, {backgroundColor: colors.primary + '18'}]}>
+                <MyIcon info={{ name: 'information-circle-outline', type: 'Ionicons', color: colors.primary, size: isPhoneVoice ? 16 : isPhone ? 19 : 22 }} />
+              </View>
+            </TouchableOpacity>
+          </>
+        )}
       </View>
     );
   }
@@ -269,6 +287,21 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
               </TouchableOpacity>
             );
           })}
+
+          {/* About button — icon only, pushed to far end */}
+          {onAbout && (
+            <TouchableOpacity
+              style={[isPhone ? styles.subTabIconOnly : styles.subTab, isRTL ? { marginRight: 'auto' } : { marginLeft: 'auto' }]}
+              onPress={onAbout}
+              activeOpacity={0.7}>
+              <View style={[styles.iconCircleTiny, {backgroundColor: colors.primary + '18'}]}>
+                <MyIcon info={{ name: 'information-circle-outline', type: 'Ionicons', color: colors.primary, size: 16 }} />
+              </View>
+              {!isPhone && (
+                <Text allowFontScaling={false} style={styles.subTabText}>i</Text>
+              )}
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     );
@@ -363,6 +396,18 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
             {tabLabels.language}
           </Text>
         </TouchableOpacity>
+
+        {/* About button */}
+        {onAbout && (
+          <TouchableOpacity
+            style={[styles.tab, isRTL ? { marginRight: 'auto' } : { marginLeft: 'auto' }, isRTL && { flexDirection: 'row-reverse' }]}
+            onPress={onAbout}
+            activeOpacity={0.7}>
+            <View style={[styles.iconCircleSmall, {backgroundColor: colors.primary + '18'}]}>
+              <MyIcon info={{ name: 'information-circle-outline', type: 'Ionicons', color: colors.primary, size: 18 }} />
+            </View>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Level 2: sub-tabs (only when Keyboard is active) */}

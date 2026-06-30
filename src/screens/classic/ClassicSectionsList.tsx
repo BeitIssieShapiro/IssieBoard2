@@ -42,7 +42,7 @@ const ClassicSectionsList: React.FC<ClassicSectionsListProps> = ({
     onDivisionModeChange,
     onMiddleToggle,
 }) => {
-    const { strings } = useLocalization();
+    const { strings, isRTL } = useLocalization();
     const isSections = classicState.divisionMode === 'sections';
     const groupLabels = classicState.divisionMode === 'rows'
         ? [strings.classic.topRow, strings.classic.middleRow, strings.classic.bottomRow]
@@ -111,7 +111,7 @@ const ClassicSectionsList: React.FC<ClassicSectionsListProps> = ({
                 onLayout={onContentLayout}
             >
                 {/* Language selector */}
-                <View style={styles.languageBar}>
+                <View style={[styles.languageBar, isRTL && { flexDirection: 'row-reverse' }]}>
                     {(['he', 'en', 'ar'] as const).map(lang => (
                         <TouchableOpacity
                             key={lang}
@@ -129,34 +129,34 @@ const ClassicSectionsList: React.FC<ClassicSectionsListProps> = ({
                 </View>
 
                 {/* Main section */}
-                <SectionHeader title={strings.classic.mainSettings} />
-                <SettingRow icon="↻" title={strings.common.reset} onPress={() => onSelectSetting('reset')} />
-                <SettingRow icon="ABC" title={strings.classic.keyOrder} onPress={() => onSelectSetting('key-order')} />
+                <SectionHeader title={strings.classic.mainSettings} isRTL={isRTL} />
+                <SettingRow icon="↻" title={strings.common.reset} onPress={() => onSelectSetting('reset')} isRTL={isRTL} />
+                <SettingRow icon="ABC" title={strings.classic.keyOrder} onPress={() => onSelectSetting('key-order')} isRTL={isRTL} />
 
                 {/* Main Colors */}
-                <SectionHeader title={strings.classic.mainColors} />
-                <ColorRow title={strings.classic.backgroundColor} color={backgroundColor} onPress={() => onSelectSetting('bg-color')} />
-                <ColorRow title={strings.classic.keysColor} color={keysBgColor} onPress={() => onSelectSetting('keys-color')} />
-                <ColorRow title={strings.classic.textColor} color={textColor} onPress={() => onSelectSetting('text-color')} />
+                <SectionHeader title={strings.classic.mainColors} isRTL={isRTL} />
+                <ColorRow title={strings.classic.backgroundColor} color={backgroundColor} onPress={() => onSelectSetting('bg-color')} isRTL={isRTL} />
+                <ColorRow title={strings.classic.keysColor} color={keysBgColor} onPress={() => onSelectSetting('keys-color')} isRTL={isRTL} />
+                <ColorRow title={strings.classic.textColor} color={textColor} onPress={() => onSelectSetting('text-color')} isRTL={isRTL} />
 
                 {/* Action Keys */}
-                <SectionHeader title={strings.classic.actionKeys} />
-                <ColorRow title={strings.classic.spaceKeyColor} color={classicState.actionGroups.space?.style.bgColor || keysBgColor} onPress={() => onSelectSetting('space-color')} />
-                <ColorRow title={strings.classic.deleteKeyColor} color={classicState.actionGroups.delete?.style.bgColor || keysBgColor} onPress={() => onSelectSetting('delete-color')} />
-                <ColorRow title={strings.classic.enterKeyColor} color={classicState.actionGroups.enter?.style.bgColor || keysBgColor} onPress={() => onSelectSetting('enter-color')} />
-                <ColorRow title={strings.classic.otherKeysColor} color={classicState.actionGroups.other?.style.bgColor || keysBgColor} onPress={() => onSelectSetting('other-color')} />
+                <SectionHeader title={strings.classic.actionKeys} isRTL={isRTL} />
+                <ColorRow title={strings.classic.spaceKeyColor} color={classicState.actionGroups.space?.style.bgColor || keysBgColor} onPress={() => onSelectSetting('space-color')} isRTL={isRTL} />
+                <ColorRow title={strings.classic.deleteKeyColor} color={classicState.actionGroups.delete?.style.bgColor || keysBgColor} onPress={() => onSelectSetting('delete-color')} isRTL={isRTL} />
+                <ColorRow title={strings.classic.enterKeyColor} color={classicState.actionGroups.enter?.style.bgColor || keysBgColor} onPress={() => onSelectSetting('enter-color')} isRTL={isRTL} />
+                <ColorRow title={strings.classic.otherKeysColor} color={classicState.actionGroups.other?.style.bgColor || keysBgColor} onPress={() => onSelectSetting('other-color')} isRTL={isRTL} />
 
                 {/* Nikkud - Hebrew only */}
                 {currentLanguage === 'he' && (
                     <>
-                        <SectionHeader title={strings.classic.nikkud} />
-                        <SettingRow title={strings.classic.nikkudSettings} onPress={() => onSelectSetting('nikkud')} />
+                        <SectionHeader title={strings.classic.nikkud} isRTL={isRTL} />
+                        <SettingRow title={strings.classic.nikkudSettings} onPress={() => onSelectSetting('nikkud')} isRTL={isRTL} />
                     </>
                 )}
 
                 {/* Division Mode - inline toggle */}
-                <SectionHeader title={strings.classic.colorDivision} />
-                <View style={styles.divisionToggle}>
+                <SectionHeader title={strings.classic.colorDivision} isRTL={isRTL} />
+                <View style={[styles.divisionToggle, isRTL && { flexDirection: 'row-reverse' }]}>
                     <TouchableOpacity
                         style={[styles.divisionOption, classicState.divisionMode === 'rows' && styles.divisionOptionActive]}
                         onPress={() => onDivisionModeChange('rows')}
@@ -182,9 +182,9 @@ const ClassicSectionsList: React.FC<ClassicSectionsListProps> = ({
                 </View>
 
                 {/* Per-group colors */}
-                <SectionHeader title={`Group 1 (${groupLabels[0]})`} />
-                <ColorRow title={strings.classic.keysColor} color={classicState.charsetGroups[0]?.style.bgColor || keysBgColor} onPress={() => onSelectSetting('group1-keys-color')} />
-                <ColorRow title={strings.classic.textColor} color={classicState.charsetGroups[0]?.style.color || textColor} onPress={() => onSelectSetting('group1-text-color')} />
+                <SectionHeader title={`Group 1 (${groupLabels[0]})`} isRTL={isRTL} />
+                <ColorRow title={strings.classic.keysColor} color={classicState.charsetGroups[0]?.style.bgColor || keysBgColor} onPress={() => onSelectSetting('group1-keys-color')} isRTL={isRTL} />
+                <ColorRow title={strings.classic.textColor} color={classicState.charsetGroups[0]?.style.color || textColor} onPress={() => onSelectSetting('group1-text-color')} isRTL={isRTL} />
 
                 {isSections ? (
                     <>
@@ -192,46 +192,44 @@ const ClassicSectionsList: React.FC<ClassicSectionsListProps> = ({
                             title={`Group 2 (${groupLabels[1]})`}
                             switchValue={classicState.threeColorMode}
                             onSwitchChange={onMiddleToggle}
+                            isRTL={isRTL}
                         />
                         <ColorRow
                             title={strings.classic.keysColor}
                             color={classicState.charsetGroups[1]?.style.bgColor || keysBgColor}
                             onPress={() => onSelectSetting('group2-keys-color')}
                             disabled={!classicState.threeColorMode}
+                            isRTL={isRTL}
                         />
                         <ColorRow
                             title={strings.classic.textColor}
                             color={classicState.charsetGroups[1]?.style.color || textColor}
                             onPress={() => onSelectSetting('group2-text-color')}
                             disabled={!classicState.threeColorMode}
-                        />
-                            title={strings.classic.textColor}
-                            color={classicState.charsetGroups[1]?.style.color || textColor}
-                            onPress={() => onSelectSetting('group2-text-color')}
-                            disabled={!classicState.threeColorMode}
+                            isRTL={isRTL}
                         />
                     </>
                 ) : (
                     <>
-                        <SectionHeader title={`Group 2 (${groupLabels[1]})`} />
-                        <ColorRow title={strings.classic.keysColor} color={classicState.charsetGroups[1]?.style.bgColor || keysBgColor} onPress={() => onSelectSetting('group2-keys-color')} />
-                        <ColorRow title={strings.classic.textColor} color={classicState.charsetGroups[1]?.style.color || textColor} onPress={() => onSelectSetting('group2-text-color')} />
+                        <SectionHeader title={`Group 2 (${groupLabels[1]})`} isRTL={isRTL} />
+                        <ColorRow title={strings.classic.keysColor} color={classicState.charsetGroups[1]?.style.bgColor || keysBgColor} onPress={() => onSelectSetting('group2-keys-color')} isRTL={isRTL} />
+                        <ColorRow title={strings.classic.textColor} color={classicState.charsetGroups[1]?.style.color || textColor} onPress={() => onSelectSetting('group2-text-color')} isRTL={isRTL} />
                     </>
                 )}
 
-                <SectionHeader title={classicState.threeColorMode || !isSections ? `Group 3 (${groupLabels[2]})` : `Group 2 (${groupLabels[2]})`} />
-                <ColorRow title={strings.classic.keysColor} color={classicState.charsetGroups[2]?.style.bgColor || keysBgColor} onPress={() => onSelectSetting('group3-keys-color')} />
-                <ColorRow title={strings.classic.textColor} color={classicState.charsetGroups[2]?.style.color || textColor} onPress={() => onSelectSetting('group3-text-color')} />
+                <SectionHeader title={classicState.threeColorMode || !isSections ? `Group 3 (${groupLabels[2]})` : `Group 2 (${groupLabels[2]})`} isRTL={isRTL} />
+                <ColorRow title={strings.classic.keysColor} color={classicState.charsetGroups[2]?.style.bgColor || keysBgColor} onPress={() => onSelectSetting('group3-keys-color')} isRTL={isRTL} />
+                <ColorRow title={strings.classic.textColor} color={classicState.charsetGroups[2]?.style.color || textColor} onPress={() => onSelectSetting('group3-text-color')} isRTL={isRTL} />
 
                 {/* Special Keys */}
-                <SectionHeader title={strings.classic.specialKeys} />
-                <SettingRow title={strings.classic.highlightedCharacters} summary={classicState.specialKeysGroup?.members.join('') || strings.common.none} onPress={() => onSelectSetting('special-keys-text')} />
-                <ColorRow title={strings.classic.highlightKeysColor} color={classicState.specialKeysGroup?.style.bgColor} onPress={() => onSelectSetting('special-keys-color')} />
-                <ColorRow title={strings.classic.highlightTextColor} color={classicState.specialKeysGroup?.style.color} onPress={() => onSelectSetting('special-keys-text-color')} />
+                <SectionHeader title={strings.classic.specialKeys} isRTL={isRTL} />
+                <SettingRow title={strings.classic.highlightedCharacters} summary={classicState.specialKeysGroup?.members.join('') || strings.common.none} onPress={() => onSelectSetting('special-keys-text')} isRTL={isRTL} />
+                <ColorRow title={strings.classic.highlightKeysColor} color={classicState.specialKeysGroup?.style.bgColor} onPress={() => onSelectSetting('special-keys-color')} isRTL={isRTL} />
+                <ColorRow title={strings.classic.highlightTextColor} color={classicState.specialKeysGroup?.style.color} onPress={() => onSelectSetting('special-keys-text-color')} isRTL={isRTL} />
 
                 {/* Visible Keys */}
-                <SectionHeader title={strings.classic.visibleKeys} />
-                <SettingRow title={strings.classic.visibleKeys} summary={classicState.visibleKeysGroup?.members.join('') || 'All'} onPress={() => onSelectSetting('visible-keys-text')} />
+                <SectionHeader title={strings.classic.visibleKeys} isRTL={isRTL} />
+                <SettingRow title={strings.classic.visibleKeys} summary={classicState.visibleKeysGroup?.members.join('') || 'All'} onPress={() => onSelectSetting('visible-keys-text')} isRTL={isRTL} />
 
                 {/* Load */}
                 <View style={styles.saveRow}>
@@ -248,9 +246,9 @@ const ClassicSectionsList: React.FC<ClassicSectionsListProps> = ({
 
 // Sub-components
 
-const SectionHeader: React.FC<{ title: string }> = ({ title }) => (
+const SectionHeader: React.FC<{ title: string; isRTL?: boolean }> = ({ title, isRTL }) => (
     <View style={styles.sectionHeader}>
-        <Text allowFontScaling={false} style={styles.sectionHeaderText}>{title}</Text>
+        <Text allowFontScaling={false} style={[styles.sectionHeaderText, isRTL && { textAlign: 'right' }]}>{title}</Text>
     </View>
 );
 
@@ -258,9 +256,10 @@ const SectionHeaderWithSwitch: React.FC<{
     title: string;
     switchValue: boolean;
     onSwitchChange: (value: boolean) => void;
-}> = ({ title, switchValue, onSwitchChange }) => (
-    <View style={[styles.sectionHeader, styles.sectionHeaderWithSwitch]}>
-        <Text allowFontScaling={false} style={styles.sectionHeaderText}>{title}</Text>
+    isRTL?: boolean;
+}> = ({ title, switchValue, onSwitchChange, isRTL }) => (
+    <View style={[styles.sectionHeader, styles.sectionHeaderWithSwitch, isRTL && { flexDirection: 'row-reverse' }]}>
+        <Text allowFontScaling={false} style={[styles.sectionHeaderText, isRTL && { textAlign: 'right' }]}>{title}</Text>
         <Switch
             value={switchValue}
             onValueChange={onSwitchChange}
@@ -274,12 +273,13 @@ const SettingRow: React.FC<{
     title: string;
     summary?: string;
     onPress: () => void;
-}> = ({ icon, title, summary, onPress }) => (
-    <TouchableOpacity style={styles.row} onPress={onPress}>
-        {icon && <Text allowFontScaling={false} style={styles.rowIcon}>{icon}</Text>}
-        <Text allowFontScaling={false} style={styles.rowTitle}>{title}</Text>
-        {summary && <Text allowFontScaling={false} style={styles.rowSummary}>{summary}</Text>}
-        <Text allowFontScaling={false} style={styles.rowChevron}>{'>'}</Text>
+    isRTL?: boolean;
+}> = ({ icon, title, summary, onPress, isRTL }) => (
+    <TouchableOpacity style={[styles.row, isRTL && { flexDirection: 'row-reverse' }]} onPress={onPress}>
+        {icon && <Text allowFontScaling={false} style={[styles.rowIcon, isRTL && { marginRight: 0, marginLeft: 12 }]}>{icon}</Text>}
+        <Text allowFontScaling={false} style={[styles.rowTitle, isRTL && { textAlign: 'right' }]}>{title}</Text>
+        {summary && <Text allowFontScaling={false} style={[styles.rowSummary, isRTL && { marginLeft: 0, marginRight: 8 }]}>{summary}</Text>}
+        <Text allowFontScaling={false} style={[styles.rowChevron, isRTL && { marginLeft: 0, marginRight: 8 }]}>{'>'}</Text>
     </TouchableOpacity>
 );
 
@@ -288,17 +288,18 @@ const ColorRow: React.FC<{
     color?: string;
     onPress: () => void;
     disabled?: boolean;
-}> = ({ title, color, onPress, disabled }) => {
+    isRTL?: boolean;
+}> = ({ title, color, onPress, disabled, isRTL }) => {
     const isDefault = !color;
     return (
-        <TouchableOpacity style={[styles.row, disabled && styles.rowDisabled]} onPress={onPress} disabled={disabled}>
+        <TouchableOpacity style={[styles.row, disabled && styles.rowDisabled, isRTL && { flexDirection: 'row-reverse' }]} onPress={onPress} disabled={disabled}>
             {isDefault ? (
-                <View style={[styles.colorDot, styles.colorDotDefault, disabled && { opacity: 0.4 }]} />
+                <View style={[styles.colorDot, styles.colorDotDefault, disabled && { opacity: 0.4 }, isRTL && { marginRight: 0, marginLeft: 12 }]} />
             ) : (
-                <View style={[styles.colorDot, { backgroundColor: color }, disabled && { opacity: 0.4 }]} />
+                <View style={[styles.colorDot, { backgroundColor: color }, disabled && { opacity: 0.4 }, isRTL && { marginRight: 0, marginLeft: 12 }]} />
             )}
-            <Text allowFontScaling={false} style={[styles.rowTitle, disabled && { color: '#C7C7CC' }]}>{title}</Text>
-            {!disabled && <Text allowFontScaling={false} style={styles.rowChevron}>{'>'}</Text>}
+            <Text allowFontScaling={false} style={[styles.rowTitle, disabled && { color: '#C7C7CC' }, isRTL && { textAlign: 'right' }]}>{title}</Text>
+            {!disabled && <Text allowFontScaling={false} style={[styles.rowChevron, isRTL && { marginLeft: 0, marginRight: 8 }]}>{'>'}</Text>}
         </TouchableOpacity>
     );
 };

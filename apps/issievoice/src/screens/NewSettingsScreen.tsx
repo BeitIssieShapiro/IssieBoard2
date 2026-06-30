@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
-  TouchableOpacity,
   useWindowDimensions,
   Alert,
   AppState,
@@ -18,9 +16,9 @@ import LanguageSettingsPanel, { KbLanguage } from '../components/Settings/Langua
 import { EditorScreen } from '../../../../src/screens/EditorScreen';
 import { LocalizationProvider as EditorLocalizationProvider, useLocalization as useEditorLocalization } from '../../../../src/localization';
 import { getStrings as getEditorStrings } from '../../../../src/localization/strings';
-import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 import KeyboardPreferences from '../../../../src/native/KeyboardPreferences';
 import { AboutScreen } from '../../../../src/components/AboutScreen';
+import { SetupStatusStrip } from '../../../../src/components/SetupStatusStrip';
 import { ISSIEBOARD_ABOUT, ISSIEVOICE_ABOUT } from '../../../../src/components/about-content';
 import { cardShadow } from '../../../../src/styles/shadows';
 import { useKeyboardSetupStatus } from '../../../../src/hooks/useKeyboardSetupStatus';
@@ -67,6 +65,7 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
   const changeLanguageRef = useRef<((lang: 'en' | 'he' | 'ar') => void) | null>(null);
   const saveRef = useRef<(() => void) | null>(null);
   const autoSaveRef = useRef<(() => void) | null>(null);
+  const discardRef = useRef<(() => void) | null>(null);
 
   // Auto-save when app goes to background or is closed
   useEffect(() => {
@@ -224,21 +223,6 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
 
     return (
       <View style={{ flex: 1 }}>
-        <KeyboardHeader
-          currentLanguage={kbLanguage}
-          onLanguageChange={(lang) => changeLanguageRef.current?.(lang)}
-          profileName={profileName}
-          onProfilePress={() => showProfilePickerRef.current?.()}
-          onSave={() => saveRef.current?.()}
-          isDirty={isDirty}
-          showFullAccessBadge={showFullAccessBadge}
-          onFullAccessBadgePress={handleFullAccessBadgePress}
-        />
-        {description ? (
-          <View style={styles.tabDescriptionBanner}>
-            <Text allowFontScaling={false} style={styles.tabDescriptionText}>{description}</Text>
-          </View>
-        ) : null}
         <EditorLocalizationProvider>
           <EditorLanguageSync language={uiLanguage}>
             <EditorScreen
@@ -250,8 +234,10 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
               changeLanguageRef={changeLanguageRef}
               headless
               activeTab={activeTab}
+              tabDescription={description}
               saveRef={saveRef}
               autoSaveRef={autoSaveRef}
+              discardRef={discardRef}
               selectedLanguages={isKeyboardOnly ? undefined : selectedLanguages}
             />
           </EditorLanguageSync>
@@ -262,40 +248,36 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header Bar */}
-      <View style={[styles.header, isSettingsRTL && { flexDirection: 'row-reverse' }]}>
-        {canGoBack ? (
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={handleGoBack}
-            activeOpacity={0.7}>
-            <MyIcon info={{ name: isSettingsRTL ? 'arrow-forward' : 'arrow-back', type: 'Ionicons', color: '#FFFFFF', size: 20 }} />
-          </TouchableOpacity>
-        ) : null}
-        <Text style={[styles.headerTitle, isSettingsRTL && { marginLeft: 0, marginRight: 8 }]}>{isKeyboardOnly ? 'Issie Board' : voiceStrings.settings.settingsTitle}</Text>
-        <View style={{ flex: 1 }} />
-        {onSwitchToClassic && (
-          <TouchableOpacity
-            style={styles.classicButton}
-            onPress={() => {
-              if (isDirty) {
-                confirmUnsavedChanges(onSwitchToClassic);
-              } else {
-                onSwitchToClassic();
-              }
-            }}
-            activeOpacity={0.7}>
-            <Text style={styles.classicButtonText}>Classic View</Text>
-          </TouchableOpacity>
-        )}
-        <TouchableOpacity
-          style={styles.aboutButton}
-          onPress={() => setShowAbout(true)}
-          accessibilityLabel="About"
-          activeOpacity={0.7}>
-          <MyIcon info={{ name: 'information-circle-outline', type: 'Ionicons', color: colors.primary, size: 24 }} />
-        </TouchableOpacity>
-      </View>
+      {/* Keyboard Header — full width, top level */}
+      <KeyboardHeader
+        currentLanguage={kbLanguage}
+        onLanguageChange={(lang) => changeLanguageRef.current?.(lang)}
+        profileName={profileName}
+        onProfilePress={() => showProfilePickerRef.current?.()}
+        onSave={() => saveRef.current?.()}
+        onDiscard={() => discardRef.current?.()}
+        isDirty={isDirty}
+        showFullAccessBadge={showFullAccessBadge}
+        onFullAccessBadgePress={handleFullAccessBadgePress}
+        onSwitchToClassic={onSwitchToClassic ? () => {
+          if (isDirty) {
+            confirmUnsavedChanges(onSwitchToClassic!);
+          } else {
+            onSwitchToClassic!();
+          }
+        } : undefined}
+        onAbout={() => setShowAbout(true)}
+        canGoBack={canGoBack}
+        onGoBack={handleGoBack}
+      />
+
+      {/* Setup status warning — shown right below header when keyboard not added */}
+      {isKeyboardOnly && (
+        <SetupStatusStrip
+          isAdded={setupStatus.isAdded}
+          languageName={getEditorStrings(kbLanguage).editor.languages[kbLanguage === 'he' ? 'hebrew' : kbLanguage === 'ar' ? 'arabic' : 'english']}
+        />
+      )}
 
       {/* Main Content */}
       <View style={styles.mainContent}>
@@ -308,6 +290,7 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
               disabledTabs={disabledTabs}
               mode={isKeyboardOnly ? 'keyboard' : 'voice'}
               kbLanguage={kbLanguage}
+              onAbout={() => setShowAbout(true)}
             />
             <View style={styles.detailArea}>
               {renderContent()}
@@ -322,6 +305,7 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
               disabledTabs={disabledTabs}
               mode={isKeyboardOnly ? 'keyboard' : 'voice'}
               kbLanguage={kbLanguage}
+              onAbout={() => setShowAbout(true)}
             />
             <View style={styles.detailArea}>
               {renderContent()}
@@ -343,45 +327,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: colors.background,
-  },
-  backButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.primary,
-    marginLeft: 8,
-  },
-  classicButton: {
-    backgroundColor: '#3B82F6',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  classicButtonText: {
-    color: '#FFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  aboutButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   mainContent: {
     flex: 1,
@@ -405,22 +350,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     ...cardShadow,
     overflow: 'hidden',
-  },
-  tabDescriptionBanner: {
-    marginHorizontal: 12,
-    marginTop: 2,
-    marginBottom: 0,
-    paddingHorizontal: 14,
-    paddingVertical: 5,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  tabDescriptionText: {
-    fontSize: 15,
-    color: '#64748B',
-    textAlign: 'center',
-    lineHeight: 20,
   },
 });
 

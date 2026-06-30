@@ -8,7 +8,7 @@ interface SetupStatusStripProps {
 }
 
 export const SetupStatusStrip: React.FC<SetupStatusStripProps> = ({ isAdded, languageName }) => {
-  const { strings } = useLocalization();
+  const { strings, isRTL } = useLocalization();
 
   // Only show when keyboard is definitively NOT added
   if (isAdded !== false) {
@@ -39,7 +39,7 @@ export const SetupStatusStrip: React.FC<SetupStatusStripProps> = ({ isAdded, lan
 
   return (
     <TouchableOpacity
-      style={styles.strip}
+      style={[styles.strip, isRTL && { flexDirection: 'row-reverse' }]}
       onPress={showInstructions}
       activeOpacity={0.8}
       accessibilityRole="button"
@@ -47,7 +47,7 @@ export const SetupStatusStrip: React.FC<SetupStatusStripProps> = ({ isAdded, lan
       accessibilityHint={strings.setup.tapForInstructions}
     >
       <Text allowFontScaling={false} style={styles.icon}>&#x26A0;&#xFE0F;</Text>
-      <Text allowFontScaling={false} style={styles.text}>
+      <Text allowFontScaling={false} style={[styles.text, isRTL && { textAlign: 'right' }]}>
         {stripText}
       </Text>
     </TouchableOpacity>

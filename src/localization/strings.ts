@@ -33,6 +33,7 @@ export interface Strings {
     settings: string;
     backToNewsettings: string;
     classicView: string;
+    classicViewNotice: string;
     newProfile: string;
     duplicateProfile: string;
     newProfilePlaceholder: string;
@@ -272,6 +273,7 @@ export interface Strings {
     keyboardsInProfile: string;
     customConfiguration: string;
     keyboardPreview: string;
+    currentKeyboard: string;
     previewHelpText: string;
     generatedConfiguration: string;
     editingHelpText: string;
@@ -365,6 +367,7 @@ const en: Strings = {
     settings: 'Settings',
     backToNewsettings: 'New View',
     classicView: 'Classic View',
+    classicViewNotice: 'This view is intended for users familiar with IssieBoard v1. It contains only a subset of v2 features — we recommend switching to the New View. This view will be removed in a future release.',
     newProfile: 'New Keyboard',
     duplicateProfile: 'Duplicate Keyboard',
     newProfilePlaceholder: 'Enter keyboard name',
@@ -606,6 +609,7 @@ const en: Strings = {
     keyboardsInProfile: 'Keyboards in This Configuration:',
     customConfiguration: 'Custom configuration',
     keyboardPreview: 'Keyboard Preview',
+    currentKeyboard: 'Current keyboard:',
     previewHelpText: 'Live preview of your keyboard. Tap keys to test!',
     generatedConfiguration: 'Generated Configuration (Advanced):',
     editingHelpText: 'Make your changes below and tap "Save Changes" when done.',
@@ -699,6 +703,7 @@ const he: Strings = {
     settings: 'הגדרות',
     backToNewsettings: 'תצוגה חדשה',
     classicView: 'תצוגה קלאסית',
+    classicViewNotice: 'תצוגה זו מיועדת למשתמשים הרגילים לגרסה 1 של IssieBoard. היא כוללת רק חלק מהאפשרויות של גרסה 2 — אנו ממליצים לעבור לתצוגה החדשה. תצוגה זו תוסר בגרסאות עתידיות.',
     newProfile: 'מקלדת חדשה',
     duplicateProfile: 'שכפל מקלדת',
     newProfilePlaceholder: 'הזן שם מקלדת',
@@ -940,6 +945,7 @@ const he: Strings = {
     keyboardsInProfile: 'מקלדות בהגדרה זו:',
     customConfiguration: 'הגדרה מותאמת אישית',
     keyboardPreview: 'תצוגה מקדימה של המקלדת',
+    currentKeyboard: 'מקלדת נוכחית:',
     previewHelpText: 'תצוגה מקדימה של המקלדת. לחץ על כפתורים כדי לבדוק!',
     generatedConfiguration: 'הגדרות מתקדמות:',
     editingHelpText: 'ערוך את השינויים למטה ולחץ "שמור שינויים" בסיום.',
@@ -1033,6 +1039,7 @@ const ar: Strings = {
     settings: 'إعدادات',
     backToNewsettings: 'New View',
     classicView: 'العرض الكلاسيكي',
+    classicViewNotice: 'هذا العرض مخصص للمستخدمين المعتادين على IssieBoard الإصدار 1. يحتوي على جزء فقط من ميزات الإصدار 2 — نوصي بالتبديل إلى العرض الجديد. سيتم إزالة هذا العرض في إصدارات مستقبلية.',
     newProfile: 'لوحة مفاتيح جديدة',
     duplicateProfile: 'تكرار لوحة المفاتيح',
     newProfilePlaceholder: 'أدخل اسم لوحة المفاتيح',
@@ -1274,6 +1281,7 @@ const ar: Strings = {
     keyboardsInProfile: 'لوحات المفاتيح في هذا الإعداد:',
     customConfiguration: 'إعداد مخصص',
     keyboardPreview: 'عرض معاينة لوحة المفاتيح',
+    currentKeyboard: 'لوحة المفاتيح الحالية:',
     previewHelpText: 'عرض معاينة لوحة المفاتيح. اضغط على المفاتيح للاختبار!',
     generatedConfiguration: 'الإعدادات المتقدمة:',
     editingHelpText: 'قم بإجراء التغييرات أدناه واضغط "حفظ التغييرات" عند الانتهاء.',

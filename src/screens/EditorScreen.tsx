@@ -423,10 +423,14 @@ interface EditorScreenInnerProps {
   headless?: boolean;
   /** Active tab ID for headless per-tab rendering */
   activeTab?: string;
+  /** Description text shown at the top of the headless panel for the active tab */
+  tabDescription?: string;
   /** Ref to expose save function to parent */
   saveRef?: React.MutableRefObject<(() => void) | null>;
   /** Ref to expose silent auto-save (background/quit) — handles built-in by saving as a copy */
   autoSaveRef?: React.MutableRefObject<(() => void) | null>;
+  /** Ref to expose discard (restore to last saved state) to parent */
+  discardRef?: React.MutableRefObject<(() => void) | null>;
   /** Ref to expose language change to parent */
   changeLanguageRef?: React.MutableRefObject<((lang: LanguageId) => void) | null>;
   /** Callback to report state changes (language, profile, dirty) to parent */
@@ -485,8 +489,10 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   showProfilePickerRef,
   headless,
   activeTab,
+  tabDescription,
   saveRef,
   autoSaveRef,
+  discardRef,
   changeLanguageRef,
   onStateChange,
   selectedLanguages,
@@ -949,6 +955,17 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       }
     };
   }, [autoSaveRef, handleAutoSave]);
+
+  useEffect(() => {
+    if (discardRef) {
+      discardRef.current = handleDiscard;
+    }
+    return () => {
+      if (discardRef) {
+        discardRef.current = null;
+      }
+    };
+  }, [discardRef, handleDiscard]);
 
   // Expose language change to parent via ref (inner handleLanguageChange loads profiles)
   useEffect(() => {
@@ -1573,13 +1590,18 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
           </Animated.View>
         )}
 
-        {/* Keyboard Setup Status — IssieBoard only */}
-        {appContext !== 'issievoice' && (
+        {/* Keyboard Setup Status — IssieBoard only, not in headless (parent renders it) */}
+        {appContext !== 'issievoice' && !headless && (
           <SetupStatusStrip isAdded={setupStatus.isAdded} languageName={currentLanguageDef.name} />
         )}
 
         {/* Settings panel in rounded raised container */}
         <View style={styles.headlessPanel}>
+          {tabDescription ? (
+            <View style={styles.tabDescriptionBanner}>
+              <Text allowFontScaling={false} style={styles.tabDescriptionText}>{tabDescription}</Text>
+            </View>
+          ) : null}
           <Toolbox
             keyboardVariants={currentLanguageDef.keyboards}
             currentKeyboardId={currentKeyboardId}
@@ -2131,6 +2153,10 @@ interface EditorScreenProps {
   saveRef?: React.MutableRefObject<(() => void) | null>;
   /** Ref to expose silent auto-save (background/quit) — handles built-in by saving as a copy */
   autoSaveRef?: React.MutableRefObject<(() => void) | null>;
+  /** Ref to expose discard (restore to last saved state) to parent */
+  discardRef?: React.MutableRefObject<(() => void) | null>;
+  /** Description text shown at the top of the headless panel for the active tab */
+  tabDescription?: string;
   /** Selected languages for IssieVoice language key injection */
   selectedLanguages?: string[];
 }
@@ -2147,8 +2173,10 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
   changeLanguageRef,
   headless,
   activeTab,
+  tabDescription,
   saveRef,
   autoSaveRef,
+  discardRef,
   selectedLanguages,
 }) => {
   const { strings, isRTL, language: uiLanguage } = useLocalization();
@@ -2693,8 +2721,10 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
         showProfilePickerRef={showProfilePickerRef}
         headless={headless}
         activeTab={activeTab}
+        tabDescription={tabDescription}
         saveRef={saveRef}
         autoSaveRef={autoSaveRef}
+        discardRef={discardRef}
         changeLanguageRef={changeLanguageRef}
         onStateChange={onStateChange}
         selectedLanguages={selectedLanguages}
@@ -2728,6 +2758,16 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     ...cardShadow,
     overflow: 'hidden',
+  },
+  tabDescriptionBanner: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 4,
+  },
+  tabDescriptionText: {
+    fontSize: 13,
+    color: '#64748B',
+    textAlign: 'center',
   },
   headlessPreview: {
     borderRadius: 16,

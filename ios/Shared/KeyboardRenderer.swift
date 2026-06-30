@@ -1137,19 +1137,19 @@ class KeyboardRenderer {
                 // Use ב as the combining base so the mark attaches at correct Hebrew text metrics.
                 // The ב is rendered transparent — only the mark is visible over the circle.
                 let circleLayer = CATextLayer()
-                let circleSize = fontSize * 0.8  // smaller than label font so mark has room
+                let circleSize = fontSize * 0.7  // smaller than label font so mark has room
                 circleLayer.font = UIFont.systemFont(ofSize: circleSize, weight: .regular) as CTFont
                 circleLayer.fontSize = circleSize
                 circleLayer.string = "●"
-                circleLayer.foregroundColor = markColor.withAlphaComponent(0.28).cgColor
+                circleLayer.foregroundColor = markColor.withAlphaComponent(0.15).cgColor
                 circleLayer.alignmentMode = .center
                 circleLayer.contentsScale = UIScreen.main.scale
                 // CATextLayer draws from the top of its frame — size it to the glyph and center it
-                let layerH = circleSize * 1.4
+                let layerH = circleSize * 1.6
                 let vBounds = visualKeyView.bounds
                 circleLayer.frame = CGRect(
                     x: -1,
-                    y: (vBounds.height - layerH) / 2 + 4,
+                    y: (vBounds.height - layerH) / 2 + 5,
                     width: vBounds.width,
                     height: layerH
                 )

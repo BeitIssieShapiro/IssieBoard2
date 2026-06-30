@@ -200,7 +200,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
   initialLanguage,
   onSwitchToAdvanced,
 }) => {
-  const { strings } = useLocalization();
+  const { strings, isRTL } = useLocalization();
   const [loading, setLoading] = useState(true);
   const [currentLanguage, setCurrentLanguage] = useState<LanguageId>(initialLanguage || 'he');
   const [currentProfileId, setCurrentProfileId] = useState<string>('');
@@ -1192,9 +1192,9 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
     <SafeAreaView style={styles.container}>
       {/* Sections list — always mounted, never unmounted or hidden */}
       <View style={styles.sectionsLayer} pointerEvents={activeSetting ? 'none' : 'auto'}>
-        <View style={styles.header}>
+        <View style={[styles.header, isRTL && { flexDirection: 'row-reverse' }]}>
           <Text allowFontScaling={false} style={styles.headerTitle}>Issie Board ({strings.editor.classicView})</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 8 }}>
             <TouchableOpacity style={styles.advancedButton} onPress={onSwitchToAdvanced}>
               <Text allowFontScaling={false} style={styles.advancedButtonText}>{strings.editor.backToNewsettings}</Text>
             </TouchableOpacity>
@@ -1206,6 +1206,10 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
               <MyIcon info={{ name: 'information-circle-outline', type: 'Ionicons', color: '#3B82F6', size: 24 }} />
             </TouchableOpacity>
           </View>
+        </View>
+        <View style={[styles.noticeBar, isRTL && { flexDirection: 'row-reverse' }]}>
+          <Text allowFontScaling={false} style={styles.noticeIcon}>⚠️</Text>
+          <Text allowFontScaling={false} style={[styles.noticeText, isRTL && { textAlign: 'right' }]}>{strings.editor.classicViewNotice}</Text>
         </View>
         <ClassicSectionsList
           classicState={classicState}
@@ -1377,6 +1381,26 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#C6C6C8',
+  },
+  noticeBar: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#FFF8E1',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#FFE082',
+  },
+  noticeIcon: {
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  noticeText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#6D4C00',
+    lineHeight: 18,
   },
   headerTitle: {
     fontSize: 20,
