@@ -138,7 +138,8 @@ data class DiacriticItem(
     val name: String,         // Display name in the keyboard's language
     val onlyFor: List<String>? = null,   // If present, only show for these letters
     val excludeFor: List<String>? = null, // If present, don't show for these letters
-    val isReplacement: Boolean? = null // If true, replaces the letter entirely
+    val isReplacement: Boolean? = null, // If true, replaces the letter entirely
+    val isAdvanced: Boolean? = null    // If true, only shown in full/custom mode (not basic)
 )
 
 /** Option for a multi-option modifier (like shin/sin) */
@@ -205,17 +206,25 @@ data class DiacriticsDefinition(
 data class DiacriticsSettings(
     val hidden: List<String>? = null,             // Array of diacritic IDs to hide
     val disabledModifiers: List<String>? = null,  // Array of modifier IDs to disable
-    val disabled: Boolean? = null                 // If true, completely disable nikkud for this keyboard (hide nikkud key)
+    val disabled: Boolean? = null,                // If true, completely disable nikkud for this keyboard (hide nikkud key)
+    val nikkudMode: String? = null,   // nil = popup (default), "topRow" = top row mode, "topRowAlways" = always show top row
+    val simpleMode: Boolean? = null   // If true, hide advanced diacritics (default: true)
 ) {
     /** Check if a specific modifier is enabled */
     fun isModifierEnabled(modifierId: String): Boolean {
         val disabled = disabledModifiers ?: return true
         return !disabled.contains(modifierId)
     }
-    
+
     /** Check if diacritics are completely disabled for this keyboard */
     val isDisabled: Boolean
         get() = disabled ?: false
+
+    val isTopRowMode: Boolean
+        get() = nikkudMode == "topRow"
+
+    val isTopRowAlways: Boolean
+        get() = nikkudMode == "topRowAlways"
 }
 
 /** Generated diacritic option for display */
@@ -422,6 +431,24 @@ fun parseColor(hexString: String): Int? {
     } catch (e: Exception) {
         null
     }
+}
+
+/**
+ * Returns a dark-mode-aware version of a color (darkens white for dark mode).
+ * Port of UIColor.adaptedForDarkMode() from ios/Shared/KeyboardModels.swift
+ *
+ * On Android, we check the current configuration to determine if dark mode is active.
+ */
+fun adaptColorForDarkMode(color: Int, context: Context): Int {
+    if (color == Color.WHITE) {
+        val nightMode = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        return if (nightMode == Configuration.UI_MODE_NIGHT_YES) {
+            Color.rgb(89, 89, 97)  // (0.35, 0.35, 0.38) -> approx RGB(89, 89, 97)
+        } else {
+            Color.WHITE
+        }
+    }
+    return color
 }
 
 // MARK: - Diacritics Generator

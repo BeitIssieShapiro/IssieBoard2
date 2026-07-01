@@ -117,6 +117,22 @@ abstract class BaseKeyboardService : InputMethodService() {
         super.onFinishInputView(finishingInput)
         debugLog("📱 onFinishInputView")
     }
+
+    override fun onUpdateSelection(
+        oldSelStart: Int, oldSelEnd: Int,
+        newSelStart: Int, newSelEnd: Int,
+        candidatesStart: Int, candidatesEnd: Int
+    ) {
+        super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
+        // Seed shadow context on cursor move — InputConnection may have valid context
+        // (Port of iOS selectionDidChange)
+        // Note: In current architecture, shadow context is in KeyboardEngine (used by preview).
+        // For BaseKeyboardService (real keyboard), we update suggestions on selection change.
+        val beforeText = currentInputConnection?.getTextBeforeCursor(100, 0)?.toString()
+        if (!beforeText.isNullOrEmpty()) {
+            suggestionController?.detectCurrentWord(beforeText)
+        }
+    }
     
     override fun onWindowShown() {
         super.onWindowShown()
@@ -152,8 +168,39 @@ abstract class BaseKeyboardService : InputMethodService() {
             }
             
             onNikkudSelected = { value ->
-                currentInputConnection?.commitText(value, 1)
+                insertNikkudMark(value)
                 suggestionController?.handleSpace()
+            }
+
+            onNikkudStateChanged = {
+                // Nikkud top-row was added/removed — request layout so WRAP_CONTENT height recalculates.
+                // Do NOT call renderKeyboard here — we're called from inside a render (infinite loop).
+                keyboardView?.requestLayout()
+            }
+
+            onNikkudActivePersist = { active ->
+                preferences.setString(if (active) "true" else "false", "nikkudActive_$keyboardLanguage")
+            }
+
+            onGetCharBeforeCursor = {
+                val before = currentInputConnection?.getTextBeforeCursor(5, 0)?.toString() ?: ""
+                if (before.isEmpty()) {
+                    null
+                } else {
+                    val lastCluster = before.takeLast(1)
+                    val firstLetter = lastCluster.codePoints().toArray().firstOrNull { cp ->
+                        val type = Character.getType(cp)
+                        type == Character.OTHER_LETTER.toInt() ||
+                        type == Character.UPPERCASE_LETTER.toInt() ||
+                        type == Character.LOWERCASE_LETTER.toInt()
+                    }
+                    if (firstLetter != null) {
+                        String(Character.toChars(firstLetter))
+                    } else {
+                        val first = lastCluster.codePoints().toArray().firstOrNull()
+                        if (first != null) String(Character.toChars(first)) else ""
+                    }
+                }
             }
             
             onSuggestionSelected = { suggestion ->
@@ -235,6 +282,9 @@ abstract class BaseKeyboardService : InputMethodService() {
     private fun parseKeyboardConfig(jsonString: String) {
         try {
             parsedConfig = KeyboardConfigParser.parse(jsonString)
+            // Restore persisted nikkud state before rendering
+            val persistedNikkud = preferences.getString("nikkudActive_$keyboardLanguage") == "true"
+            renderer?.restoreNikkudActive(persistedNikkud)
             renderKeyboard(null)
         } catch (e: Exception) {
             errorLog("Failed to parse config: ${e.message}")
@@ -515,6 +565,90 @@ abstract class BaseKeyboardService : InputMethodService() {
         }
         
         suggestionController?.detectCurrentWord(ic.getTextBeforeCursor(100, 0)?.toString())
+    }
+
+    /**
+     * Insert a nikkud combining mark, handling conflicts:
+     * - Vowels (U+05B0–U+05BB, U+05C7) are mutually exclusive — replace existing vowel
+     * - Dagesh (U+05BC) toggles: if already present remove it, otherwise add it
+     * - Shin/sin dots (U+05C1/U+05C2) replace each other
+     * Port of ios/Shared/KeyboardEngine.swift insertNikkudMark()
+     */
+    private fun insertNikkudMark(mark: String) {
+        val ic = currentInputConnection ?: run {
+            // Fallback: just commit the mark
+            currentInputConnection?.commitText(mark, 1)
+            return
+        }
+
+        val hebrewVowels: Set<Int> = setOf(
+            0x05B0, 0x05B1, 0x05B2, 0x05B3, 0x05B4,
+            0x05B5, 0x05B6, 0x05B7, 0x05B8, 0x05B9,
+            0x05BA, 0x05BB, 0x05C7
+        )
+        val dagesh = 0x05BC
+        val shinDot = 0x05C1
+        val sinDot = 0x05C2
+
+        val incomingScalar = mark.codePoints().toArray().firstOrNull()
+        if (incomingScalar == null) {
+            ic.commitText(mark, 1)
+            return
+        }
+        val inVal = incomingScalar
+
+        // Determine which conflict group this mark belongs to
+        val isVowel = hebrewVowels.contains(inVal)
+        val isDagesh = inVal == dagesh
+        val isShinSin = inVal == shinDot || inVal == sinDot
+
+        if (!isVowel && !isDagesh && !isShinSin) {
+            ic.commitText(mark, 1)
+            return
+        }
+
+        val before = ic.getTextBeforeCursor(10, 0)?.toString()
+        if (before.isNullOrEmpty()) {
+            ic.commitText(mark, 1)
+            return
+        }
+
+        // Get the last grapheme cluster
+        val lastCluster = before.takeLast(1)
+        val scalars = lastCluster.codePoints().toArray()
+
+        // Find an existing mark in the same conflict group
+        val conflictIndex: Int? = when {
+            isVowel -> scalars.indices.lastOrNull { hebrewVowels.contains(scalars[it]) }
+            isDagesh -> scalars.indices.lastOrNull { scalars[it] == dagesh }
+            else -> scalars.indices.lastOrNull { scalars[it] == shinDot || scalars[it] == sinDot }
+        }
+
+        if (conflictIndex == null) {
+            ic.commitText(mark, 1)
+            return
+        }
+
+        val scalarsAfter = scalars.size - 1 - conflictIndex
+
+        // Delete everything from the existing mark to end of cluster
+        ic.deleteSurroundingText(scalarsAfter, 0)
+        ic.deleteSurroundingText(1, 0) // delete the existing mark
+
+        // Re-insert tail (marks after the conflicting one)
+        if (scalarsAfter > 0) {
+            val tail = scalars.takeLast(scalarsAfter).map { String(Character.toChars(it)) }.joinToString("")
+            ic.commitText(tail, 1)
+        }
+
+        // For dagesh: if same mark was already there, we removed it — don't re-insert (toggle off)
+        val existingVal = scalars[conflictIndex]
+        val isSameMark = existingVal == inVal
+        if (isDagesh && isSameMark) {
+            return // toggled off
+        }
+
+        ic.commitText(mark, 1)
     }
     
     private fun handleSuggestionSelected(suggestion: String) {

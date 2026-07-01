@@ -355,7 +355,8 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
             val fullKeyboardHeight = renderer?.calculateKeyboardHeight(
                 config,
                 currentKeyset,
-                config.isWordSuggestionsEnabled
+                config.isWordSuggestionsEnabled,
+                nikkudTopRowActive = renderer?.isNikkudTopRowActive ?: false
             ) ?: 0
 
             if (fullKeyboardHeight > 0) {
@@ -414,7 +415,7 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
         // Calculate and report keyboard height to React Native (matching iOS behavior)
         // calculateKeyboardHeight returns pixels, convert to dp for React Native
         val suggestionsEnabled = config.isWordSuggestionsEnabled
-        val calculatedHeightPx = renderer?.calculateKeyboardHeight(config, currentKeyset, suggestionsEnabled) ?: 0
+        val calculatedHeightPx = renderer?.calculateKeyboardHeight(config, currentKeyset, suggestionsEnabled, nikkudTopRowActive = renderer?.isNikkudTopRowActive ?: false) ?: 0
         val calculatedHeightDp = (calculatedHeightPx.toFloat() / resources.displayMetrics.density).toInt()
         debugLog("📐 [KeyboardPreviewView] Calculated height: ${calculatedHeightPx}px / ${calculatedHeightDp}dp for keyset: $currentKeyset")
         emitHeightChangeEvent(calculatedHeightDp, currentKeyset)

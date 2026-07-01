@@ -145,9 +145,22 @@ class KeyboardRenderer(private val context: Context) {
     
     // Callback to get text direction at cursor (returns true if RTL, false if LTR)
     var onGetTextDirection: (() -> Boolean)? = null
-    
+
+    // Callback to get the character (base letter) before the cursor for nikkud state checks
+    var onGetCharBeforeCursor: (() -> String?)? = null
+
+    /** Called when nikkud active state changes (so controller can update keyboard height) */
+    var onNikkudStateChanged: (() -> Unit)? = null
+
+    /** Called when nikkud active state changes with the new value (for persistence) */
+    var onNikkudActivePersist: ((Boolean) -> Unit)? = null
+
     // Layout tracking to prevent infinite loops
     private var lastRenderedWidth: Int = 0
+    private var lastRenderedRegularKeyWidth: Float = 44f
+
+    // Re-entrancy guard: prevents onNikkudStateChanged from triggering an infinite render loop
+    private var isRendering: Boolean = false
     
     // Screen size detection for showOn filtering and large-screen variant selection
     private val isLargeScreen: Boolean
@@ -475,7 +488,7 @@ class KeyboardRenderer(private val context: Context) {
     // MARK: - Public Methods
 
     /** Calculate the required keyboard height based on the current config */
-    fun calculateKeyboardHeight(config: KeyboardConfig, keysetId: String, suggestionsEnabled: Boolean): Int {
+    fun calculateKeyboardHeight(config: KeyboardConfig, keysetId: String, suggestionsEnabled: Boolean, nikkudTopRowActive: Boolean = false): Int {
         val keyset = config.keysets.find { it.id == keysetId } ?: return dpToPx(216)
 
         // Calculate row height using the dimension system
@@ -498,18 +511,20 @@ class KeyboardRenderer(private val context: Context) {
             fontSizePreset = fontPreset
         )
 
-        val numberOfRows = keyset.rows.size
-        val calculatedRowHeight = dimensions.calculateRowHeight(numberOfRows = numberOfRows, hasSuggestions = suggestionsEnabled)
+        val baseRowCount = keyset.rows.size
+        val calculatedRowHeight = dimensions.calculateRowHeight(numberOfRows = baseRowCount, hasSuggestions = suggestionsEnabled)
 
-        val rowsHeight = (numberOfRows * dpToPx(calculatedRowHeight.toInt()))
-        val spacingHeight = max(0, numberOfRows - 1) * rowSpacing
+        // When nikkud top-row is active, add one full extra row on top of the normal height
+        val totalRowCount = baseRowCount + (if (nikkudTopRowActive) 1 else 0)
+        val rowsHeight = (totalRowCount * dpToPx(calculatedRowHeight.toInt()))
+        val spacingHeight = max(0, totalRowCount - 1) * rowSpacing
         val suggestionsHeight = if (suggestionsEnabled) suggestionsBarHeight else 0
         val topPadding = 0
         val bottomPadding = dpToPx(4)
 
         val totalHeight = rowsHeight + spacingHeight + suggestionsHeight + topPadding + bottomPadding
 
-        debugLog("📐 [calculateKeyboardHeight] preset: ${preset.value}, rowHeight: ${calculatedRowHeight}dp, rows: $numberOfRows, total: $totalHeight")
+        debugLog("📐 [calculateKeyboardHeight] preset: ${preset.value}, rowHeight: ${calculatedRowHeight}dp, rows: $totalRowCount, nikkudTopRow: $nikkudTopRowActive, total: $totalHeight")
 
         return totalHeight
     }
@@ -518,7 +533,19 @@ class KeyboardRenderer(private val context: Context) {
     fun needsRender(width: Int): Boolean {
         return abs(width - lastRenderedWidth) > 1
     }
-    
+
+    /** Trigger re-render with current config. Returns true if a re-render was performed.
+     * Port of ios/Shared/KeyboardRenderer.swift rerenderIfNeeded() */
+    fun rerenderIfNeeded(): Boolean {
+        val container = container ?: return false
+        val config = config ?: return false
+        if (needsRender(container.width)) {
+            renderKeyboard(container, config, currentKeysetId, editorContext)
+            return true
+        }
+        return false
+    }
+
     /** Set selected key IDs for visual highlighting */
     fun setSelectedKeys(keyIds: Set<String>) {
         debugLog("🎯 KeyboardRenderer setSelectedKeys: ${keyIds.size} keys")
@@ -609,6 +636,10 @@ class KeyboardRenderer(private val context: Context) {
         editorContext: EditorContext?,
         overlayContainer: ViewGroup? = null  // Optional FrameLayout for overlays like nikkud picker
     ) {
+        // Re-entrancy guard
+        val wasRendering = isRendering
+        isRendering = true
+
         debugLog("🎬 KeyboardRenderer.renderKeyboard ENTRY - keyset: $currentKeysetId, caller: ${Thread.currentThread().stackTrace[3].methodName}")
         var currentWidth = container.width
         debugLog("📐 RENDER START - keysetId: $currentKeysetId, width: $currentWidth")
@@ -628,11 +659,17 @@ class KeyboardRenderer(private val context: Context) {
             val savedScale = currentScale
             currentScale = 1.0f
 
-            // Calculate full-size keyboard height
+            // Compute top-row active state from the incoming config (this.config not yet updated)
+            val incomingSettings = config.diacriticsSettings?.get(currentKeyboardId ?: "")
+            val incomingTopRowActive = (incomingSettings?.isTopRowAlways == true)
+                || (nikkudActive && (incomingSettings?.isTopRowMode == true))
+
+            // Calculate full-size keyboard height (include nikkud top-row if active)
             val fullKeyboardHeight = calculateKeyboardHeight(
                 config,
                 currentKeysetId,
-                wordSuggestionsOverrideEnabled ?: wordSuggestionsEnabled
+                wordSuggestionsOverrideEnabled ?: wordSuggestionsEnabled,
+                nikkudTopRowActive = incomingTopRowActive
             )
 
             // Only scale if we have a valid keyboard height
@@ -681,7 +718,13 @@ class KeyboardRenderer(private val context: Context) {
             }
             debugLog("📱 Current keyboard ID set to: ${this.currentKeyboardId} (keyset: ${this.currentKeysetId})")
         }
-        
+
+        // If nikkud is disabled in config, reset active state so it doesn't linger
+        val isNikkudDisabledInConfig = config.diacriticsSettings?.get(currentKeyboardId ?: "")?.isDisabled ?: false
+        if (isNikkudDisabledInConfig && nikkudActive) {
+            nikkudActive = false
+        }
+
         // Clear existing views, but preserve nikkud picker overlay if present
         for (i in container.childCount - 1 downTo 0) {
             val child = container.getChildAt(i)
@@ -920,6 +963,15 @@ class KeyboardRenderer(private val context: Context) {
         debugLog("📐 Rendering ${keyset.rows.size} rows with currentWidth=$currentWidth, currentScale=$currentScale, availableWidth=$availableWidth")
         debugLog("📐 CURRENT SCALE = $currentScale, effectiveScale: $effectiveScale")
 
+        // Nikkud top row — rendered before normal rows when top-row mode is active
+        val nikkudSettings = config.diacriticsSettings?.get(currentKeyboardId ?: "")
+        val isTopRowAlways = nikkudSettings?.isTopRowAlways ?: false
+        val isTopRowMode = nikkudSettings?.isTopRowMode ?: false
+        if (isTopRowAlways || (nikkudActive && isTopRowMode)) {
+            val nikkudRowView = buildNikkudTopRow(availableWidth, effectiveRowHeight)
+            rowsContainer.addView(nikkudRowView)
+        }
+
         for ((rowIndex, row) in keyset.rows.withIndex()) {
             debugLog("📐 Creating row $rowIndex with ${row.keys.size} keys")
 
@@ -949,6 +1001,17 @@ class KeyboardRenderer(private val context: Context) {
 
         // Android: Always use dimension-based scaling (no transforms)
         debugLog("📐 Android preview: using dimension scaling with effectiveScale=$effectiveScale, currentScale=$currentScale")
+
+        // Repopulate suggestions bar after re-render (bar is recreated; currentSuggestions still valid)
+        if (!isPreviewMode) {
+            updateSuggestionsBar()
+        }
+
+        // End of re-entrancy guard
+        isRendering = wasRendering
+        if (!wasRendering && !isPreviewMode) {
+            onNikkudStateChanged?.invoke()
+        }
     }
 
     // MARK: - Private Helpers
@@ -1059,11 +1122,12 @@ class KeyboardRenderer(private val context: Context) {
                     continue
                 }
                 
-                // Skip nikkud key if disabled
-                if (keyType == "nikkud" && isNikkudDisabled) {
+                // Skip nikkud key if disabled or if always shown as top row (no toggle button needed)
+                val isNikkudAlwaysTopRow = config?.diacriticsSettings?.get(currentKeyboardId ?: "")?.isTopRowAlways ?: false
+                if (keyType == "nikkud" && (isNikkudDisabled || isNikkudAlwaysTopRow)) {
                     continue
                 }
-                
+
                 // Skip keys hidden by showOn filter (screen size conditional keys)
                 if (!key.shouldShow(isLargeScreen)) {
                     debugLog("📏 Row $rowIndex: Skipping key due to showOn: value='${key.value}', type='${key.type}', width=${parsedKey.width}")
@@ -1169,8 +1233,9 @@ class KeyboardRenderer(private val context: Context) {
                 continue
             }
 
-            // Skip nikkud key if disabled
-            if (keyType == "nikkud" && isNikkudDisabled) {
+            // Skip nikkud key if disabled or if always shown as top row
+            val isNikkudAlwaysTopRowFirstPass = config?.diacriticsSettings?.get(currentKeyboardId ?: "")?.isTopRowAlways ?: false
+            if (keyType == "nikkud" && (isNikkudDisabled || isNikkudAlwaysTopRowFirstPass)) {
                 continue
             }
 
@@ -1232,12 +1297,13 @@ class KeyboardRenderer(private val context: Context) {
                 continue
             }
             
-            // Skip nikkud key if disabled
-            if (keyType == "nikkud" && isNikkudDisabled) {
+            // Skip nikkud key if disabled or if always shown as top row
+            val isNikkudAlwaysTopRowSecondPass = config?.diacriticsSettings?.get(currentKeyboardId ?: "")?.isTopRowAlways ?: false
+            if (keyType == "nikkud" && (isNikkudDisabled || isNikkudAlwaysTopRowSecondPass)) {
                 keyIndex++
                 continue
             }
-            
+
             // Skip key if it doesn't match the current screen size (showOn filter)
             if (!key.shouldShow(isLargeScreen)) {
                 keyIndex++
@@ -1298,7 +1364,12 @@ class KeyboardRenderer(private val context: Context) {
                 }
                 
                 val keyWidth = ((effectiveWidth / baselineWidth) * availableWidth).toInt() - keySpacing
-                
+
+                // Track regular key width for nikkud short-tap threshold
+                if (!SPECIAL_KEY_TYPES.contains(parsedKey.type.lowercase()) && parsedKey.width == 1.0) {
+                    lastRenderedRegularKeyWidth = keyWidth.toFloat()
+                }
+
                 // Log for space and enter keys
                 if (parsedKey.value == " " || parsedKey.type == "enter") {
                     debugLog("📐 KEY: value='${parsedKey.value}', type='${parsedKey.type}', effectiveWidth=$effectiveWidth, baselineWidth=$baselineWidth, availableWidth=$availableWidth, finalKeyWidth=$keyWidth")
@@ -1816,25 +1887,79 @@ class KeyboardRenderer(private val context: Context) {
                     debugLog("⚙️ Settings/Close/Nikkud clicked in selection mode")
                     onKeyLongPress?.invoke(key)
                 }
+
+                // Add touch feedback (alpha highlight)
+                buttonContainer.setOnTouchListener { _, event ->
+                    when (event.action) {
+                        MotionEvent.ACTION_DOWN -> {
+                            highlightKey(buttonContainer)
+                            false
+                        }
+                        MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                            unhighlightKey(buttonContainer)
+                            false
+                        }
+                        else -> false
+                    }
+                }
             } else {
                 // In keyboard mode: tap to trigger action
                 buttonContainer.setOnClickListener {
                     handleKeyClick(key, it)
                 }
-            }
 
-            // Add touch feedback (alpha highlight)
-            buttonContainer.setOnTouchListener { _, event ->
-                when (event.action) {
-                    MotionEvent.ACTION_DOWN -> {
-                        highlightKey(buttonContainer)
-                        false
+                if (keyType == "nikkud") {
+                    // Nikkud: requires 0.5 sec long-press to activate (when inactive)
+                    var longPressHandler: android.os.Handler? = null
+                    var longPressRunnable: Runnable? = null
+                    var didLongPress = false
+
+                    buttonContainer.setOnTouchListener { _, event ->
+                        when (event.action) {
+                            MotionEvent.ACTION_DOWN -> {
+                                didLongPress = false
+                                highlightKey(buttonContainer)
+                                if (!nikkudActive) {
+                                    longPressHandler = android.os.Handler(android.os.Looper.getMainLooper())
+                                    longPressRunnable = Runnable {
+                                        debugLog("🔑 Nikkud long-pressed - activating")
+                                        didLongPress = true
+                                        nikkudActive = true
+                                        onNikkudActivePersist?.invoke(true)
+                                        rerender()
+                                    }
+                                    longPressHandler?.postDelayed(longPressRunnable!!, 500)
+                                }
+                                false
+                            }
+                            MotionEvent.ACTION_UP -> {
+                                longPressRunnable?.let { longPressHandler?.removeCallbacks(it) }
+                                unhighlightKey(buttonContainer)
+                                if (didLongPress) true else false
+                            }
+                            MotionEvent.ACTION_CANCEL -> {
+                                longPressRunnable?.let { longPressHandler?.removeCallbacks(it) }
+                                unhighlightKey(buttonContainer)
+                                false
+                            }
+                            else -> false
+                        }
                     }
-                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                        unhighlightKey(buttonContainer)
-                        false
+                } else {
+                    // Add touch feedback for settings/close
+                    buttonContainer.setOnTouchListener { _, event ->
+                        when (event.action) {
+                            MotionEvent.ACTION_DOWN -> {
+                                highlightKey(buttonContainer)
+                                false
+                            }
+                            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                                unhighlightKey(buttonContainer)
+                                false
+                            }
+                            else -> false
+                        }
                     }
-                    else -> false
                 }
             }
         } else if (keyType == "shift") {
@@ -1926,47 +2051,6 @@ class KeyboardRenderer(private val context: Context) {
                                 // Normal tap - let click listener handle it
                                 false
                             }
-                        }
-                        else -> false
-                    }
-                }
-            } else if (keyType == "nikkud") {
-                // Nikkud key: requires 0.5 sec long-press to activate (when inactive), normal tap to deactivate (when active)
-                var longPressHandler: android.os.Handler? = null
-                var longPressRunnable: Runnable? = null
-                
-                buttonContainer.setOnTouchListener { _, event ->
-                    when (event.action) {
-                        MotionEvent.ACTION_DOWN -> {
-                            if (!nikkudActive) {
-                                // Inactive: start long-press timer
-                                longPressHandler = android.os.Handler(android.os.Looper.getMainLooper())
-                                longPressRunnable = Runnable {
-                                    debugLog("🔑 Nikkud long-pressed - activating")
-                                    nikkudActive = true
-                                    rerender()
-                                }
-                                longPressHandler?.postDelayed(longPressRunnable!!, 500)
-                            }
-                            false
-                        }
-                        MotionEvent.ACTION_UP -> {
-                            longPressHandler?.removeCallbacks(longPressRunnable!!)
-                            if (nikkudActive) {
-                                // Active: normal tap deactivates
-                                debugLog("🔑 Nikkud tapped - deactivating")
-                                nikkudActive = false
-                                updateNikkudKeyVisual(buttonContainer)
-                                true
-                            } else {
-                                // Inactive and released before 0.5 sec: ignore
-                                debugLog("🔑 Nikkud tapped too quickly - requires 0.5 sec press")
-                                false
-                            }
-                        }
-                        MotionEvent.ACTION_CANCEL -> {
-                            longPressHandler?.removeCallbacks(longPressRunnable!!)
-                            false
                         }
                         else -> false
                     }
@@ -2070,16 +2154,26 @@ class KeyboardRenderer(private val context: Context) {
             }
             
             "nikkud" -> {
-                // In selection mode, emit key press for selection
-                if (onKeyLongPress != null) {
+                if (nikkudActive) {
+                    // When nikkud is active, a tap always deactivates it
+                    debugLog("   → Handling NIKKUD tap (deactivating)")
+                    nikkudActive = false
+                    onNikkudActivePersist?.invoke(false)
+                    rerender()
+                } else if (onKeyLongPress != null) {
+                    // Selection mode and nikkud inactive: emit key press for selection
                     debugLog("   → Selection mode: emitting key press for nikkud")
                     onKeyPress?.invoke(key)
-                    return
+                } else {
+                    // Normal mode, nikkud inactive: short tap = space if layout is narrow
+                    val spaceInfo = findSpaceKeyInfo()
+                    if (spaceInfo != null && spaceInfo.second < lastRenderedRegularKeyWidth * 6) {
+                        debugLog("   → Nikkud short-tap: forwarding as space (spaceWidth=${spaceInfo.second}, threshold=${lastRenderedRegularKeyWidth * 6})")
+                        onKeyPress?.invoke(spaceInfo.first)
+                    } else {
+                        debugLog("   → Ignoring quick tap on NIKKUD (wide layout or no space key)")
+                    }
                 }
-                debugLog("   → Handling NIKKUD")
-                nikkudActive = !nikkudActive
-                // Update only the nikkud key's background color without full re-render
-                updateNikkudKeyVisual(keyView)
             }
             
             "keyset" -> {
@@ -2145,28 +2239,43 @@ class KeyboardRenderer(private val context: Context) {
 
             else -> {
                 debugLog("   → Handling DEFAULT key")
-                
+
                 val shouldShowDiacritics = shouldShowDiacriticsPopup(key)
-                
+                val isSpace = key.value == " "
+
                 if (nikkudActive && shouldShowDiacritics) {
-                    val diacriticsOptions = getDiacriticsForKey(key)
-                    if (diacriticsOptions.isNotEmpty()) {
-                        showNikkudPicker(diacriticsOptions, keyView)
+                    val isTopRowMode = config?.diacriticsSettings?.get(currentKeyboardId ?: "")?.isTopRowMode ?: false
+                    if (!isTopRowMode) {
+                        // Popup mode — show picker
+                        val diacriticsOptions = getDiacriticsForKey(key)
+                        if (diacriticsOptions.isNotEmpty()) {
+                            showNikkudPicker(diacriticsOptions, keyView)
+                        } else {
+                            onKeyPress?.invoke(key)
+                            if (shiftState == ShiftState.ACTIVE && !isSpace) {
+                                shiftState = ShiftState.INACTIVE
+                                rerender()
+                            }
+                        }
                     } else {
+                        // Top row mode — emit key then update modifier states
                         onKeyPress?.invoke(key)
-                        // Don't deactivate shift for space key - auto-shift handles that
-                        if (shiftState == ShiftState.ACTIVE && key.value != " ") {
+                        if (shiftState == ShiftState.ACTIVE && !isSpace) {
                             shiftState = ShiftState.INACTIVE
                             rerender()
+                        } else {
+                            updateNikkudTopRowModifierStates()
                         }
                     }
                 } else {
                     onKeyPress?.invoke(key)
-                    
+
                     // Don't deactivate shift for space key - auto-shift handles that
-                    if (shiftState == ShiftState.ACTIVE && key.value != " ") {
+                    if (shiftState == ShiftState.ACTIVE && !isSpace) {
                         shiftState = ShiftState.INACTIVE
                         rerender()
+                    } else if (isNikkudTopRowActive) {
+                        updateNikkudTopRowModifierStates()
                     }
                 }
             }
@@ -2380,7 +2489,321 @@ class KeyboardRenderer(private val context: Context) {
             debugLog("🎯 Shift not in ACTIVE state (is $shiftState), not changing")
         }
     }
-    
+
+    /** Returns true when nikkud top-row should be shown.
+     * topRowAlways: always shown regardless of nikkudActive toggle.
+     * topRow: shown only when nikkudActive toggle is on.
+     * Port of ios/Shared/KeyboardRenderer.swift isNikkudTopRowActive */
+    val isNikkudTopRowActive: Boolean
+        get() {
+            val settings = config?.diacriticsSettings?.get(currentKeyboardId ?: "")
+            if (settings?.isTopRowAlways == true) return true
+            if (!nikkudActive) return false
+            return settings?.isTopRowMode ?: false
+        }
+
+    /** Restore persisted nikkud active state (called by controller on load, before renderKeyboard). */
+    fun restoreNikkudActive(active: Boolean) {
+        nikkudActive = active
+    }
+
+    /** Update modifier button enabled/alpha states without a full re-render (no flicker).
+     * Port of ios/Shared/KeyboardRenderer.swift updateNikkudTopRowModifierStates() */
+    fun updateNikkudTopRowModifierStates() {
+        val container = container ?: return
+        val diacriticsDefinition = config?.getDiacritics(currentKeyboardId) ?: return
+
+        val charBefore = onGetCharBeforeCursor?.invoke() ?: ""
+
+        // Find the nikkud top row view
+        val topRowView = container.findViewWithTag<View>(NIKKUD_TOP_ROW_TAG) as? ViewGroup ?: return
+
+        val modifiers = diacriticsDefinition.getAllModifiers()
+        val disabledModifiers = config?.diacriticsSettings?.get(currentKeyboardId ?: "")?.disabledModifiers ?: emptyList()
+
+        // Build the same ordered list of modifier marks as buildNikkudTopRow
+        var modifierIndex = 0
+        for (modifier in modifiers) {
+            if (disabledModifiers.contains(modifier.id)) continue
+            val applies: Boolean = if (charBefore.isEmpty()) {
+                true
+            } else {
+                when {
+                    modifier.appliesTo != null -> modifier.appliesTo.contains(charBefore)
+                    modifier.excludeFor != null -> !modifier.excludeFor.contains(charBefore)
+                    else -> true
+                }
+            }
+            val markCount = modifier.options?.size ?: (if (modifier.mark != null) 1 else 0)
+            repeat(markCount) {
+                val btn = topRowView.findViewWithTag<View>(NIKKUD_MODIFIER_BUTTON_TAG_BASE + modifierIndex)
+                if (btn != null) {
+                    btn.isEnabled = applies
+                    btn.alpha = if (applies) 1.0f else 0.4f
+                }
+                modifierIndex++
+            }
+        }
+    }
+
+    /** Find the space button and return its ParsedKey and width.
+     * Port of ios/Shared/KeyboardRenderer.swift findSpaceKeyInfo() */
+    private fun findSpaceKeyInfo(): Pair<ParsedKey, Float>? {
+        val rowsContainer = activeRowsContainer ?: return null
+        for (i in 0 until rowsContainer.childCount) {
+            val rowView = rowsContainer.getChildAt(i) as? ViewGroup ?: continue
+            for (j in 0 until rowView.childCount) {
+                val button = rowView.getChildAt(j)
+                val tag = button.tag as? String ?: continue
+                val info = decodeKeyInfo(tag) ?: continue
+                val type = info.optString("type", "")
+                if (type.lowercase() == "space") {
+                    val key = parseKeyFromInfo(info) ?: continue
+                    return Pair(key, button.width.toFloat())
+                }
+            }
+        }
+        return null
+    }
+
+    // MARK: - Nikkud Top Row
+
+    /**
+     * Build the nikkud top-row view showing all visible nikkud signs as tappable square buttons.
+     * Port of ios/Shared/KeyboardRenderer.swift buildNikkudTopRow()
+     */
+    private fun buildNikkudTopRow(availableWidth: Int, height: Int): ViewGroup {
+        val rowView = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(availableWidth, height)
+            gravity = Gravity.CENTER_HORIZONTAL
+            tag = NIKKUD_TOP_ROW_TAG
+        }
+
+        val diacriticsDefinition = config?.getDiacritics(currentKeyboardId) ?: return rowView
+        val settings = config?.diacriticsSettings?.get(currentKeyboardId ?: "")
+        val hidden = settings?.hidden ?: emptyList()
+        val disabledModifiers = settings?.disabledModifiers ?: emptyList()
+        val isSimpleMode = settings?.simpleMode ?: true
+
+        // Filter vowel items: plain, replacements, hidden, and advanced (in basic/simple mode)
+        val items = diacriticsDefinition.items.filter { item ->
+            if (item.id == "plain") return@filter false
+            if (item.isReplacement == true) return@filter false
+            if (hidden.contains(item.id)) return@filter false
+            if (isSimpleMode && item.isAdvanced == true) return@filter false
+            true
+        }
+
+        // Build modifier marks: always show all enabled modifiers, but disable those that don't apply
+        data class MarkEntry(val mark: String, val baseLetter: String, val isEnabled: Boolean)
+        val modifierMarks = mutableListOf<MarkEntry>()
+        val charBeforeCursor = onGetCharBeforeCursor?.invoke() ?: ""
+
+        for (modifier in diacriticsDefinition.getAllModifiers()) {
+            if (disabledModifiers.contains(modifier.id)) continue
+
+            // Determine if modifier applies to the current letter
+            val applies: Boolean = if (charBeforeCursor.isEmpty()) {
+                true // unknown — show enabled
+            } else {
+                when {
+                    modifier.appliesTo != null -> modifier.appliesTo.contains(charBeforeCursor)
+                    modifier.excludeFor != null -> !modifier.excludeFor.contains(charBeforeCursor)
+                    else -> true
+                }
+            }
+
+            // Base letter for display: shinSin always uses ש; dagesh always uses ב
+            val base: String = modifier.appliesTo?.firstOrNull() ?: "ב" // ב
+
+            if (modifier.options != null && modifier.options.isNotEmpty()) {
+                for (option in modifier.options) {
+                    modifierMarks.add(MarkEntry(option.mark, base, applies))
+                }
+            } else if (modifier.mark != null) {
+                modifierMarks.add(MarkEntry(modifier.mark, base, applies))
+            }
+        }
+
+        val totalButtons = items.size + modifierMarks.size
+        if (totalButtons == 0) return rowView
+
+        val gap = scaledKeyGap
+        // Ideal square button size, but shrink if too many buttons to fit
+        val idealSize = height
+        val totalIfIdeal = idealSize * totalButtons + gap * (totalButtons - 1)
+        val buttonSize = if (totalIfIdeal > availableWidth) {
+            maxOf(dpToPx(24), (availableWidth - gap * (totalButtons - 1)) / totalButtons)
+        } else {
+            idealSize
+        }
+
+        val bgColor = adaptColorForDarkMode(getDefaultKeyBgColor(), context)
+        val textColor = getDefaultTextColor()
+
+        // Vowel buttons (always enabled)
+        for (item in items) {
+            val btn = createNikkudTopRowButton(item.mark, "●", true, buttonSize, height, gap, bgColor, textColor)
+            rowView.addView(btn)
+        }
+
+        // Modifier buttons (after vowels, with enabled/disabled state)
+        for ((offset, entry) in modifierMarks.withIndex()) {
+            val btn: View = if (entry.mark == "ּ") {
+                // Dagesh: show "דגש" word label instead of a glyph
+                createDageshButton(entry.mark, entry.isEnabled, buttonSize, height, gap, bgColor, textColor)
+            } else {
+                createNikkudTopRowButton(entry.mark, entry.baseLetter, entry.isEnabled, buttonSize, height, gap, bgColor, textColor)
+            }
+            btn.tag = NIKKUD_MODIFIER_BUTTON_TAG_BASE + offset
+            rowView.addView(btn)
+        }
+
+        return rowView
+    }
+
+    private fun createNikkudTopRowButton(mark: String, baseLetter: String, isEnabled: Boolean, buttonSize: Int, height: Int, gap: Int, bgColor: Int, textColor: Int): View {
+        val button = FrameLayout(context).apply {
+            layoutParams = LinearLayout.LayoutParams(buttonSize, height)
+            setOnClickListener {
+                if (isEnabled) {
+                    onNikkudSelected?.invoke(mark)
+                }
+            }
+            contentDescription = mark
+        }
+
+        val visualKeyView = FrameLayout(context).apply {
+            background = GradientDrawable().apply {
+                setColor(bgColor)
+                cornerRadius = scaledCornerRadius
+            }
+            elevation = dpToPx(1).toFloat()
+            layoutDirection = View.LAYOUT_DIRECTION_LTR
+        }
+
+        val markColor = if (isEnabled) textColor else Color.LTGRAY
+        val fontSize = baseFontSize * 1.26f * currentScale
+
+        // For vowel buttons: add a faded circle behind the mark (15% opacity)
+        if (baseLetter == "●") {
+            val circleColor = Color.argb((0.15f * 255).toInt(),
+                Color.red(markColor), Color.green(markColor), Color.blue(markColor))
+            val circleView = object : android.view.View(context) {
+                override fun onDraw(canvas: android.graphics.Canvas) {
+                    val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                        color = circleColor
+                        style = android.graphics.Paint.Style.FILL
+                    }
+                    // Circle radius = 18% of the smaller dimension
+                    val radius = minOf(width, height) * 0.18f
+                    val cx = width / 2f - radius * 0.1f
+                    val cy = height / 2f - radius * 0.3f
+                    canvas.drawCircle(cx, cy, radius, paint)
+                }
+            }
+            visualKeyView.addView(circleView, FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            ))
+        }
+
+        val label = TextView(context).apply {
+            gravity = Gravity.CENTER
+            textDirection = View.TEXT_DIRECTION_LTR
+            layoutDirection = View.LAYOUT_DIRECTION_LTR
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, fontSize)
+            if (baseLetter == "●") {
+                val displayText = "ב$mark"
+                val spannable = android.text.SpannableString(displayText)
+                spannable.setSpan(
+                    android.text.style.ForegroundColorSpan(Color.TRANSPARENT),
+                    0, 1,
+                    android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                spannable.setSpan(
+                    android.text.style.ForegroundColorSpan(markColor),
+                    1, displayText.length,
+                    android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                setText(spannable, TextView.BufferType.SPANNABLE)
+                // ב+mark centered: the string width = ב advance + mark advance.
+                // To center the ב (so the mark hangs naturally off it), shift right by half ב width.
+                // ב advance ≈ 0.6× font size in px.
+                val betWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, fontSize * 0.6f, context.resources.displayMetrics)
+                translationX = betWidth / 2f + 1f
+                // Cholam (U+05B9) attaches top-LEFT of ב — after centering ב, shift further left
+                // so cholam lands at top-left of the circle rather than top-center.
+                if (mark == "ֹ") translationX -= betWidth * 0.6f
+            } else {
+                // Modifier buttons: show the real base letter + mark normally
+                text = "$baseLetter$mark"
+                setTextColor(markColor)
+            }
+        }
+
+        visualKeyView.addView(label, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT
+        ))
+
+        button.addView(visualKeyView, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT
+        ).apply {
+            setMargins(gap, scaledKeyVerticalPadding, gap, scaledKeyVerticalPadding)
+        })
+
+        if (!isEnabled) button.alpha = 0.4f
+        return button
+    }
+
+    private fun createDageshButton(mark: String, isEnabled: Boolean, buttonSize: Int, height: Int, gap: Int, bgColor: Int, textColor: Int): View {
+        val button = FrameLayout(context).apply {
+            layoutParams = LinearLayout.LayoutParams(buttonSize, height)
+            setOnClickListener {
+                if (isEnabled) {
+                    onNikkudSelected?.invoke(mark)
+                }
+            }
+            contentDescription = mark
+        }
+
+        val visualKeyView = FrameLayout(context).apply {
+            background = GradientDrawable().apply {
+                setColor(bgColor)
+                cornerRadius = scaledCornerRadius
+            }
+            elevation = dpToPx(1).toFloat()
+        }
+
+        val markColor = if (isEnabled) textColor else Color.LTGRAY
+        val fontSize = baseFontSize * 0.72f * currentScale
+
+        val label = TextView(context).apply {
+            gravity = Gravity.CENTER
+            text = "דגש" // דגש
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, fontSize)
+            setTextColor(markColor)
+        }
+
+        visualKeyView.addView(label, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT
+        ))
+
+        button.addView(visualKeyView, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT
+        ).apply {
+            setMargins(gap, scaledKeyVerticalPadding, gap, scaledKeyVerticalPadding)
+        })
+
+        if (!isEnabled) button.alpha = 0.4f
+        return button
+    }
+
     // MARK: - Suggestions Bar
     
     private fun updateSuggestionsBar() {
@@ -2808,6 +3231,12 @@ class KeyboardRenderer(private val context: Context) {
         private const val VISUAL_KEY_TAG = 8888
         /** Tag for the keyset slide overlay view */
         private const val KEYSET_SLIDE_OVERLAY_TAG = 7777
+        /** Tag for the nikkud top row view */
+        private const val NIKKUD_TOP_ROW_TAG = 8001
+        /** Base tag for nikkud modifier buttons (tag = 9001 + buttonIndex) */
+        private const val NIKKUD_MODIFIER_BUTTON_TAG_BASE = 9001
+        /** Key types that are not regular character keys (for lastRenderedRegularKeyWidth tracking) */
+        private val SPECIAL_KEY_TYPES: Set<String> = setOf("space", "backspace", "shift", "keyset", "nikkud", "enter", "next-keyboard", "settings", "close", "language")
     }
 
     private fun dpToPx(dp: Int): Int {

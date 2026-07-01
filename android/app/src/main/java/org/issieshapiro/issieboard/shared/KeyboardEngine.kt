@@ -29,6 +29,10 @@ class KeyboardEngine(
 
     // MARK: - Properties
 
+    /** Shadow copy of text before cursor — updated after each native key operation.
+     * Used as fallback when documentContextBeforeInput is empty (hardware keyboard case). */
+    private var shadowTextBefore: String = ""
+
     /** Keyboard renderer - handles all UI rendering */
     val renderer: KeyboardRenderer = KeyboardRenderer(context)
 
@@ -96,7 +100,7 @@ class KeyboardEngine(
         }
 
         renderer.onNikkudSelected = { value ->
-            textProxy.insertText(value)
+            insertNikkudMark(value)
             suggestionController.handleSpace()
         }
 
@@ -136,6 +140,30 @@ class KeyboardEngine(
         renderer.onGetTextDirection = {
             onGetTextDirection?.invoke() ?: false
         }
+
+        renderer.onGetCharBeforeCursor = {
+            // Prefer live proxy context; fall back to shadow buffer (empty when hardware kb active)
+            val before = textProxy.documentContextBeforeInput ?: ""
+            val source = if (before.isEmpty()) shadowTextBefore else before
+            if (source.isEmpty()) {
+                null
+            } else {
+                val lastCluster = source.takeLast(1)
+                // Return the letter base (strip combining marks, find first letter scalar)
+                val firstLetter = lastCluster.codePoints().toArray().firstOrNull { cp ->
+                    val type = Character.getType(cp)
+                    type == Character.OTHER_LETTER.toInt() ||
+                    type == Character.UPPERCASE_LETTER.toInt() ||
+                    type == Character.LOWERCASE_LETTER.toInt()
+                }
+                if (firstLetter != null) {
+                    String(Character.toChars(firstLetter))
+                } else {
+                    val first = lastCluster.codePoints().toArray().firstOrNull()
+                    if (first != null) String(Character.toChars(first)) else ""
+                }
+            }
+        }
     }
 
     // MARK: - Public Methods
@@ -145,8 +173,11 @@ class KeyboardEngine(
      * This is the SINGLE method that decides what suggestions to show based on text state
      */
     fun handleTextChanged() {
-        val fullText = getCurrentText?.invoke()
-        if (fullText == null) {
+        val liveText = getCurrentText?.invoke() ?: ""
+        // When proxy returns empty (e.g. external keyboard context restriction), fall back to shadow
+        val fullText = if (liveText.isEmpty()) shadowTextBefore else liveText
+
+        if (fullText.isEmpty()) {
             suggestionController.handleEnter()  // Clears current word and shows defaults
             return
         }
@@ -249,18 +280,59 @@ class KeyboardEngine(
                 }
             }
         }
+
+        // Sync shadow context after every native key operation; pass inserted text as fallback
+        // for when proxy is empty (external keyboard context restriction)
+        val insertedValue: String = when (key.type.lowercase()) {
+            "backspace", "enter", "action", "keyset", "next-keyboard" -> ""
+            "space" -> " "
+            else -> {
+                if (renderer.isShiftActive() && key.sValue.isNotEmpty()) key.sValue
+                else key.value
+            }
+        }
+        syncShadowContext(inserted = insertedValue)
+
+        if (renderer.isNikkudTopRowActive) {
+            renderer.updateNikkudTopRowModifierStates()
+        }
+    }
+
+    /** Seed the shadow text buffer from the actual proxy context (call at keyboard load). */
+    fun seedShadowContext() {
+        val live = textProxy.documentContextBeforeInput ?: ""
+        if (live.isNotEmpty()) { shadowTextBefore = live }
+    }
+
+    /** Update shadow buffer from live proxy after a native operation.
+     * When proxy is empty (external keyboard context), append `inserted` to shadow as fallback. */
+    private fun syncShadowContext(inserted: String = "") {
+        val live = textProxy.documentContextBeforeInput ?: ""
+        if (live.isNotEmpty()) {
+            shadowTextBefore = live
+        } else if (inserted.isNotEmpty()) {
+            shadowTextBefore += inserted
+        }
     }
 
     private fun handleBackspace() {
-        // Check if there's any text or selection to delete
-        // hasText returns true if there's text in the document OR a text selection
-        if (!textProxy.hasText) {
-            return
-        }
-
+        // Always attempt deleteBackward — hasText is unreliable when hardware keyboard
+        // has typed text (documentContextBeforeInput is empty in that case)
         textProxy.deleteBackward()
+        // Try live proxy first; if empty (external kb context), trim shadow manually
+        val live = textProxy.documentContextBeforeInput ?: ""
+        if (live.isNotEmpty()) {
+            shadowTextBefore = live
+        } else if (shadowTextBefore.isNotEmpty()) {
+            // Remove the last grapheme cluster from shadow to keep it in sync
+            shadowTextBefore = shadowTextBefore.dropLast(1)
+        }
         if (!suggestionController.handleBackspace()) {
             suggestionController.detectCurrentWord(textProxy.documentContextBeforeInput ?: "")
+        }
+
+        if (renderer.isNikkudTopRowActive) {
+            renderer.updateNikkudTopRowModifierStates()
         }
 
         autoShiftAfterPunctuation()
@@ -408,6 +480,84 @@ class KeyboardEngine(
     private fun handleCursorMove(offset: Int) {
         textProxy.adjustTextPosition(offset)
         Log.d(TAG, "Cursor moved by $offset characters")
+    }
+
+    /**
+     * Insert a nikkud combining mark, handling conflicts:
+     * - Vowels (U+05B0–U+05BB, U+05C7) are mutually exclusive — replace existing vowel
+     * - Dagesh (U+05BC) toggles: if already present remove it, otherwise add it
+     * - Shin/sin dots (U+05C1/U+05C2) replace each other
+     * Port of ios/Shared/KeyboardEngine.swift insertNikkudMark()
+     */
+    private fun insertNikkudMark(mark: String) {
+        val hebrewVowels: Set<Int> = setOf(
+            0x05B0, 0x05B1, 0x05B2, 0x05B3, 0x05B4,
+            0x05B5, 0x05B6, 0x05B7, 0x05B8, 0x05B9,
+            0x05BA, 0x05BB, 0x05C7
+        )
+        val dagesh = 0x05BC
+        val shinDot = 0x05C1
+        val sinDot = 0x05C2
+
+        val incomingScalar = mark.codePoints().toArray().firstOrNull()
+        if (incomingScalar == null) {
+            textProxy.insertText(mark)
+            return
+        }
+        val inVal = incomingScalar
+
+        // Determine which conflict group this mark belongs to
+        val isVowel = hebrewVowels.contains(inVal)
+        val isDagesh = inVal == dagesh
+        val isShinSin = inVal == shinDot || inVal == sinDot
+
+        if (!isVowel && !isDagesh && !isShinSin) {
+            textProxy.insertText(mark)
+            return
+        }
+
+        val before = textProxy.documentContextBeforeInput
+        if (before.isNullOrEmpty()) {
+            textProxy.insertText(mark)
+            return
+        }
+
+        // Get the last grapheme cluster
+        val lastCluster = before.takeLast(1)
+        val scalars = lastCluster.codePoints().toArray()
+
+        // Find an existing mark in the same conflict group
+        val conflictIndex: Int? = when {
+            isVowel -> scalars.indices.lastOrNull { hebrewVowels.contains(scalars[it]) }
+            isDagesh -> scalars.indices.lastOrNull { scalars[it] == dagesh }
+            else -> scalars.indices.lastOrNull { scalars[it] == shinDot || scalars[it] == sinDot }
+        }
+
+        if (conflictIndex == null) {
+            textProxy.insertText(mark)
+            return
+        }
+
+        val scalarsAfter = scalars.size - 1 - conflictIndex
+
+        // Delete everything from the existing mark to end of cluster
+        repeat(scalarsAfter) { textProxy.deleteBackward() }
+        textProxy.deleteBackward() // delete the existing mark
+
+        // Re-insert tail (marks after the conflicting one)
+        if (scalarsAfter > 0) {
+            val tail = scalars.toList().takeLast(scalarsAfter).map { String(Character.toChars(it)) }.joinToString("")
+            textProxy.insertText(tail)
+        }
+
+        // For dagesh: if same mark was already there, we removed it — don't re-insert (toggle off)
+        val existingVal = scalars[conflictIndex]
+        val isSameMark = existingVal == inVal
+        if (isDagesh && isSameMark) {
+            return // toggled off
+        }
+
+        textProxy.insertText(mark)
     }
 
     // MARK: - Auto Behaviors

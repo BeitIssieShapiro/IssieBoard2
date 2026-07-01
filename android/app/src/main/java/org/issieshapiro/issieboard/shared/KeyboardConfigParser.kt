@@ -278,7 +278,9 @@ object KeyboardConfigParser {
         return DiacriticsSettings(
             hidden = parseStringList(json.optJSONArray("hidden")),
             disabledModifiers = parseStringList(json.optJSONArray("disabledModifiers")),
-            disabled = if (json.has("disabled")) json.optBoolean("disabled") else null
+            disabled = if (json.has("disabled")) json.optBoolean("disabled") else null,
+            nikkudMode = if (json.has("nikkudMode")) json.optString("nikkudMode") else null,
+            simpleMode = if (json.has("simpleMode")) json.optBoolean("simpleMode") else null
         )
     }
     

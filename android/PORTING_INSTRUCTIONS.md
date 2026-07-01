@@ -229,13 +229,13 @@ Android:
 |--------|-------------|-------------|
 | `d8ae0c4` | kb height #1 - FontSizePreset, KeyboardHeightPreset enums, KeyboardDimensions calculator | 2026-03-10 |
 | `59168ac` | scale #2 (ios done) - Preview mode scaling, effectiveDimensionScale, transform-based scaling | 2026-03-10 |
+| `1ebe5d12+` | Nikkud top-row mode, shadow text context, insertNikkudMark conflict handling, isAdvanced/simpleMode | 2026-07-01 |
 
-**Files updated:**
-- `KeyboardModels.kt` - Added FontSizePreset, KeyboardHeightPreset, DeviceType enums, KeyboardHeightConstants, FontSizeConstants, KeyboardDimensions
-- `KeyboardConfigParser.kt` - Parse fontSizePreset, heightPreset, fontSize as Double
-- `KeyboardRenderer.kt` - Dynamic row height from KeyboardDimensions, preview scaling with View transforms
-- `SuggestionsBarView.kt` - Height parameter for createBar()
-- `KeyboardPreviewView.kt` - clipChildren/clipToPadding = false for scaled content
+**Files updated (latest port):**
+- `KeyboardModels.kt` - Added `isAdvanced` to DiacriticItem, `nikkudMode`/`simpleMode`/`isTopRowMode`/`isTopRowAlways` to DiacriticsSettings, `adaptColorForDarkMode()` utility
+- `BaseKeyboardService.kt` - Added `onUpdateSelection`, `onNikkudStateChanged`/`onNikkudActivePersist`/`onGetCharBeforeCursor` callbacks, `insertNikkudMark()`, nikkud state persistence/restoration
+- `KeyboardEngine.kt` - Added shadow text context (`shadowTextBefore`, `seedShadowContext()`, `syncShadowContext()`), `onGetCharBeforeCursor` callback, `insertNikkudMark()`, updated `handleTextChanged()` with shadow fallback, updated `handleBackspace()` to remove hasText guard
+- `KeyboardRenderer.kt` - Added `onNikkudStateChanged`/`onNikkudActivePersist`/`onGetCharBeforeCursor` callbacks, `isNikkudTopRowActive` property, `restoreNikkudActive()`, `rerenderIfNeeded()` returning Boolean, `calculateKeyboardHeight` with `nikkudTopRowActive` parameter, `buildNikkudTopRow()`/`createNikkudTopRowButton()`/`createDageshButton()`, `updateNikkudTopRowModifierStates()`, re-entrancy guard, `lastRenderedRegularKeyWidth` tracking, nikkud disabled reset in render
 
 ---
 

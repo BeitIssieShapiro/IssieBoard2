@@ -13,21 +13,21 @@ ls -d /opt/homebrew/opt/openjdk*
 # Shows: openjdk, openjdk@20, openjdk@21, openjdk@22, openjdk@23, openjdk@25
 ```
 
-**Recommended: OpenJDK 21** (best compatibility with current Android Gradle setup)
+**Recommended: JBR 17 (JetBrains Runtime)** — the Homebrew `openjdk@21` symlink currently resolves to OpenJDK 25, which causes a CMake/Prefab build failure ("A restricted method in java.lang.System has been called"). Use JBR 17 instead.
 
 ### Required Environment Variables
 
 Before running any Gradle commands, set:
 
 ```bash
-export JAVA_HOME=/opt/homebrew/opt/openjdk@21
+export JAVA_HOME=/Users/i022021/Library/Java/JavaVirtualMachines/jbr-17.0.12/Contents/Home
 export PATH="$JAVA_HOME/bin:$PATH"
 ```
 
 Verify Java is available:
 ```bash
 java -version
-# Should show: openjdk version "..." (Homebrew build)
+# Should show: openjdk version "17.0.12" JBR build
 ```
 
 ### Android SDK
@@ -47,12 +47,13 @@ Platform tools (adb) are available at:
 ### Quick Build & Deploy
 
 ```bash
-# Set Java environment
-export JAVA_HOME=/opt/homebrew/opt/openjdk@21
+# Set Java environment (use JBR 17 — Homebrew openjdk symlinks point to JDK 25 which breaks CMake)
+export JAVA_HOME=/Users/i022021/Library/Java/JavaVirtualMachines/jbr-17.0.12/Contents/Home
 export PATH="$JAVA_HOME/bin:$PATH"
 
-# Build and install to connected device/emulator
-cd android && ./gradlew installDebug
+# Build and install specific flavor to connected device/emulator
+cd android && ./gradlew installIssieboardDebug
+# or: ./gradlew installIssievoiceDebug
 ```
 
 ### Using React Native CLI
