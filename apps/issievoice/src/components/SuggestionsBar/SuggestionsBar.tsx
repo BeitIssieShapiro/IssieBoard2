@@ -2,20 +2,25 @@ import React from 'react';
 import {
   View,
   Text,
+  ImageBackground,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
 import { useText } from '../../context/TextContext';
 import { colors, sizes } from '../../constants';
+import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 
 interface SuggestionsBarProps {
   currentText: string;
   kbSuggestions?: string[];
   language?: 'en' | 'he';
   onSuggestionPress?: (suggestion: string) => void;
+  onBrowse?: () => void;
+  symbolUrls?: Map<string, string | null>;
   height?: number; // Optional responsive height
   screenWidth?: number; // Optional screen width for responsive scaling
+  isRTL?: boolean; // Layout direction — should follow device language, not keyboard language
 }
 
 // Helper function to find the last word boundary, handling Hebrew and other scripts
@@ -42,11 +47,14 @@ const SuggestionsBar: React.FC<SuggestionsBarProps> = ({
   kbSuggestions = [],
   language = 'en',
   onSuggestionPress,
+  onBrowse,
+  symbolUrls = new Map(),
   height = 70, // Default height
   screenWidth = 1000, // Default screen width
+  isRTL: isRTLProp,
 }) => {
-  // Determine text direction based on language
-  const isRTL = language === 'he';
+  // Layout direction from prop (device language), fall back to keyboard language
+  const isRTL = isRTLProp ?? (language === 'he');
   const { setText } = useText();
 
   const isMobile = screenWidth < 600;
@@ -59,7 +67,11 @@ const SuggestionsBar: React.FC<SuggestionsBarProps> = ({
   // At smaller widths: reduce font size proportionally
   const baseHeightFontSize = buttonHeight * 0.5; // Base size from height
   const widthScaleFactor = Math.min(1, screenWidth / 1000); // Scale down on smaller screens
-  const fontSize = Math.max(18, baseHeightFontSize * widthScaleFactor); // Minimum 16px
+  const baseFontSize = Math.max(16, baseHeightFontSize * widthScaleFactor * 0.9); // Minimum 16px
+
+  const showSymbols = height >= 120;
+  const imageSize = showSymbols ? Math.floor(buttonHeight * 0.55) : 0;
+  const fontSize = showSymbols ? Math.max(12, baseFontSize * 0.55) : baseFontSize;
 
   const handleSuggestionPress = (suggestion: string) => {
     // Strip quotes if the suggestion is wrapped in quotes (literal word)
@@ -92,70 +104,135 @@ const SuggestionsBar: React.FC<SuggestionsBarProps> = ({
   };
 
   if (kbSuggestions.length === 0) {
-    // Instead of returning null, return an empty bar with the same height
-    return <View style={[styles.container, { height }]} />;
+    return (
+      <View style={[styles.container, isRTL && styles.containerRTL]}>
+        {onBrowse && (
+          <TouchableOpacity
+            style={[styles.browseButton, isRTL ? styles.browseButtonLeft : styles.browseButtonRight]}
+            onPress={onBrowse}
+            activeOpacity={0.7}>
+            <MyIcon info={{ name: 'folder-open-outline', type: 'Ionicons', color: colors.primary, size: 27 }} />
+          </TouchableOpacity>
+        )}
+      </View>
+    );
   }
 
   // For RTL, reverse the suggestions order so first suggestion appears on the right
   const displaySuggestions = isRTL ? [...kbSuggestions].reverse() : kbSuggestions;
 
   return (
-    <View style={[{ height }, isRTL && styles.containerRTL]}>
-      <View
-        style={[{ flexDirection: "row", height, padding:5, borderBottomWidth:1, borderBottomColor:"lightgrey" },
-        isRTL && styles.rtlScrollContent
+    <View style={[styles.container, isRTL && styles.containerRTL]}>
+      {onBrowse && (
+        <TouchableOpacity
+          style={[styles.browseButton, isRTL ? styles.browseButtonLeft : styles.browseButtonRight]}
+          onPress={onBrowse}
+          activeOpacity={0.7}>
+          <MyIcon info={{ name: 'folder-open-outline', type: 'Ionicons', color: colors.primary, size: 26 }} />
+        </TouchableOpacity>
+      )}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        keyboardShouldPersistTaps="always"
+        contentContainerStyle={[
+          styles.scrollContent,
+          isRTL && styles.rtlScrollContent,
         ]}>
-        {displaySuggestions.map((suggestion, index) => (
-          <TouchableOpacity
-            key={`${suggestion}-${index}`}
-            style={[styles.suggestionButton]}
-            onPress={() => handleSuggestionPress(suggestion)}
-            activeOpacity={0.7}>
-            <Text style={[styles.suggestionText, { fontSize:fontSize }, isMobile && {fontSize:fontSize*.8, lineHeight:12}]} numberOfLines={1}>
-              {suggestion}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+        {displaySuggestions.map((suggestion, index) => {
+          const symbolUrl = symbolUrls.get(suggestion);
+          return (
+            <TouchableOpacity
+              key={`${suggestion}-${index}`}
+              style={[
+                styles.suggestionButton,
+                showSymbols && { minWidth: 85 },
+              ]}
+              activeOpacity={0.7}
+              onPress={() => handleSuggestionPress(suggestion)}
+              >
+              {showSymbols && symbolUrl && (
+                <ImageBackground
+                  source={{ uri: symbolUrl }}
+                  style={{
+                    width: imageSize,
+                    height: imageSize,
+                    borderRadius: 4,
+                    marginBottom: 2,
+                    overflow: 'hidden',
+                  }}
+                  resizeMode="contain"
+                />
+              )}
+              <Text
+                allowFontScaling={false}
+                style={[
+                  styles.suggestionText,
+                  { fontSize },
+                  isMobile && { fontSize: fontSize * 0.8, lineHeight: 12 },
+                ]}
+                numberOfLines={1}>
+                {suggestion}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.surfaceDark,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
   },
   containerRTL: {
-    // Align scroll view to the right for RTL
     alignItems: 'flex-end',
   },
-  scrollContent: {
-    paddingHorizontal: sizes.spacing.md,
-    paddingVertical: sizes.spacing.sm,
-    gap: sizes.spacing.md,
+  browseButton: {
+    position: 'absolute',
+    top: 4,
+    zIndex: 10,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.08)',
+  },
+  browseButtonRight: {
+    right: 8,
+  },
+  browseButtonLeft: {
+    left: 8,
+  },
+  scrollContent: {
+    paddingHorizontal: sizes.spacing.sm,
+    gap: sizes.spacing.sm,
+    alignItems: 'flex-end',
     flexDirection: 'row',
   },
   rtlScrollContent: {
-    // Keep row direction but justify content to end for RTL
     justifyContent: 'flex-end',
   },
   suggestionButton: {
     minWidth: 60,
-    paddingHorizontal: sizes.spacing.md,
-    paddingVertical: sizes.spacing.sm,
-    marginHorizontal: sizes.spacing.xs,
-    backgroundColor: colors.primary,
-    borderRadius: sizes.borderRadius.medium,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginHorizontal: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.3)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.08)',
   },
   suggestionText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
+    color: colors.primary,
+    fontWeight: '500',
     textAlign: 'center',
   },
 });

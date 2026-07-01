@@ -98,11 +98,11 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
         r.onDeleteWord = {
             handleDeleteWord()
         }
-        
-        r.onSuggestionSelected = { suggestion ->
-            handleSuggestionSelected(suggestion)
-        }
-        
+
+        // onSuggestionSelected is NOT set here — only set when entering input mode (setText).
+        // In config mode, the renderer's fallback creates a synthetic "suggestion" key
+        // and routes through onKeyPress, which is correct for group selection.
+
         r.onNikkudSelected = { value ->
             handleNikkudSelected(value)
         }
@@ -283,6 +283,11 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
             debugLog("🔧 Entering INPUT MODE (IssieVoice)")
             isInputMode = true
 
+            // In input mode, set onSuggestionSelected for engine-path suggestion handling
+            renderer?.onSuggestionSelected = { suggestion ->
+                handleSuggestionSelected(suggestion)
+            }
+
             // In input mode, we don't want selection mode, so don't set onKeyLongPress
             // (isSelectionMode in KeyboardRenderer is determined by onKeyLongPress != null)
         }
@@ -306,6 +311,10 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
     fun setLanguage(language: String?) {
         val lang = language ?: "en"
         debugLog("🔧 setLanguage called with: $lang")
+
+        // Reset renderer's keyset to default when language changes
+        // so it doesn't try to use a stale keyset ID from the old config
+        renderer?.currentKeysetId = "abc"
 
         // Update suggestion controller language
         suggestionController?.setLanguage(lang)
@@ -350,7 +359,9 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
             ) ?: 0
 
             if (fullKeyboardHeight > 0) {
-                previewMaxHeight!!.toFloat() / fullKeyboardHeight.toFloat()
+                val rawScale = previewMaxHeight!!.toFloat() / fullKeyboardHeight.toFloat()
+                // Never upscale — only scale down to fit maxHeight
+                minOf(rawScale, 1.0f)
             } else {
                 1.0f
             }
@@ -358,9 +369,9 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
             1.0f
         }
 
-        // Adjust container width based on scale
-        val scaledWidth = (width * scale).toInt()
-        debugLog("🔧 Scaling container: originalWidth=$width, scale=$scale, scaledWidth=$scaledWidth")
+        // Container width should never exceed the view width
+        val scaledWidth = minOf((width * scale).toInt(), width)
+        debugLog("🔧 Scaling container: originalWidth=$width, scale=$scale, scaledWidth=$scaledWidth, previewMaxHeight=$previewMaxHeight")
 
         keyboardContainer.layoutParams = FrameLayout.LayoutParams(
             scaledWidth,
@@ -399,6 +410,14 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
             ),
             overlayContainer = this  // Pass this (FrameLayout) as overlay container for nikkud picker
         )
+
+        // Calculate and report keyboard height to React Native (matching iOS behavior)
+        // calculateKeyboardHeight returns pixels, convert to dp for React Native
+        val suggestionsEnabled = config.isWordSuggestionsEnabled
+        val calculatedHeightPx = renderer?.calculateKeyboardHeight(config, currentKeyset, suggestionsEnabled) ?: 0
+        val calculatedHeightDp = (calculatedHeightPx.toFloat() / resources.displayMetrics.density).toInt()
+        debugLog("📐 [KeyboardPreviewView] Calculated height: ${calculatedHeightPx}px / ${calculatedHeightDp}dp for keyset: $currentKeyset")
+        emitHeightChangeEvent(calculatedHeightDp, currentKeyset)
         
         // Show initial suggestions if enabled
         if (config.isWordSuggestionsEnabled && (suggestionController?.currentWord?.isEmpty() == true)) {
@@ -507,13 +526,24 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
         )
     }
 
+    private fun emitHeightChangeEvent(height: Int, keysetId: String) {
+        val reactContext = context as? ReactContext ?: return
+
+        val surfaceId = UIManagerHelper.getSurfaceId(reactContext)
+        val eventDispatcher = UIManagerHelper.getEventDispatcherForReactTag(reactContext, id)
+
+        eventDispatcher?.dispatchEvent(
+            HeightChangeEvent(surfaceId, id, height, keysetId)
+        )
+    }
+
     // MARK: - Key Press Handling
     
     private fun handleKeyPress(key: ParsedKey) {
         when (key.type.lowercase()) {
-            "event" -> {
-                // Event-only keys - just emit to React Native, don't modify text
-                debugLog("📢 Event key: ${key.value}")
+            "event", "suggestion" -> {
+                // Event-only and suggestion keys - just emit to React Native, don't modify text
+                debugLog("📢 Event/suggestion key: ${key.value}")
                 emitKeyPress(key)
             }
             "backspace" -> {
@@ -713,6 +743,27 @@ class SuggestionsChangeEvent(
         val suggestionsArray = Arguments.createArray()
         suggestions.forEach { suggestionsArray.pushString(it) }
         eventData.putArray("suggestions", suggestionsArray)
+        return eventData
+    }
+}
+
+/**
+ * Custom event class for height change events
+ * Used with the new React Native architecture event system
+ */
+class HeightChangeEvent(
+    surfaceId: Int,
+    viewTag: Int,
+    private val height: Int,
+    private val keysetId: String
+) : Event<HeightChangeEvent>(surfaceId, viewTag) {
+
+    override fun getEventName(): String = "onHeightChange"
+
+    override fun getEventData(): WritableMap {
+        val eventData = Arguments.createMap()
+        eventData.putDouble("height", height.toDouble())
+        eventData.putString("keysetId", keysetId)
         return eventData
     }
 }

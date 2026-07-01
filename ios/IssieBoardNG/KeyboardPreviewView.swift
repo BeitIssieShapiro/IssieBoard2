@@ -37,6 +37,13 @@ class KeyboardPreviewView: UIView {
     // Selected keys for edit mode visualization (config mode only)
     private var selectedKeyIds: Set<String> = []
 
+    // Whether to hide the globe (next-keyboard) button — controlled by React prop
+    @objc var hideGlobeButton: Bool = false {
+        didSet {
+            renderer?.setShowGlobeButton(!hideGlobeButton)
+        }
+    }
+
     // Layout tracking to prevent infinite loops
     private var lastRenderedWidth: CGFloat = 0
     private var lastStoredConfigJson: String?
@@ -50,8 +57,18 @@ class KeyboardPreviewView: UIView {
     // Synced text that mirrors React Native state (single source of truth proxy)
     private var syncedText: String = ""
 
+    // The last text value sent to React Native via text_changed
+    private var lastNotifiedText: String = ""
+
     // Track if we're processing a keyboard operation to prevent double-handling
     private var isProcessingKeyboardOperation: Bool = false
+
+    // Whether a deferred text notification is pending (coalesces rapid changes)
+    private var hasPendingTextNotification: Bool = false
+
+    // Minimum length syncedText reached during a pending coalesced operation.
+    // Used to tell React how many chars were deleted before new chars were added.
+    private var pendingMinLength: Int = Int.max
 
     // MARK: - Mode Detection
 
@@ -79,6 +96,11 @@ class KeyboardPreviewView: UIView {
 
     @objc func setConfigJson(_ configJson: String?) {
         guard let configJson = configJson, !configJson.isEmpty else {
+            return
+        }
+
+        // Skip if config hasn't changed (avoids unnecessary re-renders)
+        if configJson == lastStoredConfigJson {
             return
         }
 
@@ -120,6 +142,8 @@ class KeyboardPreviewView: UIView {
             print("📝 KeyboardPreviewView: setText syncing '\(newText.suffix(20))', fromKeyboard: \(isProcessingKeyboardOperation)")
             let oldText = syncedText
             syncedText = newText
+            // Keep lastNotifiedText in sync — React already knows this text
+            lastNotifiedText = newText
 
             // If text was cleared (became empty or much shorter), force update even during keyboard operation
             let wasCleared = newText.isEmpty && !oldText.isEmpty
@@ -128,6 +152,7 @@ class KeyboardPreviewView: UIView {
             if wasCleared || wasShortenedSignificantly {
                 print("📝 Text cleared or shortened significantly - forcing handleTextChanged()")
                 keyboardEngine?.handleTextChanged()
+                keyboardEngine?.autoShiftAfterPunctuation()
                 return
             }
 
@@ -155,6 +180,8 @@ class KeyboardPreviewView: UIView {
         } else {
             previewMaxHeight = nil
             renderer?.setPreviewMode(maxHeight: nil)
+            // Re-render at full size
+            renderKeyboard()
         }
     }
 
@@ -179,12 +206,8 @@ class KeyboardPreviewView: UIView {
             self.isProcessingKeyboardOperation = true
             // Update synced text immediately
             self.syncedText += text
-            // Notify React Native
-            self.notifyReactNativeOfTextChange(self.syncedText)
-            // Clear flag after React Native has time to process
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                self.isProcessingKeyboardOperation = false
-            }
+            // Defer notification to coalesce compound operations (e.g. delete+insert for "i"→"I")
+            self.scheduleDeferredTextNotification()
         }
 
         proxy.onDeleteBackward = { [weak self] in
@@ -193,17 +216,24 @@ class KeyboardPreviewView: UIView {
                 // Set flag to prevent double-processing in setText
                 self.isProcessingKeyboardOperation = true
                 self.syncedText.removeLast()
-                // Notify React Native
-                self.notifyReactNativeOfTextChange(self.syncedText)
-                // Clear flag after React Native has time to process
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                    self.isProcessingKeyboardOperation = false
-                }
+                // Defer notification to coalesce compound operations
+                self.scheduleDeferredTextNotification()
             }
+        }
+
+        proxy.onCursorMove = { [weak self] offset in
+            guard let self = self else { return }
+            self.onKeyPress?([
+                "type": "cursor_move",
+                "value": String(offset),
+                "label": "",
+                "hasNikkud": false
+            ])
         }
 
         // Initialize synced text with initial value
         self.syncedText = initialText
+        self.lastNotifiedText = initialText
 
         // Create keyboard engine with the proxy
         let language = currentLanguage ?? "en"
@@ -269,18 +299,70 @@ class KeyboardPreviewView: UIView {
             print("⚙️ KeyboardPreviewView: Settings button pressed")
             self?.onOpenSettings?([:])
         }
+
+        // Re-report height when nikkud top-row activates/deactivates
+        engine.renderer.onNikkudStateChanged = { [weak self] in
+            self?.renderKeyboard()
+        }
+
+        // Provide the base letter before cursor for modifier filtering in top-row nikkud
+        engine.renderer.onGetCharBeforeCursor = { [weak self] in
+            guard let text = self?.syncedText, !text.isEmpty else { return nil }
+            let lastCluster = String(text.suffix(1))
+            return lastCluster.unicodeScalars.first(where: {
+                $0.properties.generalCategory == .otherLetter ||
+                $0.properties.generalCategory == .uppercaseLetter ||
+                $0.properties.generalCategory == .lowercaseLetter
+            }).map { String($0) }
+        }
     }
 
-    private func notifyReactNativeOfTextChange(_ newText: String) {
-        print("📝 KeyboardPreviewView: Notifying React Native of text change: '\(newText)'")
+    private func notifyReactNativeOfTextChange(_ newText: String, deletedDownTo minLength: Int? = nil) {
+        let prevLen = lastNotifiedText.count
+        lastNotifiedText = newText
+        // deletedTo: the number of chars that survived deletion.
+        // For pure inserts: equals prevLen (nothing deleted).
+        // For pure deletes: equals newText.count (chars removed from tail).
+        // For compound delete+insert (e.g. "i"→"I"): the minimum length reached mid-operation.
+        let deletedTo = minLength ?? min(prevLen, newText.count)
+        print("📝 KeyboardPreviewView: Notifying React Native of text change: '\(newText)' (prevLen: \(prevLen), deletedTo: \(deletedTo))")
 
-        // Emit text change event to React Native
         onKeyPress?([
             "type": "text_changed",
             "value": newText,
+            "prevLength": prevLen,
+            "deletedTo": deletedTo,
             "label": "",
             "hasNikkud": false
         ])
+    }
+
+    /// Schedule a deferred text notification.
+    /// Multiple calls within the same run-loop iteration are coalesced — only the final
+    /// syncedText value is sent. This prevents stale-state races in React when a single
+    /// key operation does multiple insert/delete steps (e.g., "i"→"I" auto-capitalize).
+    private func scheduleDeferredTextNotification() {
+        // Track the minimum length reached during this operation.
+        // Initialize from lastNotifiedText (the pre-operation baseline) on first call.
+        if !hasPendingTextNotification {
+            pendingMinLength = lastNotifiedText.count
+        }
+        pendingMinLength = min(pendingMinLength, syncedText.count)
+
+        hasPendingTextNotification = true
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            guard self.hasPendingTextNotification else { return }
+            self.hasPendingTextNotification = false
+            let minLen = self.pendingMinLength
+            self.pendingMinLength = Int.max
+            self.notifyReactNativeOfTextChange(self.syncedText, deletedDownTo: minLen)
+            // Clear the keyboard operation flag after React Native has time to process
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                self.isProcessingKeyboardOperation = false
+            }
+        }
     }
 
     // MARK: - Config Parsing & Rendering
@@ -303,10 +385,16 @@ class KeyboardPreviewView: UIView {
 
                     print("📱 KeyboardPreviewView: Language changed to '\(lang)'")
 
-                    // Update language in keyboard engine if in input mode
+                    // Reset renderer's keyset to default when language changes
+                    // so it doesn't try to use a stale keyset ID from the old config
                     if let engine = keyboardEngine {
+                        engine.language = lang
+                        engine.renderer.currentKeysetId = "abc"
                         engine.suggestionController.setLanguage(lang)
                         WordCompletionManager.shared.setLanguage(lang)
+                        engine.autoShiftAfterPunctuation()
+                    } else if let renderer = configModeRenderer {
+                        renderer.currentKeysetId = "abc"
                     }
                 }
             }
@@ -318,13 +406,8 @@ class KeyboardPreviewView: UIView {
                 // Refresh the picker with new options
                 renderer?.refreshNikkudPickerIfOpen(in: self, config: parsedConfig!)
             } else {
+                // renderKeyboard() handles both input mode (via engine) and config mode
                 renderKeyboard()
-            }
-
-            // If we already have input mode initialized but didn't have config before, render now
-            if let engine = keyboardEngine, parsedConfig != nil {
-                print("📱 Config set after input mode initialized - rendering now")
-                renderKeyboardWithEngine(config: parsedConfig!, engine: engine)
             }
         } catch {
             errorLog("Failed to parse config: \(error)")
@@ -357,8 +440,8 @@ class KeyboardPreviewView: UIView {
 
         let renderer = engine.renderer
 
-        // Configure for input mode
-        renderer.setShowGlobeButton(false)
+        // Configure for input mode — use hideGlobeButton prop
+        renderer.setShowGlobeButton(!hideGlobeButton)
 
         // Set preview mode with maxHeight if available
         if let maxHeight = previewMaxHeight {
@@ -384,7 +467,7 @@ class KeyboardPreviewView: UIView {
 
         // Calculate and report keyboard height to React Native
         let suggestionsEnabled = config.isWordSuggestionsEnabled
-        let calculatedHeight = renderer.calculateKeyboardHeight(for: config, keysetId: currentKeysetId, suggestionsEnabled: suggestionsEnabled)
+        let calculatedHeight = renderer.calculateKeyboardHeight(for: config, keysetId: currentKeysetId, suggestionsEnabled: suggestionsEnabled, nikkudTopRowActive: renderer.isNikkudTopRowActive)
 
         print("📐 [KeyboardPreviewView-InputMode] Calculated height: \(calculatedHeight)")
 
@@ -399,15 +482,15 @@ class KeyboardPreviewView: UIView {
         if !hasInitialized {
             hasInitialized = true
 
-            // Show initial suggestions if enabled
-            if config.isWordSuggestionsEnabled {
-                engine.updateSuggestions()
-            }
-
             // Apply auto-shift
             DispatchQueue.main.async { [weak self] in
                 self?.keyboardEngine?.autoShiftAfterPunctuation()
             }
+        }
+
+        // Always restore suggestions after render so they aren't wiped by re-renders
+        if config.isWordSuggestionsEnabled {
+            engine.updateSuggestions()
         }
     }
 
@@ -434,7 +517,7 @@ class KeyboardPreviewView: UIView {
 
         guard let renderer = configModeRenderer else { return }
 
-        renderer.setShowGlobeButton(false)
+        renderer.setShowGlobeButton(!hideGlobeButton)  // Use prop to control globe visibility
 
         // Set preview mode with maxHeight if available
         if let maxHeight = previewMaxHeight {
@@ -457,8 +540,8 @@ class KeyboardPreviewView: UIView {
         lastRenderedWidth = bounds.width
 
         // Calculate and report keyboard height to React Native
-        let suggestionsEnabled = false // Preview has suggestions disabled
-        let calculatedHeight = renderer.calculateKeyboardHeight(for: config, keysetId: currentKeysetId, suggestionsEnabled: suggestionsEnabled)
+        let suggestionsEnabled = config.wordSuggestionsEnabled ?? true
+        let calculatedHeight = renderer.calculateKeyboardHeight(for: config, keysetId: currentKeysetId, suggestionsEnabled: suggestionsEnabled, nikkudTopRowActive: renderer.isNikkudTopRowActive)
 
         print("📐 [KeyboardPreviewView-ConfigMode] Calculated height: \(calculatedHeight)")
 

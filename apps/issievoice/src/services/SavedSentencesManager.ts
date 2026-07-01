@@ -5,6 +5,8 @@ export interface SavedSentence {
   text: string;
   createdAt: number;
   category?: string;
+  caption?: string;
+  icon?: string;
 }
 
 const STORAGE_KEY = 'issievoice_saved_sentences';

@@ -1,0 +1,211 @@
+<h2>Classic Editor — Compatibility UI</h2>
+<p class="subtitle">Simplified settings screen for v1 users. All changes write to v2 profile model.</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">Classic Editor (v1 style)</div>
+    <div class="mockup-body" style="padding: 0; background: #1a1a2e; color: #e0e0e0; font-family: -apple-system, sans-serif; font-size: 13px;">
+
+      <!-- Language selector -->
+      <div style="padding: 12px 16px; border-bottom: 1px solid #333;">
+        <div style="font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 8px;">Keyboard Language</div>
+        <div style="display: flex; gap: 6px;">
+          <div style="flex:1; padding: 8px; text-align:center; background: #4a90d9; border-radius: 6px; font-weight: 600;">Hebrew</div>
+          <div style="flex:1; padding: 8px; text-align:center; background: #2a2a3e; border-radius: 6px;">English</div>
+          <div style="flex:1; padding: 8px; text-align:center; background: #2a2a3e; border-radius: 6px;">Arabic</div>
+        </div>
+      </div>
+
+      <!-- Layout -->
+      <div style="padding: 12px 16px; border-bottom: 1px solid #333;">
+        <div style="font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 8px;">Keyboard Layout</div>
+        <div style="display: flex; gap: 6px;">
+          <div style="flex:1; padding: 8px; text-align:center; background: #4a90d9; border-radius: 6px;">Standard</div>
+          <div style="flex:1; padding: 8px; text-align:center; background: #2a2a3e; border-radius: 6px;">ABC Order</div>
+        </div>
+      </div>
+
+      <!-- Main Colors -->
+      <div style="padding: 12px 16px; border-bottom: 1px solid #333;">
+        <div style="font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 8px;">Main Colors</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0;">
+          <span>Background</span>
+          <div style="width: 28px; height: 28px; border-radius: 14px; background: #A0A0A0; border: 2px solid #555;"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0;">
+          <span>All Keys Color</span>
+          <div style="width: 28px; height: 28px; border-radius: 14px; background: #FFEB3B; border: 2px solid #555;"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0;">
+          <span>All Text Color</span>
+          <div style="width: 28px; height: 28px; border-radius: 14px; background: #0000FF; border: 2px solid #555;"></div>
+        </div>
+      </div>
+
+      <!-- Division Mode -->
+      <div style="padding: 12px 16px; border-bottom: 1px solid #333;">
+        <div style="font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 8px;">Color Division</div>
+        <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+          <div style="flex:1; padding: 8px; text-align:center; background: #4a90d9; border-radius: 6px;">By Rows</div>
+          <div style="flex:1; padding: 8px; text-align:center; background: #2a2a3e; border-radius: 6px;">By Sections</div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0;">
+          <span>3 Color Groups</span>
+          <div style="width: 40px; height: 22px; background: #4a90d9; border-radius: 11px; position: relative;">
+            <div style="width: 18px; height: 18px; background: white; border-radius: 9px; position: absolute; right: 2px; top: 2px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Per-charset colors -->
+      <div style="padding: 12px 16px; border-bottom: 1px solid #333;">
+        <div style="font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 8px;">Group 1 (Top Row)</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0;">
+          <span>Keys Color</span>
+          <div style="width: 28px; height: 28px; border-radius: 14px; background: #FF5722; border: 2px solid #555;"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0;">
+          <span>Text Color</span>
+          <div style="width: 28px; height: 28px; border-radius: 14px; background: #FFFFFF; border: 2px solid #555;"></div>
+        </div>
+      </div>
+
+      <div style="padding: 12px 16px; border-bottom: 1px solid #333;">
+        <div style="font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 8px;">Group 2 (Middle Row)</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0;">
+          <span>Keys Color</span>
+          <div style="width: 28px; height: 28px; border-radius: 14px; background: #4CAF50; border: 2px solid #555;"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0;">
+          <span>Text Color</span>
+          <div style="width: 28px; height: 28px; border-radius: 14px; background: #FFFFFF; border: 2px solid #555;"></div>
+        </div>
+      </div>
+
+      <div style="padding: 12px 16px; border-bottom: 1px solid #333;">
+        <div style="font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 8px;">Group 3 (Bottom Row)</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0;">
+          <span>Keys Color</span>
+          <div style="width: 28px; height: 28px; border-radius: 14px; background: #2196F3; border: 2px solid #555;"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0;">
+          <span>Text Color</span>
+          <div style="width: 28px; height: 28px; border-radius: 14px; background: #FFFFFF; border: 2px solid #555;"></div>
+        </div>
+      </div>
+
+      <!-- Action keys -->
+      <div style="padding: 12px 16px; border-bottom: 1px solid #333;">
+        <div style="font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 8px;">Action Keys Colors</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0;">
+          <span>Space</span>
+          <div style="width: 28px; height: 28px; border-radius: 14px; background: #4DD0E1; border: 2px solid #555;"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0;">
+          <span>Delete</span>
+          <div style="width: 28px; height: 28px; border-radius: 14px; background: #4DD0E1; border: 2px solid #555;"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0;">
+          <span>Enter</span>
+          <div style="width: 28px; height: 28px; border-radius: 14px; background: #4DD0E1; border: 2px solid #555;"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0;">
+          <span>Other Keys</span>
+          <div style="width: 28px; height: 28px; border-radius: 14px; background: #4DD0E1; border: 2px solid #555;"></div>
+        </div>
+      </div>
+
+      <!-- Special keys -->
+      <div style="padding: 12px 16px; border-bottom: 1px solid #333;">
+        <div style="font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 8px;">Special Keys (Highlight)</div>
+        <div style="padding: 8px; background: #2a2a3e; border-radius: 6px; margin-bottom: 8px; min-height: 32px; color: #FFD54F;">א ב ג</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0;">
+          <span>Highlight Color</span>
+          <div style="width: 28px; height: 28px; border-radius: 14px; background: #FF9800; border: 2px solid #555;"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0;">
+          <span>Text Color</span>
+          <div style="width: 28px; height: 28px; border-radius: 14px; background: #000000; border: 2px solid #555;"></div>
+        </div>
+      </div>
+
+      <!-- Visible keys -->
+      <div style="padding: 12px 16px; border-bottom: 1px solid #333;">
+        <div style="font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 8px;">Visible Keys</div>
+        <div style="padding: 8px; background: #2a2a3e; border-radius: 6px; color: #aaa; font-style: italic;">All keys visible (tap to filter)</div>
+      </div>
+
+      <!-- Save/Load -->
+      <div style="padding: 12px 16px;">
+        <div style="display: flex; gap: 8px;">
+          <div style="flex:1; padding: 10px; text-align:center; background: #4a90d9; border-radius: 8px; font-weight: 600;">Save</div>
+          <div style="flex:1; padding: 10px; text-align:center; background: #2a2a3e; border-radius: 8px; border: 1px solid #4a90d9;">My IssieBoards</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">How it maps to v2 model</div>
+    <div class="mockup-body" style="padding: 16px; font-size: 13px; line-height: 1.8;">
+      <div style="margin-bottom: 16px;">
+        <strong style="color: #4a90d9;">Keyboard Language</strong><br>
+        &rarr; Switches active language tab<br>
+        &rarr; Loads that language's active profile
+      </div>
+      <div style="margin-bottom: 16px;">
+        <strong style="color: #4a90d9;">Layout (Standard/ABC)</strong><br>
+        &rarr; Sets <code>keyboardId</code> (<code>he</code> vs <code>he_ordered</code>)
+      </div>
+      <div style="margin-bottom: 16px;">
+        <strong style="color: #4a90d9;">Main Colors</strong><br>
+        &rarr; <code>backgroundColor</code>, <code>keysBgColor</code>, <code>textColor</code><br>
+        &rarr; "All Keys" propagates to all charset groups
+      </div>
+      <div style="margin-bottom: 16px;">
+        <strong style="color: #4a90d9;">Division Mode + 3-color toggle</strong><br>
+        &rarr; Swaps active charset style groups<br>
+        &rarr; Row groups &harr; Third groups<br>
+        &rarr; Toggle deactivates/activates middle group
+      </div>
+      <div style="margin-bottom: 16px;">
+        <strong style="color: #4a90d9;">Group 1/2/3 Colors</strong><br>
+        &rarr; Updates <code>bgColor</code>/<code>color</code> on the<br>
+        &nbsp;&nbsp;corresponding style group
+      </div>
+      <div style="margin-bottom: 16px;">
+        <strong style="color: #4a90d9;">Action Keys</strong><br>
+        &rarr; Updates "Action Keys" style group<br>
+        &rarr; v1 had 4 separate colors; v2 group<br>
+        &nbsp;&nbsp;has one bgColor. Use space color as<br>
+        &nbsp;&nbsp;the group color (most visible key).<br>
+        &rarr; Or: 4 separate single-key groups
+      </div>
+      <div style="margin-bottom: 16px;">
+        <strong style="color: #4a90d9;">Special Keys</strong><br>
+        &rarr; Style group with <code>visibilityMode: 'default'</code><br>
+        &rarr; Members = typed characters<br>
+        &rarr; bgColor + color from pickers
+      </div>
+      <div style="margin-bottom: 16px;">
+        <strong style="color: #4a90d9;">Visible Keys</strong><br>
+        &rarr; Style group with <code>visibilityMode: 'showOnly'</code><br>
+        &rarr; Members = typed characters
+      </div>
+      <div style="margin-bottom: 16px;">
+        <strong style="color: #4a90d9;">Save / My IssieBoards</strong><br>
+        &rarr; Same profile save/load as v2 editor
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top: 24px; padding: 16px; background: rgba(74,144,217,0.1); border-radius: 8px; border: 1px solid rgba(74,144,217,0.3);">
+  <h3 style="margin-top: 0;">Open question: Action key colors</h3>
+  <p>v1 had 4 separate colors (space, delete, enter, other). v2 style groups apply one bgColor to all members. Two options:</p>
+  <ul>
+    <li><strong>Option 1:</strong> Single "Action Keys" group, use the most prominent color (space). Simpler but loses per-key granularity.</li>
+    <li><strong>Option 2:</strong> Create 4 separate groups ("Space Key", "Delete Key", "Enter Key", "Other Keys"). Preserves full fidelity.</li>
+  </ul>
+</div>

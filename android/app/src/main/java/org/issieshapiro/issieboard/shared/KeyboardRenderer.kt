@@ -33,7 +33,7 @@ import kotlin.math.min
 private class TransformAwareContainer(context: Context) : LinearLayout(context) {
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
         if (event.action == MotionEvent.ACTION_DOWN) {
-            debugLog("🔍 Touch DOWN: x=${event.x}, y=${event.y}")
+            debugLog("Touch DOWN: x=${event.x}, y=${event.y}")
         }
         return super.dispatchTouchEvent(event)
     }
@@ -119,9 +119,17 @@ class KeyboardRenderer(private val context: Context) {
     
     // Container reference - renderer owns the rendering
     private var container: ViewGroup? = null
-    
+
     // Overlay container reference (for nikkud picker - must be a FrameLayout)
     private var overlayContainer: ViewGroup? = null
+
+    // Keyset slide gesture state ("peek and slide" from 123 key)
+    private var isKeysetSlideActive: Boolean = false
+    private var keysetSlideOriginKeyset: String = ""
+    private var keysetSlideCurrentButton: View? = null
+    private var keysetSlideDidMove: Boolean = false
+    // Reference to the active rows container for finding keys during slide
+    private var activeRowsContainer: ViewGroup? = null
     
     // Callback for keyset changes (so controller can save to preferences)
     var onKeysetChanged: ((String) -> Unit)? = null
@@ -141,34 +149,67 @@ class KeyboardRenderer(private val context: Context) {
     // Layout tracking to prevent infinite loops
     private var lastRenderedWidth: Int = 0
     
-    // Screen size detection for showOn filtering
+    // Screen size detection for showOn filtering and large-screen variant selection
     private val isLargeScreen: Boolean
         get() {
-            val screenLayout = context.resources.configuration.screenLayout
-            val screenSize = screenLayout and android.content.res.Configuration.SCREENLAYOUT_SIZE_MASK
-            // SCREENLAYOUT_SIZE_LARGE or SCREENLAYOUT_SIZE_XLARGE = tablet
-            val isLarge = screenSize >= android.content.res.Configuration.SCREENLAYOUT_SIZE_LARGE
-            debugLog("📱 isLargeScreen check: screenSize=$screenSize, LARGE=${android.content.res.Configuration.SCREENLAYOUT_SIZE_LARGE}, isLarge=$isLarge")
+            val screenWidthDp = context.resources.configuration.screenWidthDp
+            val isLarge = screenWidthDp >= 600
+            debugLog("📱 isLargeScreen check: screenWidthDp=$screenWidthDp, isLarge=$isLarge")
             return isLarge
         }
 
+    /// Resolve a keyset ID to its large-screen variant if running on tablet
+    /// and the `_large` variant exists in the config.
+    internal fun resolveKeysetId(baseId: String): String {
+        if (!isLargeScreen) return baseId
+        val largeId = "${baseId}_large"
+        if (config?.keysets?.any { it.id == largeId } == true) {
+            return largeId
+        }
+        return baseId
+    }
+
     // Preview mode flag - when true, shows all keys from config (no filtering by system keyboard count)
     private var isPreviewMode: Boolean = false
+
+    /** Calculate available screen height in dp, subtracting system bar insets (status bar + navigation bar).
+     *  This matches iOS behavior which uses safe area height. */
+    private fun getAvailableScreenHeightDp(): Float {
+        val displayMetrics = context.resources.displayMetrics
+        val fullHeightDp = displayMetrics.heightPixels.toFloat() / displayMetrics.density
+
+        var insetsHeight = 0
+        // Status bar height
+        val statusBarId = context.resources.getIdentifier("status_bar_height", "dimen", "android")
+        if (statusBarId > 0) {
+            insetsHeight += context.resources.getDimensionPixelSize(statusBarId)
+        }
+        // Navigation bar height
+        val navBarId = context.resources.getIdentifier("navigation_bar_height", "dimen", "android")
+        if (navBarId > 0) {
+            insetsHeight += context.resources.getDimensionPixelSize(navBarId)
+        }
+        val insetsHeightDp = insetsHeight.toFloat() / displayMetrics.density
+        debugLog("📐 [getAvailableScreenHeightDp] full=${fullHeightDp}dp, insets=${insetsHeightDp}dp, available=${fullHeightDp - insetsHeightDp}dp")
+        return fullHeightDp - insetsHeightDp
+    }
 
     // UI Constants - same for preview and keyboard
     // Dynamic row height: uses adaptive calculation based on screen size and preset
     private val rowHeight: Int
         get() {
             // Get height preset from config (defaults to .normal)
-            val preset = KeyboardHeightPreset.from(config?.heightPreset)
+            val presetString = if (isLargeScreen) config?.heightPresetLarge ?: config?.heightPreset else config?.heightPreset
+            val preset = KeyboardHeightPreset.from(presetString)
 
             // Get font size preset from config (defaults to .normal)
-            val fontPreset = FontSizePreset.from(config?.fontSizePreset)
+            val fontPresetString = if (isLargeScreen) config?.fontSizePresetLarge ?: config?.fontSizePreset else config?.fontSizePreset
+            val fontPreset = FontSizePreset.from(fontPresetString)
 
             // Get screen dimensions in dp
             val displayMetrics = context.resources.displayMetrics
             val screenWidthDp = displayMetrics.widthPixels.toFloat() / displayMetrics.density
-            val screenHeightDp = displayMetrics.heightPixels.toFloat() / displayMetrics.density
+            val screenHeightDp = getAvailableScreenHeightDp()
 
             debugLog("📐 [rowHeight] screenDp: ${screenWidthDp}x${screenHeightDp}, preset: ${preset.value}")
 
@@ -205,7 +246,8 @@ class KeyboardRenderer(private val context: Context) {
 
     // Get key gap from config or use default
     private fun getKeyGap(): Int {
-        return config?.keyGap?.let { dpToPx(it) } ?: dpToPx(3)
+        val gap = if (isLargeScreen) config?.keyGapLarge ?: config?.keyGap ?: 3 else config?.keyGap ?: 3
+        return dpToPx(gap)
     }
 
     // Suggestions bar view reference for updates
@@ -248,7 +290,36 @@ class KeyboardRenderer(private val context: Context) {
     /** Scaled key vertical padding (visual gap between rows) */
     private val scaledKeyVerticalPadding: Int
         get() = (dpToPx(5) * effectiveDimensionScale).toInt()
-    
+
+    /** Computed base font size following the same preset logic as key rendering */
+    private val baseFontSize: Float
+        get() {
+            val fontPresetString = if (isLargeScreen) config?.fontSizePresetLarge ?: config?.fontSizePreset else config?.fontSizePreset
+            val fontPreset = FontSizePreset.from(fontPresetString)
+            val heightPresetString = if (isLargeScreen) config?.heightPresetLarge ?: config?.heightPreset else config?.heightPreset
+            val heightPreset = KeyboardHeightPreset.from(heightPresetString)
+
+            val displayMetrics = context.resources.displayMetrics
+            val screenWidthDp = displayMetrics.widthPixels.toFloat() / displayMetrics.density
+            val screenHeightDp = getAvailableScreenHeightDp()
+
+            val dimensions = KeyboardDimensions(
+                screenWidth = screenWidthDp,
+                screenHeight = screenHeightDp,
+                deviceType = DeviceType.current(context),
+                heightPreset = heightPreset,
+                fontSizePreset = fontPreset
+            )
+
+            val hasSuggestions = wordSuggestionsOverrideEnabled ?: wordSuggestionsEnabled
+            val rh = dimensions.calculateRowHeight(numberOfRows = 4, hasSuggestions = hasSuggestions)
+            return dimensions.calculateFontSize(rowHeight = rh)
+        }
+
+    /** Computed font weight from config (as Typeface constant) */
+    private val configFontWeight: Int
+        get() = getFontWeight()
+
     // MARK: - Modular Helper Classes
     
     /** Handles long-press backspace logic */
@@ -262,16 +333,17 @@ class KeyboardRenderer(private val context: Context) {
     
     // MARK: - Helper Methods for Default Colors
 
-    /** Get font weight from config string, fallback to BOLD for heavy */
+    /** Get font weight from config string, fallback to NORMAL for regular */
     private fun getFontWeight(): Int {
-        return when (config?.fontWeight?.lowercase()) {
+        val weightString = if (isLargeScreen) config?.fontWeightLarge ?: config?.fontWeight else config?.fontWeight
+        return when (weightString?.lowercase()) {
             "ultralight", "thin" -> Typeface.NORMAL  // Android doesn't have ultra-light
             "light" -> Typeface.NORMAL
-            "regular" -> Typeface.NORMAL
+            "normal", "regular" -> Typeface.NORMAL
             "medium" -> Typeface.NORMAL
             "semibold", "bold" -> Typeface.BOLD
             "heavy", "black" -> Typeface.BOLD  // Android BOLD is closest to heavy
-            else -> Typeface.BOLD  // Default to BOLD (matches iOS heavy)
+            else -> Typeface.NORMAL  // Default to NORMAL (matches iOS regular)
         }
     }
 
@@ -294,6 +366,11 @@ class KeyboardRenderer(private val context: Context) {
         }
         return parseColor(bgColorString) ?: Color.WHITE
     }
+
+    /** Get placeholder suggestion words for preview mode */
+    private fun getPlaceholderSuggestions(): List<String> {
+        return WordCompletionManager.getDefaultSuggestions(currentKeyboardId)
+    }
     
     // MARK: - Initialization
     
@@ -314,7 +391,37 @@ class KeyboardRenderer(private val context: Context) {
         
         // SuggestionsBarView callbacks
         suggestionsBarView.onSuggestionSelected = { suggestion ->
-            onSuggestionSelected?.invoke(suggestion)
+            val handler = onSuggestionSelected
+            if (handler != null) {
+                // Engine mode (IssieVoice / real keyboard): route through engine
+                handler.invoke(suggestion)
+            } else {
+                // Config mode (IssieBoard editor): emit as key press for group selection
+                val tempKey = Key(
+                    value = "suggestion",
+                    sValue = null,
+                    caption = suggestion,
+                    sCaption = null,
+                    type = "suggestion",
+                    width = null,
+                    offset = null,
+                    hidden = null,
+                    opacity = null,
+                    color = null,
+                    bgColor = null,
+                    fontSizePreset = null,
+                    label = null,
+                    keysetValue = null,
+                    returnKeysetValue = null,
+                    returnKeysetLabel = null,
+                    nikkud = null,
+                    showOn = null,
+                    flex = null,
+                    showForField = null
+                )
+                val parsed = ParsedKey.from(tempKey, emptyMap(), Color.BLACK, Color.WHITE)
+                onKeyPress?.invoke(parsed)
+            }
         }
         
         // NikkudPickerController callbacks
@@ -372,13 +479,15 @@ class KeyboardRenderer(private val context: Context) {
         val keyset = config.keysets.find { it.id == keysetId } ?: return dpToPx(216)
 
         // Calculate row height using the dimension system
-        val preset = KeyboardHeightPreset.from(config.heightPreset)
-        val fontPreset = FontSizePreset.from(config.fontSizePreset)
+        val presetString = if (isLargeScreen) config.heightPresetLarge ?: config.heightPreset else config.heightPreset
+        val preset = KeyboardHeightPreset.from(presetString)
+        val fontPresetString = if (isLargeScreen) config.fontSizePresetLarge ?: config.fontSizePreset else config.fontSizePreset
+        val fontPreset = FontSizePreset.from(fontPresetString)
 
-        // Get screen dimensions in dp
+        // Get screen dimensions in dp (available height subtracts system bars, matching iOS safe area behavior)
         val displayMetrics = context.resources.displayMetrics
         val screenWidthDp = displayMetrics.widthPixels.toFloat() / displayMetrics.density
-        val screenHeightDp = displayMetrics.heightPixels.toFloat() / displayMetrics.density
+        val screenHeightDp = getAvailableScreenHeightDp()
 
         // Create dimensions calculator with the passed config's presets
         val dimensions = KeyboardDimensions(
@@ -419,6 +528,11 @@ class KeyboardRenderer(private val context: Context) {
     /** Update word suggestions displayed in the suggestions bar */
     fun updateSuggestions(suggestions: List<String>, highlightIndex: Int? = null) {
         debugLog("📝 KeyboardRenderer updateSuggestions: $suggestions, highlight: ${highlightIndex?.toString() ?: "none"}, suggestionsBar=${suggestionsBar != null}")
+        // In preview mode, ignore controller updates — only renderKeyboard sets placeholders
+        if (isPreviewMode) {
+            debugLog("📝 KeyboardRenderer: Ignoring updateSuggestions in preview mode")
+            return
+        }
         currentSuggestions = suggestions
         suggestionHighlightIndex = highlightIndex
         updateSuggestionsBar()
@@ -547,6 +661,9 @@ class KeyboardRenderer(private val context: Context) {
         if (this.currentKeysetId == "abc" && currentKeysetId != "abc") {
             this.currentKeysetId = currentKeysetId
         }
+
+        // Resolve to large-screen keyset variant on tablet if available
+        this.currentKeysetId = resolveKeysetId(this.currentKeysetId)
         
         // Derive currentKeyboardId from keyset ID
         val keyboards = config.keyboards
@@ -568,7 +685,7 @@ class KeyboardRenderer(private val context: Context) {
         // Clear existing views, but preserve nikkud picker overlay if present
         for (i in container.childCount - 1 downTo 0) {
             val child = container.getChildAt(i)
-            if (child.tag != 999) {
+            if (child.tag != 999 && child.tag != KEYSET_SLIDE_OVERLAY_TAG) {
                 container.removeViewAt(i)
             }
         }
@@ -577,8 +694,8 @@ class KeyboardRenderer(private val context: Context) {
         val bgColorString = config.backgroundColor
         if (bgColorString != null) {
             if (bgColorString.lowercase() == "default" || bgColorString.isEmpty()) {
-                // For "default" background on Android, use 70% opaque light gray (#D2D3D9 with 70% alpha = #B3D2D3D9)
-                container.setBackgroundColor(Color.parseColor("#B3D2D3D9"))
+                // For "default" background on Android, use opaque light gray matching system keyboard
+                container.setBackgroundColor(Color.parseColor("#D2D3D9"))
             } else {
                 val bgColor = parseColor(bgColorString)
                 if (bgColor != null) {
@@ -586,8 +703,8 @@ class KeyboardRenderer(private val context: Context) {
                 }
             }
         } else {
-            // If backgroundColor is null, also use 70% opaque gray
-            container.setBackgroundColor(Color.parseColor("#B3D2D3D9"))
+            // If backgroundColor is null, also use opaque gray
+            container.setBackgroundColor(Color.parseColor("#D2D3D9"))
         }
         
         // Find current keyset
@@ -623,33 +740,118 @@ class KeyboardRenderer(private val context: Context) {
         val isLinearContainer = container is LinearLayout
         debugLog("📐 Container is LinearLayout: $isLinearContainer")
 
-        // Show suggestions bar in real keyboard, hide in preview (preview sends to React Native)
-        if (wordSuggestionsEnabled && !isPreviewMode) {
-            // Real keyboard - show native suggestions bar
+        // Show suggestions bar in both real keyboard and preview mode
+        if (wordSuggestionsEnabled) {
+            // Suggestion pills: start with default key colors, then apply group override if exists
+            var suggestionBgColor: Int? = getDefaultKeyBgColor()
+            var suggestionTextColor: Int? = getDefaultTextColor()
+
+            // Check if "suggestion" has a group style override
+            val suggestionGroupTemplate = groupsMap["suggestion"]
+            if (suggestionGroupTemplate != null) {
+                val bgStr = suggestionGroupTemplate.bgColor
+                if (!bgStr.isNullOrEmpty()) {
+                    parseColor(bgStr)?.let { suggestionBgColor = it }
+                }
+                val colorStr = suggestionGroupTemplate.color
+                if (!colorStr.isNullOrEmpty()) {
+                    parseColor(colorStr)?.let { suggestionTextColor = it }
+                }
+            }
+
+            suggestionsBarView.customBackgroundColor = suggestionBgColor
+            suggestionsBarView.customTextColor = suggestionTextColor
+
+            // Pass font settings to suggestions bar
+            suggestionsBarView.customFontWeight = configFontWeight
+            // baseFontSize is in sp; convert to px and apply preview scale
+            // When using transform scaling for the bar, use full font size (transform handles visual scaling)
+            val spToPx = TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_SP, 1f, context.resources.displayMetrics
+            )
+            val useTransformScalingForBar = isPreviewMode && currentScale < 1.0f
+            val barFontScale = if (useTransformScalingForBar) 1.0f else effectiveDimensionScale
+            suggestionsBarView.customFontSize = baseFontSize * spToPx * barFontScale
+
+            // Pass custom font if configured
+            val fontName = config.fontName
+            if (fontName != null) {
+                try {
+                    val typeface = try {
+                        Typeface.createFromAsset(context.assets, "fonts/$fontName.ttf")
+                    } catch (_: Exception) {
+                        try {
+                            Typeface.createFromAsset(context.assets, "fonts/$fontName.otf")
+                        } catch (_: Exception) {
+                            Typeface.createFromAsset(context.assets, "fonts/$fontName")
+                        }
+                    }
+                    suggestionsBarView.customFont = typeface
+                } catch (e: Exception) {
+                    suggestionsBarView.customFont = null
+                }
+            } else {
+                suggestionsBarView.customFont = null
+            }
+
             suggestionsBarView.currentKeyboardId = currentKeyboardId
 
-            // Create suggestions bar with scaled height
+            // When transform-scaling, render bar at full size then scale it down
+            // (same approach as iOS uses for rowsContainer)
+            val barFullHeight = suggestionsBarHeight  // always full size; transform will shrink it
+            val barFullWidth = currentWidth
+
+            // Create suggestions bar
             val bar = suggestionsBarView.createBar(
-                width = (currentWidth * currentScale).toInt(),
-                height = scaledSuggestionsBarHeight
+                width = if (useTransformScalingForBar) barFullWidth else (barFullWidth * currentScale).toInt(),
+                height = if (useTransformScalingForBar) barFullHeight else scaledSuggestionsBarHeight
             )
             // Override layout params for the container type
+            // When using transform scaling, set height to full size (transform will shrink visually)
+            val barLayoutHeight = if (useTransformScalingForBar) barFullHeight else scaledSuggestionsBarHeight
             if (isLinearContainer) {
                 bar.layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    scaledSuggestionsBarHeight
-                )
+                    barLayoutHeight
+                ).apply {
+                    // When transform-scaling, the bar visually occupies barFullHeight * currentScale,
+                    // but its layout bounds are barFullHeight. Use negative bottom margin to pull
+                    // the next sibling up so it starts right after the visual bottom of the bar.
+                    if (useTransformScalingForBar) {
+                        bottomMargin = -(barFullHeight - (barFullHeight * currentScale).toInt())
+                    }
+                }
             } else {
                 bar.layoutParams = FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.MATCH_PARENT,
-                    scaledSuggestionsBarHeight
+                    barLayoutHeight
                 )
             }
             container.addView(bar)
             suggestionsBar = bar
-            suggestionsBarView.updateSuggestions(currentSuggestions, suggestionHighlightIndex)
+
+            // Apply scale transform to the bar for preview mode
+            if (useTransformScalingForBar) {
+                // Scale from top-center so it stays pinned to the top edge
+                bar.pivotX = barFullWidth / 2f
+                bar.pivotY = 0f
+                bar.scaleX = currentScale
+                bar.scaleY = currentScale
+            }
+
+            // Selection state for editor
+            suggestionsBarView.isSelected = selectedKeyIds.contains("suggestion")
+            debugLog("📝 Suggestions bar isSelected=${suggestionsBarView.isSelected}, selectedKeyIds=$selectedKeyIds")
+
+            // In preview mode, show placeholder suggestions
+            if (isPreviewMode) {
+                suggestionsBarView.currentKeyboardId = currentKeyboardId
+                val placeholders = getPlaceholderSuggestions()
+                suggestionsBarView.updateSuggestions(placeholders)
+            } else {
+                suggestionsBarView.updateSuggestions(currentSuggestions, suggestionHighlightIndex)
+            }
         } else {
-            // Preview mode - don't show bar (React Native handles it)
             suggestionsBar = null
         }
 
@@ -671,6 +873,7 @@ class KeyboardRenderer(private val context: Context) {
 
         val rowsContainer = TransformAwareContainer(context).apply {
             orientation = LinearLayout.VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_LTR  // Force LTR so rows render correctly on RTL devices
             gravity = android.view.Gravity.CENTER_HORIZONTAL  // Center rows horizontally
             setBackgroundColor(Color.TRANSPARENT)  // Transparent to show keyboard background
             clipChildren = false
@@ -689,13 +892,24 @@ class KeyboardRenderer(private val context: Context) {
                     FrameLayout.LayoutParams.MATCH_PARENT,
                     FrameLayout.LayoutParams.WRAP_CONTENT  // Let content determine height
                 ).apply {
-                    val topMargin = if (wordSuggestionsEnabled && !isPreviewMode) scaledSuggestionsBarHeight + (dpToPx(4) * effectiveScale).toInt() else (dpToPx(4) * effectiveScale).toInt()
+                    val barVisualHeight = if (wordSuggestionsEnabled) {
+                        if (isPreviewMode && currentScale < 1.0f) {
+                            // Transform-scaled bar: visual height = full height * scale
+                            (suggestionsBarHeight * currentScale).toInt()
+                        } else {
+                            scaledSuggestionsBarHeight
+                        }
+                    } else 0
+                    val topMargin = barVisualHeight + (dpToPx(4) * effectiveScale).toInt()
                     setMargins(0, topMargin, 0, 0)  // No bottom margin to allow overflow
                 }
             }
         }
         debugLog("📐 Adding rows container to parent")
         container.addView(rowsContainer)
+
+        // Store reference to rows container for keyset slide gesture
+        activeRowsContainer = rowsContainer
 
         // Render each row
         // Calculate available width for keys
@@ -794,7 +1008,7 @@ class KeyboardRenderer(private val context: Context) {
         // They're handled separately in the rendering loop
         
         // Check if the key's group has an explicit "hide" visibility mode
-        val template = groups[keyValue]
+        val template = groups[keyValue] ?: groups[parsedKey.type]
         if (template != null) {
             val visMode = template.effectiveVisibilityMode
             if (visMode == VisibilityMode.HIDE) {
@@ -805,22 +1019,16 @@ class KeyboardRenderer(private val context: Context) {
         // If there's a "showOnly" rule active, check if this key is in the whitelist
         if (showOnlyKeys != null) {
             // Essential keys that are NEVER hidden by showOnly rule (only by explicit hide)
+            // These keys are critical for keyboard operation and should always remain visible
             val essentialValues = setOf(" ", ",", ".")  // space, comma, period
-            val essentialTypes = setOf("space", "backspace", "enter", "next-keyboard", "settings")
-            
+            val essentialTypes = setOf("space", "backspace", "enter", "next-keyboard", "settings", "shift", "keyset", "nikkud", "close", "language")
+
             // Check if this is an essential key by value or type
             if (essentialValues.contains(keyValue) || essentialTypes.contains(parsedKey.type.lowercase())) {
                 // Essential keys are NOT hidden by showOnly rule
                 return false
             }
-            
-            // Other special keys should check if they're in the whitelist
-            val specialTypes = setOf("shift", "keyset", "nikkud", "settings", "close", "next-keyboard", "language")
-            if (specialTypes.contains(parsedKey.type.lowercase())) {
-                // Check if this special key is explicitly in the showOnly set
-                return !showOnlyKeys.contains(keyValue) && !showOnlyKeys.contains(parsedKey.type.lowercase())
-            }
-            
+
             // For regular keys, hide if not in the showOnly set
             return !showOnlyKeys.contains(keyValue)
         }
@@ -869,7 +1077,8 @@ class KeyboardRenderer(private val context: Context) {
                 
                 // Check if key is hidden via group "hide" visibility mode
                 val keyValue = key.value ?: key.type ?: ""
-                val isHiddenByGroup = groups[keyValue]?.effectiveVisibilityMode == VisibilityMode.HIDE
+                val rawKeyType = key.type ?: ""
+                val isHiddenByGroup = (groups[keyValue] ?: groups[rawKeyType])?.effectiveVisibilityMode == VisibilityMode.HIDE
                 
                 // Don't count group-hidden keys OR spacer keys (parsedKey.hidden) in baseline
                 // Spacers take up space in layout but shouldn't affect the baseline calculation
@@ -932,14 +1141,18 @@ class KeyboardRenderer(private val context: Context) {
         // Get current field type for showForField filtering
         val fieldType = editorContext?.fieldType
         
-        // FIRST PASS: Calculate hidden width and count flex keys
-        // We redistribute:
-        // 1. showForField hidden keys (field type conditional)
-        // 2. showOn hidden SPACERS (hidden=true with showOn filter - these are layout tools)
-        // We DON'T redistribute showOn hidden REAL keys (they're in baseline, create fixed gaps)
+        // FIRST PASS: Calculate hidden width, count flex keys, and sum visible row width
+        // We redistribute width from:
+        // 1. Keys hidden by showForField (these ARE in baseline)
+        // 2. next-keyboard when showGlobeButton is false (this IS in baseline)
+        // 3. language when hasOnlyOneLanguage is true (this IS in baseline)
+        // 4. The gap between this row's visible width and the baseline (widest row)
+        // showOn-hidden keys are NOT in baseline, so they don't add to hiddenWidth directly,
+        // but the row may be narrower than baseline, and flex keys should absorb that gap.
         var hiddenWidthToRedistribute = 0.0
         var flexKeyCount = 0
-        
+        var visibleRowWidth = 0.0
+
         for (key in row.keys) {
             val parsedKey = ParsedKey.from(key, groups, getDefaultTextColor(), getDefaultKeyBgColor())
 
@@ -955,36 +1168,40 @@ class KeyboardRenderer(private val context: Context) {
                 hiddenWidthToRedistribute += parsedKey.width
                 continue
             }
-            
+
             // Skip nikkud key if disabled
             if (keyType == "nikkud" && isNikkudDisabled) {
                 continue
             }
-            
-            // Check keys hidden by showOn filter (screen size)
+
+            // Skip keys hidden by showOn filter - these are NOT in baseline, so don't count them
             if (!key.shouldShow(isLargeScreen)) {
-                // For showOn hidden keys:
-                // - If it's a spacer (parsedKey.hidden), redistribute its width (layout tool)
-                // - If it's a real key, don't redistribute (it's in baseline, creates fixed gap)
-                if (parsedKey.hidden) {
-                    hiddenWidthToRedistribute += parsedKey.width
-                }
                 continue
             }
-            
+
             // Check if key is hidden due to showForField filter (field type)
             if (!key.shouldShow(fieldType)) {
                 // Always redistribute showForField hidden widths
                 hiddenWidthToRedistribute += parsedKey.width
                 continue
             }
-            
+
             // Count flex keys
             if (key.flex == true) {
                 flexKeyCount++
             }
+
+            // Sum visible row width (including offsets)
+            visibleRowWidth += parsedKey.width + parsedKey.offset
         }
-        
+
+        // Add the gap between this row's visible width and the baseline to redistribution
+        // This ensures flex keys fill the remaining space when a row is narrower than the widest row
+        val rowGap = baselineWidth.toDouble() - visibleRowWidth - hiddenWidthToRedistribute
+        if (rowGap > 0 && flexKeyCount > 0) {
+            hiddenWidthToRedistribute += rowGap
+        }
+
         // Calculate extra width per flex key
         val extraWidthPerFlexKey = if (flexKeyCount > 0) {
             hiddenWidthToRedistribute / flexKeyCount
@@ -1050,10 +1267,10 @@ class KeyboardRenderer(private val context: Context) {
             val isKeyHidden = isKeyHiddenByVisibility(parsedKey, keyValue, showOnlyKeys, groups)
 
             // In preview mode, render hidden keys with opacity instead of fully hiding them
-            // This allows users to see and select keys that will be hidden
-            val shouldRenderWithOpacity = isKeyHidden && isPreviewMode
+            // Exception: base hidden spacers (hidden: true) are always fully hidden - they're layout gaps
+            val shouldRenderWithOpacity = isKeyHidden && isPreviewMode && !parsedKey.hidden
 
-            if (isKeyHidden && !isPreviewMode) {
+            if (isKeyHidden && !shouldRenderWithOpacity) {
                 // Fully hidden - skip rendering (only when NOT in preview mode)
                 // Hidden key by showOnly/hide rules - ADD SPACER to preserve key positions
                 // These keys ARE counted in the baseline, so we need to create the gap
@@ -1263,10 +1480,8 @@ class KeyboardRenderer(private val context: Context) {
                 // Handle special key states
                 if (key.type.lowercase() == "shift" && shiftState.isActive()) {
                     bgColor = Color.parseColor("#4CAF50")  // systemGreen
-                } else if (key.type.lowercase() == "nikkud" && nikkudActive) {
-                    bgColor = Color.parseColor("#FFEB3B")  // systemYellow
                 }
-                
+
                 setColor(bgColor)
                 cornerRadius = scaledCornerRadius
             }
@@ -1286,31 +1501,53 @@ class KeyboardRenderer(private val context: Context) {
                 val selectedBg = background as? GradientDrawable
                 selectedBg?.setStroke(dpToPx(3), Color.parseColor("#2196F3"))
             }
+
+            // Nikkud active indicator - rounded border instead of yellow background
+            if (key.type.lowercase() == "nikkud" && nikkudActive) {
+                val nikkudBg = background as? GradientDrawable
+                nikkudBg?.setStroke(dpToPx(3), Color.parseColor("#2196F3"))  // systemBlue border (2.5pt iOS ~ 3dp Android)
+            }
         }
+
+        val needsOutline = isSelected || (key.type.lowercase() == "nikkud" && nikkudActive)
         
+        // Determine if this is a special key that uses an icon instead of text
+        val isNikkudKey = key.type.lowercase() == "nikkud"
+        val isCloseKey = key.type.lowercase() == "close"
+        val isSettingsKey = key.type.lowercase() == "settings"
+        val isNextKeyboardKey = key.type.lowercase() == "next-keyboard"
+
+        // Determine final text early (needed for icon: prefix detection)
+        val displayText = if (shiftState.isActive()) key.sCaption else key.caption
+        val finalText = when {
+            key.label.isNotEmpty() -> key.label
+            displayText.isNotEmpty() -> displayText
+            key.value.isNotEmpty() -> key.value
+            else -> getDefaultLabel(key.type, editorContext)
+        }
+
+        // Determine icon drawable name for special keys or icon:-prefixed labels (e.g. enter key actions)
+        // Port of iOS SF Symbol logic: settings -> gear, close -> keyboard_hide, "icon:" prefix -> drawable name
+        val iconDrawableName: String? = when {
+            isSettingsKey -> "ic_settings_gear"
+            isCloseKey -> "ic_keyboard_hide"
+            isNextKeyboardKey -> "ic_globe"
+            finalText.startsWith("icon:") -> finalText.removePrefix("icon:")
+            else -> null
+        }
+        val hasIcon = iconDrawableName != null || isNikkudKey
+
         // Create label
         val label = TextView(context).apply {
             gravity = Gravity.CENTER
-            
-            // Determine display text based on shift state
-            val displayText = if (shiftState.isActive()) key.sCaption else key.caption
-            
+
             // Log for first key to debug shift state
             if (key.value == "q") {
                 debugLog("🔤 Creating 'q' key: shiftState=$shiftState, shiftActive=${shiftState.isActive()}, caption='${key.caption}', sCaption='${key.sCaption}', displayText='$displayText'")
             }
-            
-            // Determine final text
-            val finalText = when {
-                key.label.isNotEmpty() -> key.label
-                displayText.isNotEmpty() -> displayText
-                key.value.isNotEmpty() -> key.value
-                else -> getDefaultLabel(key.type, editorContext)
-            }
 
-            // For nikkud key, we'll use an ImageView instead of TextView - skip text setup
-            val isNikkudKey = key.type.lowercase() == "nikkud"
-            if (!isNikkudKey) {
+            // For icon keys, we'll use an ImageView instead of TextView - skip text setup
+            if (!hasIcon) {
                 text = finalText
 
             // Font size - use preset system (key preset overrides config preset)
@@ -1318,14 +1555,15 @@ class KeyboardRenderer(private val context: Context) {
             val isMultiChar = finalText.length > 1
 
             // Determine which font preset to use: key's preset > config's preset > "normal"
-            val fontPresetString = key.fontSizePreset ?: config?.fontSizePreset ?: "normal"
+            val fontPresetString = key.fontSizePreset ?: (if (isLargeScreen) config?.fontSizePresetLarge ?: config?.fontSizePreset else config?.fontSizePreset) ?: "normal"
             val fontPreset = FontSizePreset.from(fontPresetString)
-            val heightPreset = KeyboardHeightPreset.from(config?.heightPreset)
+            val heightPresetString = if (isLargeScreen) config?.heightPresetLarge ?: config?.heightPreset else config?.heightPreset
+            val heightPreset = KeyboardHeightPreset.from(heightPresetString)
 
-            // Get screen dimensions in dp
+            // Get screen dimensions in dp (available height subtracts system bars, matching iOS safe area behavior)
             val displayMetrics = context.resources.displayMetrics
             val screenWidthDp = displayMetrics.widthPixels.toFloat() / displayMetrics.density
-            val screenHeightDp = displayMetrics.heightPixels.toFloat() / displayMetrics.density
+            val screenHeightDp = getAvailableScreenHeightDp()
 
             // Create dimensions calculator
             val dimensions = KeyboardDimensions(
@@ -1361,7 +1599,7 @@ class KeyboardRenderer(private val context: Context) {
             )
             
             // Check if we're in an "abc" keyset (not "123" or "#+=" keysets)
-            val isAbcKeyset = currentKeysetId.endsWith("_abc") || currentKeysetId == "abc"
+            val isAbcKeyset = currentKeysetId.contains("abc")
             
             val shouldUseCustomFont = isCharacterKey && isAbcKeyset && config?.fontName != null
 
@@ -1371,9 +1609,17 @@ class KeyboardRenderer(private val context: Context) {
                 try {
                     val fontName = config?.fontName
                     if (fontName != null) {
-                        // Load font from assets/fonts/
-                        val typeface = Typeface.createFromAsset(context.assets, "fonts/$fontName")
-                        setTypeface(typeface, fontWeight)
+                        // Load font from assets/fonts/ — try with .ttf then .otf extension
+                        val customTypeface = try {
+                            Typeface.createFromAsset(context.assets, "fonts/$fontName.ttf")
+                        } catch (_: Exception) {
+                            try {
+                                Typeface.createFromAsset(context.assets, "fonts/$fontName.otf")
+                            } catch (_: Exception) {
+                                Typeface.createFromAsset(context.assets, "fonts/$fontName")
+                            }
+                        }
+                        setTypeface(customTypeface, fontWeight)
                         // Add spacing for single character labels when using custom font to prevent glyph cutoff
                         if (finalText.length == 1) {
                             text = " $finalText "
@@ -1388,16 +1634,24 @@ class KeyboardRenderer(private val context: Context) {
             }
         }
         
-        // For nikkud key, add ImageView with SVG drawable instead of TextView
-        val isNikkudKey = key.type.lowercase() == "nikkud"
-        if (isNikkudKey) {
-            // Determine which drawable to use based on keyboard language
-            val drawableResId = when (currentKeyboardId) {
-                "he" -> context.resources.getIdentifier("ic_nikkud_hataf_kamatz", "drawable", context.packageName)
-                "ar" -> context.resources.getIdentifier("ic_nikkud_shadda", "drawable", context.packageName)
-                else -> context.resources.getIdentifier("ic_nikkud_hataf_kamatz", "drawable", context.packageName)
+        // For icon keys (nikkud, close, settings, enter icons), add ImageView with drawable instead of TextView
+        // Port of iOS SF Symbol rendering logic for special keys and sf:-prefixed labels
+        if (hasIcon) {
+            // Determine which drawable to use
+            val drawableResId = if (isNikkudKey) {
+                // Nikkud keys use language-specific diacritical mark icons
+                // The icons are: ic_nikkud_hataf_kamatz for Hebrew, ic_nikkud_tashkeel for Arabic
+                val kbId = currentKeyboardId
+                when {
+                    kbId != null && kbId.startsWith("he") -> context.resources.getIdentifier("ic_nikkud_hataf_kamatz", "drawable", context.packageName)
+                    kbId != null && kbId.startsWith("ar") -> context.resources.getIdentifier("ic_nikkud_tashkeel", "drawable", context.packageName)
+                    else -> context.resources.getIdentifier("ic_nikkud_hataf_kamatz", "drawable", context.packageName)
+                }
+            } else {
+                // All other icon keys: settings, close, enter actions (icon: prefix)
+                context.resources.getIdentifier(iconDrawableName, "drawable", context.packageName)
             }
-            
+
             if (drawableResId != 0) {
                 val imageView = android.widget.ImageView(context).apply {
                     setImageResource(drawableResId)
@@ -1405,18 +1659,35 @@ class KeyboardRenderer(private val context: Context) {
                     setColorFilter(if (key.textColor == Color.BLACK) Color.BLACK else key.textColor)
                     scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
                 }
-                
+
+                // Scale icon size: keyboard-hide is complex so use 180%, nikkud uses 24dp, others use 100%
+                // Port of iOS: key.type == "close" ? finalFontSize * 1.8 : finalFontSize
+                val iconSizeDp = when {
+                    isCloseKey -> 43
+                    isNikkudKey -> 24
+                    else -> 22  // Enter and settings icons: standard icon size
+                }
+
                 visualKeyView.addView(imageView, FrameLayout.LayoutParams(
-                    dpToPx(24),
-                    dpToPx(24)
+                    dpToPx(iconSizeDp),
+                    dpToPx(iconSizeDp)
                 ).apply {
                     gravity = Gravity.CENTER
                 })
-                
-                debugLog("🎨 Added nikkud ImageView with drawable: ${if (currentKeyboardId == "he") "hataf_kamatz" else "shadda"}")
             } else {
                 // Fallback to text if drawable not found
-                debugLog("⚠️ Nikkud drawable not found, falling back to text")
+                // Set fallback text for icon keys that would otherwise be empty
+                if (label.text.isNullOrEmpty()) {
+                    label.text = when {
+                        isSettingsKey -> "⚙"
+                        isCloseKey -> "⬇"
+                        isNikkudKey -> "◌"
+                        key.type.lowercase() in listOf("enter", "action") -> "↵"
+                        else -> key.type
+                    }
+                    label.gravity = Gravity.CENTER
+                    label.setTextColor(if (key.textColor == Color.BLACK) Color.BLACK else key.textColor)
+                }
                 visualKeyView.addView(label, FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.MATCH_PARENT,
                     FrameLayout.LayoutParams.MATCH_PARENT
@@ -1432,7 +1703,24 @@ class KeyboardRenderer(private val context: Context) {
 
         // Get key gap from config or use defaults (matching iOS logic)
         val horizontalGap = scaledKeyGap
-        val verticalGap = horizontalGap + (dpToPx(2) * effectiveDimensionScale).toInt()  // Vertical padding is slightly larger (2dp more than horizontal)
+        val verticalGap = horizontalGap  // Same gap in both directions
+
+        // White outline behind blue border for contrast on any background
+        if (needsOutline) {
+            val outlineView = View(context).apply {
+                background = GradientDrawable().apply {
+                    setColor(Color.TRANSPARENT)
+                    cornerRadius = scaledCornerRadius + dpToPx(2)
+                    setStroke(dpToPx(2), Color.WHITE)
+                }
+            }
+            buttonContainer.addView(outlineView, FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            ).apply {
+                setMargins(horizontalGap - dpToPx(2), verticalGap - dpToPx(2), horizontalGap - dpToPx(2), verticalGap - dpToPx(2))
+            })
+        }
 
         // Add visual key view with padding
         buttonContainer.addView(visualKeyView, FrameLayout.LayoutParams(
@@ -1441,6 +1729,9 @@ class KeyboardRenderer(private val context: Context) {
         ).apply {
             setMargins(horizontalGap, verticalGap, horizontalGap, verticalGap)
         })
+
+        // Tag visual key view for highlight/unhighlight (port of iOS tag = 8888)
+        visualKeyView.tag = VISUAL_KEY_TAG
 
         // Check if we're in selection/preview mode (edit mode in modal)
         val isSelectionMode = onKeyLongPress != null
@@ -1455,24 +1746,16 @@ class KeyboardRenderer(private val context: Context) {
                     debugLog("⌫ Backspace clicked in selection mode")
                     handleKeyClick(key, it)
                 }
-                
-                // Add touch feedback
+
+                // Add touch feedback (alpha highlight, port of iOS highlightKey/unhighlightKey)
                 buttonContainer.setOnTouchListener { _, event ->
                     when (event.action) {
                         MotionEvent.ACTION_DOWN -> {
-                            visualKeyView.animate()
-                                .scaleX(0.95f)
-                                .scaleY(0.95f)
-                                .setDuration(100)
-                                .start()
+                            highlightKey(buttonContainer)
                             false
                         }
                         MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                            visualKeyView.animate()
-                                .scaleX(1.0f)
-                                .scaleY(1.0f)
-                                .setDuration(100)
-                                .start()
+                            unhighlightKey(buttonContainer)
                             false
                         }
                         else -> false
@@ -1481,27 +1764,19 @@ class KeyboardRenderer(private val context: Context) {
             } else {
                 // Normal keyboard mode: backspace with long-press support
                 var isLongPressing = false
-                
+
                 buttonContainer.setOnTouchListener { v, event ->
                     when (event.action) {
                         MotionEvent.ACTION_DOWN -> {
                             debugLog("⌫ Backspace touch DOWN")
                             isLongPressing = false
-                            visualKeyView.animate()
-                                .scaleX(0.95f)
-                                .scaleY(0.95f)
-                                .setDuration(100)
-                                .start()
+                            highlightKey(buttonContainer)
                             false
                         }
                         MotionEvent.ACTION_UP -> {
                             debugLog("⌫ Backspace touch UP, wasLongPress=$isLongPressing")
-                            visualKeyView.animate()
-                                .scaleX(1.0f)
-                                .scaleY(1.0f)
-                                .setDuration(100)
-                                .start()
-                            
+                            unhighlightKey(buttonContainer)
+
                             if (isLongPressing) {
                                 backspaceHandler.handleTouchUp()
                                 true
@@ -1511,11 +1786,7 @@ class KeyboardRenderer(private val context: Context) {
                         }
                         MotionEvent.ACTION_CANCEL -> {
                             debugLog("⌫ Backspace touch CANCEL")
-                            visualKeyView.animate()
-                                .scaleX(1.0f)
-                                .scaleY(1.0f)
-                                .setDuration(100)
-                                .start()
+                            unhighlightKey(buttonContainer)
                             backspaceHandler.handleTouchUp()
                             true
                         }
@@ -1537,12 +1808,12 @@ class KeyboardRenderer(private val context: Context) {
                     true
                 }
             }
-        } else if (keyType == "settings" || keyType == "close") {
-            // Settings and close buttons: selectable in selection mode, functional otherwise
+        } else if (keyType == "settings" || keyType == "close" || keyType == "nikkud") {
+            // Settings, close, and nikkud buttons: selectable in selection mode, functional otherwise
             if (isSelectionMode) {
                 // In selection mode: tap to select for styling
                 buttonContainer.setOnClickListener {
-                    debugLog("⚙️ Settings/Close clicked in selection mode")
+                    debugLog("⚙️ Settings/Close/Nikkud clicked in selection mode")
                     onKeyLongPress?.invoke(key)
                 }
             } else {
@@ -1552,23 +1823,15 @@ class KeyboardRenderer(private val context: Context) {
                 }
             }
 
-            // Add touch feedback
+            // Add touch feedback (alpha highlight)
             buttonContainer.setOnTouchListener { _, event ->
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
-                        visualKeyView.animate()
-                            .scaleX(0.95f)
-                            .scaleY(0.95f)
-                            .setDuration(100)
-                            .start()
+                        highlightKey(buttonContainer)
                         false
                     }
                     MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                        visualKeyView.animate()
-                            .scaleX(1.0f)
-                            .scaleY(1.0f)
-                            .setDuration(100)
-                            .start()
+                        unhighlightKey(buttonContainer)
                         false
                     }
                     else -> false
@@ -1589,60 +1852,34 @@ class KeyboardRenderer(private val context: Context) {
                 handleKeyClick(key, it)
             }
             
-            // Add touch feedback
+            // Add touch feedback (alpha highlight)
             buttonContainer.setOnTouchListener { _, event ->
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
-                        visualKeyView.animate()
-                            .scaleX(0.95f)
-                            .scaleY(0.95f)
-                            .setDuration(100)
-                            .start()
+                        highlightKey(buttonContainer)
                         false
                     }
                     MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                        visualKeyView.animate()
-                            .scaleX(1.0f)
-                            .scaleY(1.0f)
-                            .setDuration(100)
-                            .start()
+                        unhighlightKey(buttonContainer)
                         false
                     }
                     else -> false
                 }
             }
         } else {
-            // Add touch feedback for all other keys
-            var originalScaleX = 1.0f
-            var originalScaleY = 1.0f
-            
+            // Add touch feedback for all other keys (alpha highlight)
             buttonContainer.setOnTouchListener { v, event ->
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
-                        // Animate press
-                        visualKeyView.animate()
-                            .scaleX(0.95f)
-                            .scaleY(0.95f)
-                            .setDuration(100)
-                            .start()
+                        highlightKey(buttonContainer)
                         false // Let other handlers process
                     }
                     MotionEvent.ACTION_UP -> {
-                        // Animate release
-                        visualKeyView.animate()
-                            .scaleX(1.0f)
-                            .scaleY(1.0f)
-                            .setDuration(100)
-                            .start()
+                        unhighlightKey(buttonContainer)
                         false // Let click listener handle
                     }
                     MotionEvent.ACTION_CANCEL -> {
-                        // Restore on cancel
-                        visualKeyView.animate()
-                            .scaleX(1.0f)
-                            .scaleY(1.0f)
-                            .setDuration(100)
-                            .start()
+                        unhighlightKey(buttonContainer)
                         false
                     }
                     else -> false
@@ -1736,10 +1973,46 @@ class KeyboardRenderer(private val context: Context) {
                 }
             } else if (keyType == "keyset") {
                 // Keyset: long-press for edit mode selection
-                buttonContainer.setOnLongClickListener {
-                    debugLog("🔑 Key long-pressed for selection: type='${key.type}'")
-                    onKeyLongPress?.invoke(key)
-                    true
+                if (isSelectionMode) {
+                    buttonContainer.setOnLongClickListener {
+                        debugLog("Key long-pressed for selection: type='${key.type}'")
+                        onKeyLongPress?.invoke(key)
+                        true
+                    }
+                } else if (!isPreviewMode && key.keysetValue.isNotEmpty()) {
+                    // Normal keyboard mode: add keyset slide gesture (0.15s long-press)
+                    // Port of iOS keysetSlideGesture with minimumPressDuration = 0.15
+                    var slideTimer: android.os.Handler? = null
+                    var slideRunnable: Runnable? = null
+
+                    buttonContainer.setOnTouchListener { _, event ->
+                        when (event.action) {
+                            MotionEvent.ACTION_DOWN -> {
+                                highlightKey(buttonContainer)
+                                // Start 0.15s timer for keyset slide activation
+                                slideTimer = android.os.Handler(android.os.Looper.getMainLooper())
+                                slideRunnable = Runnable {
+                                    // Activate keyset slide
+                                    debugLog("Keyset slide activated on '${key.keysetValue}'")
+                                    keysetSlideOriginKeyset = currentKeysetId
+                                    isKeysetSlideActive = true
+                                    keysetSlideDidMove = false
+                                    keysetSlideCurrentButton = null
+                                    switchKeyset(key.keysetValue)
+                                    // After re-render, add slide overlay
+                                    addKeysetSlideOverlay()
+                                }
+                                slideTimer?.postDelayed(slideRunnable!!, 150)
+                                false
+                            }
+                            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                                unhighlightKey(buttonContainer)
+                                slideTimer?.removeCallbacks(slideRunnable ?: return@setOnTouchListener false)
+                                false
+                            }
+                            else -> false
+                        }
+                    }
                 }
             }
         }
@@ -1753,16 +2026,23 @@ class KeyboardRenderer(private val context: Context) {
     private fun getDefaultLabel(type: String, editorContext: EditorContext?): String {
         return when (type.lowercase()) {
             "backspace" -> "⌫"
-            "enter", "action" -> editorContext?.enterLabel ?: "↵"
+            "enter", "action" -> editorContext?.enterLabel ?: "icon:ic_enter_default"
             "shift" -> if (shiftState == ShiftState.LOCKED) "⇪" else "⇧"
-            "settings" -> "⚙"
-            "close" -> "⬇"
+            "settings" -> "icon:ic_settings_gear"
+            "close" -> "icon:ic_keyboard_hide"
             "language" -> "<->"
             "next-keyboard" -> "🌐"
-            "nikkud" -> when (currentKeyboardId) {
-                "he" -> " \u05B3"  // Hataf-kamatz
-                "ar" -> "◌\u0651"  // Shadda
-                else -> "◌"
+            "nikkud" -> {
+                // Language-specific nikkud caption with dotted circle as base
+                // The dotted circle (U+25CC) is the standard base for displaying combining marks
+                // Hebrew: hataf-kamatz (חתף-קמץ)
+                // Arabic: shadda (شَدّة)
+                val kbId = currentKeyboardId
+                when {
+                    kbId != null && kbId.startsWith("he") -> " \u05B3"  // Hataf-kamatz
+                    kbId != null && kbId.startsWith("ar") -> "◌\u0651"  // Shadda
+                    else -> "◌"
+                }
             }
             "space" -> "SPACE"
             else -> type.uppercase()
@@ -1770,6 +2050,9 @@ class KeyboardRenderer(private val context: Context) {
     }
     
     fun handleKeyClick(key: ParsedKey, keyView: View) {
+        // Ignore tap if keyset slide gesture took over (port of iOS isKeysetSlideActive guard)
+        if (isKeysetSlideActive) return
+
         alwaysLog("🔑 Key clicked: type='${key.type}', value='${key.value}'")
         debugLog("🔑 Key clicked: type='${key.type}', value='${key.value}'")
         
@@ -1787,6 +2070,12 @@ class KeyboardRenderer(private val context: Context) {
             }
             
             "nikkud" -> {
+                // In selection mode, emit key press for selection
+                if (onKeyLongPress != null) {
+                    debugLog("   → Selection mode: emitting key press for nikkud")
+                    onKeyPress?.invoke(key)
+                    return
+                }
                 debugLog("   → Handling NIKKUD")
                 nikkudActive = !nikkudActive
                 // Update only the nikkud key's background color without full re-render
@@ -1812,6 +2101,12 @@ class KeyboardRenderer(private val context: Context) {
             }
             
             "next-keyboard" -> {
+                // In selection mode, emit key press for selection
+                if (onKeyLongPress != null) {
+                    debugLog("   → Selection mode: emitting key press")
+                    onKeyPress?.invoke(key)
+                    return
+                }
                 debugLog("   → Handling NEXT-KEYBOARD")
                 val callback = onNextKeyboard
                 if (callback != null) {
@@ -1897,6 +2192,65 @@ class KeyboardRenderer(private val context: Context) {
         renderKeyboard(container, config, currentKeysetId, editorContext, overlayContainer)
     }
     
+    /** Decode key info from JSON string (port of iOS decodeKeyInfo) */
+    private fun decodeKeyInfo(identifier: String?): JSONObject? {
+        if (identifier.isNullOrEmpty()) return null
+        return try {
+            JSONObject(identifier)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /** Parse a ParsedKey from decoded key info JSON (port of iOS parseKeyFromInfo) */
+    private fun parseKeyFromInfo(info: JSONObject): ParsedKey? {
+        val type = info.optString("type", "")
+        val value = info.optString("value", "")
+        val sValue = info.optString("sValue", "")
+        val keysetValue = info.optString("keysetValue", "")
+        val returnKeysetValue = info.optString("returnKeysetValue", "")
+        val returnKeysetLabel = info.optString("returnKeysetLabel", "")
+        val label = info.optString("label", "")
+
+        var nikkudOptions: List<NikkudOption> = emptyList()
+        val nikkudArray = info.optJSONArray("nikkud")
+        if (nikkudArray != null) {
+            val options = mutableListOf<NikkudOption>()
+            for (i in 0 until nikkudArray.length()) {
+                val dict = nikkudArray.optJSONObject(i)
+                if (dict != null) {
+                    val nValue = dict.optString("value", "")
+                    if (nValue.isNotEmpty()) {
+                        options.add(NikkudOption(
+                            value = nValue,
+                            caption = dict.optString("caption", nValue)
+                        ))
+                    }
+                }
+            }
+            nikkudOptions = options
+        }
+
+        // Create a Key object and use the existing ParsedKey factory
+        val key = Key(
+            value = value,
+            sValue = sValue,
+            caption = value,
+            sCaption = sValue,
+            type = type,
+            width = 1.0,
+            offset = 0.0,
+            hidden = false,
+            label = label,
+            keysetValue = keysetValue,
+            returnKeysetValue = returnKeysetValue,
+            returnKeysetLabel = returnKeysetLabel,
+            nikkud = if (nikkudOptions.isEmpty()) null else nikkudOptions
+        )
+
+        return ParsedKey.from(key, emptyMap(), Color.BLACK, Color.WHITE)
+    }
+
     private fun encodeKeyInfo(key: ParsedKey): String {
         return try {
             val obj = JSONObject()
@@ -1942,13 +2296,15 @@ class KeyboardRenderer(private val context: Context) {
     
     private fun shouldShowDiacriticsPopup(key: ParsedKey): Boolean {
         // Use overlayContainer for nikkud picker (must be FrameLayout for overlay to work)
-        nikkudPickerController.configure(config, currentKeyboardId, overlayContainer)
+        nikkudPickerController.configure(config, currentKeyboardId, overlayContainer,
+            rowHeight = rowHeight, fontSize = baseFontSize, fontWeight = configFontWeight)
         return nikkudPickerController.shouldShowDiacriticsPopup(key)
     }
-    
+
     private fun getDiacriticsForKey(key: ParsedKey): List<NikkudOption> {
         // Use overlayContainer for nikkud picker (must be FrameLayout for overlay to work)
-        nikkudPickerController.configure(config, currentKeyboardId, overlayContainer)
+        nikkudPickerController.configure(config, currentKeyboardId, overlayContainer,
+            rowHeight = rowHeight, fontSize = baseFontSize, fontWeight = configFontWeight)
         return nikkudPickerController.getDiacriticsForKey(key)
     }
     
@@ -1976,7 +2332,8 @@ class KeyboardRenderer(private val context: Context) {
         val parsedKey = ParsedKey.from(tempKey, emptyMap(), getDefaultTextColor(), getDefaultKeyBgColor())
         
         // Use overlayContainer for nikkud picker (must be FrameLayout for overlay to work)
-        nikkudPickerController.configure(config, currentKeyboardId, overlayContainer)
+        nikkudPickerController.configure(config, currentKeyboardId, overlayContainer,
+            rowHeight = rowHeight, fontSize = baseFontSize, fontWeight = configFontWeight)
         nikkudPickerController.showPicker(parsedKey, anchorView)
     }
     
@@ -2108,25 +2465,26 @@ class KeyboardRenderer(private val context: Context) {
     
     // MARK: - Visual Updates (without full re-render)
     
-    /** Update only the nikkud key's background color without full re-render */
+    /** Update only the nikkud key's visual indicator without full re-render */
     private fun updateNikkudKeyVisual(keyView: View) {
         debugLog("🎨 updateNikkudKeyVisual: nikkudActive=$nikkudActive")
-        
+
         // keyView is the button container (FrameLayout)
-        // The visual key is the first child (also a FrameLayout with background)
+        // The visual key is tagged with VISUAL_KEY_TAG
         val container = keyView as? ViewGroup ?: return
-        val visualKeyView = container.getChildAt(0) as? ViewGroup ?: return
-        
+        val visualKeyView = container.findViewWithTag<View>(VISUAL_KEY_TAG) as? ViewGroup ?: return
+
         val bgDrawable = visualKeyView.background as? GradientDrawable
         if (bgDrawable != null) {
-            val newColor = if (nikkudActive) {
-                Color.parseColor("#FFEB3B")  // systemYellow
+            if (nikkudActive) {
+                // Blue border when active (matching iOS systemBlue)
+                bgDrawable.setStroke(dpToPx(3), Color.parseColor("#2196F3"))
             } else {
-                Color.WHITE
+                // Remove border when inactive
+                bgDrawable.setStroke(0, Color.TRANSPARENT)
             }
-            bgDrawable.setColor(newColor)
             visualKeyView.invalidate()
-            debugLog("🎨 Updated nikkud key background to: ${if (nikkudActive) "yellow" else "white"}")
+            debugLog("🎨 Updated nikkud key indicator to: ${if (nikkudActive) "blue border" else "no border"}")
         }
     }
     
@@ -2224,7 +2582,7 @@ class KeyboardRenderer(private val context: Context) {
     /** Check if the current keyboard is RTL (Hebrew or Arabic) */
     private fun isCurrentKeyboardRTL(): Boolean {
         val keyboardId = currentKeyboardId ?: return false
-        return keyboardId == "he" || keyboardId == "ar"
+        return keyboardId.startsWith("he") || keyboardId.startsWith("ar")
     }
     
     /** Check if currently in cursor movement mode */
@@ -2232,8 +2590,226 @@ class KeyboardRenderer(private val context: Context) {
         return cursorMoveMode
     }
     
+    // MARK: - Key Press Highlight (port of iOS highlightKey/unhighlightKey)
+
+    /** Dim the visual key view to indicate a press (port of iOS highlightKey) */
+    private fun highlightKey(button: View) {
+        val visualKey = button.findViewWithTag<View>(VISUAL_KEY_TAG)
+        visualKey?.alpha = 0.3f
+    }
+
+    /** Restore the visual key view opacity (port of iOS unhighlightKey) */
+    private fun unhighlightKey(button: View) {
+        val visualKey = button.findViewWithTag<View>(VISUAL_KEY_TAG)
+        visualKey?.alpha = 1.0f
+    }
+
+    // MARK: - Keyset Slide Gesture ("Peek and Slide")
+    //
+    // Port of iOS keysetSlideGesture. On iOS, a UILongPressGestureRecognizer on the container
+    // tracks the finger across views even after re-render. On Android, touch events are tied
+    // to the originating view, so after re-render the ongoing touch is lost.
+    //
+    // Current Android implementation:
+    // - Hold 0.15s on a keyset key to quick-switch (instead of requiring full tap)
+    // - The isKeysetSlideActive guard prevents handleKeyClick from double-firing
+    // - Sliding finger over new keyset's keys highlights them via overlay
+    // - On release: if finger moved to a character key, type it and return to original keyset
+
+    /**
+     * Add a transparent overlay to the container to track finger movement during keyset slide.
+     * Since Android's touch model ties events to originating views, we use a full-screen overlay
+     * that will receive the NEXT touch sequence (user lifts and re-touches) or we poll pointer
+     * position using a handler.
+     *
+     * Port of iOS keysetSlideGesture .changed / .ended / .cancelled states.
+     */
+    @SuppressLint("ClickableViewAccessibility")
+    private fun addKeysetSlideOverlay() {
+        val container = container ?: return
+        // Remove any existing overlay
+        removeKeysetSlideOverlay()
+
+        val overlay = FrameLayout(context).apply {
+            tag = KEYSET_SLIDE_OVERLAY_TAG
+            setBackgroundColor(Color.TRANSPARENT)
+            isClickable = true  // Consume clicks
+            isFocusable = true
+        }
+
+        // Make overlay cover the entire container
+        val params = if (container is LinearLayout) {
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.MATCH_PARENT
+            )
+        } else {
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+        }
+        container.addView(overlay, params)
+
+        overlay.setOnTouchListener { _, event ->
+            handleKeysetSlideOverlayTouch(event)
+        }
+    }
+
+    /** Remove the keyset slide overlay */
+    private fun removeKeysetSlideOverlay() {
+        val container = container ?: return
+        container.findViewWithTag<View>(KEYSET_SLIDE_OVERLAY_TAG)?.let {
+            container.removeView(it)
+        }
+    }
+
+    /**
+     * Handle touch events on the keyset slide overlay.
+     * Tracks finger movement, highlights keys, and handles release.
+     */
+    private fun handleKeysetSlideOverlayTouch(event: MotionEvent): Boolean {
+        if (!isKeysetSlideActive) {
+            removeKeysetSlideOverlay()
+            return false
+        }
+
+        val rowsContainer = activeRowsContainer ?: return false
+
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
+                // Convert overlay coordinates to rows container coordinates
+                val loc = IntArray(2)
+                rowsContainer.getLocationInWindow(loc)
+                val overlayLoc = IntArray(2)
+                (container ?: return false).getLocationInWindow(overlayLoc)
+
+                val xInRows = event.x + overlayLoc[0] - loc[0]
+                val yInRows = event.y + overlayLoc[1] - loc[1]
+
+                val hitButton = findKeyButton(xInRows, yInRows, rowsContainer)
+
+                if (hitButton !== keysetSlideCurrentButton) {
+                    if (hitButton != null) {
+                        keysetSlideDidMove = true
+                    }
+
+                    // Clear previous highlight
+                    keysetSlideCurrentButton?.let { prev ->
+                        unhighlightKey(prev)
+                    }
+
+                    keysetSlideCurrentButton = hitButton
+
+                    // Highlight new key
+                    if (hitButton != null) {
+                        highlightKey(hitButton)
+                    }
+                }
+                return true
+            }
+
+            MotionEvent.ACTION_UP -> {
+                isKeysetSlideActive = false
+
+                // Clear highlight
+                keysetSlideCurrentButton?.let { btn ->
+                    unhighlightKey(btn)
+                }
+
+                // Remove the overlay
+                removeKeysetSlideOverlay()
+
+                // If user didn't slide to another key, just stay on new keyset (normal switch)
+                if (!keysetSlideDidMove) {
+                    keysetSlideCurrentButton = null
+                    keysetSlideOriginKeyset = ""
+                    return true
+                }
+
+                // If finger ended on a typeable key, fire it and return to original keyset
+                keysetSlideCurrentButton?.let { btn ->
+                    val keyInfo = decodeKeyInfo(btn.tag as? String)
+                    val key = if (keyInfo != null) parseKeyFromInfo(keyInfo) else null
+                    if (key != null) {
+                        val keyType = key.type.lowercase()
+                        val specialTypes = setOf(
+                            "keyset", "shift", "backspace", "next-keyboard",
+                            "settings", "close", "nikkud", "language", "event"
+                        )
+                        if (!specialTypes.contains(keyType)) {
+                            handleKeyClick(key, btn)
+                        }
+                    }
+                }
+
+                keysetSlideCurrentButton = null
+                // Return to the original keyset
+                if (keysetSlideOriginKeyset.isNotEmpty()) {
+                    switchKeyset(keysetSlideOriginKeyset)
+                    keysetSlideOriginKeyset = ""
+                }
+
+                return true
+            }
+
+            MotionEvent.ACTION_CANCEL -> {
+                isKeysetSlideActive = false
+
+                keysetSlideCurrentButton?.let { btn ->
+                    unhighlightKey(btn)
+                }
+                keysetSlideCurrentButton = null
+
+                removeKeysetSlideOverlay()
+
+                if (keysetSlideOriginKeyset.isNotEmpty()) {
+                    switchKeyset(keysetSlideOriginKeyset)
+                    keysetSlideOriginKeyset = ""
+                }
+
+                return true
+            }
+        }
+        return true
+    }
+
+    /**
+     * Find the key button at a given point within the container.
+     * Recursively searches the view hierarchy for a View with a non-null tag (encoded key info).
+     * Port of iOS findKeyButton(at:in:)
+     */
+    private fun findKeyButton(x: Float, y: Float, view: View): View? {
+        if (view is ViewGroup) {
+            for (i in view.childCount - 1 downTo 0) {
+                val child = view.getChildAt(i)
+                // Convert point to child's coordinate space
+                val childX = x - child.left
+                val childY = y - child.top
+                if (childX >= 0 && childX < child.width && childY >= 0 && childY < child.height) {
+                    // Check if this child has key info tag (it's a key button)
+                    val tag = child.tag
+                    if (tag is String && tag.startsWith("{")) {
+                        return child
+                    }
+                    // Recurse into child
+                    val found = findKeyButton(childX, childY, child)
+                    if (found != null) return found
+                }
+            }
+        }
+        return null
+    }
+
     // MARK: - Utility
-    
+
+    companion object {
+        /** Tag for the visual key view inside each button container (port of iOS tag = 8888) */
+        private const val VISUAL_KEY_TAG = 8888
+        /** Tag for the keyset slide overlay view */
+        private const val KEYSET_SLIDE_OVERLAY_TAG = 7777
+    }
+
     private fun dpToPx(dp: Int): Int {
         return TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_DIP,

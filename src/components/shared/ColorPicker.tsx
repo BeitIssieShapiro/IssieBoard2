@@ -10,28 +10,13 @@ import {
 } from 'react-native';
 import WheelColorPicker from 'react-native-wheel-color-picker';
 import { customColorsManager } from '../../utils/customColorsManager';
+import { useLocalization } from '../../localization';
+import { DEFAULT_COLOR_PRESETS, checkmarkColorFor } from './colorPresets';
 
 // Special value for system default
 export const SYSTEM_DEFAULT_COLOR = '';
 
-// Basic vibrant colors (no pastels)
-const DEFAULT_PRESETS = [
-  '#FFFFFF', // White
-  '#000000', // Black
-  '#808080', // Gray
-  '#C0C0C0', // Light Gray
-  '#404040', // Dark Gray
-  '#FF0000', // Red (pure)
-  '#00FF00', // Green (pure)
-  '#0000FF', // Blue (pure)
-  '#FFFF00', // Yellow (pure)
-  '#FF00FF', // Magenta (pure)
-  '#00FFFF', // Cyan (pure)
-  '#FF8000', // Orange
-  '#8000FF', // Purple
-  '#0080FF', // Sky Blue
-  '#FF0080', // Hot Pink
-];
+const colorCircleSize = 36;
 
 interface ColorPickerProps {
   value: string;
@@ -46,12 +31,14 @@ interface ColorPickerProps {
 export const ColorPicker: React.FC<ColorPickerProps> = ({
   value,
   onChange,
-  presets = DEFAULT_PRESETS,
+  presets = DEFAULT_COLOR_PRESETS,
   allowCustom = true,
   label,
   showSystemDefault = false,
-  systemDefaultLabel = 'Default',
+  systemDefaultLabel: systemDefaultLabelProp,
 }) => {
+  const { strings } = useLocalization();
+  const systemDefaultLabel = systemDefaultLabelProp ?? strings.common.default;
   const [showCustomModal, setShowCustomModal] = useState(false);
   const [customColor, setCustomColor] = useState(value);
   const [customColors, setCustomColors] = useState<string[]>([]);
@@ -99,24 +86,24 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
       {label && <Text allowFontScaling={false} style={styles.label}>{label}</Text>}
 
       <View style={styles.presetsRow}>
-        {/* System Default Button */}
+        {/* System Default — dashed blue circle matching CompactColorPicker */}
         {showSystemDefault && (
-          <TouchableOpacity
-            style={[
-              styles.systemDefaultButton,
-              isSystemDefaultSelected && styles.selectedCircle,
-            ]}
-            onPress={handleSystemDefault}
-            accessibilityLabel={`Select ${systemDefaultLabel}`}
-            accessibilityRole="button"
-          >
-            <Text allowFontScaling={false} style={[
-              styles.systemDefaultText,
-              isSystemDefaultSelected && styles.systemDefaultTextSelected,
-            ]}>
-              {systemDefaultLabel}
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.colorItemWithLabel}>
+            <TouchableOpacity
+              style={[
+                styles.defaultCircleButton,
+                isSystemDefaultSelected && styles.selectedCircle,
+              ]}
+              onPress={handleSystemDefault}
+              accessibilityLabel={`Select ${systemDefaultLabel}`}
+              accessibilityRole="button"
+            >
+              {isSystemDefaultSelected && (
+                <Text allowFontScaling={false} style={styles.checkmarkText}>✓</Text>
+              )}
+            </TouchableOpacity>
+            <Text allowFontScaling={false} style={styles.colorLabel}>{systemDefaultLabel}</Text>
+          </View>
         )}
 
         {/* Preset Colors */}
@@ -134,10 +121,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
             accessibilityRole="button"
           >
             {isSelected(color) && (
-              <View style={[
-                styles.checkmark,
-                { borderColor: color === '#FFFFFF' || color === '#FFEB3B' ? '#000' : '#FFF' }
-              ]} />
+              <Text allowFontScaling={false} style={[styles.checkmarkText, { color: checkmarkColorFor(color) }]}>✓</Text>
             )}
           </TouchableOpacity>
         ))}
@@ -157,17 +141,14 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
             accessibilityRole="button"
           >
             {isSelected(color) && (
-              <View style={[
-                styles.checkmark,
-                { borderColor: color === '#FFFFFF' || color === '#FFEB3B' ? '#000' : '#FFF' }
-              ]} />
+              <Text allowFontScaling={false} style={[styles.checkmarkText, { color: checkmarkColorFor(color) }]}>✓</Text>
             )}
           </TouchableOpacity>
         ))}
 
         {allowCustom && (
           <TouchableOpacity
-            style={[styles.colorCircle, styles.customButton]}
+            style={styles.addColorCircle}
             onPress={() => {
               setCustomColor(value || '#FF5733');
               setShowCustomModal(true);
@@ -175,7 +156,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
             accessibilityLabel="Select custom color with color wheel"
             accessibilityRole="button"
           >
-            <Text allowFontScaling={false} style={styles.customButtonText}>+</Text>
+            <Text allowFontScaling={false} style={styles.addColorText}>+</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -193,7 +174,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
           onPress={() => setShowCustomModal(false)}
         >
           <Pressable style={styles.modalContent} onPress={e => e.stopPropagation()}>
-            <Text allowFontScaling={false} style={styles.modalTitle}>Pick a Color</Text>
+            <Text allowFontScaling={false} style={styles.modalTitle}>{strings.colorPicker.modalTitle}</Text>
 
             <ScrollView contentContainerStyle={styles.scrollContent}>
               <View style={styles.colorWheelContainer}>
@@ -212,7 +193,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
               </View>
 
               <View style={styles.previewRow}>
-                <Text allowFontScaling={false} style={styles.previewLabel}>Selected Color:</Text>
+                <Text allowFontScaling={false} style={styles.previewLabel}>{strings.colorPicker.selectedColor}</Text>
                 <View style={[styles.previewSwatch, { backgroundColor: customColor }]} />
                 <Text allowFontScaling={false} style={styles.hexText}>{customColor.toUpperCase()}</Text>
               </View>
@@ -223,13 +204,13 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
                 style={[styles.modalButton, styles.cancelButton]}
                 onPress={() => setShowCustomModal(false)}
               >
-                <Text allowFontScaling={false} style={styles.cancelButtonText}>Cancel</Text>
+                <Text allowFontScaling={false} style={styles.cancelButtonText}>{strings.common.cancel}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalButton, styles.applyButton]}
                 onPress={handleCustomSubmit}
               >
-                <Text allowFontScaling={false} style={styles.applyButtonText}>Apply</Text>
+                <Text allowFontScaling={false} style={styles.applyButtonText}>{strings.common.apply}</Text>
               </TouchableOpacity>
             </View>
           </Pressable>
@@ -257,37 +238,64 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   colorCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: colorCircleSize,
+    height: colorCircleSize,
+    borderRadius: colorCircleSize / 2,
+    borderWidth: 2,
+    borderColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
   },
   selectedCircle: {
-    borderWidth: 3,
     borderColor: '#2196F3',
+    borderWidth: 3,
   },
   whiteBorder: {
-    borderWidth: 1,
     borderColor: '#DDD',
-  },
-  checkmark: {
-    width: 12,
-    height: 6,
-    borderLeftWidth: 2,
-    borderBottomWidth: 2,
-    transform: [{ rotate: '-45deg' }],
-  },
-  customButton: {
-    backgroundColor: '#F5F5F5',
     borderWidth: 1,
-    borderColor: '#DDD',
-    borderStyle: 'dashed',
   },
-  customButtonText: {
+  checkmarkText: {
     fontSize: 20,
-    color: '#666',
     fontWeight: 'bold',
+    position: 'absolute',
+  },
+  colorItemWithLabel: {
+    alignItems: 'center',
+  },
+  colorLabel: {
+    fontSize: 10,
+    color: '#666',
+    fontWeight: '500',
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  defaultCircleButton: {
+    width: colorCircleSize,
+    height: colorCircleSize,
+    borderRadius: colorCircleSize / 2,
+    borderWidth: 2,
+    borderColor: '#2196F3',
+    borderStyle: 'dashed',
+    backgroundColor: '#E3F2FD',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addColorCircle: {
+    width: colorCircleSize,
+    height: colorCircleSize,
+    borderRadius: colorCircleSize / 2,
+    borderWidth: 2,
+    borderColor: '#2196F3',
+    borderStyle: 'dashed',
+    backgroundColor: '#E3F2FD',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addColorText: {
+    fontSize: 24,
+    color: '#2196F3',
+    fontWeight: '600',
+    lineHeight: 26,
   },
   modalOverlay: {
     flex: 1,
@@ -318,10 +326,6 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     maxWidth: 300,
     marginBottom: 20,
-  },
-  colorWheel: {
-    width: '100%',
-    height: '100%',
   },
   previewRow: {
     flexDirection: 'row',
@@ -369,25 +373,6 @@ const styles = StyleSheet.create({
   applyButtonText: {
     color: '#FFF',
     fontWeight: '600',
-  },
-  systemDefaultButton: {
-    minWidth: 60,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#F0F0F0',
-    borderWidth: 1,
-    borderColor: '#CCC',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-  },
-  systemDefaultText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#666',
-  },
-  systemDefaultTextSelected: {
-    color: '#2196F3',
   },
 });
 

@@ -2,6 +2,7 @@ import React, { useMemo, useCallback, useState } from 'react';
 import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
 import { KeyboardPreview, KeyPressEvent } from '../KeyboardPreview';
 import { useEditor } from '../../context/EditorContext';
+import { useLocalization } from '../../localization';
 
 // Helper to cycle to next keyset of the same type across keyboards
 const getNextKeysetId = (
@@ -38,11 +39,22 @@ const getNextKeysetId = (
   return sameTypeKeysets[nextIndex];
 };
 import { KeyboardConfig } from '../../../types';
-import { filterSettingsButton } from '../../utils/keyboardConfigMerger';
+import { filterSettingsButton, transformConfigForPreview } from '../../utils/keyboardConfigMerger';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface InteractiveCanvasProps {
   onTestInput?: (text: string) => void;
   height: number;
+  hideHeader?: boolean;
+  hideSettingsKey?: boolean;
+  hideCloseKey?: boolean;
+  hideGlobeButton?: boolean;
+  /** When 'advanced', the preview uses the native-reported keyboard height for a realistic preview */
+  activeTab?: string;
+  /** When true, replaces the rightmost keyset key in abc bottom row with a speak button */
+  speakButtonInKeyboard?: boolean;
+  /** Selected languages for IssieVoice language key injection */
+  selectedLanguages?: string[];
 }
 
 // Language display names
@@ -52,10 +64,12 @@ const LANGUAGE_NAMES: Record<string, string> = {
   'ar': 'العربية',
 };
 
-export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInput, height }) => {
+export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInput, height, hideHeader, hideSettingsKey, hideCloseKey, hideGlobeButton, activeTab, speakButtonInKeyboard, selectedLanguages }) => {
   const { state, dispatch } = useEditor();
-  const [keyboardHeight, setKeyboardHeight] = useState<number>(height);
+  const { strings } = useLocalization();
+  const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets()
 
   // Get language display name from keyboard ID
   const languageDisplayName = useMemo(() => {
@@ -155,134 +169,203 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
       console.log(`🎨 [InteractiveCanvas] Sample group:`, JSON.stringify(groupConfigs[0]));
     }
 
-    // Get settingsButtonEnabled setting (default to true)
-    const settingsButtonEnabled = state.config.settingsButtonEnabled !== false;
+    // Get settingsButtonEnabled setting (default to true, but force false if hideSettingsKey)
+    const settingsButtonEnabled = hideSettingsKey ? false : state.config.settingsButtonEnabled !== false;
 
-    // Filter out settings button if disabled
+    // Filter out settings button if disabled, and close button/globe button if hidden
     const filteredKeysets = state.config.keysets.map(keyset => ({
       ...keyset,
       rows: keyset.rows.map(row => ({
         ...row,
-        keys: filterSettingsButton(row.keys, settingsButtonEnabled),
+        keys: filterSettingsButton(row.keys, settingsButtonEnabled)
+          .filter(key => !(hideCloseKey && key.type === 'close'))
+          .filter(key => !(hideGlobeButton && key.type === 'next-keyboard')),
       })),
     }));
+
+    // Inject language key for IssieVoice when multiple languages are selected
+    const LANG_CYCLE: string[] = ['he', 'en', 'ar'];
+    const LANG_LABELS: Record<string, string> = { he: 'עב', en: 'En', ar: 'عر' };
+    const activeLangs = selectedLanguages && selectedLanguages.length > 1
+      ? LANG_CYCLE.filter(l => selectedLanguages.includes(l))
+      : [];
+    const kbLang = state.config.language || state.config.keyboards?.[0]?.split('_')[0] || 'he';
+    const langLabel = activeLangs.length > 1
+      ? LANG_LABELS[activeLangs[(activeLangs.indexOf(kbLang) + 1) % activeLangs.length]] || ''
+      : '';
+
+    // Only use default blue if no style group targets the language key
+    const hasLangGroup = state.styleGroups.some(g => g.active !== false && g.members.includes('language'));
+    const langKeyBgColor = hasLangGroup ? undefined : '#2563EB';
+
+    const langKeysets = langLabel
+      ? filteredKeysets.map(keyset => ({
+          ...keyset,
+          rows: keyset.rows.map(row => {
+            const hasSpaceKey = row.keys.some((k: any) => k.type === 'space' || k.value === ' ');
+            const isBottomRow = (row as any).alwaysInclude || hasSpaceKey;
+            if (!isBottomRow) return row;
+            const hasLanguageKey = row.keys.some((k: any) => k.type === 'language');
+            if (hasLanguageKey) {
+              return { ...row, keys: row.keys.map((k: any) =>
+                k.type === 'language' ? { ...k, label: langLabel, caption: langLabel } : k
+              )};
+            }
+            const newKeys = row.keys.reduce((acc: any[], key: any, idx: number) => {
+              acc.push(key);
+              if (idx === 0) {
+                acc.push({ type: 'language', label: langLabel, caption: langLabel, value: '', width: 1, ...(langKeyBgColor && { bgColor: langKeyBgColor }) });
+              }
+              return acc;
+            }, []);
+            return { ...row, keys: newKeys };
+          }),
+        }))
+      : filteredKeysets;
+
+    // Inject speak key into abc keyset if speak-in-keyboard is enabled
+    const hasSpeakGroup = state.styleGroups.some(g => g.active !== false && g.members.includes('speak'));
+    const speakKeyBgColor = hasSpeakGroup ? undefined : '#2196F3';
+    const speakKeyTextColor = hasSpeakGroup ? undefined : '#FFFFFF';
+    const finalKeysets = speakButtonInKeyboard
+      ? langKeysets.map(keyset => {
+          if (keyset.id !== 'abc' && keyset.id !== 'abc_large') return keyset;
+          return {
+            ...keyset,
+            rows: keyset.rows.map(row => {
+              const hasSpaceKey = row.keys.some((k: any) => k.type === 'space' || k.value === ' ');
+              const hasControlKeys = row.keys.some((k: any) =>
+                k.type === 'keyset' || k.type === 'next-keyboard' || k.type === 'close'
+              );
+              const isBottomRow = row.alwaysInclude || hasSpaceKey || hasControlKeys;
+              if (!isBottomRow) return row;
+
+              const lastKeysetIndex = row.keys.reduce((lastIdx: number, key: any, idx: number) =>
+                key.type === 'keyset' ? idx : lastIdx, -1);
+              if (lastKeysetIndex === -1) return row;
+
+              const newKeys = [...row.keys];
+              newKeys[lastKeysetIndex] = {
+                type: 'event',
+                value: 'speak',
+                label: '🔊 Speak',
+                caption: '🔊 Speak',
+                width: 2,
+                ...(speakKeyBgColor && { bgColor: speakKeyBgColor }),
+                ...(speakKeyTextColor && { textColor: speakKeyTextColor }),
+              } as any;
+              return { ...row, keys: newKeys };
+            }),
+          };
+        })
+      : langKeysets;
 
     // Return the base config with the current groups and filtered keysets
     // Disable word suggestions for preview
     // IMPORTANT: Preserve all config properties (heightPreset, fontSizePreset, colors, etc.)
     const previewConfig: KeyboardConfig = {
       ...state.config,
-      keysets: filteredKeysets,
+      keysets: finalKeysets,
       groups: groupConfigs,
-      wordSuggestionsEnabled: false,
+      wordSuggestionsEnabled: state.config.wordSuggestionsEnabled ?? true,
     };
 
     return previewConfig;
-  }, [state.config, state.styleGroups]);
+  }, [state.config, state.styleGroups, hideCloseKey, hideGlobeButton, speakButtonInKeyboard, selectedLanguages]);
 
   const configJson = useMemo(() => {
-    return JSON.stringify(configWithGroups);
+    return JSON.stringify(transformConfigForPreview(configWithGroups));
   }, [configWithGroups]);
 
   console.log("📐 [InteractiveCanvas] Render - keyboardHeight:", keyboardHeight, "containerHeight:", height, "windowWidth:", windowWidth);
 
   const isLandscape = windowWidth > windowHeight;
+  const windowAvailableWidth = windowWidth - insets.left - insets.right
+  // In advanced tab, use native-reported height for realistic preview (no maxHeight cap).
+  // All other tabs: fixed height container, native scales KB to fit via maxHeight.
+  const useRealisticHeight = activeTab === 'advanced' && keyboardHeight > 0;
+  const effectiveHeight = useRealisticHeight ? keyboardHeight : height;
 
   return (
-    <>
+    <View style={{ flexDirection: isLandscape && !hideHeader ? "row" : "column", minHeight: hideHeader ? effectiveHeight : height + 20 }}>
+
       {/* Preview Header */}
-      <View style={[
-        styles.previewHeader,
-        isLandscape && styles.previewHeaderLandscape
-      ]}>
-        <View style={isLandscape ? styles.previewLabelColumn : styles.previewLabelRow}>
-          <Text allowFontScaling={false} style={styles.previewLabel}>Preview</Text>
-          {isLandscape && (
-            <View style={[styles.languageBadge, styles.languageBadgeLandscape]}>
-              <Text allowFontScaling={false} style={styles.languageBadgeText}>
-                {languageDisplayName}
-              </Text>
-            </View>
-          )}
+      {!hideHeader && (
+      <View style={isLandscape ? styles.previewHeaderLandscape : styles.previewHeader}>
+        <Text allowFontScaling={false} style={styles.previewLabel}>{strings.canvas.preview}</Text>
+        <View style={[styles.languageBadge]}>
+          <Text allowFontScaling={false} style={styles.languageBadgeText}>
+            {languageDisplayName}
+          </Text>
         </View>
-        {!isLandscape && (
-          <View style={styles.languageBadge}>
-            <Text allowFontScaling={false} style={styles.languageBadgeText}>
-              {languageDisplayName}
-            </Text>
-          </View>
-        )}
-        <Text allowFontScaling={false} style={styles.dimensionsText}>
-          {Math.round(keyboardHeight)}pt
-        </Text>
       </View>
+      )}
 
       {/* Keyboard Preview */}
       <View style={{
-        position: "absolute",
-        top: windowWidth < windowHeight ? 50 : 0,
-        left: 5,
-        width: windowWidth - 60,
-        alignItems: 'center',  // Center the scaled keyboard horizontally
+        width: isLandscape && !hideHeader ? windowAvailableWidth * 0.8 : '100%',
+        alignItems: 'center',
+        justifyContent:"center",
+        height: hideHeader ? effectiveHeight : (useRealisticHeight ? Math.max(height, keyboardHeight) - 50 : height - 50),
+        marginTop: isLandscape && !hideHeader ? 10 : 0,
       }}>
         <KeyboardPreview
-          key={`editor-preview-${windowWidth}`}
+          key={`editor-preview-${windowAvailableWidth}`}
           style={[
             styles.preview,
             {
-              height: height,  // Container height (what we're willing to allocate)
-              width: windowWidth - 60,
+              height: hideHeader ? effectiveHeight : (useRealisticHeight ? Math.max(height - 40, keyboardHeight) : height - 40),
+              width: isLandscape && !hideHeader ? windowAvailableWidth * 0.78 : '100%',
             }
           ]}
           configJson={configJson}
-          maxHeight={height}  // Tell keyboard to scale to fit this height
+          maxHeight={useRealisticHeight ? undefined : height}
+          hideGlobeButton={hideGlobeButton}
           onKeyPress={handleKeyPress}
           onHeightChange={handleHeightChange}
         />
       </View>
-    </>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
 
   previewHeader: {
+    margin: 5,
+    marginStart: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 5,
-    height: 20,
+    height: 40,
   },
   previewHeaderLandscape: {
-    height: 40, // Taller to accommodate vertical layout
-  },
-  previewLabelRow: {
-    // Portrait: label only
-  },
-  previewLabelColumn: {
-    // Landscape: label + badge stacked vertically
+    margin: 5,
+    marginStart: 16,
     flexDirection: 'column',
     alignItems: 'flex-start',
-    gap: 4,
+    width: "15%",
   },
+
   previewLabel: {
-    fontSize: 16,
+    fontSize: 19,
     fontWeight: '600',
-    color: '#6A7181',
+    color: '#111827',
   },
   languageBadge: {
     backgroundColor: '#39AC86',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 16,
-  },
-  languageBadgeLandscape: {
-    marginTop: 2,
+    width: 100,
+    textAlign: "center"
   },
   languageBadgeText: {
     fontSize: 12,
     fontWeight: '600',
     color: 'white',
+    textAlign:"center"
   },
   dimensionsText: {
     fontSize: 11,

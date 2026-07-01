@@ -1,4 +1,4 @@
-import React, {createContext, useContext, useState, ReactNode} from 'react';
+import React, {createContext, useContext, useState, useRef, ReactNode} from 'react';
 
 interface TextContextType {
   currentText: string;
@@ -6,17 +6,30 @@ interface TextContextType {
   appendText: (text: string) => void;
   clearText: () => void;
   deleteLastWord: () => void;
+  cursorPosition: number;
+  setCursorPosition: (pos: number) => void;
+  pendingSelection: number | null;
+  clearPendingSelection: () => void;
 }
 
 const TextContext = createContext<TextContextType | undefined>(undefined);
 
 export const TextProvider = ({children}: {children: ReactNode}) => {
   const [currentText, setCurrentText] = useState('');
+  const cursorRef = useRef(0);
+  const [cursorPosition, setCursorPositionState] = useState(0);
+  const [pendingSelection, setPendingSelection] = useState<number | null>(null);
+
+  const clearPendingSelection = () => setPendingSelection(null);
+
+  const setCursorPosition = (pos: number) => {
+    cursorRef.current = pos;
+    setCursorPositionState(pos);
+    setPendingSelection(pos);
+  };
 
   const setText = (text: string) => {
-    console.log('💾 TextContext.setText called with:', text);
     setCurrentText(text);
-    console.log('✅ TextContext.setCurrentText done');
   };
 
   const appendText = (text: string) => {
@@ -56,6 +69,10 @@ export const TextProvider = ({children}: {children: ReactNode}) => {
         appendText,
         clearText,
         deleteLastWord,
+        cursorPosition,
+        setCursorPosition,
+        pendingSelection,
+        clearPendingSelection,
       }}>
       {children}
     </TextContext.Provider>

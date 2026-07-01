@@ -10,13 +10,15 @@ import {
   Platform,
 } from 'react-native';
 import { useEditor, stringToKeyId } from '../../context/EditorContext';
+import { useLocalization } from '../../localization';
 import { ColorPicker } from '../shared/ColorPicker';
 import { VisibilityToggle } from '../shared/ToggleSwitch';
 import { KeyConfig, StyleGroup, KeyStyleOverride } from '../../../types';
 
 export const KeyEditorPanel: React.FC = () => {
-  const { 
-    state, 
+  const { strings } = useLocalization();
+  const {
+    state,
     clearSelection,
     applyStyleToSelection,
     getComputedKeyStyle,
@@ -186,20 +188,20 @@ export const KeyEditorPanel: React.FC = () => {
       {/* Header - Group Title when editing a group */}
       {isEditingGroup ? (
         <View style={styles.groupHeader}>
-          <Text allowFontScaling={false} style={styles.groupHeaderLabel}>Group Name:</Text>
+          <Text allowFontScaling={false} style={styles.groupHeaderLabel}>{strings.keyEditor.groupName}:</Text>
           <TextInput
             style={styles.groupNameInput}
             value={displayGroupName}
             onChangeText={handleGroupNameChange}
             onBlur={handleGroupNameSave}
             onSubmitEditing={handleGroupNameSave}
-            placeholder="Enter group name"
+            placeholder={strings.keyEditor.groupNamePlaceholder}
             selectTextOnFocus
           />
           <TouchableOpacity 
             style={styles.closeButton}
             onPress={clearSelection}
-            accessibilityLabel="Done editing"
+            accessibilityLabel={strings.keyEditor.doneEditing}
           >
             <Text allowFontScaling={false} style={styles.closeButtonText}>✕</Text>
           </TouchableOpacity>
@@ -224,7 +226,7 @@ export const KeyEditorPanel: React.FC = () => {
           <TouchableOpacity 
             style={styles.closeButton}
             onPress={clearSelection}
-            accessibilityLabel="Deselect all"
+            accessibilityLabel={strings.keyEditor.deselectAll}
           >
             <Text allowFontScaling={false} style={styles.closeButtonText}>✕</Text>
           </TouchableOpacity>
@@ -253,7 +255,7 @@ export const KeyEditorPanel: React.FC = () => {
       {/* Active Group Indicator - only show when NOT editing a group */}
       {!isEditingGroup && keyGroups.length > 0 && (
         <View style={styles.groupsIndicator}>
-          <Text allowFontScaling={false} style={styles.groupsLabel}>In Groups:</Text>
+          <Text allowFontScaling={false} style={styles.groupsLabel}>{strings.keyEditor.inGroups}:</Text>
           <View style={styles.groupTags}>
             {keyGroups.map(group => (
               <View 
@@ -278,33 +280,32 @@ export const KeyEditorPanel: React.FC = () => {
 
       {/* Visibility Section */}
       <View style={styles.section}>
-        <Text allowFontScaling={false} style={styles.sectionTitle}>Visibility</Text>
+        <Text allowFontScaling={false} style={styles.sectionTitle}>{strings.keyEditor.visibility}</Text>
         <VisibilityToggle
           visible={isVisible}
           onChange={handleVisibilityChange}
         />
         {!isVisible && (
           <Text allowFontScaling={false} style={styles.hint}>
-            Hidden keys appear ghosted in Edit mode but are invisible to users.
-            {keyGroups.length > 0 && ' Delete the group to restore visibility.'}
+            {strings.keyEditor.visibilityHint}
           </Text>
         )}
       </View>
 
       {/* Background Color Section */}
       <View style={styles.section}>
-        <Text allowFontScaling={false} style={styles.sectionTitle}>Key Background Color</Text>
+        <Text allowFontScaling={false} style={styles.sectionTitle}>{strings.keyEditor.keyBgColor}</Text>
         <ColorPicker
           value={computedStyle.bgColor || ''}
           onChange={handleColorChange}
           showSystemDefault
-          systemDefaultLabel="Default"
+          systemDefaultLabel={strings.common.default}
         />
       </View>
 
       {/* Text Color Section */}
       <View style={styles.section}>
-        <Text allowFontScaling={false} style={styles.sectionTitle}>Text Color</Text>
+        <Text allowFontScaling={false} style={styles.sectionTitle}>{strings.keyEditor.textColor}</Text>
         <ColorPicker
           value={computedStyle.color || ''}
           onChange={handleTextColorChange}
@@ -313,22 +314,22 @@ export const KeyEditorPanel: React.FC = () => {
             '#4CAF50', '#FF9800', '#9C27B0', '#607D8B',
           ]}
           showSystemDefault
-          systemDefaultLabel="Default"
+          systemDefaultLabel={strings.common.default}
         />
       </View>
 
       {/* Custom Label Section (only for single key selection, non-special keys, not when editing group) */}
       {!isEditingGroup && !isSpecialKey && selectionCount === 1 && (
         <View style={styles.section}>
-          <Text allowFontScaling={false} style={styles.sectionTitle}>Custom Label</Text>
+          <Text allowFontScaling={false} style={styles.sectionTitle}>{strings.keyEditor.customLabel}</Text>
           <Text allowFontScaling={false} style={styles.hint}>
-            Override the display text (original: {baseKey.value || 'N/A'})
+            {strings.keyEditor.customLabelHint} ({baseKey.value || 'N/A'})
           </Text>
           <TextInput
             style={styles.labelInput}
             value={computedStyle.label || ''}
             onChangeText={handleLabelChange}
-            placeholder={baseKey.value || 'Enter custom label'}
+            placeholder={baseKey.value || strings.keyEditor.customLabelPlaceholder}
             maxLength={10}
           />
         </View>
@@ -337,34 +338,34 @@ export const KeyEditorPanel: React.FC = () => {
       {/* Key Info - only show when not editing a group (activeGroupId is null) */}
       {!isEditingGroup && (
         <View style={styles.section}>
-          <Text allowFontScaling={false} style={styles.sectionTitle}>Key Info</Text>
+          <Text allowFontScaling={false} style={styles.sectionTitle}>{strings.keyEditor.keyInfo}</Text>
           <View style={styles.infoRow}>
-            <Text allowFontScaling={false} style={styles.infoLabel}>Position:</Text>
+            <Text allowFontScaling={false} style={styles.infoLabel}>{strings.keyEditor.position}:</Text>
             <Text allowFontScaling={false} style={styles.infoValue}>
               Row {selectedKeyId.rowIndex + 1}, Key {selectedKeyId.keyIndex + 1}
             </Text>
           </View>
           {baseKey.value && (
             <View style={styles.infoRow}>
-              <Text allowFontScaling={false} style={styles.infoLabel}>Output:</Text>
+              <Text allowFontScaling={false} style={styles.infoLabel}>{strings.keyEditor.output}:</Text>
               <Text allowFontScaling={false} style={styles.infoValue}>"{baseKey.value}"</Text>
             </View>
           )}
           {baseKey.sValue && (
             <View style={styles.infoRow}>
-              <Text allowFontScaling={false} style={styles.infoLabel}>Shift Output:</Text>
+              <Text allowFontScaling={false} style={styles.infoLabel}>{strings.keyEditor.shiftOutput}:</Text>
               <Text allowFontScaling={false} style={styles.infoValue}>"{baseKey.sValue}"</Text>
             </View>
           )}
           {baseKey.type && (
             <View style={styles.infoRow}>
-              <Text allowFontScaling={false} style={styles.infoLabel}>Type:</Text>
+              <Text allowFontScaling={false} style={styles.infoLabel}>{strings.keyEditor.type}:</Text>
               <Text allowFontScaling={false} style={styles.infoValue}>{baseKey.type}</Text>
             </View>
           )}
           {baseKey.width && baseKey.width !== 1 && (
             <View style={styles.infoRow}>
-              <Text allowFontScaling={false} style={styles.infoLabel}>Width:</Text>
+              <Text allowFontScaling={false} style={styles.infoLabel}>{strings.keyEditor.width}:</Text>
               <Text allowFontScaling={false} style={styles.infoValue}>{baseKey.width}x</Text>
             </View>
           )}

@@ -5,8 +5,6 @@ const STORAGE_KEY = 'issievoice_favorites';
 export interface Favorite {
   id: string; // ID of the saved sentence
   order: number;
-  caption?: string; // Custom caption (optional, defaults to first word)
-  icon?: string; // Custom icon/emoji (optional)
 }
 
 class FavoritesManager {
@@ -20,16 +18,18 @@ class FavoritesManager {
     }
   }
 
-  async addFavorite(sentenceId: string, caption?: string, icon?: string): Promise<void> {
+  async addFavorite(sentenceId: string): Promise<void> {
     try {
       const favorites = await this.getFavorites();
+
+      // Don't add duplicates
+      if (favorites.some(f => f.id === sentenceId)) return;
+
       const maxOrder = favorites.length > 0 ? Math.max(...favorites.map(f => f.order)) : -1;
 
       const newFavorite: Favorite = {
         id: sentenceId,
         order: maxOrder + 1,
-        caption,
-        icon,
       };
 
       favorites.push(newFavorite);
@@ -37,35 +37,6 @@ class FavoritesManager {
     } catch (error) {
       console.error('Failed to add favorite:', error);
       throw error;
-    }
-  }
-
-  async updateFavorite(sentenceId: string, caption?: string, icon?: string): Promise<void> {
-    try {
-      const favorites = await this.getFavorites();
-      const index = favorites.findIndex(f => f.id === sentenceId);
-
-      if (index !== -1) {
-        favorites[index] = {
-          ...favorites[index],
-          caption,
-          icon,
-        };
-        await KeyboardPreferences.setProfile(JSON.stringify(favorites), STORAGE_KEY);
-      }
-    } catch (error) {
-      console.error('Failed to update favorite:', error);
-      throw error;
-    }
-  }
-
-  async getFavorite(sentenceId: string): Promise<Favorite | null> {
-    try {
-      const favorites = await this.getFavorites();
-      return favorites.find(f => f.id === sentenceId) || null;
-    } catch (error) {
-      console.error('Failed to get favorite:', error);
-      return null;
     }
   }
 
@@ -77,6 +48,17 @@ class FavoritesManager {
     } catch (error) {
       console.error('Failed to remove favorite:', error);
       throw error;
+    }
+  }
+
+  async toggleFavorite(sentenceId: string): Promise<boolean> {
+    const isFav = await this.isFavorite(sentenceId);
+    if (isFav) {
+      await this.removeFavorite(sentenceId);
+      return false;
+    } else {
+      await this.addFavorite(sentenceId);
+      return true;
     }
   }
 

@@ -1,0 +1,55 @@
+{
+  "id": "en_ordered",
+  "name": "English Ordered (ABC)",
+  "includeKeysets": ["123", "#+="],
+  "labels": {
+    "abcLabel": "ABC",
+    "symbolsLabel": "123",
+    "spaceCaption": ""
+  },
+  "keysets": [
+    {
+      "id": "abc",
+      "rows": [
+        {
+          "keys": [
+            { "value": "a", "sValue": "A" },
+            { "value": "b", "sValue": "B" },
+            { "value": "c", "sValue": "C" },
+            { "value": "d", "sValue": "D" },
+            { "value": "e", "sValue": "E" },
+            { "value": "f", "sValue": "F" },
+            { "value": "g", "sValue": "G" },
+            { "value": "h", "sValue": "H" },
+            { "value": "i", "sValue": "I" },
+            { "value": "j", "sValue": "J" }
+          ]
+        },
+        {
+          "keys": [
+            { "value": "k", "sValue": "K" },
+            { "value": "l", "sValue": "L" },
+            { "value": "m", "sValue": "M" },
+            { "value": "n", "sValue": "N" },
+            { "value": "o", "sValue": "O" },
+            { "value": "p", "sValue": "P" },
+            { "value": "q", "sValue": "Q" },
+            { "value": "r", "sValue": "R" },
+            { "value": "s", "sValue": "S" }
+          ]
+        },
+        {
+          "keys": [
+            { "value": "t", "sValue": "T" },
+            { "value": "u", "sValue": "U" },
+            { "value": "v", "sValue": "V" },
+            { "value": "w", "sValue": "W" },
+            { "value": "x", "sValue": "X" },
+            { "value": "y", "sValue": "Y" },
+            { "value": "z", "sValue": "Z" }
+          ]
+        }
+      ]
+    }
+  ]
+}

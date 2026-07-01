@@ -11,6 +11,7 @@ import {
 import {useTTS} from '../../context/TTSContext';
 import {colors, sizes} from '../../constants';
 import TTS from '../../services/TextToSpeech';
+import {useLocalization} from '../../context/LocalizationContext';
 
 interface Voice {
   id: string;
@@ -38,6 +39,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   onVoiceChange,
 }) => {
   const {getAvailableVoices} = useTTS();
+  const {strings} = useLocalization();
   const [englishVoices, setEnglishVoices] = useState<Voice[]>([]);
   const [hebrewVoices, setHebrewVoices] = useState<Voice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -114,7 +116,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         <View style={styles.container}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>Settings</Text>
+            <Text style={styles.title}>{strings.settingsModal.title}</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Text style={styles.closeButtonText}>✕</Text>
             </TouchableOpacity>
@@ -123,7 +125,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           <ScrollView style={styles.content}>
             {/* Language Mode Section */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Language Mode</Text>
+              <Text style={styles.sectionTitle}>{strings.settingsModal.languageMode}</Text>
               <View style={styles.optionGroup}>
                 <TouchableOpacity
                   style={[
@@ -136,10 +138,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                       styles.optionText,
                       languageMode === 'en-only' && styles.optionTextSelected,
                     ]}>
-                    English Only
+                    {strings.settingsModal.englishOnly}
                   </Text>
                   <Text style={styles.optionDescription}>
-                    Always use English TTS
+                    {strings.settingsModal.englishOnlyDesc}
                   </Text>
                 </TouchableOpacity>
 
@@ -154,10 +156,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                       styles.optionText,
                       languageMode === 'he-only' && styles.optionTextSelected,
                     ]}>
-                    Hebrew Only
+                    {strings.settingsModal.hebrewOnly}
                   </Text>
                   <Text style={styles.optionDescription}>
-                    Always use Hebrew TTS
+                    {strings.settingsModal.hebrewOnlyDesc}
                   </Text>
                 </TouchableOpacity>
 
@@ -172,10 +174,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                       styles.optionText,
                       languageMode === 'detect' && styles.optionTextSelected,
                     ]}>
-                    Auto-Detect
+                    {strings.settingsModal.autoDetect}
                   </Text>
                   <Text style={styles.optionDescription}>
-                    Detect language from text
+                    {strings.settingsModal.autoDetectDesc}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -187,7 +189,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 style={styles.accordionHeader}
                 onPress={() => setHebrewVoicesExpanded(!hebrewVoicesExpanded)}
                 activeOpacity={0.7}>
-                <Text style={styles.sectionTitle}>Hebrew Voice</Text>
+                <Text style={styles.sectionTitle}>{strings.settingsModal.hebrewVoice}</Text>
                 <Text style={styles.accordionIcon}>
                   {hebrewVoicesExpanded ? '▼' : '▶'}
                 </Text>
@@ -196,7 +198,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               {hebrewVoice && (
                 <View style={styles.accordionCurrentValue}>
                   <Text style={styles.currentValueText}>
-                    Current: {hebrewVoices.find(v => v.id === hebrewVoice)?.name || 'None'}
+                    {strings.settingsModal.current} {hebrewVoices.find(v => v.id === hebrewVoice)?.name || strings.settingsModal.none}
                   </Text>
                 </View>
               )}
@@ -244,7 +246,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 style={styles.accordionHeader}
                 onPress={() => setEnglishVoicesExpanded(!englishVoicesExpanded)}
                 activeOpacity={0.7}>
-                <Text style={styles.sectionTitle}>English Voice</Text>
+                <Text style={styles.sectionTitle}>{strings.settingsModal.englishVoice}</Text>
                 <Text style={styles.accordionIcon}>
                   {englishVoicesExpanded ? '▼' : '▶'}
                 </Text>
@@ -253,7 +255,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               {englishVoice && (
                 <View style={styles.accordionCurrentValue}>
                   <Text style={styles.currentValueText}>
-                    Current: {englishVoices.find(v => v.id === englishVoice)?.name || 'None'}
+                    {strings.settingsModal.current} {englishVoices.find(v => v.id === englishVoice)?.name || strings.settingsModal.none}
                   </Text>
                 </View>
               )}

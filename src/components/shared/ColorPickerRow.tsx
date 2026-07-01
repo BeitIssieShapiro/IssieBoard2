@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
 import { ColorPicker } from './ColorPicker';
+import { useLocalization } from '../../localization';
 
 interface ColorPickerRowProps {
   title: string;
@@ -25,8 +26,10 @@ export const ColorPickerRow: React.FC<ColorPickerRowProps> = ({
   presets,
   allowCustom = true,
   showSystemDefault = false,
-  systemDefaultLabel = 'Default',
+  systemDefaultLabel: systemDefaultLabelProp,
 }) => {
+  const { strings } = useLocalization();
+  const systemDefaultLabel = systemDefaultLabelProp ?? strings.common.default;
   return (
     <View style={styles.container}>
       <Text allowFontScaling={false} style={styles.title}>{title}</Text>

@@ -1,0 +1,14 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="?attr/colorControlNormal">
+  <!-- Route/directions icon (port of SF Symbol: arrow.triangle.turn.up.right.diamond.fill) -->
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M21,16h-7V8h4l-5,-6 -5,6h4v10h7l2,-2z"/>
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M5.41,16L4,14.59 9.59,9 11,10.41z"/>
+</vector>

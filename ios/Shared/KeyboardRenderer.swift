@@ -1,6 +1,23 @@
 import UIKit
 
 /**
+ * Gesture recognizer delegate that prevents the keyset slide gesture from
+ * beginning unless the initial touch is on a keyset key.
+ * This avoids the cancel-and-re-enable cycle that disrupts button-level
+ * long-press gestures (backspace, nikkud).
+ */
+private class KeysetSlideGestureDelegate: NSObject, UIGestureRecognizerDelegate {
+    weak var renderer: KeyboardRenderer?
+
+    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        guard let renderer = renderer,
+              let container = gestureRecognizer.view else { return false }
+        let point = gestureRecognizer.location(in: container)
+        return renderer.isKeysetKeyAt(point: point, in: container)
+    }
+}
+
+/**
  * Custom container view that properly handles hit testing with transforms
  * When scaled down, the view's bounds are larger than the visible content
  * We need to ensure touches pass through to the transformed subviews
@@ -56,8 +73,7 @@ class KeyboardRenderer {
     private var showGlobeButton: Bool = true
     
     // Callbacks for system keyboard actions (only used by actual keyboard)
-    var onNextKeyboard: (() -> Void)?
-    var onShowKeyboardList: ((UIView, UILongPressGestureRecognizer) -> Void)?  // Pass button and gesture for positioning
+    var onHandleInputModeList: ((UIView, UIEvent) -> Void)?  // Forward all touch events to handleInputModeList
     var onDismissKeyboard: (() -> Void)?
     var onOpenSettings: (() -> Void)?
     var onLanguageSwitch: (() -> Void)?
@@ -78,6 +94,15 @@ class KeyboardRenderer {
     
     // Callback to get text direction at cursor (returns true if RTL, false if LTR)
     var onGetTextDirection: (() -> Bool)?
+
+    // Callback to get the base letter immediately before the cursor (for modifier filtering)
+    var onGetCharBeforeCursor: (() -> String?)?
+
+    /// Called when nikkud active state changes (so controller can update keyboard height)
+    var onNikkudStateChanged: (() -> Void)?
+
+    /// Called when nikkud active state changes with the new value (for persistence)
+    var onNikkudActivePersist: ((Bool) -> Void)?
     
     // Word suggestions to display
     private var currentSuggestions: [String] = []
@@ -125,22 +150,44 @@ class KeyboardRenderer {
     
     // Container reference - renderer owns the rendering
     private weak var container: UIView?
+
+    // Keyset slide gesture state ("peek and slide" from 123 key)
+    private var isKeysetSlideActive: Bool = false
+    private var keysetSlideOriginKeyset: String = ""
+    private var keysetSlideCurrentButton: UIButton?
+    private var keysetSlideDidMove: Bool = false
+    private var keysetSlideGestureRecognizer: UILongPressGestureRecognizer?
+    private var keysetSlideGestureDelegate: KeysetSlideGestureDelegate?
     
     // Callback for keyset changes (so controller can save to preferences)
     var onKeysetChanged: ((String) -> Void)?
     
     // Layout tracking to prevent infinite loops
     private var lastRenderedWidth: CGFloat = 0
-    
+    private var lastRenderedRegularKeyWidth: CGFloat = 44
+
     // Preview mode flag - set by KeyboardPreviewView to disable key bubble
     private var isPreviewMode: Bool = false
+    // Re-entrancy guard: prevents onNikkudStateChanged from triggering an infinite render loop
+    private var isRendering: Bool = false
     
     // Screen size detection for showOn filtering
     private var isLargeScreen: Bool {
         // iPad or large screen detection
         return UIDevice.current.userInterfaceIdiom == .pad
     }
-    
+
+    /// Resolve a keyset ID to its large-screen variant if running on iPad
+    /// and the `_large` variant exists in the config.
+    func resolveKeysetId(_ baseId: String) -> String {
+        guard isLargeScreen else { return baseId }
+        let largeId = baseId + "_large"
+        if config?.keysets.contains(where: { $0.id == largeId }) == true {
+            return largeId
+        }
+        return baseId
+    }
+
     // UI Constants - same for preview and keyboard
     // Dynamic row height: uses adaptive calculation based on screen size and preset
     private var rowHeight: CGFloat {
@@ -150,7 +197,7 @@ class KeyboardRenderer {
 
         // Get height preset from config (defaults to .normal)
         let preset: KeyboardHeightPreset
-        if let presetString = config?.heightPreset {
+        if let presetString = (UIDevice.current.userInterfaceIdiom == .pad ? config?.heightPreset_large : nil) ?? config?.heightPreset {
             preset = KeyboardHeightPreset(rawValue: presetString) ?? .normal
         } else {
             preset = .normal
@@ -176,7 +223,7 @@ class KeyboardRenderer {
 
         // Get font size preset from config (defaults to .normal)
         let fontPreset: FontSizePreset
-        if let presetString = config?.fontSizePreset {
+        if let presetString = (UIDevice.current.userInterfaceIdiom == .pad ? config?.fontSizePreset_large : nil) ?? config?.fontSizePreset {
             fontPreset = FontSizePreset(rawValue: presetString) ?? .normal
         } else {
             fontPreset = .normal
@@ -200,13 +247,65 @@ class KeyboardRenderer {
 
         return calculatedRowHeight
     }
+
+    /// Computed base font size following the same preset logic as key rendering
+    private var baseFontSize: CGFloat {
+        guard let container = container else { return 24 }
+
+        let configFontSizePreset = (UIDevice.current.userInterfaceIdiom == .pad ? config?.fontSizePreset_large : nil) ?? config?.fontSizePreset
+        let fontPreset = FontSizePreset(rawValue: configFontSizePreset ?? "normal") ?? .normal
+        let heightPreset = KeyboardHeightPreset(rawValue: (UIDevice.current.userInterfaceIdiom == .pad ? config?.heightPreset_large : nil) ?? config?.heightPreset ?? "normal") ?? .normal
+
+        let screenBounds: CGRect
+        if let windowScene = container.window?.windowScene {
+            screenBounds = windowScene.screen.bounds
+        } else {
+            screenBounds = UIScreen.main.bounds
+        }
+        let safeAreaInsets = container.window?.safeAreaInsets ?? .zero
+        let availableHeight = screenBounds.height - safeAreaInsets.top - safeAreaInsets.bottom
+
+        let dimensions = KeyboardDimensions(
+            screenWidth: container.bounds.width,
+            screenHeight: availableHeight,
+            deviceType: .current,
+            heightPreset: heightPreset,
+            fontSizePreset: fontPreset
+        )
+
+        let hasSuggestions = wordSuggestionsOverrideEnabled ?? wordSuggestionsEnabled
+        let rh = dimensions.calculateRowHeight(numberOfRows: 4, hasSuggestions: hasSuggestions)
+        return dimensions.calculateFontSize(rowHeight: rh)
+    }
+
+    /// Computed font weight from config
+    private var configFontWeight: UIFont.Weight {
+        let weightString = (UIDevice.current.userInterfaceIdiom == .pad ? config?.fontWeight_large : nil) ?? config?.fontWeight
+        guard let weightString = weightString else { return .regular }
+        switch weightString.lowercased() {
+        case "ultralight": return .ultraLight
+        case "thin": return .thin
+        case "light": return .light
+        case "regular": return .regular
+        case "medium": return .medium
+        case "semibold": return .semibold
+        case "bold": return .bold
+        case "heavy": return .heavy
+        case "black": return .black
+        default: return .regular
+        }
+    }
+
     private let keySpacing: CGFloat = 0       // No spacing between key tap areas
     private let keyInternalPadding: CGFloat = 3  // Visual gap between keys (internal margin)
     private let keyVerticalPadding: CGFloat = 5  // Vertical padding for visual gap between rows (2px more than horizontal)
+    private static let specialKeyTypes: Set<String> = ["space", "backspace", "shift", "keyset", "nikkud", "enter", "next-keyboard", "settings", "close", "language"]
     private let keyCornerRadius: CGFloat = 5
     private let fontSize: CGFloat = 24
     private let largeFontSize: CGFloat = 28
-    private let suggestionsBarHeight: CGFloat = 32  // Reduced by 20% from 40
+    private var suggestionsBarHeight: CGFloat {
+        return rowHeight * 0.75
+    }
     private let suggestionsFontSize: CGFloat = 26  // Larger than key font (24) for better readability
 
     // Use the same rowSpacing as KeyboardHeightConstants for consistency
@@ -288,7 +387,20 @@ class KeyboardRenderer {
         
         // SuggestionsBarView callbacks
         suggestionsBarView.onSuggestionSelected = { [weak self] suggestion in
-            self?.onSuggestionSelected?(suggestion)
+            guard let self = self else { return }
+            if let handler = self.onSuggestionSelected {
+                // Engine mode (IssieVoice / real keyboard): route through engine
+                handler(suggestion)
+            } else {
+                // Config mode (IssieBoard editor): emit as key press for group selection
+                let tempKey = Key(value: "suggestion", sValue: nil, caption: suggestion, sCaption: nil,
+                                  type: "suggestion", width: nil, offset: nil, hidden: nil, opacity: nil,
+                                  color: nil, bgColor: nil, fontSizePreset: nil, label: nil,
+                                  keysetValue: nil, returnKeysetValue: nil, returnKeysetLabel: nil,
+                                  nikkud: nil, showOn: nil, flex: nil, showForField: nil)
+                let parsed = ParsedKey(from: tempKey, groups: [:], defaultTextColor: .black, defaultBgColor: .white)
+                self.onKeyPress?(parsed)
+            }
         }
         
         // NikkudPickerController callbacks
@@ -365,7 +477,12 @@ class KeyboardRenderer {
         }
         return UIColor(hexString: bgColorString) ?? .white
     }
-    
+
+    /// Get placeholder suggestion words for preview mode
+    private func getPlaceholderSuggestions() -> [String] {
+        return WordCompletionManager.getDefaultSuggestions(for: currentKeyboardId)
+    }
+
     // MARK: - Public Methods
     
     /// Calculate the required keyboard height based on the current config
@@ -375,7 +492,7 @@ class KeyboardRenderer {
     ///   - keysetId: The keyset ID to calculate height for
     ///   - suggestionsEnabled: Whether suggestions are currently enabled (accounts for input type restrictions)
     /// - Returns: The required height in points
-    func calculateKeyboardHeight(for config: KeyboardConfig, keysetId: String, suggestionsEnabled: Bool) -> CGFloat {
+    func calculateKeyboardHeight(for config: KeyboardConfig, keysetId: String, suggestionsEnabled: Bool, nikkudTopRowActive: Bool = false) -> CGFloat {
         // Find the keyset
         guard let keyset = config.keysets.first(where: { $0.id == keysetId }) else {
             return 216  // Default iOS keyboard height
@@ -386,8 +503,8 @@ class KeyboardRenderer {
         }
 
         // Calculate row height using the passed config (not self.config)
-        let preset = KeyboardHeightPreset(rawValue: config.heightPreset ?? "normal") ?? .normal
-        let fontPreset = FontSizePreset(rawValue: config.fontSizePreset ?? "normal") ?? .normal
+        let preset = KeyboardHeightPreset(rawValue: (UIDevice.current.userInterfaceIdiom == .pad ? config.heightPreset_large : nil) ?? config.heightPreset ?? "normal") ?? .normal
+        let fontPreset = FontSizePreset(rawValue: (UIDevice.current.userInterfaceIdiom == .pad ? config.fontSizePreset_large : nil) ?? config.fontSizePreset ?? "normal") ?? .normal
 
         // Get screen dimensions
         let screenBounds: CGRect
@@ -409,18 +526,20 @@ class KeyboardRenderer {
             fontSizePreset: fontPreset
         )
 
-        let numberOfRows = keyset.rows.count
-        let calculatedRowHeight = dimensions.calculateRowHeight(numberOfRows: numberOfRows, hasSuggestions: suggestionsEnabled)
+        let baseRowCount = keyset.rows.count
+        let calculatedRowHeight = dimensions.calculateRowHeight(numberOfRows: baseRowCount, hasSuggestions: suggestionsEnabled)
 
-        let rowsHeight = CGFloat(numberOfRows) * calculatedRowHeight
-        let spacingHeight = CGFloat(max(0, numberOfRows - 1)) * rowSpacing
-        let suggestionsHeight = suggestionsEnabled ? suggestionsBarHeight : 0
+        // When nikkud top-row is active, add one full extra row on top of the normal height
+        let totalRowCount = baseRowCount + (nikkudTopRowActive ? 1 : 0)
+        let rowsHeight = CGFloat(totalRowCount) * calculatedRowHeight
+        let spacingHeight = CGFloat(max(0, totalRowCount - 1)) * rowSpacing
+        let suggestionsHeight = suggestionsEnabled ? calculatedRowHeight * 0.75 : 0
         let topPadding: CGFloat = 0
         let bottomPadding: CGFloat = 4
 
         let totalHeight = rowsHeight + spacingHeight + suggestionsHeight + topPadding + bottomPadding
 
-        print("📐 [calculateKeyboardHeight] preset: \(preset), rowHeight: \(calculatedRowHeight), rows: \(numberOfRows), total: \(totalHeight)")
+        print("📐 [calculateKeyboardHeight] preset: \(preset), rowHeight: \(calculatedRowHeight), rows: \(totalRowCount), nikkudTopRow: \(nikkudTopRowActive), total: \(totalHeight)")
 
         return totalHeight
     }
@@ -430,12 +549,15 @@ class KeyboardRenderer {
         return abs(width - lastRenderedWidth) > 1
     }
     
-    /// Trigger re-render with current config
-    func rerenderIfNeeded() {
-        guard let container = container, let config = config else { return }
+    /// Trigger re-render with current config. Returns true if a re-render was performed.
+    @discardableResult
+    func rerenderIfNeeded() -> Bool {
+        guard let container = container, let config = config else { return false }
         if needsRender(for: container.bounds.width) {
             renderKeyboard(in: container, config: config, currentKeysetId: currentKeysetId, editorContext: editorContext)
+            return true
         }
+        return false
     }
     
     /// Set selected key IDs for visual highlighting
@@ -515,7 +637,22 @@ class KeyboardRenderer {
     func isInCursorMoveMode() -> Bool {
         return cursorMoveMode
     }
-    
+
+    /// Returns true when nikkud top-row should be shown.
+    /// topRowAlways: always shown regardless of nikkudActive toggle.
+    /// topRow: shown only when nikkudActive toggle is on.
+    var isNikkudTopRowActive: Bool {
+        let settings = config?.diacriticsSettings?[currentKeyboardId ?? ""]
+        if settings?.isTopRowAlways == true { return true }
+        guard nikkudActive else { return false }
+        return settings?.isTopRowMode ?? false
+    }
+
+    /// Restore persisted nikkud active state (called by controller on load, before renderKeyboard).
+    func restoreNikkudActive(_ active: Bool) {
+        nikkudActive = active
+    }
+
     /// Set whether word suggestions are enabled (override config setting)
     /// Called by the controller when input type should disable suggestions (e.g., URL, email)
     /// Pass nil to remove override and use config value
@@ -535,22 +672,39 @@ class KeyboardRenderer {
         currentKeysetId: String,
         editorContext: (enterVisible: Bool, enterLabel: String, enterAction: Int, fieldType: String)?
     ) {
+        let wasRendering = isRendering
+        isRendering = true
+        defer {
+            isRendering = wasRendering
+            if !wasRendering && !isPreviewMode {
+                print("📐 renderKeyboard defer: firing onNikkudStateChanged, isNikkudTopRowActive=\(isNikkudTopRowActive), isPreviewMode=\(isPreviewMode)")
+                onNikkudStateChanged?()
+            }
+        }
         let currentWidth = container.bounds.width
         print("📐 RENDER START =================")
         print("📐 RENDER: container.bounds.width = \(currentWidth), lastRenderedWidth = \(lastRenderedWidth)")
         print("⚙️ [Config] fontSizePreset from config: \(config.fontSizePreset ?? "nil")")
         print("⚙️ [Config] fontName from config: \(config.fontName ?? "nil")")
         print("⚙️ [Config] fontWeight from config: \(config.fontWeight ?? "nil")")
+        print("⚙️ [Config] backgroundColor from config: \(config.backgroundColor ?? "nil")")
+        print("⚙️ [Config] textColor from config: \(config.textColor ?? "nil")")
+        print("⚙️ [Config] keysBgColor from config: \(config.keysBgColor ?? "nil")")
         print("📐 RENDER CALL STACK:")
         Thread.callStackSymbols.prefix(10).forEach { print("  \($0)") }
 
         // Calculate scale if in preview mode with maxHeight
         if isPreviewMode, let maxHeight = previewMaxHeight, maxHeight > 0 {
-            // Calculate full-size keyboard height
+            // Compute top-row active state from the incoming config (self.config not yet updated)
+            let incomingSettings = config.diacriticsSettings?[currentKeyboardId ?? ""]
+            let incomingTopRowActive = (incomingSettings?.isTopRowAlways == true)
+                || (nikkudActive && (incomingSettings?.isTopRowMode == true))
+            // Calculate full-size keyboard height (include nikkud top-row if active)
             let fullKeyboardHeight = calculateKeyboardHeight(
                 for: config,
                 keysetId: currentKeysetId,
-                suggestionsEnabled: wordSuggestionsOverrideEnabled ?? wordSuggestionsEnabled
+                suggestionsEnabled: wordSuggestionsOverrideEnabled ?? wordSuggestionsEnabled,
+                nikkudTopRowActive: incomingTopRowActive
             )
 
             // Only scale if we have a valid keyboard height
@@ -577,12 +731,31 @@ class KeyboardRenderer {
         self.container = container
         self.config = config
         self.editorContext = editorContext
+
+        // Install keyset slide gesture on container (once)
+        if !isPreviewMode && keysetSlideGestureRecognizer == nil {
+            let delegate = KeysetSlideGestureDelegate()
+            delegate.renderer = self
+            keysetSlideGestureDelegate = delegate
+
+            let gesture = UILongPressGestureRecognizer(target: self, action: #selector(keysetSlideGesture(_:)))
+            gesture.minimumPressDuration = 0.15
+            gesture.allowableMovement = .greatestFiniteMagnitude
+            gesture.cancelsTouchesInView = false
+            gesture.delaysTouchesBegan = false
+            gesture.delegate = delegate
+            container.addGestureRecognizer(gesture)
+            keysetSlideGestureRecognizer = gesture
+        }
         
         // Only set currentKeysetId from parameter if renderer hasn't been initialized yet
         if self.currentKeysetId == "abc" && currentKeysetId != "abc" {
             self.currentKeysetId = currentKeysetId
         }
-        
+
+        // Resolve to large-screen keyset variant on iPad if available
+        self.currentKeysetId = resolveKeysetId(self.currentKeysetId)
+
         // Derive currentKeyboardId from keyset ID (e.g., "he_abc" -> "he", "abc" -> first keyboard)
         // IMPORTANT: Reset currentKeyboardId before searching - this ensures it updates when switching languages
         if let keyboards = config.keyboards, !keyboards.isEmpty {
@@ -602,7 +775,13 @@ class KeyboardRenderer {
             }
             print("📱 Current keyboard ID set to: \(self.currentKeyboardId ?? "nil") (keyset: \(self.currentKeysetId))")
         }
-        
+
+        // If nikkud is disabled in config, reset active state so it doesn't linger
+        let isNikkudDisabledInConfig = config.diacriticsSettings?[currentKeyboardId ?? ""]?.isDisabled ?? false
+        if isNikkudDisabledInConfig && nikkudActive {
+            nikkudActive = false
+        }
+
         // Clear existing views, but preserve nikkud picker overlay if present
         container.subviews.forEach { subview in
             if subview.tag != 999 {  // Don't remove nikkud picker overlay
@@ -649,14 +828,58 @@ class KeyboardRenderer {
         // Show suggestions bar in real keyboard, hide in preview (preview sends to React Native)
         var topOffset: CGFloat = 0  // Start at 0 to push suggestions bar to very top
 
-        if wordSuggestionsEnabled && !isPreviewMode {
-            // Real keyboard - show native suggestions bar at the very top
-            let bar = suggestionsBarView.createBar(width: container.bounds.width * currentScale, height: scaledSuggestionsBarHeight)
+        if wordSuggestionsEnabled {
+            // Suggestion pills: start with default key colors, then apply group override if exists
+            var suggestionBgColor = getDefaultKeyBgColor()
+            var suggestionTextColor = getDefaultTextColor()
+
+            // Check if "suggestion" has a group style override
+            if let groupTemplate = groupsMap["suggestion"] {
+                if let bgStr = groupTemplate.bgColor, !bgStr.isEmpty, let color = UIColor(hexString: bgStr) {
+                    suggestionBgColor = color
+                }
+                if let colorStr = groupTemplate.color, !colorStr.isEmpty, let color = UIColor(hexString: colorStr) {
+                    suggestionTextColor = color
+                }
+            }
+
+            suggestionsBarView.customBackgroundColor = suggestionBgColor
+            suggestionsBarView.customTextColor = suggestionTextColor
+
+            // Pass font settings to suggestions bar
+            suggestionsBarView.customFontWeight = configFontWeight
+            suggestionsBarView.customFontSize = baseFontSize
+
+            // Pass custom font if configured
+            if let fontName = config.fontName, let font = UIFont(name: fontName, size: 16) {
+                suggestionsBarView.customFont = font
+            } else {
+                suggestionsBarView.customFont = nil
+            }
+
+            // Show native suggestions bar at the very top
+            // When transform-scaling, render bar at full size then scale it down (same approach as rowsContainer)
+            let useTransformScalingForBar = isPreviewMode && currentScale < 1.0
+            let barFullHeight = suggestionsBarHeight  // always full size; transform will shrink it
+            let barFullWidth = container.bounds.width
+            let bar = suggestionsBarView.createBar(width: useTransformScalingForBar ? barFullWidth : barFullWidth * currentScale,
+                                                   height: useTransformScalingForBar ? barFullHeight : scaledSuggestionsBarHeight)
             container.addSubview(bar)
-            topOffset = scaledSuggestionsBarHeight  // Use scaled bar height
-            suggestionsBar = bar  // Store UIView reference for legacy code
+            // topOffset is the visual space the bar occupies after scaling
+            let scaledBarHeight = useTransformScalingForBar ? barFullHeight * currentScale : scaledSuggestionsBarHeight
+            topOffset = scaledBarHeight
+            suggestionsBar = bar
+
+            // Selection state for editor
+            suggestionsBarView.isSelected = selectedKeyIds.contains("suggestion")
+
+            // In preview mode, show placeholder suggestions
+            if isPreviewMode {
+                suggestionsBarView.currentKeyboardId = currentKeyboardId
+                let placeholders = getPlaceholderSuggestions()
+                suggestionsBarView.updateSuggestions(placeholders)
+            }
         } else {
-            // Preview mode - don't show bar (React Native handles it)
             suggestionsBar = nil
         }
 
@@ -693,6 +916,18 @@ class KeyboardRenderer {
         print("📐 RENDER END ===================")
         print("🎯 END OF RENDER: shiftState = \(shiftState)")
         
+        // Nikkud top row — rendered before normal rows when top-row mode is active
+        let nikkudSettings = config.diacriticsSettings?[currentKeyboardId ?? ""]
+        let isTopRowAlways = nikkudSettings?.isTopRowAlways ?? false
+        let isTopRowMode = nikkudSettings?.isTopRowMode ?? false
+        if isTopRowAlways || (nikkudActive && isTopRowMode) {
+            let nikkudRowView = buildNikkudTopRow(availableWidth: availableWidth, height: effectiveRowHeight)
+            rowsContainer.addSubview(nikkudRowView)
+            nikkudRowView.frame = CGRect(x: effectiveHorizontalPadding, y: currentY,
+                                         width: availableWidth, height: effectiveRowHeight)
+            currentY += effectiveRowHeight + effectiveRowSpacing
+        }
+
         for (rowIndex, row) in keyset.rows.enumerated() {
             let rowView = createRow(row, groups: groupsMap, showOnlyKeys: showOnlyKeys,
                                    baselineWidth: baselineWidth, 
@@ -734,10 +969,25 @@ class KeyboardRenderer {
             let finalTransform = scaleTransform.translatedBy(x: 0, y: -heightShift / currentScale)
             rowsContainer.transform = finalTransform
 
+            // Scale and center the suggestions bar to match the scaled keyboard
+            if let bar = suggestionsBar {
+                bar.layoutIfNeeded()
+                // Scale from top-center so it stays pinned to the top edge
+                bar.layer.anchorPoint = CGPoint(x: 0.5, y: 0.0)
+                // Resetting anchorPoint shifts the frame origin — compensate
+                bar.frame.origin = CGPoint(x: bar.frame.origin.x, y: 0)
+                bar.transform = CGAffineTransform(scaleX: currentScale, y: currentScale)
+            }
+
             print("📐 Applied transform - scale: \(currentScale), containerHeight: \(containerHeight), heightShift: \(heightShift), contentHeight: \(contentHeight)")
         } else {
             rowsContainer.layer.anchorPoint = CGPoint(x: 0.5, y: 0.5)
             rowsContainer.transform = .identity
+        }
+
+        // Repopulate suggestions bar after re-render (bar is recreated; currentSuggestions still valid)
+        if !isPreviewMode {
+            updateSuggestionsBar()
         }
     }
 
@@ -771,19 +1021,295 @@ class KeyboardRenderer {
         
         return (groupsMap, showOnlyKeys)
     }
-    
+
+    private let nikkudTopRowTag = 8001
+    private let nikkudModifierButtonTagBase = 9001 // tag = 9001 + buttonIndex
+
+    /// Build the nikkud top-row view showing all visible nikkud signs as tappable square buttons.
+    private func buildNikkudTopRow(availableWidth: CGFloat, height: CGFloat) -> UIView {
+        let rowView = UIView()
+        rowView.tag = nikkudTopRowTag
+
+        guard let diacriticsDefinition = config?.getDiacritics(for: currentKeyboardId) else {
+            return rowView
+        }
+
+        let settings = config?.diacriticsSettings?[currentKeyboardId ?? ""]
+        let hidden = settings?.hidden ?? []
+        let disabledModifiers = settings?.disabledModifiers ?? []
+        let isSimpleMode = settings?.simpleMode ?? true
+
+        // Filter vowel items: plain, replacements, hidden, and advanced (in basic/simple mode)
+        let items = diacriticsDefinition.items.filter { item in
+            guard item.id != "plain" else { return false }
+            guard item.isReplacement != true else { return false }
+            guard !hidden.contains(item.id) else { return false }
+            if isSimpleMode && item.isAdvanced == true { return false }
+            return true
+        }
+
+        // Build modifier marks: always show all enabled modifiers, but disable those that don't apply
+        struct MarkEntry { let mark: String; let baseLetter: String; let isEnabled: Bool }
+        var modifierMarks: [MarkEntry] = []
+        let charBeforeCursor = onGetCharBeforeCursor?() ?? ""
+        print("🎹 buildNikkudTopRow: currentKeyboardId=\(currentKeyboardId ?? "nil"), modifierCount=\(diacriticsDefinition.getModifiers().count)")
+        for modifier in diacriticsDefinition.getModifiers() {
+            guard !disabledModifiers.contains(modifier.id) else { continue }
+
+            // Determine if modifier applies to the current letter
+            let applies: Bool = {
+                guard !charBeforeCursor.isEmpty else { return true } // unknown — show enabled
+                if let appliesTo = modifier.appliesTo { return appliesTo.contains(charBeforeCursor) }
+                if let excludeFor = modifier.excludeFor { return !excludeFor.contains(charBeforeCursor) }
+                return true
+            }()
+
+            // Base letter for display: shinSin always uses ש; dagesh always uses ב
+            let base: String = modifier.appliesTo?.first ?? "ב"
+
+            if let options = modifier.options, !options.isEmpty {
+                for option in options {
+                    modifierMarks.append(MarkEntry(mark: option.mark, baseLetter: base, isEnabled: applies))
+                }
+            } else if let mark = modifier.mark {
+                modifierMarks.append(MarkEntry(mark: mark, baseLetter: base, isEnabled: applies))
+            }
+        }
+
+        let totalButtons = items.count + modifierMarks.count
+        guard totalButtons > 0 else { return rowView }
+
+        let gap: CGFloat = scaledKeyGap
+        // Ideal square button size, but shrink if too many buttons to fit
+        let idealSize: CGFloat = height
+        let totalIfIdeal = idealSize * CGFloat(totalButtons) + gap * CGFloat(totalButtons - 1)
+        let buttonSize: CGFloat = totalIfIdeal > availableWidth
+            ? max(24, (availableWidth - gap * CGFloat(totalButtons - 1)) / CGFloat(totalButtons))
+            : idealSize
+        let totalWidth = buttonSize * CGFloat(totalButtons) + gap * CGFloat(totalButtons - 1)
+        let leftOffset = max(0, (availableWidth - totalWidth) / 2)
+
+        let bgColor = getDefaultKeyBgColor()
+        let textColor: UIColor = UIColor { traitCollection in
+            traitCollection.userInterfaceStyle == .dark ? .white : .black
+        }
+
+        func makeButton(mark: String, index: Int, baseLetter: String, isEnabled: Bool) -> UIButton {
+            let x = leftOffset + CGFloat(index) * (buttonSize + gap)
+            let button = UIButton(type: .system)
+            button.backgroundColor = UIColor(white: 1.0, alpha: 0.001)
+            button.frame = CGRect(x: x, y: 0, width: buttonSize, height: height)
+            button.accessibilityIdentifier = mark
+            button.isEnabled = isEnabled
+            button.addTarget(self, action: #selector(nikkudTopRowButtonTapped(_:)), for: .touchUpInside)
+
+            let visualKeyView = UIView()
+            visualKeyView.isUserInteractionEnabled = false
+            visualKeyView.backgroundColor = bgColor.adaptedForDarkMode()
+            visualKeyView.layer.cornerRadius = scaledCornerRadius
+            visualKeyView.layer.shadowColor = UIColor.black.cgColor
+            visualKeyView.layer.shadowOffset = CGSize(width: 0, height: 1 * effectiveDimensionScale)
+            visualKeyView.layer.shadowOpacity = 0.2
+            visualKeyView.layer.shadowRadius = 1 * effectiveDimensionScale
+
+            let gap2 = scaledKeyGap
+            visualKeyView.frame = CGRect(
+                x: gap2, y: scaledKeyVerticalPadding,
+                width: buttonSize - gap2 * 2,
+                height: height - scaledKeyVerticalPadding * 2
+            )
+
+            let markColor = isEnabled ? textColor : UIColor.systemGray3
+            let fontSize = baseFontSize * 1.26
+            let font = UIFont.systemFont(ofSize: fontSize, weight: configFontWeight)
+
+            let label = UILabel()
+            label.isUserInteractionEnabled = false
+            label.font = font
+            label.textAlignment = .center
+            label.adjustsFontSizeToFitWidth = true
+            label.minimumScaleFactor = 0.5
+            label.frame = visualKeyView.bounds
+            label.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+
+            if baseLetter == "●" {
+                // Draw faded circle as a CATextLayer behind the label.
+                // Use ב as the combining base so the mark attaches at correct Hebrew text metrics.
+                // The ב is rendered transparent — only the mark is visible over the circle.
+                let circleLayer = CATextLayer()
+                let circleSize = fontSize * 0.7  // smaller than label font so mark has room
+                circleLayer.font = UIFont.systemFont(ofSize: circleSize, weight: .regular) as CTFont
+                circleLayer.fontSize = circleSize
+                circleLayer.string = "●"
+                circleLayer.foregroundColor = markColor.withAlphaComponent(0.15).cgColor
+                circleLayer.alignmentMode = .center
+                circleLayer.contentsScale = UIScreen.main.scale
+                // CATextLayer draws from the top of its frame — size it to the glyph and center it
+                let layerH = circleSize * 1.6
+                let vBounds = visualKeyView.bounds
+                circleLayer.frame = CGRect(
+                    x: -1,
+                    y: (vBounds.height - layerH) / 2 + 5,
+                    width: vBounds.width,
+                    height: layerH
+                )
+                visualKeyView.layer.addSublayer(circleLayer)
+
+                // Label shows transparent ב + mark: mark attaches correctly to Hebrew base
+                let displayText = "ב" + mark
+                let attrString = NSMutableAttributedString(string: displayText,
+                    attributes: [.font: font, .foregroundColor: markColor])
+                // Make the ב invisible — only the combining mark renders
+                attrString.addAttribute(.foregroundColor, value: UIColor.clear,
+                    range: NSRange(location: 0, length: 1))
+                label.attributedText = attrString
+            } else {
+                // Modifier buttons: show the real base letter (ב, שׁ, etc.) + mark normally
+                label.text = baseLetter + mark
+                label.textColor = markColor
+            }
+
+            visualKeyView.addSubview(label)
+            button.addSubview(visualKeyView)
+            if !isEnabled { button.alpha = 0.4 }
+            return button
+        }
+
+        // Helper: dagesh modifier button shows "דגש" text label instead of a glyph
+        func makeDageshButton(mark: String, index: Int, isEnabled: Bool) -> UIButton {
+            let x = leftOffset + CGFloat(index) * (buttonSize + gap)
+            let button = UIButton(type: .system)
+            button.backgroundColor = UIColor(white: 1.0, alpha: 0.001)
+            button.frame = CGRect(x: x, y: 0, width: buttonSize, height: height)
+            button.accessibilityIdentifier = mark
+            button.isEnabled = isEnabled
+            button.addTarget(self, action: #selector(nikkudTopRowButtonTapped(_:)), for: .touchUpInside)
+
+            let visualKeyView = UIView()
+            visualKeyView.isUserInteractionEnabled = false
+            visualKeyView.backgroundColor = bgColor.adaptedForDarkMode()
+            visualKeyView.layer.cornerRadius = scaledCornerRadius
+            visualKeyView.layer.shadowColor = UIColor.black.cgColor
+            visualKeyView.layer.shadowOffset = CGSize(width: 0, height: 1 * effectiveDimensionScale)
+            visualKeyView.layer.shadowOpacity = 0.2
+            visualKeyView.layer.shadowRadius = 1 * effectiveDimensionScale
+
+            let gap2 = scaledKeyGap
+            visualKeyView.frame = CGRect(
+                x: gap2, y: scaledKeyVerticalPadding,
+                width: buttonSize - gap2 * 2,
+                height: height - scaledKeyVerticalPadding * 2
+            )
+
+            let markColor = isEnabled ? textColor : UIColor.systemGray3
+            let label = UILabel()
+            label.isUserInteractionEnabled = false
+            label.text = "דגש"
+            label.font = UIFont.systemFont(ofSize: baseFontSize * 0.72, weight: configFontWeight)
+            label.textAlignment = .center
+            label.textColor = markColor
+            label.adjustsFontSizeToFitWidth = true
+            label.minimumScaleFactor = 0.5
+            label.frame = visualKeyView.bounds
+            label.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+
+            visualKeyView.addSubview(label)
+            button.addSubview(visualKeyView)
+            if !isEnabled { button.alpha = 0.4 }
+            return button
+        }
+
+        // Vowel buttons (always enabled)
+        for (index, item) in items.enumerated() {
+            rowView.addSubview(makeButton(mark: item.mark, index: index, baseLetter: "●", isEnabled: true))
+        }
+
+        // Modifier buttons (after vowels, with enabled/disabled state)
+        for (offset, entry) in modifierMarks.enumerated() {
+            let idx = items.count + offset
+            let btn: UIButton
+            if entry.mark == "\u{05BC}" {
+                // Dagesh: show "דגש" word label instead of a glyph
+                btn = makeDageshButton(mark: entry.mark, index: idx, isEnabled: entry.isEnabled)
+            } else {
+                btn = makeButton(mark: entry.mark, index: idx, baseLetter: entry.baseLetter, isEnabled: entry.isEnabled)
+            }
+            btn.tag = nikkudModifierButtonTagBase + offset
+            btn.accessibilityLabel = entry.mark  // used by updateNikkudTopRowModifierStates
+            rowView.addSubview(btn)
+        }
+
+        return rowView
+    }
+
+    @objc private func nikkudTopRowButtonTapped(_ sender: UIButton) {
+        guard let mark = sender.accessibilityIdentifier, !mark.isEmpty else { return }
+        print("🎹 Nikkud top-row tapped: '\(mark)'")
+        onNikkudSelected?(mark)
+    }
+
+    /// Update modifier button enabled/alpha states without a full re-render (no flicker).
+    func updateNikkudTopRowModifierStates() {
+        guard let container = container,
+              let diacriticsDefinition = config?.getDiacritics(for: currentKeyboardId) else {
+            print("🔄 updateNikkudTopRowModifierStates: GUARD FAILED — container=\(container != nil), diacritics=\(config?.getDiacritics(for: currentKeyboardId) != nil)")
+            return
+        }
+
+        let charBefore = onGetCharBeforeCursor?() ?? ""
+        print("🔄 updateNikkudTopRowModifierStates: charBefore='\(charBefore)'")
+
+        // Find the nikkud top row view — it's nested inside rowsContainer
+        guard let topRowView = container.viewWithTag(nikkudTopRowTag) else {
+            print("🔄 updateNikkudTopRowModifierStates: TOP ROW VIEW NOT FOUND (tag \(nikkudTopRowTag))")
+            return
+        }
+        print("🔄 updateNikkudTopRowModifierStates: topRowView found, subviews=\(topRowView.subviews.count)")
+
+        let modifiers = diacriticsDefinition.getModifiers()
+        let disabledModifiers = config?.diacriticsSettings?[currentKeyboardId ?? ""]?.disabledModifiers ?? []
+
+        // Build the same ordered list of modifier marks as buildNikkudTopRow
+        var modifierIndex = 0
+        for modifier in modifiers {
+            guard !disabledModifiers.contains(modifier.id) else { continue }
+            let applies: Bool = {
+                guard !charBefore.isEmpty else { return true }
+                if let appliesTo = modifier.appliesTo { return appliesTo.contains(charBefore) }
+                if let excludeFor = modifier.excludeFor { return !excludeFor.contains(charBefore) }
+                return true
+            }()
+            let markCount = modifier.options?.count ?? (modifier.mark != nil ? 1 : 0)
+            for _ in 0..<markCount {
+                if let btn = topRowView.viewWithTag(nikkudModifierButtonTagBase + modifierIndex) as? UIButton {
+                    btn.isEnabled = applies
+                    btn.alpha = applies ? 1.0 : 0.4
+                    // Restore label textColor — UILabel doesn't auto-update with isEnabled
+                    let enabledColor: UIColor = UIColor { tc in tc.userInterfaceStyle == .dark ? .white : .black }
+                    btn.subviews.compactMap { $0 as? UIView }.forEach { visualView in
+                        visualView.subviews.compactMap { $0 as? UILabel }.forEach { label in
+                            label.textColor = applies ? enabledColor : UIColor.systemGray3
+                        }
+                    }
+                }
+                modifierIndex += 1
+            }
+        }
+    }
+
     private func calculateBaselineWidth(_ rows: [KeyRow], groups: [String: GroupTemplate], showOnlyKeys: Set<String>?) -> CGFloat {
         var maxRowWidth: CGFloat = 0
         
         // Check if we have only one language (keyboard)
         let hasOnlyOneLanguage = (config?.keyboards?.count ?? 0) <= 1
         
-        // Check if nikkud is disabled for the current keyboard
+        // Check if nikkud is disabled or always-on top-row (both hide the nikkud button)
         let isNikkudDisabled = config?.diacriticsSettings?[currentKeyboardId ?? ""]?.isDisabled ?? false
-        
+        let isNikkudAlwaysTopRow = config?.diacriticsSettings?[currentKeyboardId ?? ""]?.isTopRowAlways ?? false
+
         // Get current field type for showForField filtering
         let fieldType = editorContext?.fieldType
-        
+
         for row in rows {
             var rowWidth: CGFloat = 0
             for key in row.keys {
@@ -802,7 +1328,7 @@ class KeyboardRenderer {
                 }
                 
                 // Skip nikkud key if disabled
-                if keyType == "nikkud" && isNikkudDisabled {
+                if keyType == "nikkud" && (isNikkudDisabled || isNikkudAlwaysTopRow) {
                     continue
                 }
                 
@@ -828,7 +1354,8 @@ class KeyboardRenderer {
                 // Note: parsedKey.hidden keys (spacers) still take up space in layout,
                 // so they should be counted in baseline width calculation
                 let isHiddenByGroup = {
-                    if let template = groups[keyValue] {
+                    let keyType = key.type ?? ""
+                    if let template = groups[keyValue] ?? groups[keyType] {
                         return template.effectiveVisibilityMode == .hide
                     }
                     return false
@@ -862,7 +1389,7 @@ class KeyboardRenderer {
         
         // Check if the key's group has an explicit "hide" visibility mode
         // This takes precedence - if explicitly marked to hide, hide it
-        if let template = groups[keyValue] {
+        if let template = groups[keyValue] ?? groups[parsedKey.type] {
             let visMode = template.effectiveVisibilityMode
             if visMode == .hide {
                 return true
@@ -872,25 +1399,18 @@ class KeyboardRenderer {
         // If there's a "showOnly" rule active, check if this key is in the whitelist
         if let showOnly = showOnlyKeys {
             // Essential keys that are NEVER hidden by showOnly rule (only by explicit hide)
-            // These keys are critical for typing and should always remain visible
+            // These keys are critical for keyboard operation and should always remain visible
             // unless the user explicitly creates a hide rule for them
             let essentialValues: Set<String> = [" ", ",", "."]  // space, comma, period
-            let essentialTypes: Set<String> = ["space", "backspace", "enter", "next-keyboard", "settings"]
-            
+            let essentialTypes: Set<String> = ["space", "backspace", "enter", "next-keyboard", "settings", "shift", "keyset", "nikkud", "close", "language"]
+
             // Check if this is an essential key by value or type
             if essentialValues.contains(keyValue) || essentialTypes.contains(parsedKey.type.lowercased()) {
                 // Essential keys are NOT hidden by showOnly rule
                 // They can only be hidden by explicit hide rule (checked above)
                 return false
             }
-            
-            // Other special keys (shift, keyset, etc.) should check if they're in the whitelist
-            let specialTypes: Set<String> = ["shift", "keyset", "nikkud", "settings", "close", "next-keyboard", "language"]
-            if specialTypes.contains(parsedKey.type.lowercased()) {
-                // Check if this special key is explicitly in the showOnly set
-                return !showOnly.contains(keyValue) && !showOnly.contains(parsedKey.type.lowercased())
-            }
-            
+
             // For regular keys, hide if not in the showOnly set
             return !showOnly.contains(keyValue)
         }
@@ -920,28 +1440,32 @@ class KeyboardRenderer {
         // Check if we have only one language (keyboard)
         let hasOnlyOneLanguage = (config?.keyboards?.count ?? 0) <= 1
         
-        // Check if nikkud is disabled for the current keyboard
+        // Check if nikkud is disabled or always-on top-row (both hide the nikkud button)
         let isNikkudDisabled = config?.diacriticsSettings?[currentKeyboardId ?? ""]?.isDisabled ?? false
-        
+        let isNikkudAlwaysTopRow = config?.diacriticsSettings?[currentKeyboardId ?? ""]?.isTopRowAlways ?? false
+
         // Get current field type for showForField filtering
         let fieldType = editorContext?.fieldType
         
-        // FIRST PASS: Calculate hidden width to redistribute and count flex keys
+        // FIRST PASS: Calculate hidden width to redistribute, count flex keys, and sum visible row width
         // We redistribute width from:
         // 1. Keys hidden by showForField (these ARE in baseline)
         // 2. next-keyboard when showGlobeButton is false (this IS in baseline)
         // 3. language when hasOnlyOneLanguage is true (this IS in baseline)
-        // We do NOT redistribute from showOn-hidden keys (these are NOT in baseline)
+        // 4. The gap between this row's visible width and the baseline (widest row)
+        // showOn-hidden keys are NOT in baseline, so they don't add to hiddenWidth directly,
+        // but the row may be narrower than baseline, and flex keys should absorb that gap.
         var hiddenWidthToRedistribute: Double = 0
         var flexKeyCount = 0
-        
+        var visibleRowWidth: Double = 0
+
         for key in row.keys {
             let parsedKey = ParsedKey(from: key, groups: groups,
                                      defaultTextColor: getDefaultTextColor(),
                                      defaultBgColor: getDefaultKeyBgColor())
-            
+
             let keyType = parsedKey.type.lowercased()
-            
+
             // Check for hidden language/next-keyboard keys - these ARE in baseline, so redistribute
             // In preview mode, show all keys defined in config (let config decide)
             if keyType == "language" && hasOnlyOneLanguage && !isPreviewMode {
@@ -952,31 +1476,41 @@ class KeyboardRenderer {
                 hiddenWidthToRedistribute += parsedKey.width
                 continue
             }
-            
+
             // Check for hidden nikkud key - this IS in baseline, so redistribute
             if keyType == "nikkud" && isNikkudDisabled {
                 hiddenWidthToRedistribute += parsedKey.width
                 continue
             }
-            
+
             // Skip keys hidden by showOn filter - these are NOT in baseline, so don't count them
             if !key.shouldShow(isLargeScreen: isLargeScreen) {
                 continue
             }
-            
+
             // Check if key is hidden due to showForField filter (field type)
             // These keys ARE in baseline, so we need to redistribute their width
             if !key.shouldShow(forFieldType: fieldType) {
                 hiddenWidthToRedistribute += parsedKey.width
                 continue
             }
-            
+
             // Count flex keys (only visible flex keys)
             if key.flex == true {
                 flexKeyCount += 1
             }
+
+            // Sum visible row width (including offsets)
+            visibleRowWidth += parsedKey.width + parsedKey.offset
         }
-        
+
+        // Add the gap between this row's visible width and the baseline to redistribution
+        // This ensures flex keys fill the remaining space when a row is narrower than the widest row
+        let rowGap = Double(baselineWidth) - visibleRowWidth - hiddenWidthToRedistribute
+        if rowGap > 0 && flexKeyCount > 0 {
+            hiddenWidthToRedistribute += rowGap
+        }
+
         // Calculate extra width per flex key
         let extraWidthPerFlexKey: Double = flexKeyCount > 0 ? hiddenWidthToRedistribute / Double(flexKeyCount) : 0
         
@@ -1039,9 +1573,10 @@ class KeyboardRenderer {
 
             // In preview mode, render hidden keys with opacity instead of fully hiding them
             // This allows users to see and select keys that will be hidden
-            let shouldRenderWithOpacity = isKeyHidden && isPreviewMode
+            // Exception: base hidden spacers (hidden: true) are always fully hidden - they're layout gaps
+            let shouldRenderWithOpacity = isKeyHidden && isPreviewMode && !parsedKey.hidden
 
-            if isKeyHidden && !isPreviewMode {
+            if isKeyHidden && !shouldRenderWithOpacity {
                 // Fully hidden - skip rendering (only when NOT in preview mode)
                 let hiddenWidth = (CGFloat(parsedKey.width) / baselineWidth) * availableWidth
                 currentX += hiddenWidth
@@ -1054,6 +1589,9 @@ class KeyboardRenderer {
 
                 // Calculate pixel width - the keySpacing of 0 means we don't need to subtract anything
                 let keyWidth = (CGFloat(effectiveWidth) / baselineWidth) * availableWidth
+                if !KeyboardRenderer.specialKeyTypes.contains(parsedKey.type.lowercased()) && parsedKey.width == 1 {
+                    lastRenderedRegularKeyWidth = keyWidth
+                }
                 let button = createKeyButton(parsedKey, width: keyWidth, height: scaledRowHeight,
                                             editorContext: editorContext,
                                             isSelected: isSelected)
@@ -1221,13 +1759,14 @@ class KeyboardRenderer {
             // Settings and close: always tap-selectable
             button.addTarget(self, action: #selector(keyTapped(_:)), for: .touchUpInside)
         } else if keyType == "next-keyboard" {
-            // Next-keyboard (globe): tap to advance, long-press to show keyboard list
-            button.addTarget(self, action: #selector(keyTapped(_:)), for: .touchUpInside)
-
-            // Add long-press gesture to show keyboard picker
-            let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(nextKeyboardLongPressed(_:)))
-            longPressGesture.minimumPressDuration = 0.5
-            button.addGestureRecognizer(longPressGesture)
+            if onHandleInputModeList != nil {
+                // Actual keyboard: forward all touch events to handleInputModeList
+                // iOS handles tap (cycle keyboard) and long-press (show picker) automatically
+                button.addTarget(self, action: #selector(globeButtonTouchEvent(_:event:)), for: .allTouchEvents)
+            } else {
+                // Preview mode: use normal tap handler for selection/language switch
+                button.addTarget(self, action: #selector(keyTapped(_:)), for: .touchUpInside)
+            }
         } else if keyType == "shift" {
             // Shift: normal tap for toggle, long-press for selection in edit mode
             button.addTarget(self, action: #selector(keyTapped(_:)), for: .touchUpInside)
@@ -1247,12 +1786,21 @@ class KeyboardRenderer {
             
             // Add long-press gesture for space key (for cursor movement mode)
             if keyType == "space" || key.value == " " {
+                print("🔧 SPACE KEY: Adding long-press gesture recognizer (keyType='\(keyType)', value='\(key.value)', onCursorMove=\(onCursorMove != nil))")
                 let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(spaceLongPressed(_:)))
                 longPressGesture.minimumPressDuration = 0.5
                 button.addGestureRecognizer(longPressGesture)
             }
-            // Add long-press gesture for keyset and nikkud keys (for selection in edit mode)
-            else if keyType == "keyset" || keyType == "nikkud" {
+            // Keyset keys: keep long-press for selection in edit mode only
+            else if keyType == "keyset" {
+                if isSelectionMode {
+                    let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(keyLongPressed(_:)))
+                    longPressGesture.minimumPressDuration = 0.5
+                    button.addGestureRecognizer(longPressGesture)
+                }
+            }
+            // Add long-press gesture for nikkud keys (for selection in edit mode)
+            else if keyType == "nikkud" {
                 let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(keyLongPressed(_:)))
                 longPressGesture.minimumPressDuration = 0.5
                 button.addGestureRecognizer(longPressGesture)
@@ -1267,11 +1815,7 @@ class KeyboardRenderer {
         
         // Colors - use darker key colors for dark mode to match system keyboard
         var bgColor = key.backgroundColor
-        if key.type.lowercased() == "shift" && shiftState.isActive() {
-            bgColor = .systemGreen
-        } else if key.type.lowercased() == "nikkud" && nikkudActive {
-            bgColor = .systemYellow
-        } else if bgColor == .white {
+        if bgColor == .white {
             // Use a darker shade for regular keys in dark mode, similar to system keyboard
             bgColor = UIColor { traitCollection in
                 if traitCollection.userInterfaceStyle == .dark {
@@ -1290,8 +1834,21 @@ class KeyboardRenderer {
         visualKeyView.layer.shadowRadius = 1 * effectiveDimensionScale
         
         // Selection highlight for edit mode
+        let needsOutline = isSelected || (key.type.lowercased() == "nikkud" && nikkudActive) || (key.type.lowercased() == "shift" && shiftState.isActive())
         if isSelected {
             visualKeyView.layer.borderWidth = 3.0
+            visualKeyView.layer.borderColor = UIColor.systemBlue.cgColor
+        }
+
+        // Nikkud active indicator - rounded border instead of yellow background
+        if key.type.lowercased() == "nikkud" && nikkudActive {
+            visualKeyView.layer.borderWidth = 2.5
+            visualKeyView.layer.borderColor = UIColor.systemBlue.cgColor
+        }
+
+        // Shift active indicator - same blue border as nikkud
+        if key.type.lowercased() == "shift" && shiftState.isActive() {
+            visualKeyView.layer.borderWidth = 2.5
             visualKeyView.layer.borderColor = UIColor.systemBlue.cgColor
         }
         
@@ -1349,10 +1906,11 @@ class KeyboardRenderer {
 
         var finalFontSize: CGFloat
 
-        // Determine which font preset to use: key's preset > config's preset > "normal"
-        let fontPresetString = key.fontSizePreset ?? config?.fontSizePreset ?? "normal"
+        // Determine which font preset to use: key's preset > config's preset (with large variant) > "normal"
+        let configFontSizePreset = (UIDevice.current.userInterfaceIdiom == .pad ? config?.fontSizePreset_large : nil) ?? config?.fontSizePreset
+        let fontPresetString = key.fontSizePreset ?? configFontSizePreset ?? "normal"
         let fontPreset = FontSizePreset(rawValue: fontPresetString) ?? .normal
-        let heightPreset = KeyboardHeightPreset(rawValue: config?.heightPreset ?? "normal") ?? .normal
+        let heightPreset = KeyboardHeightPreset(rawValue: (UIDevice.current.userInterfaceIdiom == .pad ? config?.heightPreset_large : nil) ?? config?.heightPreset ?? "normal") ?? .normal
 
         // Get screen dimensions
         let screenBounds: CGRect
@@ -1401,43 +1959,45 @@ class KeyboardRenderer {
             finalFontSize = finalFontSize * currentScale
         }
 
-        // For settings key, use SF Symbol image
-        if key.type.lowercased() == "settings" {
-            if let gearImage = UIImage(systemName: "gearshape.fill") {
-                let imageView = UIImageView(image: gearImage)
-                imageView.contentMode = .scaleAspectFit
-                imageView.tintColor = textColor  // Use key's text color
-                imageView.isUserInteractionEnabled = false
-                visualKeyView.addSubview(imageView)
-                imageView.translatesAutoresizingMaskIntoConstraints = false
+        // Determine SF Symbol name for special keys or sf:-prefixed labels (e.g. enter key actions)
+        let sfSymbolName: String? = {
+            let keyType = key.type.lowercased()
+            if keyType == "settings" { return "gearshape.fill" }
+            if keyType == "close" { return "keyboard.chevron.compact.down" }
+            if keyType == "next-keyboard" { return "globe" }
+            if finalText.hasPrefix("sf:") { return String(finalText.dropFirst(3)) }
+            return nil
+        }()
 
-                // Scale icon size based on fontSize - make icon same size as font (100%)
-                // At fontSize 48: icon = 48pt
-                // At fontSize 37: icon = 37pt
-                let iconSize = finalFontSize
-                print("⚙️ Settings icon: finalFontSize=\(finalFontSize), iconSize=\(iconSize)")
+        // Render SF Symbol icon if available
+        if let symbolName = sfSymbolName, let symbolImage = UIImage(systemName: symbolName) {
+            let imageView = UIImageView(image: symbolImage)
+            imageView.contentMode = .scaleAspectFit
+            imageView.tintColor = textColor
+            imageView.isUserInteractionEnabled = false
+            visualKeyView.addSubview(imageView)
+            imageView.translatesAutoresizingMaskIntoConstraints = false
 
-                NSLayoutConstraint.activate([
-                    imageView.centerXAnchor.constraint(equalTo: visualKeyView.centerXAnchor),
-                    imageView.centerYAnchor.constraint(equalTo: visualKeyView.centerYAnchor),
-                    imageView.widthAnchor.constraint(equalToConstant: iconSize),
-                    imageView.heightAnchor.constraint(equalToConstant: iconSize)
-                ])
-            } else {
-                label.text = finalText
-            }
+            // Scale icon size: keyboard-hide is complex so use 180%, others use 100%
+            let iconSize = key.type.lowercased() == "close" ? finalFontSize * 1.5 : finalFontSize
+
+            NSLayoutConstraint.activate([
+                imageView.centerXAnchor.constraint(equalTo: visualKeyView.centerXAnchor),
+                imageView.centerYAnchor.constraint(equalTo: visualKeyView.centerYAnchor),
+                imageView.widthAnchor.constraint(equalToConstant: iconSize),
+                imageView.heightAnchor.constraint(equalToConstant: iconSize)
+            ])
         } else if isNikkudKey {
             // For nikkud key, use SVG image for the diacritical mark icon
             // The SVG images are: NikkudHatafKamatz for Hebrew, NikkudShadda for Arabic
             let imageName: String
             // Note: currentKeyboardId is optional, so unwrap it first
             if let keyboardId = currentKeyboardId {
-                switch keyboardId {
-                case "he":
+                if keyboardId.hasPrefix("he") {
                     imageName = "NikkudHatafKamatz"
-                case "ar":
-                    imageName = "NikkudShadda"
-                default:
+                } else if keyboardId.hasPrefix("ar") {
+                    imageName = "NikkudTashkeel"
+                } else {
                     imageName = "NikkudHatafKamatz"  // Default to Hebrew
                 }
             } else {
@@ -1467,20 +2027,21 @@ class KeyboardRenderer {
 
         // Get font weight from config or use default
         let fontWeight: UIFont.Weight = {
-            guard let weightString = config?.fontWeight else {
-                return .heavy  // Default to heavy
+            let weightString = (UIDevice.current.userInterfaceIdiom == .pad ? config?.fontWeight_large : nil) ?? config?.fontWeight
+            guard let weightString = weightString else {
+                return .regular  // Default to regular
             }
             switch weightString.lowercased() {
             case "ultralight": return .ultraLight
             case "thin": return .thin
             case "light": return .light
-            case "regular": return .regular
+            case "normal", "regular": return .regular
             case "medium": return .medium
             case "semibold": return .semibold
             case "bold": return .bold
             case "heavy": return .heavy
             case "black": return .black
-            default: return .heavy  // Default to heavy for unknown values
+            default: return .regular  // Default to regular for unknown values
             }
         }()
         
@@ -1498,44 +2059,73 @@ class KeyboardRenderer {
                             key.type.lowercased() != "language"
         
         // Check if we're in an "abc" keyset (not "123" or "#+=" keysets)
-        let isAbcKeyset = currentKeysetId.hasSuffix("_abc") || currentKeysetId == "abc"
+        let isAbcKeyset = currentKeysetId.contains("abc")
         
         let shouldUseCustomFont = isCharacterKey && isAbcKeyset && config?.fontName != nil
-        
+
         if shouldUseCustomFont, let fontName = config?.fontName, let customFont = UIFont(name: fontName, size: finalFontSize + 2) {
             label.font = customFont
-            // Add spacing for single character labels when using custom font to prevent glyph cutoff
-            if finalText.count == 1 {
-                label.text = " \(finalText) "
-            }
         } else {
             label.font = UIFont.systemFont(ofSize: finalFontSize, weight: fontWeight)
         }
-        
+
         label.adjustsFontSizeToFitWidth = isNikkudKey ? false : true
         label.minimumScaleFactor = 0.3
         label.numberOfLines = 1
         label.textAlignment = .center
         label.textColor = textColor
-        
+
         // Add label to visual key view (centered)
         if key.type.lowercased() != "settings" {
             visualKeyView.addSubview(label)
             label.translatesAutoresizingMaskIntoConstraints = false
-            NSLayoutConstraint.activate([
-                label.centerXAnchor.constraint(equalTo: visualKeyView.centerXAnchor),
-                label.centerYAnchor.constraint(equalTo: visualKeyView.centerYAnchor),
-                label.leadingAnchor.constraint(greaterThanOrEqualTo: visualKeyView.leadingAnchor, constant: 2),
-                label.trailingAnchor.constraint(lessThanOrEqualTo: visualKeyView.trailingAnchor, constant: -2)
-            ])
+            if shouldUseCustomFont {
+                // Custom fonts: allow label to overflow the visual key view
+                // Some glyphs (e.g. נ, ת, ף, ץ in gveret-levin) extend beyond their cell
+                visualKeyView.clipsToBounds = false
+                label.clipsToBounds = false
+                NSLayoutConstraint.activate([
+                    label.centerXAnchor.constraint(equalTo: visualKeyView.centerXAnchor),
+                    label.centerYAnchor.constraint(equalTo: visualKeyView.centerYAnchor),
+                    label.widthAnchor.constraint(equalTo: visualKeyView.widthAnchor, multiplier: 1.4),
+                    label.heightAnchor.constraint(equalTo: visualKeyView.heightAnchor, multiplier: 1.4),
+                ])
+            } else {
+                NSLayoutConstraint.activate([
+                    label.centerXAnchor.constraint(equalTo: visualKeyView.centerXAnchor),
+                    label.centerYAnchor.constraint(equalTo: visualKeyView.centerYAnchor),
+                    label.leadingAnchor.constraint(greaterThanOrEqualTo: visualKeyView.leadingAnchor, constant: 2),
+                    label.trailingAnchor.constraint(lessThanOrEqualTo: visualKeyView.trailingAnchor, constant: -2)
+                ])
+            }
         }
 
         // Get key gap from config or use defaults
-        let horizontalGap = (CGFloat(config?.keyGap ?? 3)) * currentScale
-        let verticalGap = (horizontalGap / currentScale + 2) * currentScale  // Vertical padding is slightly larger (2px more than horizontal)
+        let gap = (UIDevice.current.userInterfaceIdiom == .pad ? config?.keyGap_large : nil) ?? config?.keyGap ?? 3
+        let horizontalGap = (CGFloat(gap)) * currentScale
+        let verticalGap = horizontalGap  // Same gap in both directions
 
         // Add visual key view to button (with padding for visual gap)
+        // White outline behind blue border for contrast on any background
+        if needsOutline {
+            let outlineView = UIView()
+            outlineView.isUserInteractionEnabled = false
+            outlineView.backgroundColor = .clear
+            outlineView.layer.cornerRadius = scaledCornerRadius + 2
+            outlineView.layer.borderWidth = 2.0
+            outlineView.layer.borderColor = UIColor.white.cgColor
+            button.addSubview(outlineView)
+            outlineView.translatesAutoresizingMaskIntoConstraints = false
+            NSLayoutConstraint.activate([
+                outlineView.topAnchor.constraint(equalTo: button.topAnchor, constant: verticalGap - 2),
+                outlineView.leadingAnchor.constraint(equalTo: button.leadingAnchor, constant: horizontalGap - 2),
+                outlineView.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -(horizontalGap - 2)),
+                outlineView.bottomAnchor.constraint(equalTo: button.bottomAnchor, constant: -(verticalGap - 2))
+            ])
+        }
+
         button.addSubview(visualKeyView)
+        visualKeyView.tag = 8888
         visualKeyView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             visualKeyView.topAnchor.constraint(equalTo: button.topAnchor, constant: verticalGap),
@@ -1543,7 +2133,7 @@ class KeyboardRenderer {
             visualKeyView.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -horizontalGap),
             visualKeyView.bottomAnchor.constraint(equalTo: button.bottomAnchor, constant: -verticalGap)
         ])
-        
+
         return button
     }
     
@@ -1595,13 +2185,12 @@ class KeyboardRenderer {
             // The dotted circle (U+25CC) is the standard base for displaying combining marks
             // Hebrew: hataf-kamatz (חתף-קמץ)
             // Arabic: shadda (شَدّة)
-            switch currentKeyboardId {
-            case "he":
+            if let keyboardId = currentKeyboardId, keyboardId.hasPrefix("he") {
                 return " \u{05B3}"  // Dotted circle + Hataf-kamatz
-            case "ar":
+            } else if let keyboardId = currentKeyboardId, keyboardId.hasPrefix("ar") {
                 return "◌\u{0651}"  // Dotted circle + Shadda
-            default:
-                return "◌"  
+            } else {
+                return "◌"
             }
         case "space":
             return "SPACE"
@@ -1611,11 +2200,14 @@ class KeyboardRenderer {
     }
     
     @objc private func keyTapped(_ sender: UIButton) {
+        // Ignore tap if keyset slide gesture took over
+        if isKeysetSlideActive { return }
+
         guard let keyInfo = decodeKeyInfo(sender.accessibilityIdentifier),
               let key = parseKeyFromInfo(keyInfo) else {
             return
         }
-        
+
         // Handle key clicks internally, like Android does
         handleKeyClick(key, keyView: sender)
     }
@@ -1658,6 +2250,7 @@ class KeyboardRenderer {
             if !nikkudActive {
                 print("   → Activating NIKKUD mode after 0.5 sec press")
                 nikkudActive = true
+                onNikkudActivePersist?(true)
                 rerender()
             } else {
                 print("   → NIKKUD already active, ignoring long-press")
@@ -1765,17 +2358,9 @@ class KeyboardRenderer {
         }
     }
 
-    /// Handle long-press on next-keyboard (globe) button to show keyboard list
-    @objc private func nextKeyboardLongPressed(_ gesture: UILongPressGestureRecognizer) {
-        // Only trigger on initial recognition, not continued updates
-        guard gesture.state == .began else { return }
-
-        guard let button = gesture.view as? UIButton else {
-            return
-        }
-
-        print("🌐 Globe button long-pressed - showing keyboard list")
-        onShowKeyboardList?(button, gesture)
+    /// Forward all touch events from globe button to handleInputModeList
+    @objc private func globeButtonTouchEvent(_ sender: UIView, event: UIEvent) {
+        onHandleInputModeList?(sender, event)
     }
 
     // MARK: - Key Press Popup Bubble
@@ -1786,17 +2371,20 @@ class KeyboardRenderer {
               let key = parseKeyFromInfo(keyInfo) else {
             return
         }
-        
+
+        highlightKey(on: sender)
         showKeyPopup(for: key, on: sender)
     }
-    
+
     /// Hide popup bubble when touch ends
     @objc private func keyTouchUp(_ sender: UIButton) {
+        unhighlightKey(on: sender)
         hideKeyPopup(on: sender)
     }
-    
+
     /// Hide popup bubble when touch is cancelled
     @objc private func keyTouchCancelled(_ sender: UIButton) {
+        unhighlightKey(on: sender)
         hideKeyPopup(on: sender)
     }
     
@@ -1836,11 +2424,7 @@ class KeyboardRenderer {
         
         // Determine background and text colors based on button state
         var bgColor = key.backgroundColor
-        if key.type.lowercased() == "shift" && shiftState.isActive() {
-            bgColor = .systemGreen
-        } else if key.type.lowercased() == "nikkud" && nikkudActive {
-            bgColor = .systemYellow
-        } else if bgColor == .white {
+        if bgColor == .white {
             // Use adaptive color for dark mode
             bgColor = UIColor { traitCollection in
                 if traitCollection.userInterfaceStyle == .dark {
@@ -1949,6 +2533,157 @@ class KeyboardRenderer {
         // Remove popup from the container where we added it
         container?.viewWithTag(9999)?.removeFromSuperview()
     }
+
+    /// Dim the visual key view to indicate a press
+    private func highlightKey(on button: UIButton) {
+        if let visualKey = button.viewWithTag(8888) {
+            visualKey.alpha = 0.3
+        }
+    }
+
+    /// Restore the visual key view opacity
+    private func unhighlightKey(on button: UIButton) {
+        if let visualKey = button.viewWithTag(8888) {
+            visualKey.alpha = 1.0
+        }
+    }
+
+    // MARK: - Keyset Slide Gesture ("Peek and Slide")
+
+    /// Handle slide gesture on keyset keys (e.g., 123).
+    /// Touch-and-hold on a keyset key switches to the target keyset; sliding over keys shows their bubble;
+    /// releasing on a key types it and returns to the original keyset.
+    @objc private func keysetSlideGesture(_ gesture: UILongPressGestureRecognizer) {
+        guard let container = container else { return }
+
+        switch gesture.state {
+        case .began:
+            // Delegate already ensures we're on a keyset key
+            let point = gesture.location(in: container)
+            guard let button = findKeyButton(at: point, in: container),
+                  let keyInfo = decodeKeyInfo(button.accessibilityIdentifier),
+                  let key = parseKeyFromInfo(keyInfo) else {
+                return
+            }
+
+            // Remember where we came from and switch to the target keyset
+            keysetSlideOriginKeyset = currentKeysetId
+            isKeysetSlideActive = true
+            keysetSlideDidMove = false
+            keysetSlideCurrentButton = nil
+            switchKeyset(key.keysetValue)
+
+        case .changed:
+            guard isKeysetSlideActive else { return }
+            let point = gesture.location(in: container)
+            let hitButton = findKeyButton(at: point, in: container)
+
+            // Track if user has moved to a different key than the keyset button
+            if hitButton !== keysetSlideCurrentButton {
+                if hitButton != nil {
+                    keysetSlideDidMove = true
+                }
+
+                // Clear previous highlight and bubble
+                if let prev = keysetSlideCurrentButton {
+                    unhighlightKey(on: prev)
+                    hideKeyPopup(on: prev)
+                }
+
+                keysetSlideCurrentButton = hitButton
+
+                // Highlight and show bubble on new key
+                if let btn = hitButton,
+                   let keyInfo = decodeKeyInfo(btn.accessibilityIdentifier),
+                   let key = parseKeyFromInfo(keyInfo) {
+                    highlightKey(on: btn)
+                    showKeyPopup(for: key, on: btn)
+                }
+            }
+
+        case .ended:
+            guard isKeysetSlideActive else { return }
+            isKeysetSlideActive = false
+
+            // Clear highlight and bubble
+            if let btn = keysetSlideCurrentButton {
+                unhighlightKey(on: btn)
+                hideKeyPopup(on: btn)
+            }
+
+            // If user didn't slide to another key, just stay on the new keyset (normal switch)
+            guard keysetSlideDidMove else {
+                keysetSlideCurrentButton = nil
+                keysetSlideOriginKeyset = ""
+                return
+            }
+
+            // If finger ended on a typeable key, fire it and return to original keyset
+            if let btn = keysetSlideCurrentButton,
+               let keyInfo = decodeKeyInfo(btn.accessibilityIdentifier),
+               let key = parseKeyFromInfo(keyInfo) {
+                let keyType = key.type.lowercased()
+                let specialTypes: Set<String> = [
+                    "keyset", "shift", "backspace", "next-keyboard",
+                    "settings", "close", "nikkud", "language", "event"
+                ]
+                if !specialTypes.contains(keyType) {
+                    handleKeyClick(key, keyView: btn)
+                }
+            }
+
+            keysetSlideCurrentButton = nil
+            // Return to the original keyset
+            if !keysetSlideOriginKeyset.isEmpty {
+                switchKeyset(keysetSlideOriginKeyset)
+                keysetSlideOriginKeyset = ""
+            }
+
+        case .cancelled, .failed:
+            guard isKeysetSlideActive else { return }
+            isKeysetSlideActive = false
+            if let btn = keysetSlideCurrentButton {
+                unhighlightKey(on: btn)
+                hideKeyPopup(on: btn)
+            }
+            keysetSlideCurrentButton = nil
+            if !keysetSlideOriginKeyset.isEmpty {
+                switchKeyset(keysetSlideOriginKeyset)
+                keysetSlideOriginKeyset = ""
+            }
+
+        default:
+            break
+        }
+    }
+
+    /// Check if the point is on a keyset key (used by gesture delegate)
+    func isKeysetKeyAt(point: CGPoint, in view: UIView) -> Bool {
+        guard let button = findKeyButton(at: point, in: view),
+              let keyInfo = decodeKeyInfo(button.accessibilityIdentifier),
+              let key = parseKeyFromInfo(keyInfo) else {
+            return false
+        }
+        return key.type.lowercased() == "keyset" && !key.keysetValue.isEmpty
+    }
+
+    /// Find the UIButton key at a given point within the container
+    private func findKeyButton(at point: CGPoint, in view: UIView) -> UIButton? {
+        for subview in view.subviews {
+            if let button = subview as? UIButton,
+               button.accessibilityIdentifier != nil,
+               button.frame.contains(point) {
+                return button
+            }
+            // Recurse into row containers
+            let pointInSubview = view.convert(point, to: subview)
+            if subview.bounds.contains(pointInSubview),
+               let found = findKeyButton(at: pointInSubview, in: subview) {
+                return found
+            }
+        }
+        return nil
+    }
     
     /// Create a bubble path that connects to the button below
     private func createBubblePath(size: CGSize, keyWidth: CGFloat) -> UIBezierPath {
@@ -2029,16 +2764,26 @@ class KeyboardRenderer {
             handleShiftTap()
             
         case "nikkud":
-            // Nikkud toggle behavior:
-            // - When inactive: requires 0.5 sec long-press to activate (prevent accidental activation)
-            // - When active: normal tap to deactivate
+            // When nikkud is active, a tap always deactivates it (even in selection/preview mode)
             if nikkudActive {
                 print("   → Handling NIKKUD tap (deactivating)")
                 nikkudActive = false
+                onNikkudActivePersist?(false)
                 rerender()
-            } else {
-                print("   → Ignoring quick tap on NIKKUD (requires 0.5 sec press to activate)")
+            } else if onKeyLongPress != nil {
+                // Selection mode and nikkud inactive: emit key press for selection
+                print("   → Selection mode: emitting key press for nikkud")
+                onKeyPress?(key)
                 return
+            } else {
+                // Normal mode, nikkud inactive: short tap = space if layout is narrow
+                if let spaceInfo = findSpaceKeyInfo(),
+                   spaceInfo.width < lastRenderedRegularKeyWidth * 6 {
+                    print("   → Nikkud short-tap: forwarding as space (spaceWidth=\(spaceInfo.width), threshold=\(lastRenderedRegularKeyWidth * 6))")
+                    onKeyPress?(spaceInfo.key)
+                } else {
+                    print("   → Ignoring quick tap on NIKKUD (wide layout or no space key)")
+                }
             }
             
         case "keyset":
@@ -2066,13 +2811,13 @@ class KeyboardRenderer {
             }
                         
         case "next-keyboard":
-            // For actual keyboard: call system callback
-            // For preview: switch language internally AND notify React
-            print("   → Handling NEXT-KEYBOARD")
-            if let onNextKeyboard = onNextKeyboard {
-                print("   → Calling onNextKeyboard (actual keyboard)")
-                onNextKeyboard()
-            } else {
+            // In selection mode, emit key press for selection
+            // In preview mode, switch language and emit event
+            // In actual keyboard mode, handleInputModeList handles everything via .allTouchEvents
+            if onKeyLongPress != nil {
+                print("   → Selection mode: emitting key press")
+                onKeyPress?(key)
+            } else if onHandleInputModeList == nil {
                 print("   → Preview mode: switching language and emitting event")
                 switchLanguage()
                 // Emit key press so React can sync its state
@@ -2131,28 +2876,34 @@ class KeyboardRenderer {
             let shouldShowDiacritics = shouldShowDiacriticsPopup(for: key)
             
             if nikkudActive && shouldShowDiacritics {
-                // Get diacritics using the generator (falls back to explicit nikkud if present)
-                let diacriticsOptions = getDiacriticsForKey(key)
-                if !diacriticsOptions.isEmpty {
-                    showNikkudPicker(diacriticsOptions, anchorView: keyView)
+                let isTopRowMode = config?.diacriticsSettings?[currentKeyboardId ?? ""]?.isTopRowMode ?? false
+                if !isTopRowMode {
+                    let diacriticsOptions = getDiacriticsForKey(key)
+                    if !diacriticsOptions.isEmpty {
+                        showNikkudPicker(diacriticsOptions, anchorView: keyView)
+                    } else {
+                        onKeyPress?(key)
+                        if case .active = shiftState, !isSpace {
+                            shiftState = .inactive
+                            rerender()
+                        }
+                    }
                 } else {
-                    // No options available, just output the key
                     onKeyPress?(key)
                     if case .active = shiftState, !isSpace {
                         shiftState = .inactive
                         rerender()
+                    } else {
+                        updateNikkudTopRowModifierStates()
                     }
                 }
             } else {
-                // Output FINAL key press to container
                 onKeyPress?(key)
-                
-                // For shift-active (but not locked) regular keys, reset shift after key press
-                // BUT: Don't reset for space key - it's handled by controller's handleSpaceKey which calls autoShiftAfterPunctuation
-                // Locked shift stays active until explicitly toggled off
                 if case .active = shiftState, !isSpace {
                     shiftState = .inactive
                     rerender()
+                } else if isNikkudTopRowActive {
+                    updateNikkudTopRowModifierStates()
                 }
                 // .locked stays as is - doesn't reset after key press
             }
@@ -2185,6 +2936,25 @@ class KeyboardRenderer {
         showNikkudPickerInternal(forLetter: currentNikkudLetter, anchorView: container)
     }
     
+    /// Find the space button and return its ParsedKey and frame width.
+    /// Returns nil if no space key is rendered (e.g. numeric keysets).
+    /// View hierarchy: container → rowsContainer → rowView → button (3 levels deep)
+    private func findSpaceKeyInfo() -> (key: ParsedKey, width: CGFloat)? {
+        guard let container = container else { return nil }
+        for rowsContainer in container.subviews {
+            for rowView in rowsContainer.subviews {
+                for button in rowView.subviews.compactMap({ $0 as? UIButton }) {
+                    guard let info = decodeKeyInfo(button.accessibilityIdentifier),
+                          let type = info["type"] as? String,
+                          type.lowercased() == "space",
+                          let key = parseKeyFromInfo(info) else { continue }
+                    return (key: key, width: button.frame.width)
+                }
+            }
+        }
+        return nil
+    }
+
     private func encodeKeyInfo(_ key: ParsedKey) -> String {
         var dict: [String: Any] = [
             "type": key.type,
@@ -2292,13 +3062,15 @@ class KeyboardRenderer {
     /// Check if diacritics popup should be shown for this key (delegates to NikkudPickerController)
     private func shouldShowDiacriticsPopup(for key: ParsedKey) -> Bool {
         // Configure the picker with current state
-        nikkudPickerController.configure(config: config, keyboardId: currentKeyboardId, container: container)
+        nikkudPickerController.configure(config: config, keyboardId: currentKeyboardId, container: container,
+                                         rowHeight: rowHeight, fontSize: baseFontSize, fontWeight: configFontWeight)
         return nikkudPickerController.shouldShowDiacriticsPopup(for: key)
     }
     
     /// Get diacritics for a key (delegates to NikkudPickerController)
     private func getDiacriticsForKey(_ key: ParsedKey) -> [NikkudOption] {
-        nikkudPickerController.configure(config: config, keyboardId: currentKeyboardId, container: container)
+        nikkudPickerController.configure(config: config, keyboardId: currentKeyboardId, container: container,
+                                         rowHeight: rowHeight, fontSize: baseFontSize, fontWeight: configFontWeight)
         return nikkudPickerController.getDiacriticsForKey(key)
     }
     
@@ -2330,7 +3102,8 @@ class KeyboardRenderer {
             )
             let parsedKey = ParsedKey(from: tempKey, groups: [:], defaultTextColor: .black, defaultBgColor: .white)
             
-            nikkudPickerController.configure(config: config, keyboardId: currentKeyboardId, container: container)
+            nikkudPickerController.configure(config: config, keyboardId: currentKeyboardId, container: container,
+                                         rowHeight: rowHeight, fontSize: baseFontSize, fontWeight: configFontWeight)
             nikkudPickerController.showPicker(for: parsedKey, anchorView: anchorView)
         }
     }
@@ -2342,7 +3115,8 @@ class KeyboardRenderer {
     
     /// Internal method for showing nikkud picker - delegates to controller
     private func showNikkudPickerInternal(forLetter letter: String, anchorView: UIView) {
-        nikkudPickerController.configure(config: config, keyboardId: currentKeyboardId, container: container)
+        nikkudPickerController.configure(config: config, keyboardId: currentKeyboardId, container: container,
+                                         rowHeight: rowHeight, fontSize: baseFontSize, fontWeight: configFontWeight)
         nikkudPickerController.refreshIfOpen(anchorView: anchorView)
     }
     
@@ -2403,7 +3177,7 @@ class KeyboardRenderer {
     /// Check if the current keyboard is RTL (Hebrew or Arabic)
     private func isCurrentKeyboardRTL() -> Bool {
         guard let keyboardId = currentKeyboardId else { return false }
-        return keyboardId == "he" || keyboardId == "ar"
+        return keyboardId.hasPrefix("he") || keyboardId.hasPrefix("ar")
     }
     
     /// Detect the actual text direction at the cursor position

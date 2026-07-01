@@ -1,11 +1,17 @@
 import React, {createContext, useContext, useEffect, useState, ReactNode} from 'react';
 import TTS, {TTSSettings} from '../services/TextToSpeech';
-import {NativeModules, Platform} from 'react-native';
+
+interface SpokenRange {
+  location: number;
+  length: number;
+}
 
 interface TTSContextType {
-  speak: (text: string, languageMode?: 'en-only' | 'he-only' | 'detect', englishVoice?: string, hebrewVoice?: string) => Promise<void>;
+  speak: (text: string, languageMode?: 'en-only' | 'he-only' | 'detect', englishVoice?: string, hebrewVoice?: string, arabicVoice?: string) => Promise<void>;
   stop: () => Promise<void>;
   isSpeaking: boolean;
+  spokenText: string | null;
+  spokenRange: SpokenRange | null;
   settings: TTSSettings;
   updateSettings: (settings: Partial<TTSSettings>) => Promise<void>;
   setLanguage: (lang: string) => Promise<void>;
@@ -21,19 +27,14 @@ const hasHebrewCharacters = (text: string): boolean => {
   return /[\u0590-\u05FF]/.test(text);
 };
 
-// Get device language
-const getDeviceLanguage = (): string => {
-  if (Platform.OS === 'ios') {
-    return NativeModules.SettingsManager?.settings?.AppleLocale ||
-           NativeModules.SettingsManager?.settings?.AppleLanguages?.[0] ||
-           'en';
-  } else {
-    return NativeModules.I18nManager?.localeIdentifier || 'en';
-  }
-};
+// Helper function to detect if text contains Arabic characters
+const hasArabicCharacters = (text: string): boolean => /[\u0600-\u06FF]/.test(text);
+
 
 export const TTSProvider = ({children}: {children: ReactNode}) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [spokenText, setSpokenText] = useState<string | null>(null);
+  const [spokenRange, setSpokenRange] = useState<SpokenRange | null>(null);
   const [settings, setSettings] = useState<TTSSettings>({
     rate: 0.5,
     pitch: 1.0,
@@ -57,14 +58,21 @@ export const TTSProvider = ({children}: {children: ReactNode}) => {
 
     // Set up listeners
     TTS.onTtsStart(() => setIsSpeaking(true));
-    TTS.onTtsFinish(() => setIsSpeaking(false));
+    TTS.onTtsFinish(() => {
+      setIsSpeaking(false);
+      setSpokenRange(null);
+      setSpokenText(null);
+    });
+    TTS.onTtsProgress((event) => {
+      setSpokenRange({location: event.location, length: event.length});
+    });
 
     return () => {
       TTS.removeAllListeners();
     };
   }, []);
 
-  const speak = async (text: string, languageMode: 'en-only' | 'he-only' | 'detect' = 'detect', englishVoice?: string, hebrewVoice?: string) => {
+  const speak = async (text: string, languageMode: 'en-only' | 'he-only' | 'detect' = 'detect', englishVoice?: string, hebrewVoice?: string, arabicVoice?: string) => {
     if (!text.trim()) return;
 
     try {
@@ -81,20 +89,21 @@ export const TTSProvider = ({children}: {children: ReactNode}) => {
         console.log(`🗣️ Language mode: Hebrew only, voice: ${voiceToUse || 'default'}`);
       } else {
         // Auto-detect language based on text content
-        const deviceLang = getDeviceLanguage();
-        const isDeviceEnglish = deviceLang.startsWith('en');
         const textHasHebrew = hasHebrewCharacters(text);
+        const textHasArabic = hasArabicCharacters(text);
 
-        // If device is English AND text has no Hebrew chars, use English. Otherwise use Hebrew.
-        if (isDeviceEnglish && !textHasHebrew) {
-          languageToUse = 'en-US';
-          voiceToUse = englishVoice;
-        } else {
+        if (textHasHebrew) {
           languageToUse = 'he-IL';
           voiceToUse = hebrewVoice;
+        } else if (textHasArabic) {
+          languageToUse = 'ar-SA';
+          voiceToUse = arabicVoice;
+        } else {
+          languageToUse = 'en-US';
+          voiceToUse = englishVoice;
         }
 
-        console.log(`🗣️ Auto-detecting TTS language: device=${deviceLang}, hasHebrew=${textHasHebrew}, using=${languageToUse}, voice=${voiceToUse || 'default'}`);
+        console.log(`🗣️ Auto-detecting TTS language: hasHebrew=${textHasHebrew}, hasArabic=${textHasArabic}, using=${languageToUse}`);
       }
 
       // Set the language before speaking if it's different
@@ -110,6 +119,7 @@ export const TTSProvider = ({children}: {children: ReactNode}) => {
       }
 
       await TTS.speak(text);
+      setSpokenText(text);
     } catch (error) {
       console.error('Failed to speak:', error);
       setIsSpeaking(false);
@@ -120,6 +130,8 @@ export const TTSProvider = ({children}: {children: ReactNode}) => {
     try {
       await TTS.stop();
       setIsSpeaking(false);
+      setSpokenRange(null);
+      setSpokenText(null);
     } catch (error) {
       console.error('Failed to stop:', error);
     }
@@ -178,7 +190,7 @@ export const TTSProvider = ({children}: {children: ReactNode}) => {
   };
 
   return (
-    <TTSContext.Provider value={{speak, stop, isSpeaking, settings, updateSettings, setLanguage, getAvailableVoices, setVoice}}>
+    <TTSContext.Provider value={{speak, stop, isSpeaking, spokenText, spokenRange, settings, updateSettings, setLanguage, getAvailableVoices, setVoice}}>
       {children}
     </TTSContext.Provider>
   );

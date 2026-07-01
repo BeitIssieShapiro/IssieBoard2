@@ -6,7 +6,8 @@
       "id": "top-row",
       "name": "שורה עליונה",
       "description": "שורה ראשונה של אותיות",
-      "members": ["ק", "ר", "א", "ט", "ו", "ן", "ם", "פ"],
+      "members": ["ק", "ר", "א", "ט", "ו", "ן", "ם", "פ", ".", ","],
+      "orderedMembers": ["ח", "ז", "ו", "ה", "ד", "ג", "ב", "א", ".", ","],
       "style": {
         "bgColor": "#E3F2FD",
         "color": "#1976D2"
@@ -17,6 +18,7 @@
       "name": "שורה אמצעית",
       "description": "שורה שנייה של אותיות",
       "members": ["ש", "ד", "ג", "כ", "ע", "י", "ח", "ל", "ך", "ף"],
+      "orderedMembers": ["ס", "ן", "נ", "ם", "מ", "ל", "ך", "כ", "י", "ט"],
       "style": {
         "bgColor": "#E8F5E9",
         "color": "#388E3C"
@@ -27,6 +29,7 @@
       "name": "שורה תחתונה",
       "description": "שורה שלישית של אותיות",
       "members": ["ז", "ס", "ב", "ה", "נ", "מ", "צ", "ת", "ץ"],
+      "orderedMembers": ["ת", "ש", "ר", "ק", "ץ", "צ", "ף", "פ", "ע"],
       "style": {
         "bgColor": "#FFF3E0",
         "color": "#F57C00"
@@ -36,7 +39,8 @@
       "id": "left-half",
       "name": "חצי שמאל",
       "description": "מקשים בצד שמאל",
-      "members": ["ק", "ר", "א", "ש", "ד", "ג","כ", "ט", "ע", "ה"],
+      "members": ["ק", "ר", "א", "ש", "ד", "ג","כ", "ע", "ה","ב","ס","ז","נ", ".", ","],
+      "orderedMembers": ["ח", "ז", "ו",  "ס", "ן", "נ", "ם", "מ", "ת", "ש", "ר", "ק", "ץ", ".", ","],
       "style": {
         "bgColor": "#FCE4EC",
         "color": "#C2185B"
@@ -46,7 +50,8 @@
       "id": "right-half",
       "name": "חצי ימין",
       "description": "מקשים בצד ימין",
-      "members": ["פ", "ם", "ן", "ף", "ך", "ל", "ח", "ץ", "ת", "צ", "ו","י", "נ"],
+      "members": ["פ", "ם", "ן", "ף", "ך", "ל", "ח", "ץ", "ת", "צ", "ו","י", "מ" ,"ט"],
+      "orderedMembers": ["ד", "ג", "ב", "א", "ל", "ך", "כ", "י", "ה", "ט", "צ", "ף", "פ", "ע"],
       "style": {
         "bgColor": "#F3E5F5",
         "color": "#7B1FA2"
@@ -56,7 +61,8 @@
       "id": "left-third",
       "name": "שליש שמאל",
       "description": "שליש שמאלי של המקשים",
-      "members": ["ק", "ר", "א", "ש", "ד", "ג","כ"],
+      "members": ["ק", "ר", "ה", "ש", "ד", "ג", "ב", "ס", "ז", ".", ","],
+      "orderedMembers": ["ח", "ז", "ס", "ק", "נ", "ן", "ת", "ש", "ר", ".", ","],
       "style": {
         "bgColor": "#E0F2F1",
         "color": "#00695C"
@@ -66,7 +72,8 @@
       "id": "mid-third",
       "name": "שליש אמצעי",
       "description": "שליש אמצעי של המקשים",
-      "members": ["ט", "ו","נ", "כ", "ע","י", "מ", "ה"],
+      "members": ["ט", "ו","נ", "כ", "ע","י", "מ", "ה","כ", "א", "ח"],
+      "orderedMembers": ["ה", "ד", "ו", "ם", "מ", "ל", "ך", "ק", "ץ", "צ"],
       "style": {
         "bgColor": "#FFF9C4",
         "color": "#F57F17"
@@ -76,7 +83,8 @@
       "id": "right-third",
       "name": "שליש ימין",
       "description": "שליש ימני של המקשים",
-      "members": ["פ", "ם", "ן", "ף", "ך", "ל", "ח", "ץ", "ת", "צ"],
+      "members": ["פ", "ם", "ן", "ף", "ך", "ל",  "ץ", "ת", "צ"],
+      "orderedMembers": ["ג", "ב", "א", "כ", "י", "ט", "ף", "פ", "ע"],
       "style": {
         "bgColor": "#FFEBEE",
         "color": "#C62828"
@@ -90,6 +98,46 @@
       "style": {
         "bgColor": "#E1BEE7",
         "color": "#6A1B9A"
+      }
+    },
+    {
+      "id": "space-key",
+      "name": "מקש הרווח",
+      "description": "Space bar key",
+      "members": [" "],
+      "style": {
+        "bgColor": "#4DD0E1",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "delete-key",
+      "name": "מקש מחיקה",
+      "description": "Backspace/delete key",
+      "members": ["backspace"],
+      "style": {
+        "bgColor": "#4DD0E1",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "enter-key",
+      "name": "מקש ירידת שורה",
+      "description": "Enter/return key",
+      "members": ["enter"],
+      "style": {
+        "bgColor": "#4DD0E1",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "other-keys",
+      "name": "מקשים נוספים",
+      "description": "מעבר למספרים, בחירת שפה, סגירה",
+      "members": ["keyset", "next-keyboard", "language", "settings", "close", "nikkud"],
+      "style": {
+        "bgColor": "#4DD0E1",
+        "color": "#000000"
       }
     }
   ]

@@ -23,6 +23,10 @@ class KeyboardEngine {
     /// Text document proxy for text operations (either iOS system or custom)
     private let textProxy: TextDocumentProxyProtocol
 
+    /// Shadow copy of text before cursor — updated after each native key operation.
+    /// Used as fallback when documentContextBeforeInput is empty (hardware keyboard case).
+    private var shadowTextBefore: String = ""
+
     /// Keyboard renderer - handles all UI rendering
     let renderer: KeyboardRenderer
 
@@ -30,7 +34,7 @@ class KeyboardEngine {
     let suggestionController: WordSuggestionController
 
     /// Keyboard language (e.g., "en", "he", "ar")
-    let language: String
+    var language: String
 
     /// Double-space shortcut (". " instead of "  ")
     private var lastSpaceTime: Date?
@@ -41,11 +45,8 @@ class KeyboardEngine {
 
     // MARK: - Callbacks
 
-    /// Called when next keyboard button is pressed (for system keyboard only)
-    var onNextKeyboard: (() -> Void)?
-
-    /// Called when globe button is long-pressed to show keyboard list
-    var onShowKeyboardList: ((UIView, UILongPressGestureRecognizer) -> Void)?
+    /// Called when globe button touch events should be forwarded to handleInputModeList
+    var onHandleInputModeList: ((UIView, UIEvent) -> Void)?
 
     /// Called when dismiss keyboard button is pressed
     var onDismissKeyboard: (() -> Void)?
@@ -104,7 +105,7 @@ class KeyboardEngine {
         }
 
         renderer.onNikkudSelected = { [weak self] value in
-            self?.textProxy.insertText(value)
+            self?.insertNikkudMark(value)
             _ = self?.suggestionController.handleSpace()
         }
 
@@ -112,12 +113,8 @@ class KeyboardEngine {
             self?.handleSuggestionSelected(suggestion)
         }
 
-        renderer.onNextKeyboard = { [weak self] in
-            self?.onNextKeyboard?()
-        }
-
-        renderer.onShowKeyboardList = { [weak self] button, gesture in
-            self?.onShowKeyboardList?(button, gesture)
+        renderer.onHandleInputModeList = { [weak self] button, event in
+            self?.onHandleInputModeList?(button, event)
         }
 
         renderer.onDismissKeyboard = { [weak self] in
@@ -148,6 +145,23 @@ class KeyboardEngine {
         renderer.onGetTextDirection = { [weak self] in
             return self?.onGetTextDirection?() ?? false
         }
+
+        renderer.onGetCharBeforeCursor = { [weak self] in
+            guard let self = self else { return nil }
+            // Prefer live proxy context; fall back to shadow buffer (empty when hardware kb active)
+            let before = self.textProxy.documentContextBeforeInput ?? ""
+            let source = before.isEmpty ? self.shadowTextBefore : before
+            print("🔍 onGetCharBeforeCursor: proxy='\(before.suffix(3))', shadow='\(self.shadowTextBefore.suffix(3))', source='\(source.suffix(3))'")
+            guard !source.isEmpty else { return nil }
+            let lastCluster = String(source.suffix(1))
+            let result = lastCluster.unicodeScalars.first(where: {
+                $0.properties.generalCategory == .otherLetter ||
+                $0.properties.generalCategory == .uppercaseLetter ||
+                $0.properties.generalCategory == .lowercaseLetter
+            }).map { String($0) } ?? String(lastCluster.unicodeScalars.first.map { String($0) } ?? "")
+            print("🔍 onGetCharBeforeCursor: lastCluster='\(lastCluster)', result='\(result)'")
+            return result
+        }
     }
 
     // MARK: - Public Methods
@@ -155,7 +169,11 @@ class KeyboardEngine {
     /// Handle text change and update suggestions appropriately
     /// This is the SINGLE method that decides what suggestions to show based on text state
     func handleTextChanged() {
-        guard let fullText = getCurrentText?() else {
+        let liveText = getCurrentText?() ?? ""
+        // When proxy returns empty (e.g. external keyboard context restriction), fall back to shadow
+        let fullText = liveText.isEmpty ? shadowTextBefore : liveText
+
+        if fullText.isEmpty {
             suggestionController.resetCurrentWord()
             suggestionController.showDefaults()
             return
@@ -243,7 +261,9 @@ class KeyboardEngine {
             break
 
         case "next-keyboard":
-            onNextKeyboard?()
+            // In actual keyboard, handleInputModeList handles this via .allTouchEvents
+            // This case is only reached in preview mode, which the renderer handles directly
+            break
 
         default:
             // Determine which value to use based on shift state
@@ -273,18 +293,58 @@ class KeyboardEngine {
                 }
             }
         }
+        // Sync shadow context after every native key operation; pass inserted text as fallback
+        // for when proxy is empty (external keyboard context restriction)
+        let insertedValue: String = {
+            switch key.type.lowercased() {
+            case "backspace", "enter", "action", "keyset", "next-keyboard": return ""
+            case "space": return " "
+            default:
+                if renderer.isShiftActive() && !key.sValue.isEmpty { return key.sValue }
+                return key.value
+            }
+        }()
+        syncShadowContext(inserted: insertedValue)
+
+        if renderer.isNikkudTopRowActive {
+            renderer.updateNikkudTopRowModifierStates()
+        }
+    }
+    /// Seed the shadow text buffer from the actual proxy context (call at keyboard load).
+    func seedShadowContext() {
+        let live = textProxy.documentContextBeforeInput ?? ""
+        if !live.isEmpty { shadowTextBefore = live }
+    }
+
+    /// Update shadow buffer from live proxy after a native operation.
+    /// When proxy is empty (external keyboard context), append `inserted` to shadow as fallback.
+    private func syncShadowContext(inserted: String = "") {
+        let live = textProxy.documentContextBeforeInput ?? ""
+        if !live.isEmpty {
+            shadowTextBefore = live
+        } else if !inserted.isEmpty {
+            shadowTextBefore += inserted
+        }
     }
 
     private func handleBackspace() {
-        // Check if there's any text or selection to delete
-        // hasText returns true if there's text in the document OR a text selection
-        if !textProxy.hasText {
-            return
-        }
-
+        // Always attempt deleteBackward — hasText is unreliable when hardware keyboard
+        // has typed text (documentContextBeforeInput is empty in that case)
         textProxy.deleteBackward()
+        // Try live proxy first; if empty (external kb context), trim shadow manually
+        let live = textProxy.documentContextBeforeInput ?? ""
+        if !live.isEmpty {
+            shadowTextBefore = live
+        } else if !shadowTextBefore.isEmpty {
+            // Remove the last grapheme cluster from shadow to keep it in sync
+            shadowTextBefore.removeLast()
+        }
         if !suggestionController.handleBackspace() {
             suggestionController.detectCurrentWord(from: textProxy.documentContextBeforeInput ?? "")
+        }
+
+        if renderer.isNikkudTopRowActive {
+            renderer.updateNikkudTopRowModifierStates()
         }
 
         autoShiftAfterPunctuation()
@@ -344,8 +404,85 @@ class KeyboardEngine {
         autoShiftAfterPunctuation()
     }
 
+    /// Insert a nikkud combining mark, handling conflicts:
+    /// - Vowels (U+05B0–U+05BB, U+05C7) are mutually exclusive — replace existing vowel
+    /// - Dagesh (U+05BC) toggles: if already present remove it, otherwise add it
+    /// - Shin/sin dots (U+05C1/U+05C2) replace each other
+    private func insertNikkudMark(_ mark: String) {
+        let hebrewVowels: Set<UInt32> = [
+            0x05B0, 0x05B1, 0x05B2, 0x05B3, 0x05B4,
+            0x05B5, 0x05B6, 0x05B7, 0x05B8, 0x05B9,
+            0x05BA, 0x05BB, 0x05C7
+        ]
+        let dagesh:  UInt32 = 0x05BC
+        let shinDot: UInt32 = 0x05C1
+        let sinDot:  UInt32 = 0x05C2
+
+        guard let incomingScalar = mark.unicodeScalars.first else {
+            textProxy.insertText(mark)
+            return
+        }
+        let inVal = incomingScalar.value
+
+        // Determine which conflict group this mark belongs to
+        let isVowel    = hebrewVowels.contains(inVal)
+        let isDagesh   = inVal == dagesh
+        let isShinSin  = inVal == shinDot || inVal == sinDot
+
+        guard isVowel || isDagesh || isShinSin else {
+            textProxy.insertText(mark)
+            return
+        }
+
+        guard let before = textProxy.documentContextBeforeInput, !before.isEmpty else {
+            textProxy.insertText(mark)
+            return
+        }
+
+        let lastCluster = String(before.suffix(1))
+        let scalars = lastCluster.unicodeScalars.map { $0.value }
+
+        // Find an existing mark in the same conflict group
+        let conflictIndex: Int?
+        if isVowel {
+            conflictIndex = scalars.indices.last(where: { hebrewVowels.contains(scalars[$0]) })
+        } else if isDagesh {
+            conflictIndex = scalars.indices.last(where: { scalars[$0] == dagesh })
+        } else { // shinSin
+            conflictIndex = scalars.indices.last(where: { scalars[$0] == shinDot || scalars[$0] == sinDot })
+        }
+
+        guard let existingIndex = conflictIndex else {
+            textProxy.insertText(mark)
+            return
+        }
+
+        let scalarsAfter = scalars.count - 1 - existingIndex
+
+        // Delete everything from the existing mark to end of cluster
+        for _ in 0..<scalarsAfter { textProxy.deleteBackward() }
+        textProxy.deleteBackward() // delete the existing mark
+
+        // Re-insert tail (marks after the conflicting one)
+        if scalarsAfter > 0 {
+            let tail = String(String.UnicodeScalarView(scalars.suffix(scalarsAfter).compactMap { Unicode.Scalar($0) }))
+            textProxy.insertText(tail)
+        }
+
+        // For dagesh: if same mark was already there, we removed it — don't re-insert (toggle off)
+        let existingVal = scalars[existingIndex]
+        let isSameMark = existingVal == inVal
+        if isDagesh && isSameMark {
+            return // toggled off
+        }
+
+        textProxy.insertText(mark)
+    }
+
     private func handleSpaceKey() {
         let now = Date()
+
+        defer { autoReturnFromSpecialChars() }
 
         // Check for auto-capitalize "i" to "I"
         if let beforeText = textProxy.documentContextBeforeInput,
@@ -490,17 +627,14 @@ class KeyboardEngine {
     }
 
     /// Auto-return from special characters keyboard (123/#+=) to main keyboard (abc) after space
-    func autoReturnFromSpecialChars(config: KeyboardConfig) {
+    func autoReturnFromSpecialChars() {
         let currentKeyset = renderer.currentKeysetId
 
         // Check if we're on a special characters keyset
         if currentKeyset == "123" || currentKeyset == "#+=" {
-            // Switch back to abc keyset
-            if config.keysets.contains(where: { $0.id == "abc" }) {
-                debugLog("🔄 Auto-returning from \(currentKeyset) to abc")
-                renderer.currentKeysetId = "abc"
-                onRenderKeyboard?()
-            }
+            debugLog("🔄 Auto-returning from \(currentKeyset) to abc")
+            renderer.currentKeysetId = "abc"
+            onRenderKeyboard?()
         }
     }
 }

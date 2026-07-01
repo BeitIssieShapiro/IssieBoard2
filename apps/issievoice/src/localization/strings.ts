@@ -1,146 +1,491 @@
+export type Language = 'en' | 'he' | 'ar';
+
 export interface Strings {
-  // App Title
-  appTitle: string;
-
-  // Action Bar
-  speak: string;
-  speaking: string;
-  clear: string;
-  save: string;
-  browse: string;
-  switchToHebrew: string;
-  switchToEnglish: string;
-
-  // Text Display Area
-  textPlaceholder: string;
-
-  // Browse Screen
-  savedSentences: string;
-  back: string;
-  clearAll: string;
-  searchSentences: string;
-  noSavedSentences: string;
-  noSavedSentencesSubtext: string;
-  noMatchingSearch: string;
-  tryDifferentSearch: string;
-  deleteText: string;
-  deleteConfirm: string;
-  cancel: string;
-  delete: string;
-  clearAllConfirm: string;
-
-  // Save functionality
-  saved: string;
-  savedSuccessMessage: string;
-  error: string;
-  failedToSave: string;
-  alreadyExists: string;
-  deleted: string;
-  allDeleted: string;
-
-  // General
-  yes: string;
-  no: string;
-
-  // Favorites toolbar
-  moveLeft: string;
-  moveRight: string;
+  common: {
+    cancel: string;
+    delete: string;
+    save: string;
+    yes: string;
+    no: string;
+    error: string;
+    back: string;
+  };
+  app: {
+    title: string;
+  };
+  actionBar: {
+    speak: string;
+    speaking: string;
+    clear: string;
+    save: string;
+    browse: string;
+    switchToHebrew: string;
+    switchToEnglish: string;
+  };
+  textDisplay: {
+    placeholder: string;
+  };
+  browse: {
+    savedSentences: string;
+    clearAll: string;
+    search: string;
+    noSaved: string;
+    noSavedSubtext: string;
+    noMatchingSearch: string;
+    tryDifferentSearch: string;
+    deleteText: string;
+    deleteConfirm: string;
+    clearAllConfirm: string;
+    deleted: string;
+    allDeleted: string;
+  };
+  favorites: {
+    moveLeft: string;
+    moveRight: string;
+    editCaptionIcon: string;
+    caption: string;
+    captionPlaceholder: string;
+    captionHint: string;
+    icon: string;
+    iconHint: string;
+    addedToFavorites: string;
+    remove: string;
+    removedFromFavorites: string;
+    captionIconPromptTitle: string;
+    captionIconPromptMessage: string;
+    noFavorites: string;
+    noFavoritesHint: string;
+    noFavoritesHintSuffix: string;
+  };
+  settings: {
+    title: string;
+    speechSpeed: string;
+    slow: string;
+    normal: string;
+    fast: string;
+    voicePitch: string;
+    low: string;
+    high: string;
+    aboutTitle: string;
+    aboutDescription: string;
+    version: string;
+    test: string;
+    settingsTitle: string;
+    speakButtonInKeyboard: string;
+    speakButtonInKeyboardDesc: string;
+    tabs: {
+      keyboard: string;
+      general: string;
+      keysGroups: string;
+      nikkud: string;
+      features: string;
+      advanced: string;
+      voice: string;
+      language: string;
+      tabDescriptions: {
+        general: string;
+        keysGroups: string;
+        nikkud: string;
+        features: string;
+        advanced: string;
+      };
+    };
+  };
+  settingsModal: {
+    title: string;
+    languageMode: string;
+    englishOnly: string;
+    englishOnlyDesc: string;
+    hebrewOnly: string;
+    hebrewOnlyDesc: string;
+    autoDetect: string;
+    autoDetectDesc: string;
+    hebrewVoice: string;
+    englishVoice: string;
+    arabicVoice: string;
+    current: string;
+    none: string;
+  };
+  notifications: {
+    saved: string;
+    savedSuccess: string;
+    failedToSave: string;
+    alreadyExists: string;
+  };
+  languageSettings: {
+    hebrew: string;
+    english: string;
+    arabic: string;
+    atLeastOne: string;
+  };
 }
 
-export const en: Strings = {
-  // App Title
-  appTitle: 'IssieVoice',
-
-  // Action Bar
-  speak: ' Speak',
-  speaking: '🔊 Speaking...',
-  clear: '🗑️ Clear',
-  save: '💾 Save',
-  browse: '📚 Browse',
-  switchToHebrew: '🔄 עברית',
-  switchToEnglish: '🔄 English',
-
-  // Text Display Area
-  textPlaceholder: 'Type a message to speak...',
-
-  // Browse Screen
-  savedSentences: 'Saved Sentences',
-  back: '← Back',
-  clearAll: 'Clear All',
-  searchSentences: 'Search sentences...',
-  noSavedSentences: 'No saved sentences yet',
-  noSavedSentencesSubtext: 'Save sentences from the main screen to see them here',
-  noMatchingSearch: 'No sentences match your search',
-  tryDifferentSearch: 'Try a different search term',
-  deleteText: 'Delete Sentence',
-  deleteConfirm: 'Are you sure you want to delete',
-  cancel: 'Cancel',
-  delete: 'Delete',
-  clearAllConfirm: 'Delete all saved texts?',
-
-  // Save functionality
-  saved: 'Saved!',
-  savedSuccessMessage: 'Your text has been saved successfully.',
-  error: 'Error',
-  failedToSave: 'Failed to save text. Please try again.',
-  alreadyExists: 'This sentence is already saved.',
-  deleted: 'Deleted successfully',
-  allDeleted: 'All texts deleted',
-
-  // General
-  yes: 'Yes',
-  no: 'No',
-
-  // Favorites toolbar
-  moveLeft: '← Move Left',
-  moveRight: 'Move Right →',
+const en: Strings = {
+  common: {
+    cancel: 'Cancel',
+    delete: 'Delete',
+    save: 'Save',
+    yes: 'Yes',
+    no: 'No',
+    error: 'Error',
+    back: '← Back',
+  },
+  app: {
+    title: 'IssieVoice',
+  },
+  actionBar: {
+    speak: ' Speak',
+    speaking: '🔊 Speaking...',
+    clear: '🗑️ Clear',
+    save: '💾 Save',
+    browse: '📚 Browse',
+    switchToHebrew: '🔄 עברית',
+    switchToEnglish: '🔄 English',
+  },
+  textDisplay: {
+    placeholder: 'Type a message to speak...',
+  },
+  browse: {
+    savedSentences: 'Saved Sentences',
+    clearAll: 'Clear All',
+    search: 'Search sentences...',
+    noSaved: 'No saved sentences yet',
+    noSavedSubtext: 'Save sentences from the main screen to see them here',
+    noMatchingSearch: 'No sentences match your search',
+    tryDifferentSearch: 'Try a different search term',
+    deleteText: 'Delete Sentence',
+    deleteConfirm: 'Are you sure you want to delete',
+    clearAllConfirm: 'Delete all saved texts?',
+    deleted: 'Deleted successfully',
+    allDeleted: 'All texts deleted',
+  },
+  favorites: {
+    moveLeft: '← Move Left',
+    moveRight: 'Move Right →',
+    editCaptionIcon: 'Caption & Icon',
+    caption: 'Caption',
+    captionPlaceholder: 'Enter caption...',
+    captionHint: 'Short label shown on the button',
+    icon: 'Icon',
+    iconHint: 'Emoji or symbol for this sentence',
+    addedToFavorites: 'Added to favorites',
+    remove: 'Remove',
+    removedFromFavorites: 'Removed from favorites',
+    captionIconPromptTitle: 'Set Caption & Icon?',
+    captionIconPromptMessage: 'Would you like to set a caption and icon for this favorite?',
+    noFavorites: 'No favorites yet',
+    noFavoritesHint: 'Tap',
+    noFavoritesHintSuffix: 'to add',
+  },
+  settings: {
+    title: 'Settings',
+    speechSpeed: 'Speech Speed',
+    slow: 'Slow',
+    normal: 'Normal',
+    fast: 'Fast',
+    voicePitch: 'Voice Pitch',
+    low: 'Low',
+    high: 'High',
+    aboutTitle: 'About IssieVoice',
+    aboutDescription: 'IssieVoice is an assistive communication app for people who need help speaking.',
+    version: 'Version',
+    test: 'Test',
+    settingsTitle: 'Issie Voice Settings',
+    speakButtonInKeyboard: 'Speak Button in Keyboard',
+    speakButtonInKeyboardDesc: 'Show the speak button as part of the keyboard instead of above it',
+    tabs: {
+      keyboard: 'Keyboard',
+      general: 'General',
+      keysGroups: 'Keys Groups',
+      nikkud: 'Nikkud',
+      features: 'Features',
+      advanced: 'Advanced',
+      voice: 'Voice',
+      language: 'Language',
+      tabDescriptions: {
+        general: 'Control the overall look of your keyboard — background color, key size, font, spacing, and keys order.',
+        keysGroups: 'Customize your keyboard layout by creating groups of keys, or by using preset groups.',
+        nikkud: 'Control which Nikkud signs are available for your keyboard.',
+        features: 'Enable or disable keyboard features.',
+        advanced: 'Control advanced attributes of your keyboard.',
+      },
+    },
+  },
+  settingsModal: {
+    title: 'Settings',
+    languageMode: 'Language Mode',
+    englishOnly: 'English Only',
+    englishOnlyDesc: 'Only use English voices',
+    hebrewOnly: 'Hebrew Only',
+    hebrewOnlyDesc: 'Only use Hebrew voices',
+    autoDetect: 'Auto-Detect',
+    autoDetectDesc: 'Automatically detect language',
+    hebrewVoice: 'Hebrew Voice',
+    englishVoice: 'English Voice',
+    arabicVoice: 'Arabic Voice',
+    current: 'Current:',
+    none: 'None',
+  },
+  notifications: {
+    saved: 'Saved!',
+    savedSuccess: 'Your text has been saved successfully.',
+    failedToSave: 'Failed to save text. Please try again.',
+    alreadyExists: 'This sentence is already saved.',
+  },
+  languageSettings: {
+    hebrew: 'Hebrew',
+    english: 'English',
+    arabic: 'Arabic',
+    atLeastOne: 'At least one language must be selected',
+  },
 };
 
-export const he: Strings = {
-  // App Title
-  appTitle: 'IssieVoice',
+const he: Strings = {
+  common: {
+    cancel: 'ביטול',
+    delete: 'מחק',
+    save: 'שמור',
+    yes: 'כן',
+    no: 'לא',
+    error: 'שגיאה',
+    back: '→ חזור',
+  },
+  app: {
+    title: 'IssieVoice',
+  },
+  actionBar: {
+    speak: 'הקראה',
+    speaking: '🔊 מקריא...',
+    clear: '🗑️ נקה',
+    save: '💾 שמור',
+    browse: '📚 טקסט שמור',
+    switchToHebrew: '🔄 עברית',
+    switchToEnglish: '🔄 English',
+  },
+  textDisplay: {
+    placeholder: 'הקלד הודעה להקראה...',
+  },
+  browse: {
+    savedSentences: 'משפטים שמורים',
+    clearAll: 'נקה הכל',
+    search: 'חפש משפטים...',
+    noSaved: 'אין עדיין משפטים שמורים',
+    noSavedSubtext: 'שמור משפטים מהמסך הראשי כדי לראות אותם כאן',
+    noMatchingSearch: 'אין משפטים התואמים לחיפוש',
+    tryDifferentSearch: 'נסה מונח חיפוש אחר',
+    deleteText: 'מחק משפט',
+    deleteConfirm: 'האם אתה בטוח שברצונך למחוק',
+    clearAllConfirm: 'למחוק את כל הטקסטים השמורים?',
+    deleted: 'נמחק בהצלחה',
+    allDeleted: 'כל הטקסטים נמחקו',
+  },
+  favorites: {
+    moveLeft: 'הזז שמאלה ←',
+    moveRight: '→ הזז ימינה',
+    editCaptionIcon: 'כיתוב וסמל',
+    caption: 'כיתוב',
+    captionPlaceholder: 'הזן כיתוב...',
+    captionHint: 'תווית קצרה על הכפתור',
+    icon: 'סמל',
+    iconHint: 'אימוג\'י או סמל למשפט זה',
+    addedToFavorites: 'נוסף למועדפים',
+    remove: 'הסר',
+    removedFromFavorites: 'הוסר מהמועדפים',
+    captionIconPromptTitle: 'להגדיר כיתוב וסמל?',
+    captionIconPromptMessage: 'האם תרצה להגדיר כיתוב וסמל למועדף זה?',
+    noFavorites: 'אין מועדפים עדיין',
+    noFavoritesHint: 'לחץ',
+    noFavoritesHintSuffix: 'להוספה',
+  },
+  settings: {
+    title: 'הגדרות',
+    speechSpeed: 'מהירות דיבור',
+    slow: 'איטי',
+    normal: 'רגיל',
+    fast: 'מהיר',
+    voicePitch: 'גובה קול',
+    low: 'נמוך',
+    high: 'גבוה',
+    aboutTitle: 'אודות IssieVoice',
+    aboutDescription: 'IssieVoice הוא אפליקציית תקשורת תומכת עבור אנשים שזקוקים לעזרה בדיבור.',
+    version: 'גרסה',
+    test: 'בדיקה',
+    settingsTitle: 'הגדרות Issie Voice',
+    speakButtonInKeyboard: 'כפתור הקראה במקלדת',
+    speakButtonInKeyboardDesc: 'הצג את כפתור ההקראה כחלק מהמקלדת במקום מעליה',
+    tabs: {
+      keyboard: 'מקלדת',
+      general: 'כללי',
+      keysGroups: 'קבוצות מקשים',
+      nikkud: 'ניקוד',
+      features: 'תכונות',
+      advanced: 'מתקדם',
+      voice: 'קול',
+      language: 'שפה',
+      tabDescriptions: {
+        general: 'שליטה על המראה הכללי של המקלדת — צבע רקע, גודל מקש, גופן, ריווח וסדר מקשים.',
+        keysGroups: 'התאם אישית את פריסת המקלדת שלך על ידי יצירת קבוצות מקשים, או שימוש בתבניות המוכנות מראש.',
+        nikkud: 'שליטה על אילו סימני ניקוד זמינים במקלדת שלך.',
+        features: 'הפעל או כבה תכונות מקלדת.',
+        advanced: 'שליטה על מאפיינים מתקדמים של המקלדת שלך.',
+      },
+    },
+  },
+  settingsModal: {
+    title: 'הגדרות',
+    languageMode: 'מצב שפה',
+    englishOnly: 'אנגלית בלבד',
+    englishOnlyDesc: 'שימוש בקולות אנגלית בלבד',
+    hebrewOnly: 'עברית בלבד',
+    hebrewOnlyDesc: 'שימוש בקולות עברית בלבד',
+    autoDetect: 'זיהוי אוטומטי',
+    autoDetectDesc: 'זיהוי שפה אוטומטי',
+    hebrewVoice: 'קול עברית',
+    englishVoice: 'קול אנגלית',
+    arabicVoice: 'קול ערבית',
+    current: 'נוכחי:',
+    none: 'ללא',
+  },
+  notifications: {
+    saved: 'נשמר!',
+    savedSuccess: 'הטקסט שלך נשמר בהצלחה.',
+    failedToSave: 'שמירת הטקסט נכשלה. אנא נסה שוב.',
+    alreadyExists: 'המשפט הזה כבר שמור.',
+  },
+  languageSettings: {
+    hebrew: 'עברית',
+    english: 'אנגלית',
+    arabic: 'ערבית',
+    atLeastOne: 'יש לבחור לפחות שפה אחת',
+  },
+};
 
-  // Action Bar
-  speak: 'הקראה',
-  speaking: '🔊 מקריא...',
-  clear: '🗑️ נקה',
-  save: '💾 שמור',
-  browse: '📚 טקסט שמור',
-  switchToHebrew: '🔄 עברית',
-  switchToEnglish: '🔄 English',
+const ar: Strings = {
+  common: {
+    cancel: 'إلغاء',
+    delete: 'حذف',
+    save: 'حفظ',
+    yes: 'نعم',
+    no: 'لا',
+    error: 'خطأ',
+    back: '← رجوع',
+  },
+  app: {
+    title: 'IssieVoice',
+  },
+  actionBar: {
+    speak: 'تحدث',
+    speaking: '🔊 يتحدث...',
+    clear: '🗑️ مسح',
+    save: '💾 حفظ',
+    browse: '📚 تصفح',
+    switchToHebrew: '🔄 עברית',
+    switchToEnglish: '🔄 English',
+  },
+  textDisplay: {
+    placeholder: 'اكتب رسالة للنطق...',
+  },
+  browse: {
+    savedSentences: 'الجمل المحفوظة',
+    clearAll: 'مسح الكل',
+    search: 'البحث في الجمل...',
+    noSaved: 'لا توجد جمل محفوظة بعد',
+    noSavedSubtext: 'احفظ الجمل من الشاشة الرئيسية لرؤيتها هنا',
+    noMatchingSearch: 'لا توجد جمل تطابق بحثك',
+    tryDifferentSearch: 'جرب مصطلح بحث مختلف',
+    deleteText: 'حذف الجملة',
+    deleteConfirm: 'هل أنت متأكد أنك تريد حذف',
+    clearAllConfirm: 'حذف جميع النصوص المحفوظة؟',
+    deleted: 'تم الحذف بنجاح',
+    allDeleted: 'تم حذف جميع النصوص',
+  },
+  favorites: {
+    moveLeft: '← تحريك لليسار',
+    moveRight: 'تحريك لليمين →',
+    editCaptionIcon: 'التسمية والأيقونة',
+    caption: 'التسمية',
+    captionPlaceholder: 'أدخل التسمية...',
+    captionHint: 'تسمية قصيرة على الزر',
+    icon: 'الأيقونة',
+    iconHint: 'رمز تعبيري أو رمز لهذه الجملة',
+    addedToFavorites: 'تمت الإضافة إلى المفضلة',
+    remove: 'إزالة',
+    removedFromFavorites: 'تمت الإزالة من المفضلة',
+    captionIconPromptTitle: 'تعيين التسمية والأيقونة؟',
+    captionIconPromptMessage: 'هل تريد تعيين تسمية وأيقونة لهذه المفضلة؟',
+    noFavorites: 'لا توجد مفضلة بعد',
+    noFavoritesHint: 'اضغط',
+    noFavoritesHintSuffix: 'للإضافة',
+  },
+  settings: {
+    title: 'الإعدادات',
+    speechSpeed: 'سرعة الكلام',
+    slow: 'بطيء',
+    normal: 'عادي',
+    fast: 'سريع',
+    voicePitch: 'درجة الصوت',
+    low: 'منخفض',
+    high: 'مرتفع',
+    aboutTitle: 'حول IssieVoice',
+    aboutDescription: 'IssieVoice هو تطبيق تواصل مساعد للأشخاص الذين يحتاجون إلى مساعدة في التحدث.',
+    version: 'الإصدار',
+    test: 'اختبار',
+    settingsTitle: 'إعدادات Issie Voice',
+    speakButtonInKeyboard: 'زر التحدث في لوحة المفاتيح',
+    speakButtonInKeyboardDesc: 'عرض زر التحدث كجزء من لوحة المفاتيح بدلاً من فوقها',
+    tabs: {
+      keyboard: 'لوحة مفاتيح',
+      general: 'عام',
+      keysGroups: 'مجموعات المفاتيح',
+      nikkud: 'تشكيل',
+      features: 'ميزات',
+      advanced: 'متقدم',
+      voice: 'صوت',
+      language: 'لغة',
+      tabDescriptions: {
+        general: 'تحكم في المظهر العام للوحة المفاتيح — لون الخلفية، حجم المفتاح، الخط، التباعد، وترتيب المفاتيح.',
+        keysGroups: 'خصّص تخطيط لوحة مفاتيحك بإنشاء مجموعات مفاتيح، أو باستخدام مجموعات جاهزة.',
+        nikkud: 'تحكم في علامات التشكيل المتاحة للوحة مفاتيحك.',
+        features: 'تفعيل أو تعطيل ميزات لوحة المفاتيح.',
+        advanced: 'تحكم في الخصائص المتقدمة للوحة مفاتيحك.',
+      },
+    },
+  },
+  settingsModal: {
+    title: 'الإعدادات',
+    languageMode: 'وضع اللغة',
+    englishOnly: 'الإنجليزية فقط',
+    englishOnlyDesc: 'استخدام الأصوات الإنجليزية فقط',
+    hebrewOnly: 'العبرية فقط',
+    hebrewOnlyDesc: 'استخدام الأصوات العبرية فقط',
+    autoDetect: 'كشف تلقائي',
+    autoDetectDesc: 'كشف اللغة تلقائياً',
+    hebrewVoice: 'الصوت العبري',
+    englishVoice: 'الصوت الإنجليزي',
+    arabicVoice: 'الصوت العربي',
+    current: 'الحالي:',
+    none: 'لا شيء',
+  },
+  notifications: {
+    saved: 'تم الحفظ!',
+    savedSuccess: 'تم حفظ النص بنجاح.',
+    failedToSave: 'فشل حفظ النص. يرجى المحاولة مرة أخرى.',
+    alreadyExists: 'هذه الجملة محفوظة بالفعل.',
+  },
+  languageSettings: {
+    hebrew: 'العبرية',
+    english: 'الإنجليزية',
+    arabic: 'العربية',
+    atLeastOne: 'يجب اختيار لغة واحدة على الأقل',
+  },
+};
 
-  // Text Display Area
-  textPlaceholder: 'הקלד הודעה להקראה...',
+export const translations: Record<Language, Strings> = {
+  en,
+  he,
+  ar,
+};
 
-  // Browse Screen
-  savedSentences: 'משפטים שמורים',
-  back: '→ חזור',
-  clearAll: 'נקה הכל',
-  searchSentences: 'חפש משפטים...',
-  noSavedSentences: 'אין עדיין משפטים שמורים',
-  noSavedSentencesSubtext: 'שמור משפטים מהמסך הראשי כדי לראות אותם כאן',
-  noMatchingSearch: 'אין משפטים התואמים לחיפוש',
-  tryDifferentSearch: 'נסה מונח חיפוש אחר',
-  deleteText: 'מחק משפט',
-  deleteConfirm: 'האם אתה בטוח שברצונך למחוק',
-  cancel: 'ביטול',
-  delete: 'מחק',
-  clearAllConfirm: 'למחוק את כל הטקסטים השמורים?',
-
-  // Save functionality
-  saved: 'נשמר!',
-  savedSuccessMessage: 'הטקסט שלך נשמר בהצלחה.',
-  error: 'שגיאה',
-  failedToSave: 'שמירת הטקסט נכשלה. אנא נסה שוב.',
-  alreadyExists: 'המשפט הזה כבר שמור.',
-  deleted: 'נמחק בהצלחה',
-  allDeleted: 'כל הטקסטים נמחקו',
-
-  // General
-  yes: 'כן',
-  no: 'לא',
-
-  // Favorites toolbar
-  moveLeft: 'הזז שמאלה ←',
-  moveRight: '→ הזז ימינה',
+export const getStrings = (language: Language): Strings => {
+  return translations[language] || translations.en;
 };

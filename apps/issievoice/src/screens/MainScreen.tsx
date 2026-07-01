@@ -4,6 +4,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Text,
+  Platform,
 } from 'react-native';
 import { useText } from '../context/TextContext';
 import { useTTS } from '../context/TTSContext';
@@ -12,54 +13,71 @@ import { useNotification } from '../context/NotificationContext';
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView, useSafeAreaInsets, useSafeAreaFrame } from 'react-native-safe-area-context';
 import TextDisplayArea from '../components/TextDisplayArea/TextDisplayArea';
-import SuggestionsBar from '../components/SuggestionsBar/SuggestionsBar';
 import FavoritesBar from '../components/FavoritesBar/FavoritesBar';
-import SettingsModal from '../components/SettingsModal/SettingsModal';
+
 import { KeyboardPreview, KeyPressEvent } from '../../../../src/components/KeyboardPreview';
-import { colors, sizes } from '../constants';
+import { buildKeyboardConfig } from '../../../../src/utils/keyboardConfigMerger';
+import { colors } from '../constants';
+import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 import KeyboardPreferences from '../../../../src/native/KeyboardPreferences';
-import { IVButton } from '../components/ActionBar/SpeakButton';
+import { LANGUAGE_CYCLE_ORDER, KbLanguage } from '../components/Settings/LanguageSettingsPanel';
 
 interface MainScreenProps {
   navigation: any;
 }
 
-const settingsKey = {
-  type: 'event',  // Event-only key
-  label: '☰',
-  caption: '☰',
-  value: 'SETTINGS',  // Event identifier
-  width: 1,
-  bgColor: '#888888',
-  fontSizePreset: 'normal',
-};
-
-const clearAllKey = {
-  type: 'event',  // Event-only key - doesn't modify text
-  label: '🗑️',
-  caption: '🗑️',
-  value: 'CLEAR_ALL',  // Event identifier
-  width: 1,
-  bgColor: '#f44336',
-  fontSizePreset: 'normal',
-};
-
 const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
-  const { currentText, setText, clearText } = useText();
+  const { currentText, setText, cursorPosition, setCursorPosition } = useText();
   const { speak, setLanguage: setTTSLanguage } = useTTS();
   const { language: deviceLanguage, strings } = useLocalization();
   const { showNotification } = useNotification();
   const [keyboardConfig, setKeyboardConfig] = useState<string>('');
-  const [kbSuggestions, setKbSuggestions] = useState<string[]>([]);
+  const defaultKbBg = Platform.OS === 'android' ? '#D2D3D9' : '#CBCFD8';
+  const [keyboardBgColor, setKeyboardBgColor] = useState<string>(defaultKbBg);
   const [keyboardHeight, setKeyboardHeight] = useState(350);
-  const [currentLanguage, setCurrentLanguage] = useState<'en' | 'he'>(deviceLanguage);
-  const [languageMode, setLanguageMode] = useState<'en-only' | 'he-only' | 'detect'>('detect');
+  const [selectedLanguages, setSelectedLanguages] = useState<KbLanguage[]>(['he', 'en']);
+  const [currentLanguage, setCurrentLanguage] = useState<KbLanguage>('he');
+  const [languagesLoaded, setLanguagesLoaded] = useState(false);
   const [englishVoice, setEnglishVoice] = useState<string | undefined>(undefined);
   const [hebrewVoice, setHebrewVoice] = useState<string | undefined>(undefined);
-  const [settingsModalVisible, setSettingsModalVisible] = useState(false);
+  const [arabicVoice, setArabicVoice] = useState<string | undefined>(undefined);
   const [favoritesReloadTrigger, setFavoritesReloadTrigger] = useState(0);
   const keyboardConfigRef = useRef<any>(null);
   const keyboardHeightRef = useRef<number>(350);
+  const [speakButtonInKeyboard, setSpeakButtonInKeyboard] = useState(false);
+  const [symbolsInSuggestions, setSymbolsInSuggestions] = useState(false);
+
+  // Load selected languages and last language from preferences
+  useEffect(() => {
+    const loadLanguagePrefs = async () => {
+      let langs: KbLanguage[] = ['he', 'en'];
+      try {
+        const savedLangs = await KeyboardPreferences.getString('issievoice_selectedLanguages');
+        if (savedLangs) {
+          const parsed = JSON.parse(savedLangs) as KbLanguage[];
+          if (parsed.length > 0) langs = parsed;
+        }
+      } catch {}
+
+      setSelectedLanguages(langs);
+
+      // Determine initial language
+      let initial: KbLanguage = langs[0];
+      try {
+        const lastLang = await KeyboardPreferences.getString('issievoice_lastLanguage');
+        if (lastLang && langs.includes(lastLang as KbLanguage)) {
+          initial = lastLang as KbLanguage;
+        } else if (langs.includes(deviceLanguage as KbLanguage)) {
+          initial = deviceLanguage as KbLanguage;
+        }
+      } catch {}
+
+      setCurrentLanguage(initial);
+      setLanguagesLoaded(true);
+    };
+    loadLanguagePrefs();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Get window dimensions using useSafeAreaFrame (works with ScreenSizer)
   const frame = useSafeAreaFrame();
@@ -69,6 +87,55 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
 
   // Determine if landscape or portrait
   const isLandscape = frame.width > frame.height;
+  const isPhoneLandscape = isLandscape && Math.min(frame.width, frame.height) < 600;
+  const isRTL = deviceLanguage === 'he' || deviceLanguage === 'ar';
+
+  // Inject speak key into the abc keyset's bottom row
+  const injectSpeakKey = (keysets: any[], speakLabel: string, groups?: any[]) => {
+    // Only use default colors if no style group targets the speak key
+    const hasSpeakGroup = groups?.some((g: any) => g.items?.includes('speak'));
+    const speakKey = {
+      type: 'event',
+      value: 'speak',
+      label: `🔊 ${speakLabel}`,
+      caption: `🔊 ${speakLabel}`,
+      width: 2,
+      ...(hasSpeakGroup ? {} : { bgColor: colors.primary, textColor: '#FFFFFF' }),
+    };
+
+    return keysets.map((keyset: any) => {
+      const rows = keyset.rows.map((row: any) => {
+        const hasSpaceKey = row.keys.some((k: any) => k.type === 'space' || k.value === ' ');
+        const isBottomRow = row.alwaysInclude || hasSpaceKey;
+        if (!isBottomRow) return row;
+
+        // Replace the enter key with speak, or append speak at the end if no enter
+        const newKeys = [...row.keys];
+        const enterIndex = newKeys.findIndex((k: any) => k.type === 'enter');
+        if (enterIndex >= 0) {
+          newKeys[enterIndex] = speakKey;
+        } else {
+          newKeys.push(speakKey);
+        }
+        return { ...row, keys: newKeys };
+      });
+      return { ...keyset, rows };
+    });
+  };
+
+  // Compute the label for the language key (shows the NEXT language in cycle)
+  const getLanguageKeyLabel = (language: string): string => {
+    const activeLangs = LANGUAGE_CYCLE_ORDER.filter(l => selectedLanguages.includes(l));
+    if (activeLangs.length <= 1) return '';
+    const currentIndex = activeLangs.indexOf(language as KbLanguage);
+    const nextIndex = (currentIndex + 1) % activeLangs.length;
+    const nextLang = activeLangs[nextIndex];
+    switch (nextLang) {
+      case 'he': return 'עב';
+      case 'en': return 'En';
+      case 'ar': return 'عر';
+    }
+  };
 
   // Function to load keyboard configuration for a specific language
   const loadKeyboardConfig = async (language: string) => {
@@ -91,105 +158,61 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
             console.log(`✅ Loaded saved keyboard config from ${configKey}`);
             console.log('📋 Saved config has groups:', !!savedConfig.groups, 'count:', savedConfig.groups?.length || 0);
 
-            // Ensure settings button is enabled for IssieVoice
-            savedConfig.settingsButtonEnabled = true;
-
             // Set the language in config to ensure proper rendering
             savedConfig.language = language;
 
             // Add language switch key to saved config
-            const languageKey = {
+            const langLabel = getLanguageKeyLabel(language);
+            const showLanguageKey = langLabel !== '';
+            // Only use default bgColor if no style group targets the language key
+            const hasLangGroup = savedConfig.groups?.some((g: any) => g.items?.includes('language'));
+            const languageKey = showLanguageKey ? {
               type: 'language',
-              label: language === 'en' ? 'עב' : 'En',
-              caption: language === 'en' ? 'עב' : 'En',
+              label: langLabel,
+              caption: langLabel,
               value: '',
               width: 1,
-              bgColor: '#2196F3',
-            };
-
-            // Add clear-all key (trash icon)
-
+              ...(hasLangGroup ? {} : { bgColor: colors.primary }),
+            } : null;
 
             console.log(`🔑 Creating language key for ${language} keyboard:`, languageKey);
-
-            // Determine if we're on mobile (for settings button placement)
-            const isMobileDevice = frame.width < 600;
 
             // Update all keysets to include language switch key and remove close/next-keyboard
             savedConfig.keysets = savedConfig.keysets.map((keyset: any) => ({
               ...keyset,
-              rows: keyset.rows.map((row: any, rowIndex: number) => {
-                // Check if this is the top row (for mobile settings button)
-                const isTopRow = rowIndex === 0;
-
-                // Check if this is the bottom row by looking for space key or if it's the last row with control keys
-                const hasSpaceKey = row.keys.some((k: any) => k.type === 'space' || k.value === ' ');
-                const hasControlKeys = row.keys.some((k: any) =>
-                  k.type === 'keyset' || k.type === 'next-keyboard' || k.type === 'close'
-                );
-                const isBottomRow = row.alwaysInclude || hasSpaceKey || (hasControlKeys && rowIndex === keyset.rows.length - 1);
-
-                // Always filter out unwanted keys
+              rows: keyset.rows.map((row: any) => {
                 const filteredKeys = row.keys.filter((key: any) =>
-                  key.type !== 'next-keyboard' && key.type !== 'close'
+                  key.type !== 'next-keyboard' && key.type !== 'close' && key.type !== 'settings'
                 );
 
-                // MOBILE: Add settings to top row
-                if (isMobileDevice && isTopRow) {
-                  const hasSettingsKey = row.keys.some((k: any) => k.value === settingsKey.value);
+                const hasSpaceKey = row.keys.some((k: any) => k.type === 'space' || k.value === ' ');
+                const isBottomRow = row.alwaysInclude || hasSpaceKey;
 
-                  if (!hasSettingsKey) {
-                    // Add spacer + settings at the end of top row
-                    return {
-                      ...row,
-                      keys: [
-                        ...filteredKeys,
-                        { hidden: true, width: 0.5 },  // Half-key spacer
-                        settingsKey
-                      ]
-                    };
-                  }
-                }
-
-                // BOTTOM ROW: Add language switch and clear-all
-                if (isBottomRow) {
-                  // Check if language key already exists
+                if (isBottomRow && showLanguageKey) {
                   const hasLanguageKey = row.keys.some((k: any) => k.type === 'language');
-                  const hasClearAllKey = row.keys.some((k: any) => k.value === clearAllKey.value);
-                  const hasSettingsKey = row.keys.some((k: any) => k.value === settingsKey.value);
-
-                  if (!hasLanguageKey || !hasClearAllKey || (!hasSettingsKey && !isMobileDevice)) {
-                    // Add language key after first key
+                  if (!hasLanguageKey) {
                     const newKeys = filteredKeys.reduce((acc: any[], key: any, index: number) => {
                       acc.push(key);
-                      if (index === 0 && !hasLanguageKey) {
+                      if (index === 0) {
                         acc.push(languageKey);
                       }
                       return acc;
                     }, []);
-
-                    // Add gap + clear-all (+ settings on non-mobile) at the end
-                    if (!hasClearAllKey || (!hasSettingsKey && !isMobileDevice)) {
-                      newKeys.push({ hidden: true, width: 0.5 });
-                      if (!hasClearAllKey) {
-                        newKeys.push(clearAllKey);
-                      }
-                      // Only add settings to bottom row on non-mobile devices
-                      if (!isMobileDevice && !hasSettingsKey) {
-                        newKeys.push({ hidden: true, width: 0.5 });
-                        newKeys.push(settingsKey);
-                      }
-                    }
-
                     return { ...row, keys: newKeys };
-                  } else {
-                    // Keys exist, just use filtered keys
-                    return { ...row, keys: filteredKeys };
                   }
+                  // Update existing language key label
+                  return { ...row, keys: filteredKeys.map((k: any) =>
+                    k.type === 'language' ? { ...k, label: langLabel, caption: langLabel } : k
+                  )};
                 }
-                return row;
+                return { ...row, keys: filteredKeys };
               }),
             }));
+
+            // Inject speak key if setting is enabled
+            if (speakButtonInKeyboard) {
+              savedConfig.keysets = injectSpeakKey(savedConfig.keysets, strings.actionBar.speak.trim(), savedConfig.groups);
+            }
 
             // Store the config object for height calculations
             // Use presets instead of absolute values
@@ -215,6 +238,8 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
 
             const configString = JSON.stringify(savedConfig);
             console.log('📤 Setting keyboard config from saved profile, length:', configString.length);
+            const bg = savedConfig.backgroundColor;
+            setKeyboardBgColor(!bg || bg === 'default' ? defaultKbBg : bg);
             setKeyboardConfig(configString);
             return;
           } catch (parseError) {
@@ -223,176 +248,76 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
         }
       }
 
-      // Fallback: Load default configuration from JSON files
+      // Fallback: Load default configuration using the shared merger (same as IssieBoard)
       console.log('📋 No saved config found, loading default keyboard config');
 
-      // Load configuration based on language
-      const config = language === 'en'
-        ? require('../../../../keyboards/en.json')
-        : require('../../../../keyboards/he.json');
-      const common = require('../../../../keyboards/common.js');
-
-      console.log('📋 Original config keysets:', config.keysets?.map((k: any) => k.id));
-      console.log('📋 Common keysets:', common.keysets?.map((k: any) => k.id));
-
-      // Merge common keysets with language-specific config
-      // Filter common keysets to include only those for the current language
-      const commonKeysets = common.keysets.map((keyset: any) => ({
-        ...keyset,
-        rows: keyset.rows.map((row: any) => ({
-          ...row,
-          keys: row.keys.filter((key: any) => {
-            // Include key if it has no forLanguages restriction, or if it includes the current language
-            return !key.forLanguages || key.forLanguages.includes(language);
-          }),
-        })),
-      }));
-
-      console.log('📋 Filtered common keysets:', commonKeysets.map((k: any) => k.id));
-
-      // Append "alwaysInclude" rows from the language config to common keysets
-      const bottomRow = config.keysets[0].rows.find((row: any) => row.alwaysInclude);
-      console.log('📋 Bottom row found:', !!bottomRow);
-
-      if (!bottomRow) {
-        console.error('❌ Bottom row not found in keyboard config!');
-        return;
+      // Load source keyboard based on language
+      let sourceKeyboard;
+      if (language === 'en') {
+        sourceKeyboard = require('../../../../keyboards/en.json');
+      } else if (language === 'ar') {
+        sourceKeyboard = require('../../../../keyboards/ar.json');
+      } else {
+        sourceKeyboard = require('../../../../keyboards/he.json');
       }
 
-      // Create language switch key (blue button)
-      const languageKey = {
+      // Build config using the same merger IssieBoard uses
+      const baseConfig = buildKeyboardConfig(sourceKeyboard, language);
+
+      // Create IssieVoice-specific keys
+      const langLabel = getLanguageKeyLabel(language);
+      const showLanguageKey = langLabel !== '';
+      const languageKey = showLanguageKey ? {
         type: 'language',
-        label: language === 'en' ? 'עב' : 'En',
-        caption: language === 'en' ? 'עב' : 'En',
-        value: '',  // No text output
+        label: langLabel,
+        caption: langLabel,
+        value: '',
         width: 1,
-        bgColor: '#2196F3',  // Blue background
-      };
+        bgColor: colors.primary,
+      } : null;
 
-
-      console.log('🔑 Language key:', languageKey);
-      console.log('📋 Original bottom row keys:', bottomRow.keys.length);
-
-      // Determine if we're on mobile (for settings button placement)
-      const isMobileDevice = frame.width < 600;
-
-      // Remove next-keyboard and close keys, insert language key after the first key (123 button)
-      const modifiedBottomRow = {
-        ...bottomRow,
-        keys: bottomRow.keys
-          .filter((key: any) => key.type !== 'next-keyboard' && key.type !== 'close')  // Remove globe and close buttons
-          .reduce((acc: any[], key: any, index: number) => {
-            acc.push(key);
-            // Insert language button after first key (123 button)
-            if (index === 0) {
-              console.log('🔄 Inserting language key after 123 button');
-              acc.push(languageKey);
-            }
-            return acc;
-          }, []),
-      };
-
-      // Add gap + clear-all (+ settings on non-mobile) at the end
-      modifiedBottomRow.keys.push({ hidden: true, width: 0.5 });
-      modifiedBottomRow.keys.push(clearAllKey);
-      if (!isMobileDevice) {
-        modifiedBottomRow.keys.push({ hidden: true, width: 0.5 });
-        modifiedBottomRow.keys.push(settingsKey);
-      }
-
-      console.log('📋 Modified bottom row keys:', modifiedBottomRow.keys.length);
-      console.log('📋 Modified bottom row keys types:', modifiedBottomRow.keys.map((k: any) => k.type || k.value));
-
-      const mergedCommonKeysets = commonKeysets.map((keyset: any) => ({
+      // Inject IssieVoice keys (language switch) into each keyset
+      const modifiedKeysets = baseConfig.keysets.map((keyset: any) => ({
         ...keyset,
-        rows: [
-          // MOBILE: Add settings to top row
-          ...(isMobileDevice && keyset.rows.length > 0 ? [{
-            ...keyset.rows[0],
-            keys: [
-              ...keyset.rows[0].keys,
-              { hidden: true, width: 0.5 },  // Half-key spacer
-              settingsKey
-            ]
-          }] : [keyset.rows[0]]),
-          // Rest of rows
-          ...keyset.rows.slice(1),
-          // Bottom row
-          modifiedBottomRow
-        ],
-      }));
+        rows: keyset.rows.map((row: any) => {
+          const filteredKeys = row.keys.filter((key: any) =>
+            key.type !== 'next-keyboard' && key.type !== 'close' && key.type !== 'settings'
+          );
 
-      // Also modify the original language-specific keysets
-      const modifiedLanguageKeysets = config.keysets.map((keyset: any) => ({
-        ...keyset,
-        rows: keyset.rows.map((row: any, rowIndex: number) => {
-          // MOBILE: Add settings to top row
-          if (isMobileDevice && rowIndex === 0) {
-            return {
-              ...row,
-              keys: [
-                ...row.keys,
-                { hidden: true, width: 0.5 },  // Half-key spacer
-                settingsKey
-              ]
-            };
-          }
+          const hasSpaceKey = row.keys.some((k: any) => k.type === 'space' || k.value === ' ');
+          const isBottomRow = row.alwaysInclude || hasSpaceKey;
 
-          if (row.alwaysInclude) {
-            // This is the bottom row - remove next-keyboard and close, insert language key after first key
-            const filteredKeys = row.keys
-              .filter((key: any) => key.type !== 'next-keyboard' && key.type !== 'close')
-              .reduce((acc: any[], key: any, index: number) => {
+          if (isBottomRow && showLanguageKey) {
+            const hasLanguageKey = row.keys.some((k: any) => k.type === 'language');
+            if (!hasLanguageKey) {
+              const newKeys = filteredKeys.reduce((acc: any[], key: any, index: number) => {
                 acc.push(key);
                 if (index === 0) {
                   acc.push(languageKey);
                 }
                 return acc;
               }, []);
-
-            // Add gap + clear-all (+ settings on non-mobile) at the end
-            filteredKeys.push({ hidden: true, width: 0.5 });
-            filteredKeys.push(clearAllKey);
-            if (!isMobileDevice) {
-              filteredKeys.push({ hidden: true, width: 0.5 });
-              filteredKeys.push(settingsKey);
+              return { ...row, keys: newKeys };
             }
-
-            return {
-              ...row,
-              keys: filteredKeys,
-            };
+            return { ...row, keys: filteredKeys.map((k: any) =>
+              k.type === 'language' ? { ...k, label: langLabel, caption: langLabel } : k
+            )};
           }
-          return row;
+          return { ...row, keys: filteredKeys };
         }),
       }));
 
-      // Combine language-specific keysets with merged common keysets
-      const allKeysets = [...modifiedLanguageKeysets, ...mergedCommonKeysets];
-      console.log('📋 All keysets:', allKeysets.map((k: any) => k.id));
-
-      // Add IssieVoice-specific settings to the config
       const issieVoiceConfig = {
-        ...config,
-        keysets: allKeysets,
-        heightPreset: 'tall', // Use preset for better accessibility in IssieVoice
-        fontSizePreset: 'large', // Use preset for better readability
-        language: language, // Set the language for suggestions
-        settingsButtonEnabled: true, // Enable settings button
+        ...baseConfig,
+        keysets: speakButtonInKeyboard
+          ? injectSpeakKey(modifiedKeysets, strings.actionBar.speak.trim())
+          : modifiedKeysets,
+        heightPreset: 'tall',
+        fontSizePreset: 'large',
+        language: language,
       };
 
       console.log('📋 Final config keysets:', issieVoiceConfig.keysets.map((k: any) => k.id));
-
-      // Log the bottom row of the first keyset to verify language key is there
-      const firstKeyset = issieVoiceConfig.keysets[0];
-      const bottomRowCheck = firstKeyset.rows.find((r: any) => r.alwaysInclude);
-      if (bottomRowCheck) {
-        console.log('🔍 Final bottom row keys:', bottomRowCheck.keys.map((k: any) => ({
-          type: k.type,
-          label: k.label,
-          value: k.value
-        })));
-      }
 
       // Store the config object for height calculations
       keyboardConfigRef.current = issieVoiceConfig;
@@ -400,48 +325,59 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
       const configString = JSON.stringify(issieVoiceConfig);
       console.log('📤 Setting keyboard config, length:', configString.length);
 
+      const bg = issieVoiceConfig.backgroundColor;
+      setKeyboardBgColor(!bg || bg === 'default' ? defaultKbBg : bg);
       setKeyboardConfig(configString);
     } catch (error) {
       console.error('❌ Failed to load keyboard config:', error);
     }
   };
 
-  // Load settings from storage on mount
+  // Load voice settings from storage on mount and when returning from settings
+  useFocusEffect(
+    React.useCallback(() => {
+      const loadSettings = async () => {
+        try {
+          const savedEnVoice = await KeyboardPreferences.getProfile('issievoice_englishVoice');
+          if (savedEnVoice) {
+            setEnglishVoice(savedEnVoice);
+          }
+
+          const savedHeVoice = await KeyboardPreferences.getProfile('issievoice_hebrewVoice');
+          if (savedHeVoice) {
+            setHebrewVoice(savedHeVoice);
+          }
+
+          const savedArVoice = await KeyboardPreferences.getProfile('issievoice_arabicVoice');
+          if (savedArVoice) {
+            setArabicVoice(savedArVoice);
+          }
+
+          const speakInKb = await KeyboardPreferences.getString('issievoice_speakButtonInKeyboard');
+          setSpeakButtonInKeyboard(speakInKb === 'true');
+
+          const symbolsVal = await KeyboardPreferences.getString('issievoice_symbolsInSuggestions');
+          setSymbolsInSuggestions(symbolsVal === 'true');
+        } catch (error) {
+          console.error('Failed to load settings:', error);
+        }
+      };
+      loadSettings();
+    }, [])
+  );
+
+  // Effect for loading keyboard config when language or speak-in-keyboard setting changes
   useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const savedMode = await KeyboardPreferences.getProfile('issievoice_languageMode');
-        if (savedMode && (savedMode === 'en-only' || savedMode === 'he-only' || savedMode === 'detect')) {
-          setLanguageMode(savedMode as 'en-only' | 'he-only' | 'detect');
-        }
-
-        const savedEnVoice = await KeyboardPreferences.getProfile('issievoice_englishVoice');
-        if (savedEnVoice) {
-          setEnglishVoice(savedEnVoice);
-        }
-
-        const savedHeVoice = await KeyboardPreferences.getProfile('issievoice_hebrewVoice');
-        if (savedHeVoice) {
-          setHebrewVoice(savedHeVoice);
-        }
-      } catch (error) {
-        console.error('Failed to load settings:', error);
-      }
-    };
-    loadSettings();
-  }, []);
-
-  // Effect for loading keyboard config when language changes
-  useEffect(() => {
+    if (!languagesLoaded) return;
     const loadConfig = async () => {
-      console.log(`🔄 Language change effect triggered: ${currentLanguage}`);
+      console.log(`🔄 Language change effect triggered: ${currentLanguage}, speakInKb: ${speakButtonInKeyboard}`);
       // Reset keyboard height to allow fresh measurement
       keyboardHeightRef.current = 350;
       setKeyboardHeight(350);
       await loadKeyboardConfig(currentLanguage);
     };
     loadConfig();
-  }, [currentLanguage]);
+  }, [currentLanguage, speakButtonInKeyboard, languagesLoaded, selectedLanguages]);
 
   // Native keyboard now handles scaling automatically with presets
   // No need for manual height adjustment
@@ -457,18 +393,35 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
     return () => clearTimeout(timer);
   }, [currentLanguage, setTTSLanguage]);
 
+  // Persist last language
+  useEffect(() => {
+    if (languagesLoaded) {
+      KeyboardPreferences.setString('issievoice_lastLanguage', currentLanguage);
+    }
+  }, [currentLanguage, languagesLoaded]);
+
   // Reload keyboard config when screen comes into focus (e.g., returning from settings)
   useFocusEffect(
     React.useCallback(() => {
       console.log('📱 MainScreen focused - reloading keyboard config and favorites');
-      const reloadConfig = async () => {
-        // Reset keyboard height to allow fresh measurement
-        keyboardHeightRef.current = 350;
-        setKeyboardHeight(350);
-        await loadKeyboardConfig(currentLanguage);
+      const reloadPrefs = async () => {
+        try {
+          const savedLangs = await KeyboardPreferences.getString('issievoice_selectedLanguages');
+          if (savedLangs) {
+            const parsed = JSON.parse(savedLangs) as KbLanguage[];
+            if (parsed.length > 0) {
+              setSelectedLanguages(parsed);
+              // If current language was deselected, switch to first selected language
+              if (!parsed.includes(currentLanguage)) {
+                setCurrentLanguage(parsed[0]);
+                return; // currentLanguage change will trigger config reload
+              }
+            }
+          }
+        } catch {}
       };
-      reloadConfig();
-      // Trigger favorites reload
+      reloadPrefs();
+      loadKeyboardConfig(currentLanguage);
       setFavoritesReloadTrigger(prev => prev + 1);
     }, [currentLanguage])
   );
@@ -482,37 +435,75 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
     // Handle event-type keys (custom actions that don't modify text)
     if (type === 'event') {
       console.log('📢 Event key pressed:', value);
-
-      if (value === clearAllKey.value) {
-        console.log('🗑️ Clear-all event');
-        setText('');
+      if (value === 'speak') {
+        handleSpeak();
         return;
       }
-
-      if (value === settingsKey.value) {
-        console.log('⚙️ Settings event');
-        setSettingsModalVisible(true);
-        return;
-      }
-
-      // Unknown event
       console.warn('⚠️ Unknown event value:', value);
       return;
     }
 
     // Handle text_changed event from KeyboardEngine (new architecture)
     if (type === 'text_changed') {
-      // KeyboardEngine handles all text operations internally
-      // Just update React Native state to match
-      console.log('📝 Text changed by KeyboardEngine:', value);
-      setText(value);
+      // The native engine manages its own text buffer (always appends/deletes at end).
+      // Native sends prevLength (buffer length before) and deletedTo (min length reached)
+      // to compute exact deltas even for compound ops (e.g. "i"→"I" auto-capitalize).
+      const engineText = value;
+      const prevLength: number | undefined = event.nativeEvent.prevLength;
+      const deletedTo: number | undefined = event.nativeEvent.deletedTo;
+      const pos = cursorPosition;
+      const after = currentText.slice(pos);
+
+      if (prevLength != null && deletedTo != null) {
+        // Use precise delta from native
+        const deleted = prevLength - deletedTo;
+        const inserted = engineText.slice(deletedTo);
+        const deleteFrom = Math.max(0, pos - deleted);
+        const newBefore = currentText.slice(0, deleteFrom);
+        const newText = newBefore + inserted + after;
+        const newCursor = deleteFrom + inserted.length;
+        setCursorPosition(newCursor);
+        setText(newText);
+      } else {
+        // Fallback: compare lengths against currentText
+        if (engineText.length > currentText.length) {
+          const inserted = engineText.slice(currentText.length);
+          const newText = currentText.slice(0, pos) + inserted + after;
+          setCursorPosition(pos + inserted.length);
+          setText(newText);
+        } else if (engineText.length < currentText.length) {
+          const deletedCount = currentText.length - engineText.length;
+          const deleteFrom = Math.max(0, pos - deletedCount);
+          const newText = currentText.slice(0, deleteFrom) + after;
+          setCursorPosition(deleteFrom);
+          setText(newText);
+        } else {
+          setText(engineText);
+        }
+      }
+      return;
+    }
+
+    // Handle cursor movement from swipe gesture on space key
+    // The native renderer already inverts the offset for RTL (for the system keyboard's
+    // adjustTextPosition API which works in reading order). But in IssieVoice, cursorPosition
+    // is a string index where higher = further in text, and the TextInput handles RTL display.
+    // So we need to undo the RTL inversion — the raw swipe direction maps directly to index change.
+    if (type === 'cursor_move') {
+      const offset = parseInt(value, 10);
+      if (!isNaN(offset)) {
+        const isRTL = currentLanguage === 'he' || currentLanguage === 'ar';
+        const adjustedOffset = isRTL ? -offset : offset;
+        const newPos = Math.max(0, Math.min(currentText.length, cursorPosition + adjustedOffset));
+        setCursorPosition(newPos);
+      }
       return;
     }
 
     // Handle language switch button
     if (type === 'language') {
       console.log('🌐 Language switch button pressed');
-      toggleLanguage();
+      cycleLanguage();
       return;
     }
 
@@ -528,27 +519,26 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
     }
 
     // Legacy event handling (for config mode or old implementation)
-    // Handle based on type, but if type is empty, check value
+    // Insert at cursor position
+    const pos = cursorPosition;
+    const before = currentText.slice(0, pos);
+    const after = currentText.slice(pos);
+
     if (type === 'backspace' || value === '\u0008' || value === '⌫') {
-      // Backspace
-      const shortened = currentText.slice(0, -1);
-      console.log('⌫ Backspace, new text:', shortened);
-      setText(shortened);
+      if (pos > 0) {
+        const newText = currentText.slice(0, pos - 1) + after;
+        setCursorPosition(pos - 1);
+        setText(newText);
+      }
     } else if (type === 'enter' || value === '\n') {
-      // Enter/Return
-      const withNewline = currentText + '\n';
-      console.log('↵ Enter added');
-      setText(withNewline);
+      setText(before + '\n' + after);
+      setCursorPosition(pos + 1);
     } else if (value === ' ') {
-      // Space
-      const withSpace = currentText + ' ';
-      console.log('␣ Space added, new text:', withSpace);
-      setText(withSpace);
+      setText(before + ' ' + after);
+      setCursorPosition(pos + 1);
     } else if (value && value.length > 0) {
-      // Any other character (type might be empty, so we check value)
-      const newText = currentText + value;
-      console.log('📝 Adding character, new text:', newText);
-      setText(newText);
+      setText(before + value + after);
+      setCursorPosition(pos + value.length);
     } else {
       console.log('❓ Unhandled key:', { type, value, label });
     }
@@ -556,7 +546,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
 
   const handleSpeak = async () => {
     if (currentText.trim()) {
-      await speak(currentText, languageMode, englishVoice, hebrewVoice);
+      await speak(currentText, 'detect', englishVoice, hebrewVoice, arabicVoice);
     }
   };
 
@@ -572,221 +562,118 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
       if (result === null) {
         // Duplicate detected
         console.log('⚠️ Sentence already exists');
-        showNotification(strings.alreadyExists || 'This sentence is already saved', 'error');
+        showNotification(strings.notifications.alreadyExists, 'error');
       } else {
         // Success
         console.log('💾 Sentence saved successfully');
-        showNotification(strings.savedSuccessMessage || 'Saved successfully', 'success');
+        showNotification(strings.notifications.savedSuccess, 'success');
       }
     } catch (error: any) {
       console.error('❌ Save error:', error);
-      showNotification(strings.failedToSave || 'Failed to save', 'error');
-    }
-  };
-
-  const handleBrowse = () => {
-    navigation.navigate('Browse');
-  };
-
-  const handleSuggestionsChange = (event: any) => {
-    const suggestions = event.nativeEvent.suggestions || [];
-    console.log('🔮 KB Suggestions received:', suggestions);
-    setKbSuggestions(suggestions);
-  };
-
-  // Handle suggestion press from the SuggestionsBar
-  // This simulates typing to keep the keyboard in sync
-  const handleSuggestionFromBar = (suggestion: string) => {
-    console.log('💡 Suggestion selected from bar:', suggestion);
-
-    // Check if we're in prediction mode (text ends with whitespace) or completion mode
-    const endsWithSpace = /\s$/.test(currentText);
-
-    if (endsWithSpace) {
-      // PREDICTION MODE: Text ends with space, just append the predicted word + space
-      console.log('📝 Prediction mode: appending word');
-      const newText = currentText + suggestion + ' ';
-      setText(newText);
-    } else {
-      // COMPLETION MODE: Replace the partial word with the full word + space
-      console.log('📝 Completion mode: replacing partial word');
-
-      // Find the partial word to replace
-      const trimmed = currentText.trimEnd();
-      let lastSpaceIndex = -1;
-      for (let i = trimmed.length - 1; i >= 0; i--) {
-        if (/\s/.test(trimmed[i])) {
-          lastSpaceIndex = i;
-          break;
-        }
-      }
-
-      // Calculate how many characters to delete (the partial word)
-      const partialWordLength = lastSpaceIndex === -1
-        ? trimmed.length
-        : trimmed.length - lastSpaceIndex - 1;
-
-      // Remove the partial word
-      let textAfterDeletion = currentText;
-      for (let i = 0; i < partialWordLength; i++) {
-        textAfterDeletion = textAfterDeletion.slice(0, -1);
-      }
-
-      // Add the full suggestion + space
-      const newText = textAfterDeletion + suggestion + ' ';
-      setText(newText);
+      showNotification(strings.notifications.failedToSave, 'error');
     }
   };
 
   // Handle favorite press - speak the text
   const handleFavoritePress = async (text: string) => {
     console.log('⭐ Favorite selected:', text);
-    await speak(text, languageMode, englishVoice, hebrewVoice);
+    await speak(text, 'detect', englishVoice, hebrewVoice, arabicVoice);
   };
 
-  // Function to toggle between languages
-  const toggleLanguage = () => {
-    const newLanguage = currentLanguage === 'en' ? 'he' : 'en';
+  // Function to cycle between selected languages
+  const cycleLanguage = () => {
+    const activeLangs = LANGUAGE_CYCLE_ORDER.filter(l => selectedLanguages.includes(l));
+    if (activeLangs.length <= 1) return;
+    const currentIndex = activeLangs.indexOf(currentLanguage);
+    const nextIndex = (currentIndex + 1) % activeLangs.length;
+    const newLanguage = activeLangs[nextIndex];
     console.log(`🌐 Switching language from ${currentLanguage} to ${newLanguage}`);
     setCurrentLanguage(newLanguage);
-
-    // Clear suggestions when language changes to prevent showing suggestions from wrong language
-    setKbSuggestions([]);
   };
 
-  // Handle language mode change
-  const handleLanguageModeChange = async (mode: 'en-only' | 'he-only' | 'detect') => {
-    setLanguageMode(mode);
-    try {
-      await KeyboardPreferences.setProfile(mode, 'issievoice_languageMode');
-      console.log(`💾 Language mode saved: ${mode}`);
-    } catch (error) {
-      console.error('Failed to save language mode:', error);
-    }
-  };
 
-  // Handle voice change
-  const handleVoiceChange = async (language: 'en' | 'he', voiceId: string) => {
-    if (language === 'en') {
-      setEnglishVoice(voiceId);
-      try {
-        await KeyboardPreferences.setProfile(voiceId, 'issievoice_englishVoice');
-        console.log(`💾 English voice saved: ${voiceId}`);
-      } catch (error) {
-        console.error('Failed to save English voice:', error);
-      }
-    } else {
-      setHebrewVoice(voiceId);
-      try {
-        await KeyboardPreferences.setProfile(voiceId, 'issievoice_hebrewVoice');
-        console.log(`💾 Hebrew voice saved: ${voiceId}`);
-      } catch (error) {
-        console.error('Failed to save Hebrew voice:', error);
-      }
-    }
-  };
-
-  // Handle settings button press from keyboard
-  const handleOpenSettings = () => {
-    console.log('⚙️ Settings button pressed from keyboard - opening keyboard settings');
-    navigation.navigate('KeyboardSettings', { initialLanguage: currentLanguage });
-  };
-
-  const isMobile = frame.width < 600;
-  const buttonColumnWidth = isMobile ? availableHeight * .175  : availableHeight * .225;
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        {/* Settings Modal */}
-        <SettingsModal
-          visible={settingsModalVisible}
-          onClose={() => setSettingsModalVisible(false)}
-          languageMode={languageMode}
-          onLanguageModeChange={handleLanguageModeChange}
-          englishVoice={englishVoice}
-          hebrewVoice={hebrewVoice}
-          onVoiceChange={handleVoiceChange}
-        />
+      <View style={[styles.content, { paddingBottom: keyboardHeight + 24 }]}>
+        {/* Header Bar */}
+        <View style={[styles.headerBar, isRTL && { flexDirection: 'row-reverse' }]}>
+          <TouchableOpacity
+            style={styles.menuButton}
+            onPress={() => navigation.navigate('Settings', { initialLanguage: currentLanguage })}
+            activeOpacity={0.7}>
+            <Text style={styles.menuButtonText}>☰</Text>
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, isRTL && { marginLeft: 0, marginRight: 12 }]}>Issie Voice</Text>
+        </View>
 
-        <View>
-          <View style={{ flexDirection: "row", width: "100%", height: Math.min(availableHeight * .45, frame.height * 0.25) }}>
-            <IVButton
-              onPress={handleSpeak}
-              width={Math.min(200, frame.width * 0.25)}
-              caption={strings.speak}
-              icon='🗣️'
-              style={{ backgroundColor: "#35C759" }}
-            />
-
-            {/* Text Display Area - Center */}
+        {/* Text Area Row */}
+        <View style={[styles.textAreaRow, isRTL && { flexDirection: 'row-reverse' }]}>
+          {/* Text Area with Floating Speak Button */}
+          <View style={styles.textAreaContainer}>
             <View style={{ flex: 1 }}>
               <TextDisplayArea
                 text={currentText}
                 screenWidth={frame.width}
+                speakButtonPadding={speakButtonInKeyboard ? 0 : 50}
+                onSave={handleSave}
+                onBrowse={() => navigation.navigate('Browse')}
               />
             </View>
 
-            {/* Save/Load Buttons - Right Side */}
-            <View style={{ flexDirection: "column", padding: 4, width: buttonColumnWidth, height: Math.min(availableHeight * .45, frame.height * 0.25) }}>
+            {/* Floating Speak Button - hidden when speak is in keyboard */}
+            {!speakButtonInKeyboard && (
+            <View style={[styles.speakFabWrapper, isRTL && { right: undefined, left: 14 }]} pointerEvents="box-none">
               <TouchableOpacity
-                style={[styles.topButton, { height: Math.min(availableHeight * .225, frame.height * 0.125), backgroundColor: colors.save }]}
-                onPress={handleSave}
+                style={[styles.speakFab, isRTL && { flexDirection: 'row-reverse' }]}
+                onPress={handleSpeak}
                 activeOpacity={0.7}>
-                <Text style={styles.topButtonText}>💾</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.topButton, { height: Math.min(availableHeight * .225, frame.height * 0.125), backgroundColor: colors.browse }]}
-                onPress={handleBrowse}
-                activeOpacity={0.7}>
-                <Text style={styles.topButtonText}>📂</Text>
+                <MyIcon info={{ name: 'record-voice-over', type: 'MI', color: '#FFFFFF', size: 20 }} />
+                <Text style={styles.speakFabLabel}>{strings.actionBar.speak}</Text>
               </TouchableOpacity>
             </View>
+            )}
           </View>
-
-          {/* Suggestions Bar */}
-          <SuggestionsBar
-            currentText={currentText}
-            kbSuggestions={kbSuggestions}
-            language={currentLanguage}
-            onSuggestionPress={handleSuggestionFromBar}
-            height={isLandscape ? availableHeight * 0.15 : availableHeight * 0.1}
-            screenWidth={frame.width}
-          />
-
-
         </View>
 
-        {/* Favorites Bar - Below Suggestions, Above Keyboard */}
-        <FavoritesBar
-          onFavoritePress={handleFavoritePress}
-          height={Math.min(availableHeight * 0.4, isLandscape ? availableHeight * 0.4 : 150)}
-          navigation={navigation}
-          reloadTrigger={favoritesReloadTrigger}
-          screenWidth={frame.width}
-        />
-
-        {/* IssieBoard Custom Keyboard - Bottom */}
-        <View style={[styles.keyboardContainer, { bottom: 0, height: keyboardHeight }]}>
-          <KeyboardPreview
-            style={[styles.keyboard, { height: keyboardHeight }]}
-            configJson={keyboardConfig}
-            language={currentLanguage}
-            text={currentText}
-            onKeyPress={handleKeyPress}
-            onSuggestionsChange={handleSuggestionsChange}
-            onOpenSettings={handleOpenSettings}
-            onHeightChange={(e) => {
-              const newHeight = e.nativeEvent.height - 40;
-              console.log('⌨️ Keyboard reported height:', e.nativeEvent.height, '→ setting container to:', newHeight);
-              // Update both ref and state
-              keyboardHeightRef.current = newHeight;
-              setKeyboardHeight(newHeight);
-            }}
+        {/* Favorites Bar - Below top section, Above Keyboard (hidden on phone landscape) */}
+        {!isPhoneLandscape && (
+          <FavoritesBar
+            onFavoritePress={handleFavoritePress}
+            height={Math.min(availableHeight * 0.4, isLandscape ? availableHeight * 0.4 : 250)}
+            navigation={navigation}
+            reloadTrigger={favoritesReloadTrigger}
+            screenWidth={frame.width}
+            isRTL={isRTL}
+            isLandscape={isLandscape}
+            isTablet={Math.min(frame.width, frame.height) >= 600}
+            symbolsInSuggestions={symbolsInSuggestions}
           />
+        )}
+
+        {/* Unified Keyboard + Suggestions Container */}
+        <View style={[styles.keyboardWrapper, { backgroundColor: keyboardBgColor }]}>
+          {/* IssieBoard Custom Keyboard */}
+          <View style={{ height: keyboardHeight }}>
+            <KeyboardPreview
+              style={[styles.keyboard, { height: keyboardHeight }]}
+              configJson={keyboardConfig}
+              language={currentLanguage}
+              text={currentText}
+              hideGlobeButton
+              onKeyPress={handleKeyPress}
+              onHeightChange={(e) => {
+                const newHeight = e.nativeEvent.height;
+                console.log('⌨️ Keyboard reported height:', newHeight);
+                keyboardHeightRef.current = newHeight;
+                setKeyboardHeight(newHeight);
+              }}
+            />
+          </View>
         </View>
       </View>
     </SafeAreaView>
+
   );
 };
 
@@ -797,29 +684,93 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    zIndex: 10
   },
-  topButton: {
-    flex: 1,
+  headerBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: colors.background,
+  },
+  menuButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: sizes.borderRadius.small,
-    margin: 2,
   },
-  topButtonText: {
-    fontSize: 32,
+  menuButtonText: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: 'bold',
   },
-  scrollableContent: {
-    // Remove flex, use fixed height instead
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.primary,
+    marginLeft: 12,
   },
-  keyboardContainer: {
-    position: "absolute", width: "100%",
-    backgroundColor: colors.surface,
+  textAreaRow: {
+    flex: 1,
+    flexDirection: 'row',
+    paddingLeft: 16,
+    paddingRight: 16,
+    marginTop: 10,
+    gap: 12,
+  },
+  textAreaContainer: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.15)',
+  },
+  speakFabWrapper: {
+    position: 'absolute',
+    bottom: 8,
+    right: 14,
+    justifyContent: 'flex-end',
+  },
+  speakFab: {
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    marginVertical: 5,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  speakFabIcon: {
+    fontSize: 18,
+    color: '#FFFFFF',
+  },
+  speakFabLabel: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  keyboardWrapper: {
+    borderRadius: 12,
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    right: 8,
+    padding: 8,
+    marginHorizontal: 8,
+    boxShadow: '4px 4px 20px rgba(0, 0, 0, 0.4)',
+    zIndex: 20,
+    elevation: 20,
   },
   keyboard: {
     flex: 1,
-  },
-  actionsContainer: {
-    width: '100%',
   },
 });
 

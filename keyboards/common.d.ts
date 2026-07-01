@@ -18,12 +18,38 @@ interface KeyboardKey {
   returnKeysetValue?: string;
   returnKeysetLabel?: string;
   forLanguages?: string[];
-  alwaysInclude?: boolean;
+  ifHasDiacritics?: boolean;
+  showForField?: string[];
+  flex?: boolean;
+  fontSize?: number;
 }
 
 interface KeyboardRow {
   keys: KeyboardKey[];
-  alwaysInclude?: boolean;
+}
+
+interface RowInjection {
+  prepend?: KeyboardKey[];
+  append?: KeyboardKey[];
+}
+
+interface KeysetOverride {
+  firstRow?: RowInjection;
+  secondRow?: RowInjection;
+  lastRow?: RowInjection;
+}
+
+interface StructuralVariant {
+  firstRow?: RowInjection;
+  secondRow?: RowInjection;
+  lastRow?: RowInjection;
+  keysetOverrides?: Record<string, KeysetOverride>;
+  bottomRow: KeyboardKey[];
+}
+
+interface Structural {
+  mobile: StructuralVariant;
+  large: StructuralVariant;
 }
 
 interface Keyset {
@@ -32,6 +58,7 @@ interface Keyset {
 }
 
 interface CommonKeysets {
+  structural: Structural;
   keysets: Keyset[];
 }
 

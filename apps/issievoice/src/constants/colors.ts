@@ -16,7 +16,7 @@ export const colors = {
   browseDark: '#7C3AED',
   
   // Text and backgrounds
-  background: '#FFFFFF',
+  background: '#EFF6FF',
   surface: '#F3F4F6',
   surfaceDark: '#E5E7EB',
   text: '#111827',

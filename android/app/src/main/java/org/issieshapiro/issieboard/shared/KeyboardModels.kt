@@ -30,7 +30,12 @@ data class KeyboardConfig(
     val keyGap: Int? = null,  // Gap between keys in dp (default: 3dp)
     val fontSizePreset: String? = null,  // Font size preset: "xs", "small", "normal", "large", "xl" (default: "normal")
     val heightPreset: String? = null,  // Keyboard height preset: "compact", "normal", "tall", "x-tall" (default: "normal")
-    val fontWeight: String? = null  // Font weight: "ultraLight", "thin", "light", "regular", "medium", "semibold", "bold", "heavy", "black" (default: "heavy")
+    val fontWeight: String? = null,  // Font weight: "ultraLight", "thin", "light", "regular", "medium", "semibold", "bold", "heavy", "black" (default: "heavy")
+    // Large-screen variant overrides (used on tablets)
+    val heightPresetLarge: String? = null,
+    val keyGapLarge: Int? = null,
+    val fontWeightLarge: String? = null,
+    val fontSizePresetLarge: String? = null
 ) {
     /** Check if word suggestions are enabled (defaults to true if not specified) */
     val isWordSuggestionsEnabled: Boolean
@@ -328,8 +333,8 @@ data class ParsedKey(
             val returnKeysetLabel = key.returnKeysetLabel ?: ""
             val nikkud = key.nikkud ?: emptyList()
             
-            // Get group template if exists - check by value first, then by type for special keys
-            val groupTemplate = groups[value] ?: if (value.isEmpty()) groups[keyType] else null
+            // Get group template if exists - check by value first, then by type as fallback
+            val groupTemplate = groups[value] ?: groups[keyType]
 
             // Debug logging for group lookup
             if (value.isNotEmpty() && value.length <= 3) {  // Only log for normal characters
@@ -667,8 +672,8 @@ object KeyboardHeightConstants {
     /** Suggestions bar height (reduced by 20% from 40) */
     const val SUGGESTIONS_BAR_HEIGHT: Float = 32f
 
-    /** Vertical spacing between rows */
-    const val ROW_SPACING: Float = 5f
+    /** Vertical spacing between rows (0 — gap is handled by key's vertical padding via keyGap) */
+    const val ROW_SPACING: Float = 0f
 }
 
 /** Configuration constants for font sizes.

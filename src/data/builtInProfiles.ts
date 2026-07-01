@@ -1,4 +1,6 @@
 import { StyleGroup } from '../../types';
+import { getStrings } from '../localization/strings';
+import type { Language } from '../localization/strings';
 
 /**
  * Built-in profile template definition
@@ -37,7 +39,7 @@ export const BUILT_IN_PROFILES: BuiltInProfileTemplate[] = [
       backgroundColor: 'default',  // Transparent/liquid glass effect on iOS
       fontSizePreset: 'normal',    // Normal font size
       heightPreset: 'normal',      // Normal keyboard height
-      fontWeight: 'heavy',
+      fontWeight: 'regular',
       keyGap: 3,
       wordSuggestionsEnabled: true,
       autoCorrectEnabled: false,
@@ -57,7 +59,7 @@ export const BUILT_IN_PROFILES: BuiltInProfileTemplate[] = [
       textColor: '#0000FF',         // Blue text
       fontSizePreset: 'normal',     // Normal font size
       heightPreset: 'normal',       // Normal keyboard height
-      fontWeight: 'heavy',
+      fontWeight: 'regular',
       keyGap: 3,
       wordSuggestionsEnabled: true,
       autoCorrectEnabled: false,
@@ -135,4 +137,20 @@ export const extractTemplateId = (profileId: string): string | undefined => {
  */
 export const isBuiltInProfileId = (profileId: string): boolean => {
   return extractTemplateId(profileId) !== undefined;
+};
+
+/**
+ * Get the localized display name for a built-in profile template
+ * @param templateId Template ID ('default', 'classic', 'high-contrast')
+ * @param language Language code ('he', 'en', 'ar')
+ * @returns Localized name, or the English name as fallback
+ */
+export const getLocalizedProfileName = (templateId: string, language: Language): string => {
+  const strings = getStrings(language);
+  const nameMap: Record<string, string> = {
+    'default': strings.profiles.builtInNames.default,
+    'classic': strings.profiles.builtInNames.classic,
+    'high-contrast': strings.profiles.builtInNames.highContrast,
+  };
+  return nameMap[templateId] || getBuiltInProfileTemplate(templateId)?.name || templateId;
 };

@@ -7,6 +7,7 @@
       "name": "Top Row",
       "description": "First row of letter keys",
       "members": ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
+      "orderedMembers": ["a", "b", "c", "d", "e", "f", "g", "h", "i", "A", "B", "C", "D", "E", "F", "G", "H", "I", "j","J"],
       "style": {
         "bgColor": "#E3F2FD",
         "color": "#1976D2"
@@ -17,6 +18,7 @@
       "name": "Middle Row",
       "description": "Second row of letter keys (home row)",
       "members": ["a", "s", "d", "f", "g", "h", "j", "k", "l", "A", "S", "D", "F", "G", "H", "J", "K", "L"],
+      "orderedMembers": [ "k", "l", "m", "n", "o", "p", "q", "r","s", "K", "L", "M", "N", "O", "P", "Q", "R", "S"],
       "style": {
         "bgColor": "#E8F5E9",
         "color": "#388E3C"
@@ -26,7 +28,8 @@
       "id": "bottom-row",
       "name": "Bottom Row",
       "description": "Third row of letter keys",
-      "members": ["z", "x", "c", "v", "b", "n", "m", "Z", "X", "C", "V", "B", "N", "M"],
+      "members": ["z", "x", "c", "v", "b", "n", "m", "Z", "X", "C", "V", "B", "N", "M", ",", "."],
+      "orderedMembers": [ "t", "u", "v", "w", "x", "y", "z", "T", "U", "V", "W", "X", "Y", "Z", ",", "."],
       "style": {
         "bgColor": "#FFF3E0",
         "color": "#F57C00"
@@ -37,6 +40,7 @@
       "name": "Left Half",
       "description": "Left side keys",
       "members": ["q", "w", "e", "r", "t", "a", "s", "d", "f", "z", "x", "c", "v", "Q", "W", "E", "R", "T", "A", "S", "D", "F", "Z", "X", "C", "V"],
+      "orderedMembers": ["a", "b", "c", "d", "e", "k", "l", "m", "n", "t", "u", "v", "w", "A", "B", "C", "D", "E", "K", "L", "M", "N", "T", "U", "V" ,"W"],
       "style": {
         "bgColor": "#FCE4EC",
         "color": "#C2185B"
@@ -46,7 +50,8 @@
       "id": "right-half",
       "name": "Right Half",
       "description": "Right side keys",
-      "members": ["y", "u", "i", "o", "p", "h", "j", "k", "l", "b", "n", "m", "Y", "U", "I", "O", "P", "H", "J", "K", "L", "B", "N", "M"],
+      "members": ["y", "u", "i", "g", "o", "p", "h", "j", "k", "l", "b", "n", "m", "Y", "U", "I", "G", "O", "P", "H", "J", "K", "L", "B", "N", "M", ",", "."],
+      "orderedMembers": ["f", "g", "h", "i", "j", "o", "p", "q", "r", "s", "x", "y", "z", "F", "G", "H", "I","J", "O", "P", "Q", "R", "S", "X", "Y", "Z", ",", "."],
       "style": {
         "bgColor": "#F3E5F5",
         "color": "#7B1FA2"
@@ -57,6 +62,7 @@
       "name": "Left Third",
       "description": "Left third of keys",
       "members": ["q", "w", "e", "a", "s", "z", "x", "Q", "W", "E", "A", "S", "Z", "X"],
+      "orderedMembers": ["a", "b", "c", "k", "l", "m", "t", "u", "A", "B", "C", "K", "L", "M", "T", "U"],
       "style": {
         "bgColor": "#E0F2F1",
         "color": "#00695C"
@@ -67,6 +73,7 @@
       "name": "Middle Third",
       "description": "Middle third of keys",
       "members": ["r", "t", "y", "d", "f", "g", "h", "c", "v", "b", "R", "T", "Y", "D", "F", "G", "H", "C", "V", "B"],
+      "orderedMembers": ["d", "e", "f", "n", "o", "p", "v", "w", "x", "D", "E", "F", "N", "O", "P", "V", "W", "X"],
       "style": {
         "bgColor": "#FFF9C4",
         "color": "#F57F17"
@@ -76,7 +83,8 @@
       "id": "right-third",
       "name": "Right Third",
       "description": "Right third of keys",
-      "members": ["u", "i", "o", "p", "j", "k", "l", "n", "m", "U", "I", "O", "P", "J", "K", "L", "N", "M"],
+      "members": ["u", "i", "o", "p", "j", "k", "l", "n", "m", "U", "I", "O", "P", "J", "K", "L", "N", "M", ",", "."],
+      "orderedMembers": ["g", "h", "i", "j", "q", "r", "s", "y", "z", "G", "H", "I", "J", "Q", "R", "S", "Y", "Z", ",", "."],
       "style": {
         "bgColor": "#FFEBEE",
         "color": "#C62828"
@@ -86,10 +94,50 @@
       "id": "vowels",
       "name": "Vowels",
       "description": "All vowel keys",
-      "members": ["a", "e", "i", "o", "u", "y", "A", "E", "I", "O", "U", "Y"],
+      "members": ["a", "e", "i", "o", "u", "A", "E", "I", "O", "U"],
       "style": {
         "bgColor": "#E1BEE7",
         "color": "#6A1B9A"
+      }
+    },
+    {
+      "id": "space-key",
+      "name": "Space Key",
+      "description": "Space bar key",
+      "members": [" "],
+      "style": {
+        "bgColor": "#4DD0E1",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "delete-key",
+      "name": "Delete Key",
+      "description": "Backspace/delete key",
+      "members": ["backspace"],
+      "style": {
+        "bgColor": "#4DD0E1",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "enter-key",
+      "name": "Enter Key",
+      "description": "Enter/return key",
+      "members": ["enter"],
+      "style": {
+        "bgColor": "#4DD0E1",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "other-keys",
+      "name": "Other Keys",
+      "description": "Change-to-numbers, language-selection, dismiss keys",
+      "members": ["keyset", "next-keyboard", "language", "settings", "close", "nikkud"],
+      "style": {
+        "bgColor": "#4DD0E1",
+        "color": "#000000"
       }
     }
   ]

@@ -42,27 +42,31 @@ class NikkudPickerController(private val context: Context) {
     var onDismiss: (() -> Unit)? = null
     
     // MARK: - UI Constants
-    
-    private val buttonSize: Int = dpToPx(50)
+
     private val spacing: Int = dpToPx(10)
     private val padding: Int = dpToPx(16)
-    
+
     // MARK: - State
-    
+
     /** Current letter being edited in nikkud picker */
     private var currentLetter: String = ""
-    
+
     /** Modifier toggle states - Key: modifier ID, Value: selected option ID (null = off) */
     private var modifierStates: MutableMap<String, String?> = mutableMapOf()
-    
+
     /** Reference to the container view */
     private var container: ViewGroup? = null
-    
+
     /** Current keyboard configuration */
     private var config: KeyboardConfig? = null
-    
+
     /** Current keyboard ID */
     private var currentKeyboardId: String? = null
+
+    /** Key styling from keyboard config */
+    private var keyRowHeight: Int = dpToPx(50)
+    private var keyFontSize: Float = 24f
+    private var keyFontWeight: Int = Typeface.BOLD
     
     /** Current popup window */
     private var currentPopupWindow: PopupWindow? = null
@@ -91,10 +95,14 @@ class NikkudPickerController(private val context: Context) {
     // MARK: - Configuration
     
     /** Set the configuration for diacritics lookup */
-    fun configure(config: KeyboardConfig?, keyboardId: String?, container: ViewGroup?) {
+    fun configure(config: KeyboardConfig?, keyboardId: String?, container: ViewGroup?,
+                  rowHeight: Int = dpToPx(50), fontSize: Float = 24f, fontWeight: Int = Typeface.BOLD) {
         this.config = config
         this.currentKeyboardId = keyboardId
         this.container = container
+        this.keyRowHeight = rowHeight
+        this.keyFontSize = fontSize
+        this.keyFontWeight = fontWeight
     }
     
     /** Get the current letter being edited */
@@ -252,16 +260,16 @@ class NikkudPickerController(private val context: Context) {
             
             rowOptions.forEachIndexed { colIndex, option ->
                 val button = createNikkudButton(option.caption ?: option.value, option.value)
-                val params = LinearLayout.LayoutParams(buttonSize, buttonSize)
+                val params = LinearLayout.LayoutParams(keyRowHeight, keyRowHeight)
                 if (colIndex > 0) params.marginStart = spacing
                 rowLayout.addView(button, params)
             }
             mainLayout.addView(rowLayout)
         }
-        
+
         // Create and show popup
         showPopup(mainLayout, anchorView)
-        
+
         debugLog("✅ Nikkud picker displayed with ${nikkudOptions.size} explicit options")
     }
     
@@ -321,7 +329,7 @@ class NikkudPickerController(private val context: Context) {
             
             rowOptions.forEachIndexed { colIndex, option ->
                 val button = createNikkudButton(option.caption ?: option.value, option.value)
-                val params = LinearLayout.LayoutParams(buttonSize, buttonSize)
+                val params = LinearLayout.LayoutParams(keyRowHeight, keyRowHeight)
                 if (colIndex > 0) params.marginStart = spacing
                 rowLayout.addView(button, params)
             }
@@ -426,7 +434,8 @@ class NikkudPickerController(private val context: Context) {
     private fun createNikkudButton(caption: String, value: String): Button {
         return Button(context).apply {
             text = caption
-            textSize = 24f
+            textSize = keyFontSize
+            setTypeface(typeface, keyFontWeight)
             gravity = Gravity.CENTER
             isAllCaps = false
             
@@ -452,7 +461,7 @@ class NikkudPickerController(private val context: Context) {
         }
         
         val applicableModifiers = getModifiersForLetter(letter)
-        val modifierButtonSize = (buttonSize * 0.85).toInt()
+        val modifierButtonSize = (keyRowHeight * 0.85).toInt()
         
         for ((index, modifier) in applicableModifiers.withIndex()) {
             val currentState = modifierStates[modifier.id]
@@ -516,8 +525,8 @@ class NikkudPickerController(private val context: Context) {
     private fun createModifierKeyButton(title: String, isSelected: Boolean, size: Int): Button {
         return Button(context).apply {
             text = title
-            textSize = 20f
-            setTypeface(typeface, Typeface.BOLD)
+            textSize = keyFontSize * 0.85f
+            setTypeface(typeface, keyFontWeight)
             gravity = Gravity.CENTER
             isAllCaps = false
             

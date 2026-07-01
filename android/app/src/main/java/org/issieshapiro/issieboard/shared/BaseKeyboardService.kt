@@ -294,6 +294,9 @@ abstract class BaseKeyboardService : InputMethodService() {
         } else {
             initialKeyset = loadSavedKeyset() ?: config.defaultKeyset ?: "abc"
         }
+
+        // Resolve to large-screen keyset variant on tablet if available
+        initialKeyset = renderer?.resolveKeysetId(initialKeyset) ?: initialKeyset
         
         renderer?.renderKeyboard(
             container = container,
@@ -322,14 +325,15 @@ abstract class BaseKeyboardService : InputMethodService() {
         val imeOptions = info?.imeOptions ?: 0
         val actionId = imeOptions and EditorInfo.IME_MASK_ACTION
         
+        // Use "icon:" prefix with drawable resource names (Android equivalent of iOS "sf:" prefix with SF Symbols)
         val enterLabel = when (actionId) {
-            EditorInfo.IME_ACTION_SEARCH -> "Search"
-            EditorInfo.IME_ACTION_GO -> "Go"
-            EditorInfo.IME_ACTION_SEND -> "Send"
-            EditorInfo.IME_ACTION_NEXT -> "Next"
-            EditorInfo.IME_ACTION_DONE -> "Done"
-            EditorInfo.IME_ACTION_PREVIOUS -> "Previous"
-            else -> "↵"
+            EditorInfo.IME_ACTION_SEARCH -> "icon:ic_enter_search"
+            EditorInfo.IME_ACTION_GO -> "icon:ic_enter_go"
+            EditorInfo.IME_ACTION_SEND -> "icon:ic_enter_send"
+            EditorInfo.IME_ACTION_NEXT -> "icon:ic_enter_go"
+            EditorInfo.IME_ACTION_DONE -> "icon:ic_enter_done"
+            EditorInfo.IME_ACTION_PREVIOUS -> "icon:ic_enter_go"
+            else -> "icon:ic_enter_default"
         }
         
         // Determine field type for key filtering
@@ -839,7 +843,12 @@ class KeyboardContainerView(context: Context) : android.widget.LinearLayout(cont
     
     init {
         orientation = VERTICAL
-        
+
+        // Force LTR layout direction so keyboard rows render correctly
+        // even when device language is RTL (e.g. Hebrew, Arabic).
+        // The keyboard JSON config already defines correct key order.
+        layoutDirection = android.view.View.LAYOUT_DIRECTION_LTR
+
         // Use WRAP_CONTENT like the old working SimpleKeyboardService
         layoutParams = android.view.ViewGroup.LayoutParams(
             android.view.ViewGroup.LayoutParams.MATCH_PARENT,

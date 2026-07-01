@@ -54,6 +54,7 @@ class BaseKeyboardViewController: UIInputViewController {
         setupKeyboard()
         setupKeyboardEngine()
         loadPreferences()
+        view.layoutIfNeeded()
         startObservingPreferences()
     }
     
@@ -67,17 +68,27 @@ class BaseKeyboardViewController: UIInputViewController {
         assistant.trailingBarButtonGroups = []
 
         loadPreferences()
+        keyboardEngine.seedShadowContext()
         keyboardEngine.updateSuggestions()
 
         // Apply auto-shift if at beginning of sentence
         keyboardEngine.autoShiftAfterPunctuation()
     }
-    
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        // Write full access status so the container app can read it
+        preferences.setString(self.hasFullAccess ? "true" : "false", forKey: "fullAccess_\(keyboardLanguage)")
+    }
+
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         updateGlobeButtonVisibility()
         if parsedConfig != nil {
-            keyboardEngine.renderer.rerenderIfNeeded()
+            let didRerender = keyboardEngine.renderer.rerenderIfNeeded()
+            if didRerender {
+                updateKeyboardHeight()
+            }
         }
     }
     
@@ -89,37 +100,53 @@ class BaseKeyboardViewController: UIInputViewController {
     override func textWillChange(_ textInput: UITextInput?) {
         super.textWillChange(textInput)
     }
-    
+
+    override func selectionWillChange(_ textInput: UITextInput?) {
+        super.selectionWillChange(textInput)
+    }
+
+    override func selectionDidChange(_ textInput: UITextInput?) {
+        super.selectionDidChange(textInput)
+        // Seed shadow context on cursor move — may briefly have valid context
+        keyboardEngine.seedShadowContext()
+        if keyboardEngine.renderer.isNikkudTopRowActive {
+            keyboardEngine.renderer.updateNikkudTopRowModifierStates()
+        }
+    }
+
     override func textDidChange(_ textInput: UITextInput?) {
         super.textDidChange(textInput)
 
-        // Skip suggestion detection if in cursor movement mode
         if !keyboardEngine.renderer.isInCursorMoveMode() {
             keyboardEngine.handleTextChanged()
         }
 
-        // Check if we should auto-shift after text change (e.g., after paste, autocorrect, external keyboard)
-        // But skip if text is empty and shift is already active (avoid loops)
-        let beforeText = textDocumentProxy.documentContextBeforeInput ?? ""
-        if beforeText.isEmpty && keyboardEngine.renderer.isShiftActive() {
-            debugLog("📝 textDidChange: Text empty and shift already active, skipping auto-shift check")
-            return
+        // Seed shadow synchronously here — proxy may briefly have valid context right at textDidChange
+        keyboardEngine.seedShadowContext()
+
+        if keyboardEngine.renderer.isNikkudTopRowActive {
+            keyboardEngine.renderer.updateNikkudTopRowModifierStates()
         }
 
-        debugLog("📝 textDidChange called, checking auto-shift")
+        let beforeText = textDocumentProxy.documentContextBeforeInput ?? ""
+        if beforeText.isEmpty && keyboardEngine.renderer.isShiftActive() {
+            return
+        }
         keyboardEngine.autoShiftAfterPunctuation()
     }
     
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+    }
+
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
         stopObservingPreferences()
     }
-    
+
     deinit {
         stopObservingPreferences()
     }
-    
-    // MARK: - Setup
     
     private var keyboardHeightConstraint: NSLayoutConstraint?
     
@@ -127,12 +154,15 @@ class BaseKeyboardViewController: UIInputViewController {
         keyboardView = UIView()
         keyboardView.backgroundColor = .clear
         view.addSubview(keyboardView)
-        
+
         keyboardView.translatesAutoresizingMaskIntoConstraints = false
-        
-        let heightConstraint = keyboardView.heightAnchor.constraint(equalToConstant: 216)
+
+        // Use persisted height from last session to avoid the initial oversized
+        // keyboardDidShow (216pt default) followed by a corrected one
+        let initialHeight = cachedKeyboardHeight()
+        let heightConstraint = keyboardView.heightAnchor.constraint(equalToConstant: initialHeight)
         keyboardHeightConstraint = heightConstraint
-        
+
         NSLayoutConstraint.activate([
             keyboardView.leftAnchor.constraint(equalTo: view.leftAnchor),
             keyboardView.rightAnchor.constraint(equalTo: view.rightAnchor),
@@ -149,9 +179,44 @@ class BaseKeyboardViewController: UIInputViewController {
         let shouldDisable = shouldDisableSuggestionsForKeyboardType()
         let suggestionsEnabled = config.isWordSuggestionsEnabled && !shouldDisable
 
-        let requiredHeight = keyboardEngine.renderer.calculateKeyboardHeight(for: config, keysetId: keyboardEngine.renderer.currentKeysetId, suggestionsEnabled: suggestionsEnabled)
+        let requiredHeight = keyboardEngine.renderer.calculateKeyboardHeight(
+            for: config,
+            keysetId: keyboardEngine.renderer.currentKeysetId,
+            suggestionsEnabled: suggestionsEnabled,
+            nikkudTopRowActive: keyboardEngine.renderer.isNikkudTopRowActive
+        )
+        print("📏 updateKeyboardHeight: required=\(requiredHeight), current=\(keyboardHeightConstraint?.constant ?? -1), isNikkudTopRowActive=\(keyboardEngine.renderer.isNikkudTopRowActive)")
+
+        // Always apply the height after a full re-render — config may have changed
+        // the nikkud mode (topRowAlways↔topRow) which affects row count
         keyboardHeightConstraint?.constant = requiredHeight
         view.setNeedsLayout()
+        view.layoutIfNeeded()
+        persistKeyboardHeight(requiredHeight)
+    }
+
+    // MARK: - Height Caching
+
+    private func heightCacheKey() -> String {
+        let isLandscape = UIScreen.main.bounds.width > UIScreen.main.bounds.height
+        let orientation = isLandscape ? "landscape" : "portrait"
+        return "cachedKbHeight_\(keyboardLanguage)_\(orientation)"
+    }
+
+    private func cachedKeyboardHeight() -> CGFloat {
+        let key = heightCacheKey()
+        if let stored = preferences.getString(forKey: key),
+           let height = Double(stored), height > 0 {
+            debugLog("📐 Using cached keyboard height: \(height) for key: \(key)")
+            return CGFloat(height)
+        }
+        return 216 // fallback for first launch
+    }
+
+    private func persistKeyboardHeight(_ height: CGFloat) {
+        let key = heightCacheKey()
+        preferences.setString(String(Double(height)), forKey: key)
+        debugLog("📐 Persisted keyboard height: \(height) for key: \(key)")
     }
     
     private func setupKeyboardEngine() {
@@ -160,12 +225,8 @@ class BaseKeyboardViewController: UIInputViewController {
         keyboardEngine = KeyboardEngine(textProxy: systemProxy, language: keyboardLanguage)
 
         // Set up engine callbacks
-        keyboardEngine.onNextKeyboard = { [weak self] in
-            self?.advanceToNextInputMode()
-        }
-
-        keyboardEngine.onShowKeyboardList = { [weak self] button, gesture in
-            self?.showKeyboardList(from: button, with: gesture)
+        keyboardEngine.onHandleInputModeList = { [weak self] button, event in
+            self?.handleInputModeList(from: button, with: event)
         }
 
         keyboardEngine.onDismissKeyboard = { [weak self] in
@@ -190,6 +251,17 @@ class BaseKeyboardViewController: UIInputViewController {
 
         keyboardEngine.onRenderKeyboard = { [weak self] in
             self?.renderKeyboard()
+        }
+
+        keyboardEngine.renderer.onNikkudStateChanged = { [weak self] in
+            guard let self else { return }
+            print("🔔 onNikkudStateChanged fired — isNikkudTopRowActive=\(self.keyboardEngine.renderer.isNikkudTopRowActive)")
+            self.updateKeyboardHeight()
+        }
+
+        keyboardEngine.renderer.onNikkudActivePersist = { [weak self] active in
+            guard let self = self else { return }
+            self.preferences.setString(active ? "true" : "false", forKey: "nikkudActive_\(self.keyboardLanguage)")
         }
 
         // Configure renderer
@@ -263,6 +335,11 @@ class BaseKeyboardViewController: UIInputViewController {
             print("⚙️ [ConfigLoad] fontSizePreset: \(parsedConfig?.fontSizePreset ?? "nil")")
             print("⚙️ [ConfigLoad] fontName: \(parsedConfig?.fontName ?? "nil")")
             print("⚙️ [ConfigLoad] fontWeight: \(parsedConfig?.fontWeight ?? "nil")")
+            // Restore persisted nikkud state before rendering
+            let persistedNikkud = preferences.getString(forKey: "nikkudActive_\(keyboardLanguage)") == "true"
+            keyboardEngine.renderer.restoreNikkudActive(persistedNikkud)
+            // Seed shadow context now — documentContextBeforeInput is valid at load time
+            keyboardEngine.seedShadowContext()
             renderKeyboard()
         } catch {
             errorLog("Failed to parse config: \(error)")
@@ -325,6 +402,9 @@ class BaseKeyboardViewController: UIInputViewController {
             initialKeyset = config.defaultKeyset ?? "abc"
         }
 
+        // Resolve to large-screen keyset variant on iPad if available
+        initialKeyset = keyboardEngine.renderer.resolveKeysetId(initialKeyset)
+
         keyboardEngine.renderer.renderKeyboard(
             in: keyboardView,
             config: config,
@@ -365,17 +445,17 @@ class BaseKeyboardViewController: UIInputViewController {
         
         let enterLabel: String
         switch returnKeyType {
-        case .search: enterLabel = "Search"
-        case .go: enterLabel = "Go"
-        case .send: enterLabel = "Send"
-        case .next: enterLabel = "Next"
-        case .done: enterLabel = "Done"
-        case .continue: enterLabel = "Continue"
-        case .join: enterLabel = "Join"
-        case .route: enterLabel = "Route"
-        case .emergencyCall: enterLabel = "Call"
-        case .google: enterLabel = "Google"
-        case .yahoo: enterLabel = "Yahoo"
+        case .search: enterLabel = "sf:magnifyingglass"
+        case .go: enterLabel = "sf:arrow.forward"
+        case .send: enterLabel = "sf:paperplane.fill"
+        case .next: enterLabel = "sf:arrow.forward"
+        case .done: enterLabel = "sf:checkmark"
+        case .continue: enterLabel = "sf:arrow.forward"
+        case .join: enterLabel = "sf:arrow.right.to.line"
+        case .route: enterLabel = "sf:arrow.triangle.turn.up.right.diamond.fill"
+        case .emergencyCall: enterLabel = "sf:phone.fill"
+        case .google: enterLabel = "sf:magnifyingglass"
+        case .yahoo: enterLabel = "sf:magnifyingglass"
         default: enterLabel = "↵"
         }
         
@@ -461,8 +541,7 @@ class BaseKeyboardViewController: UIInputViewController {
     /// Auto-return from special characters keyboard (123/#+=) to main keyboard (abc) after space
     /// Behavior 2: If user is on 123 or #+= keyboard, return to abc after typing special char + space
     private func autoReturnFromSpecialChars() {
-        guard let config = parsedConfig else { return }
-        keyboardEngine.autoReturnFromSpecialChars(config: config)
+        keyboardEngine.autoReturnFromSpecialChars()
     }
     
     // MARK: - Globe Button
@@ -476,18 +555,6 @@ class BaseKeyboardViewController: UIInputViewController {
             lastNeedsInputModeSwitchKey = shouldShowGlobe
             keyboardEngine.renderer.setShowGlobeButton(shouldShowGlobe)
         }
-    }
-
-    /// Show the system keyboard picker list
-    /// Called when the globe button is long-pressed
-    private func showKeyboardList(from button: UIView, with gesture: UILongPressGestureRecognizer) {
-        // iOS doesn't provide a direct public API to show the keyboard picker programmatically
-        // As a workaround, we advance to the next keyboard (same as a tap)
-        // In the future, we could implement a custom keyboard picker UI
-        self.advanceToNextInputMode()
-
-        // Alternative: You could implement a custom keyboard picker here
-        // showing all available keyboards from UserDefaults "AppleKeyboards"
     }
 
     // MARK: - Settings

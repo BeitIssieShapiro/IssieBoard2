@@ -3,20 +3,51 @@ import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
 import * as ScreenSizer from '@bam.tech/react-native-screen-sizer';
+import { Alert, Text, TextInput } from 'react-native';
 import MainScreen from './src/screens/MainScreen';
 import BrowseScreen from './src/screens/BrowseScreen';
-import SettingsScreen from './src/screens/SettingsScreen';
-import {EditorScreen} from '../../src/screens/EditorScreen';
+import NewSettingsScreen from './src/screens/NewSettingsScreen';
 import {TextProvider} from './src/context/TextContext';
 import {TTSProvider} from './src/context/TTSContext';
 import {LocalizationProvider} from './src/context/LocalizationContext';
 import {NotificationProvider} from './src/context/NotificationContext';
+import { initializeFirebase } from '../../src/firebase-config';
+import { loadLanguage, LANGUAGE_SETTINGS } from '@beitissieshapiro/issie-shared';
+import { useIncomingURL } from '../../src/common/linking-hook';
+import { importPackage, ImportInfo } from '../../src/import-export';
+import { ImportInfoDialog } from '../../src/common/import-info-dialog';
+
+// Disable font scaling globally for accessibility keyboard app
+(Text as any).defaultProps = { ...((Text as any).defaultProps || {}), allowFontScaling: false };
+(TextInput as any).defaultProps = { ...((TextInput as any).defaultProps || {}), allowFontScaling: false };
 
 ScreenSizer.setup();
 
 const Stack = createStackNavigator();
 
 const App = () => {
+  React.useEffect(() => {
+    initializeFirebase();
+    loadLanguage(LANGUAGE_SETTINGS.hebrew);
+  }, []);
+
+  const [importResult, setImportResult] = React.useState<ImportInfo | null>(null);
+
+  const handleImportURL = React.useCallback(async (url: string) => {
+    try {
+      const info: ImportInfo = { importedProfiles: [], skippedExistingProfiles: [] };
+      await importPackage(url, info);
+      if (info.importedProfiles.length > 0 || info.skippedExistingProfiles.length > 0) {
+        setImportResult(info);
+      }
+    } catch (error) {
+      console.warn('Import failed:', error);
+      Alert.alert('Import Failed', 'This file is not a valid IssieBoard keyboard file.');
+    }
+  }, []);
+
+  useIncomingURL(handleImportURL);
+
   return (
     <SafeAreaProvider>
       <LocalizationProvider>
@@ -38,17 +69,7 @@ const App = () => {
                       }}>
                       <Stack.Screen name="Main" component={MainScreen} />
                       <Stack.Screen name="Browse" component={BrowseScreen} />
-                      <Stack.Screen name="Settings" component={SettingsScreen} />
-                      <Stack.Screen name="KeyboardSettings">
-                        {(props: any) => (
-                          <EditorScreen
-                            {...props}
-                            appContext="issievoice"
-                            initialLanguage={props.route.params?.initialLanguage}
-                            onClose={() => props.navigation.goBack()}
-                          />
-                        )}
-                      </Stack.Screen>
+                      <Stack.Screen name="Settings" component={NewSettingsScreen} />
                     </Stack.Navigator>
                   </NavigationContainer>
                 </ScreenSizer.Wrapper>
@@ -61,17 +82,7 @@ const App = () => {
                     }}>
                     <Stack.Screen name="Main" component={MainScreen} />
                     <Stack.Screen name="Browse" component={BrowseScreen} />
-                    <Stack.Screen name="Settings" component={SettingsScreen} />
-                    <Stack.Screen name="KeyboardSettings">
-                      {(props) => (
-                        <EditorScreen
-                          {...props}
-                          appContext="issievoice"
-                          initialLanguage={props.route.params?.initialLanguage}
-                          onClose={() => props.navigation.goBack()}
-                        />
-                      )}
-                    </Stack.Screen>
+                    <Stack.Screen name="Settings" component={NewSettingsScreen} />
                   </Stack.Navigator>
                 </NavigationContainer>
               )}
@@ -79,6 +90,12 @@ const App = () => {
           </TTSProvider>
         </NotificationProvider>
       </LocalizationProvider>
+      {importResult && (
+        <ImportInfoDialog
+          importInfo={importResult}
+          onClose={() => setImportResult(null)}
+        />
+      )}
     </SafeAreaProvider>
   );
 };

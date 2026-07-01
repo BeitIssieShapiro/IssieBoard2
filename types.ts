@@ -27,6 +27,7 @@ export interface StyleGroup {
     createdAt: string;               // ISO timestamp
     isBuiltIn?: boolean;             // System groups can't be deleted
     active?: boolean;                // If false, group is saved but not applied to preview (defaults to true)
+    presetId?: string;               // If set, this group was created from a predefined rule (e.g., "top-row") — members auto-update on keyboard variant switch
 }
 
 // Predefined Style Rule (from JSON files)
@@ -80,6 +81,7 @@ export interface DiacriticItem {
     excludeFor?: string[];   // If present, don't show for these letters
     isReplacement?: boolean; // If true, replaces the letter entirely
     isAdvanced?: boolean;    // If true, this is an advanced diacritic (hidden in simple mode)
+    sampleBase?: string;     // Override the base letter used for display in settings (e.g. "ו" for cholam)
 }
 
 // Option for a multi-option modifier (like shin/sin)
@@ -114,6 +116,7 @@ export interface DiacriticsSettings {
     modifierEnabled?: boolean;    // Backward compatibility: global toggle for all modifiers
     disabled?: boolean;           // If true, completely disable nikkud for this keyboard (hide nikkud key)
     simpleMode?: boolean;         // If true, hide advanced diacritics (default: true for out-of-box experience)
+    nikkudMode?: 'popup' | 'topRow' | 'topRowAlways'; // Input mode: 'popup' (default), 'topRow', or 'topRowAlways' (always-on top row, no nikkud button)
 }
 
 // Row containing keys

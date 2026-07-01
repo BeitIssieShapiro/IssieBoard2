@@ -1,4 +1,5 @@
 import DefaultPreference from 'react-native-default-preference';
+import { NativeModules } from 'react-native';
 
 export interface PreferenceInfo {
   appGroup: string;
@@ -11,6 +12,11 @@ export interface PreferenceInfo {
 export interface SetResult {
   success: boolean;
   [key: string]: any;
+}
+
+export interface KeyboardSetupStatus {
+  isAdded: boolean | null;
+  hasFullAccess: boolean | null;
 }
 
 /**
@@ -199,6 +205,21 @@ class KeyboardPreferences {
     }
   }
 
+  /**
+   * Set a string value without the profile_ prefix
+   */
+  async setString(key: string, value: string): Promise<SetResult> {
+    try {
+      await DefaultPreference.setName('issieboard_keyboard_prefs');
+      await DefaultPreference.set(key, value);
+      console.log('📝 Android: Set string:', key);
+      return { success: true };
+    } catch (error) {
+      console.error('❌ Android: Failed to set string', error);
+      return { success: false, error: String(error) };
+    }
+  }
+
   async printAllPreferences(): Promise<PreferenceInfo> {
     const profile = await this.getCurrentProfile();
     const language = await this.getSelectedLanguage();
@@ -265,6 +286,27 @@ class KeyboardPreferences {
     // TODO: Implement deep linking from keyboard to app on Android
     console.log('📱 [KeyboardPreferences Android] addLaunchKeyboardListener called (not implemented yet)');
     return { remove: () => {} };
+  }
+
+  /**
+   * Get the keyboard setup status for a specific language
+   * Checks if the IssieBoard IME service is enabled in Android system settings
+   */
+  async getKeyboardSetupStatus(language: string): Promise<KeyboardSetupStatus> {
+    try {
+      const { KeyboardSetupModule } = NativeModules;
+      console.log('📱 [KeyboardSetup] Module available:', !!KeyboardSetupModule, 'language:', language);
+      if (KeyboardSetupModule) {
+        const result = await KeyboardSetupModule.getKeyboardSetupStatus(language);
+        console.log('📱 [KeyboardSetup] Result:', JSON.stringify(result));
+        return result;
+      }
+      console.log('📱 [KeyboardSetup] Module not available, returning null');
+      return { isAdded: null, hasFullAccess: null };
+    } catch (e) {
+      console.log('📱 [KeyboardSetup] Error:', e);
+      return { isAdded: null, hasFullAccess: null };
+    }
   }
 }
 

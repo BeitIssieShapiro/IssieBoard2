@@ -1,52 +1,78 @@
 package org.issieshapiro.issieboard
 
+import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
+import android.net.Uri
 import android.os.Bundle
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnabled
 import com.facebook.react.defaults.DefaultReactActivityDelegate
+import java.io.File
+import java.io.FileOutputStream
 
-/**
- * MainActivity for IssieVoice app
- * Returns "IssieVoice" as the main component name to load the IssieVoice React Native app
- *
- * Screen orientation:
- * - Phones (small/normal): Portrait only
- * - Tablets (large/xlarge): All orientations
- */
 class MainActivity : ReactActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
+    intent = modifyIntentForSharing(intent)
     super.onCreate(savedInstanceState)
 
-    // Set screen orientation based on device size
-    // Tablets (sw600dp+) get all orientations, phones get portrait only
     val screenLayout = resources.configuration.screenLayout and Configuration.SCREENLAYOUT_SIZE_MASK
     requestedOrientation = when (screenLayout) {
       Configuration.SCREENLAYOUT_SIZE_LARGE,
-      Configuration.SCREENLAYOUT_SIZE_XLARGE -> {
-        // Tablets: allow all orientations
-        ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
-      }
-      else -> {
-        // Phones: portrait only
-        ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
-      }
+      Configuration.SCREENLAYOUT_SIZE_XLARGE -> ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
+      else -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
     }
   }
 
-  /**
-   * Returns the name of the main component registered from JavaScript.
-   * This loads the IssieVoice app instead of IssieBoardNG.
-   */
   override fun getMainComponentName(): String = "IssieVoice"
 
-  /**
-   * Returns the instance of the [ReactActivityDelegate]. We use [DefaultReactActivityDelegate]
-   * which allows you to enable New Architecture with a single boolean flags [fabricEnabled]
-   */
   override fun createReactActivityDelegate(): ReactActivityDelegate =
       DefaultReactActivityDelegate(this, mainComponentName, fabricEnabled)
+
+  override fun onNewIntent(intent: Intent?) {
+    val modifiedIntent = modifyIntentForSharing(intent)
+    super.onNewIntent(modifiedIntent)
+  }
+
+  private fun copyContentUriToTempFile(uri: Uri): Uri? {
+    try {
+      val inputStream = contentResolver.openInputStream(uri) ?: return null
+      val fileName = "shared_${System.currentTimeMillis()}.zip"
+      val tempFile = File(cacheDir, fileName)
+      FileOutputStream(tempFile).use { output ->
+        inputStream.use { input ->
+          input.copyTo(output)
+        }
+      }
+      return Uri.fromFile(tempFile)
+    } catch (e: Exception) {
+      android.util.Log.e("MainActivity", "Failed to copy content URI to temp", e)
+      return null
+    }
+  }
+
+  private fun modifyIntentForSharing(intent: Intent?): Intent? {
+    intent ?: return null
+
+    val sharedUri: Uri? = if (Intent.ACTION_SEND == intent.action) {
+      @Suppress("DEPRECATION")
+      intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+    } else {
+      intent.data
+    }
+
+    sharedUri?.let { uri ->
+      val resolvedUri = if (uri.scheme == "content") {
+        copyContentUriToTempFile(uri) ?: uri
+      } else {
+        uri
+      }
+      intent.data = resolvedUri
+      intent.action = Intent.ACTION_VIEW
+    }
+
+    return intent
+  }
 }

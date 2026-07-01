@@ -253,4 +253,38 @@ class KeyboardPreferencesModule: RCTEventEmitter {
             resolver(NSNull())
         }
     }
+
+    // MARK: - Keyboard Setup Status
+
+    @objc
+    func getKeyboardSetupStatus(_ language: String, resolver: RCTPromiseResolveBlock, rejecter: RCTPromiseRejectBlock) {
+        let bundleIdMap: [String: String] = [
+            "en": "com.issieshapiro.Issieboard.IssieBoardEn",
+            "he": "com.issieshapiro.Issieboard.IssieBoardHe",
+            "ar": "com.issieshapiro.Issieboard.IssieBoardAr",
+        ]
+
+        // Check if keyboard is added (AppleKeyboards is in standard UserDefaults, NOT App Group)
+        let enabledKeyboards = UserDefaults.standard.object(forKey: "AppleKeyboards") as? [String]
+        let targetBundleId = bundleIdMap[language] ?? ""
+
+        var isAdded: Any = NSNull()  // null = AppleKeyboards key unavailable
+        if let keyboards = enabledKeyboards {
+            isAdded = keyboards.contains(targetBundleId)
+        }
+
+        // Check full access status from App Group shared preferences
+        let fullAccessValue = preferences.getString(forKey: "fullAccess_\(language)")
+        var hasFullAccess: Any = NSNull() 
+        if fullAccessValue == "true" {
+            hasFullAccess = true
+        } else if fullAccessValue == "false" {
+            hasFullAccess = false
+        }
+
+        resolver([
+            "isAdded": isAdded,
+            "hasFullAccess": hasFullAccess,
+        ])
+    }
 }

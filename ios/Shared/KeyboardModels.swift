@@ -23,6 +23,12 @@ struct KeyboardConfig: Codable {
     let keyGap: Double?  // Gap between keys in points (default: 3)
     let fontWeight: String?  // Font weight: "ultraLight", "thin", "light", "regular", "medium", "semibold", "bold", "heavy", "black" (default: "regular")
 
+    // Large-screen variant overrides (used on iPad)
+    let heightPreset_large: String?
+    let keyGap_large: Double?
+    let fontWeight_large: String?
+    let fontSizePreset_large: String?
+
     enum CodingKeys: String, CodingKey {
         case backgroundColor
         case keysBgColor
@@ -42,6 +48,10 @@ struct KeyboardConfig: Codable {
         case heightPreset
         case keyGap
         case fontWeight
+        case heightPreset_large
+        case keyGap_large
+        case fontWeight_large
+        case fontSizePreset_large
     }
     
     /// Check if word suggestions are enabled (defaults to true if not specified)
@@ -171,9 +181,10 @@ struct DiacriticItem: Codable {
     let onlyFor: [String]?   // If present, only show for these letters
     let excludeFor: [String]? // If present, don't show for these letters
     let isReplacement: Bool? // If true, replaces the letter entirely
-    
+    let isAdvanced: Bool?    // If true, only shown in full/custom mode (not basic)
+
     enum CodingKeys: String, CodingKey {
-        case id, mark, name, onlyFor, excludeFor, isReplacement
+        case id, mark, name, onlyFor, excludeFor, isReplacement, isAdvanced
     }
 }
 
@@ -256,20 +267,31 @@ struct DiacriticsSettings: Codable {
     let hidden: [String]?             // Array of diacritic IDs to hide
     let disabledModifiers: [String]?  // Array of modifier IDs to disable
     let disabled: Bool?               // If true, completely disable nikkud for this keyboard (hide nikkud key)
-    
+    let nikkudMode: String?           // nil = popup (default), "topRow" = top row mode
+    let simpleMode: Bool?             // If true, hide advanced diacritics (default: true)
+
     enum CodingKeys: String, CodingKey {
         case hidden, disabledModifiers, disabled
+        case nikkudMode, simpleMode
     }
-    
+
     /// Check if a specific modifier is enabled
     func isModifierEnabled(_ modifierId: String) -> Bool {
         guard let disabled = disabledModifiers else { return true }
         return !disabled.contains(modifierId)
     }
-    
+
     /// Check if diacritics are completely disabled for this keyboard
     var isDisabled: Bool {
         return disabled ?? false
+    }
+
+    var isTopRowMode: Bool {
+        return nikkudMode == "topRow"
+    }
+
+    var isTopRowAlways: Bool {
+        return nikkudMode == "topRowAlways"
     }
 }
 
@@ -379,8 +401,8 @@ struct ParsedKey {
         self.returnKeysetLabel = key.returnKeysetLabel ?? ""
         self.nikkud = key.nikkud ?? []
 
-        // Get group template if exists - check by value first, then by type for special keys
-        let groupTemplate = groups[value] ?? (value.isEmpty ? groups[keyType] : nil)
+        // Get group template if exists - check by value first, then by type as fallback
+        let groupTemplate = groups[value] ?? groups[keyType]
 
         // Resolve width
         if let keyWidth = key.width {
@@ -458,6 +480,27 @@ extension UIColor {
         }
         
         self.init(red: r, green: g, blue: b, alpha: a)
+    }
+
+    /// Returns white or black depending on the luminance of this color
+    func contrastingTextColor() -> UIColor {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        getRed(&r, green: &g, blue: &b, alpha: &a)
+        // W3C relative luminance formula
+        let luminance = 0.299 * r + 0.587 * g + 0.114 * b
+        return luminance > 0.5 ? .black : .white
+    }
+
+    /// Returns a dark-mode-aware version of this color (darkens white for dark mode).
+    func adaptedForDarkMode() -> UIColor {
+        if self == .white {
+            return UIColor { traitCollection in
+                traitCollection.userInterfaceStyle == .dark
+                    ? UIColor(red: 0.35, green: 0.35, blue: 0.38, alpha: 1.0)
+                    : .white
+            }
+        }
+        return self
     }
 }
 
@@ -673,11 +716,11 @@ struct KeyboardHeightConstants {
 
     // MARK: - Component Heights
 
-    /// Suggestions bar height (reduced by 20% from 40)
+    /// Suggestions bar height (used for height budget calculations)
     static let suggestionsBarHeight: CGFloat = 32
 
-    /// Vertical spacing between rows
-    static let rowSpacing: CGFloat = 5
+    /// Vertical spacing between rows (0 — gap is handled by key's vertical padding via keyGap)
+    static let rowSpacing: CGFloat = 0
 }
 
 /// Configuration constants for font sizes

@@ -32,14 +32,14 @@ const SaveAsModal = ({ visible, onClose, onSaveAs, originalName, existingNames }
     const trimmedName = profileName.trim();
 
     if (!trimmedName) {
-      setError('Please enter a name');
+      setError(strings.saveAsModal.enterName);
       return;
     }
 
     // Check for duplicate names (case-insensitive)
     // Note: existingNames already includes built-in profile names
     if (existingNames.some(name => name.toLowerCase() === trimmedName.toLowerCase())) {
-      setError('This name is already in use');
+      setError(strings.saveAsModal.nameInUse);
       return;
     }
 
@@ -74,13 +74,13 @@ const SaveAsModal = ({ visible, onClose, onSaveAs, originalName, existingNames }
       >
         <View style={styles.centeredView}>
           <View style={styles.dialog}>
-            <Text style={styles.title}>Save As New IssieBoard</Text>
+            <Text style={styles.title}>{strings.saveAsModal.title}</Text>
 
             <Text style={styles.message}>
-              Create a copy of "{originalName}" that you can customize.
+              {strings.saveAsModal.message.replace('{{name}}', originalName)}
             </Text>
 
-            <Text style={styles.label}>New IssieBoard Name</Text>
+            <Text style={styles.label}>{strings.saveAsModal.nameLabel}</Text>
             <TextInput
               style={[styles.input, error ? styles.inputError : null]}
               value={profileName}
@@ -88,7 +88,7 @@ const SaveAsModal = ({ visible, onClose, onSaveAs, originalName, existingNames }
                 setProfileName(text);
                 setError(''); // Clear error when typing
               }}
-              placeholder="My Custom Keyboard"
+              placeholder={strings.saveAsModal.placeholder}
               autoFocus
               selectTextOnFocus
               returnKeyType="done"
@@ -100,7 +100,7 @@ const SaveAsModal = ({ visible, onClose, onSaveAs, originalName, existingNames }
 
             <View style={styles.buttons}>
               <TouchableOpacity style={styles.button} onPress={handleClose}>
-                <Text style={styles.buttonText}>{strings.cancel}</Text>
+                <Text style={styles.buttonText}>{strings.common.cancel}</Text>
               </TouchableOpacity>
               <View style={styles.buttonDivider} />
               <TouchableOpacity
@@ -113,7 +113,7 @@ const SaveAsModal = ({ visible, onClose, onSaveAs, originalName, existingNames }
                   styles.saveText,
                   isSaveDisabled && styles.buttonTextDisabled,
                 ]}>
-                  Save As
+                  {strings.saveAsModal.saveAs}
                 </Text>
               </TouchableOpacity>
             </View>
