@@ -1,9 +1,9 @@
 import React from 'react';
-import {View, Text, TouchableOpacity, StyleSheet, useWindowDimensions, Image, ImageSourcePropType} from 'react-native';
-import {colors} from '../../constants';
-import {MyIcon, IconType} from '@beitissieshapiro/issie-shared/dist/icons';
-import {cardShadow, subtleShadow} from '../../../../../src/styles/shadows';
-import {useLocalization} from '../../context/LocalizationContext';
+import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions, Image, ImageSourcePropType } from 'react-native';
+import { colors } from '../../constants';
+import { MyIcon, IconType } from '@beitissieshapiro/issie-shared/dist/icons';
+import { cardShadow, subtleShadow } from '../../../../../src/styles/shadows';
+import { useLocalization } from '../../context/LocalizationContext';
 
 export interface SettingsSidebarProps {
   activeTab: string;
@@ -34,11 +34,11 @@ const NIKKUD_IMAGE_HE = require('../../../../../src/icons/nikkud_hataf_kamatz.pn
 const NIKKUD_IMAGE_AR = require('../../../../../src/icons/nikkud_tashkeel.png');
 
 const getKeyboardChildren = (tabLabels: { general: string; keysGroups: string; nikkud: string; features: string; advanced: string }, kbLanguage: 'en' | 'he' | 'ar'): TabDef[] => [
-  {id: 'general', label: tabLabels.general, iconName: 'settings-outline', iconType: 'Ionicons', iconColor: colors.primary},
-  {id: 'keys-groups', label: tabLabels.keysGroups, iconName: 'color-palette-outline', iconType: 'Ionicons', iconColor: '#7C3AED'},
-  {id: 'nikkud', label: tabLabels.nikkud, iconImage: kbLanguage === 'ar' ? NIKKUD_IMAGE_AR : NIKKUD_IMAGE_HE, iconColor: '#059669'},
-  {id: 'features', label: tabLabels.features, iconName: 'toggle-outline', iconType: 'Ionicons', iconColor: '#0891B2'},
-  {id: 'advanced', label: tabLabels.advanced, iconName: 'cog-outline', iconType: 'Ionicons', iconColor: '#6B7280'},
+  { id: 'general', label: tabLabels.general, iconName: 'settings-outline', iconType: 'Ionicons', iconColor: colors.primary },
+  { id: 'keys-groups', label: tabLabels.keysGroups, iconName: 'color-palette-outline', iconType: 'Ionicons', iconColor: '#7C3AED' },
+  { id: 'nikkud', label: tabLabels.nikkud, iconImage: kbLanguage === 'ar' ? NIKKUD_IMAGE_AR : NIKKUD_IMAGE_HE, iconColor: '#059669' },
+  { id: 'features', label: tabLabels.features, iconName: 'toggle-outline', iconType: 'Ionicons', iconColor: '#0891B2' },
+  { id: 'advanced', label: tabLabels.advanced, iconName: 'cog-outline', iconType: 'Ionicons', iconColor: '#6B7280' },
 ];
 
 const getVoiceTab = (label: string): TabDef => ({
@@ -74,7 +74,7 @@ const TabItem: React.FC<{
   extraCompact?: boolean;
   hideLabel?: boolean;
   isRTL?: boolean;
-}> = ({tab, isActive, onPress, indented, disabled, compact, extraCompact, hideLabel, isRTL}) => (
+}> = ({ tab, isActive, onPress, indented, disabled, compact, extraCompact, hideLabel, isRTL }) => (
   <TouchableOpacity
     style={[
       styles.sidebarCard,
@@ -92,16 +92,16 @@ const TabItem: React.FC<{
     <View
       style={[
         extraCompact ? styles.iconCircleExtraCompact : compact ? styles.iconCircleCompact : styles.iconCircle,
-        {backgroundColor: isActive ? 'rgba(255,255,255,0.25)' : tab.iconColor + '18'},
+        { backgroundColor: isActive ? 'rgba(255,255,255,0.25)' : tab.iconColor + '18' },
       ]}>
       {tab.iconText ? (
-        <Text allowFontScaling={false} style={{fontSize: extraCompact ? 15 : compact ? 17 : 20, color: isActive ? '#FFFFFF' : tab.iconColor, fontWeight: '700'}}>
+        <Text allowFontScaling={false} style={{ fontSize: extraCompact ? 15 : compact ? 17 : 20, color: isActive ? '#FFFFFF' : tab.iconColor, fontWeight: '700' }}>
           {tab.iconText}
         </Text>
       ) : tab.iconImage ? (
         <Image
           source={tab.iconImage}
-          style={{width: extraCompact ? 20 : compact ? 24 : 28, height: extraCompact ? 20 : compact ? 24 : 28, tintColor: isActive ? '#FFFFFF' : tab.iconColor}}
+          style={{ width: extraCompact ? 20 : compact ? 24 : 28, height: extraCompact ? 20 : compact ? 24 : 28, tintColor: isActive ? '#FFFFFF' : tab.iconColor }}
           resizeMode="contain"
         />
       ) : (
@@ -116,14 +116,14 @@ const TabItem: React.FC<{
       )}
     </View>
     {!hideLabel && (
-    <Text
-      allowFontScaling={false}
-      style={[
-        extraCompact ? styles.sidebarCardTextExtraCompact : compact ? styles.sidebarCardTextCompact : styles.sidebarCardText,
-        isActive && styles.sidebarCardTextActive,
-      ]}>
-      {tab.label}
-    </Text>
+      <Text
+        allowFontScaling={false}
+        style={[
+          extraCompact ? styles.sidebarCardTextExtraCompact : compact ? styles.sidebarCardTextCompact : styles.sidebarCardText,
+          isActive && styles.sidebarCardTextActive,
+        ]}>
+        {tab.label}
+      </Text>
     )}
   </TouchableOpacity>
 );
@@ -138,13 +138,13 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   onAbout,
 }) => {
   const keyboardOnly = mode === 'keyboard';
-  const {width: screenWidth, height: screenHeight} = useWindowDimensions();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const shortSide = Math.min(screenWidth, screenHeight);
   const isPhone = shortSide < 600;
   // Voice mode on phone has more tabs — needs extra compact sidebar
   const isPhoneVoice = isPhone && !keyboardOnly;
 
-  const {strings, isRTL} = useLocalization();
+  const { strings, isRTL } = useLocalization();
   const tabLabels = strings.settings.tabs;
   const KEYBOARD_CHILDREN = getKeyboardChildren(tabLabels, kbLanguage);
   const VOICE_TAB = getVoiceTab(tabLabels.voice);
@@ -159,7 +159,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
             style={[styles.groupHeader, isPhoneVoice ? styles.groupHeaderExtraCompact : isPhone && styles.groupHeaderCompact, isRTL && { flexDirection: 'row-reverse' }]}
             onPress={() => onTabChange('general')}
             activeOpacity={0.7}>
-            <View style={[isPhoneVoice ? styles.iconCircleExtraCompact : isPhone ? styles.iconCircleCompact : styles.iconCircle, {backgroundColor: colors.primary + '18'}]}>
+            <View style={[isPhoneVoice ? styles.iconCircleExtraCompact : isPhone ? styles.iconCircleCompact : styles.iconCircle, { backgroundColor: colors.primary + '18' }]}>
               <MyIcon
                 info={{
                   name: 'keyboard-settings-outline',
@@ -212,19 +212,19 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
           </>
         )}
 
-        {/* About button — pushed to bottom */}
+        {/* About button — pushed to bottom - landscape*/}
         {onAbout && (
-          <>
-            <View style={[ { marginTop: 'auto' }]} />
+
+          <View style={[styles.subTabAboutVContainer, isRTL && {flexDirection:"row-reverse"}]}>
             <TouchableOpacity
-              style={[styles.sidebarCard, isPhone && styles.sidebarCardCompact, isPhoneVoice && styles.sidebarCardExtraCompact, {justifyContent:"flex-end"}]}
+              style={[styles.sidebarCard, isPhone && styles.sidebarCardCompact, isPhoneVoice && styles.sidebarCardExtraCompact, { justifyContent: "flex-end" }]}
               onPress={onAbout}
               activeOpacity={0.7}>
-              <View style={[isPhoneVoice ? styles.iconCircleExtraCompact : isPhone ? styles.iconCircleCompact : styles.iconCircle, {backgroundColor: colors.primary + '18'}]}>
+              <View style={[isPhoneVoice ? styles.iconCircleExtraCompact : isPhone ? styles.iconCircleCompact : styles.iconCircle, { backgroundColor: colors.primary + '18' }]}>
                 <MyIcon info={{ name: 'information-circle-outline', type: 'Ionicons', color: colors.primary, size: isPhoneVoice ? 16 : isPhone ? 19 : 22 }} />
               </View>
             </TouchableOpacity>
-          </>
+          </View>
         )}
       </View>
     );
@@ -249,17 +249,17 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                 <View
                   style={[
                     styles.iconCircleTiny,
-                    {backgroundColor: isActive ? 'rgba(255,255,255,0.25)' : tab.iconColor + '18'},
-                    isDisabled && {opacity: 0.35},
+                    { backgroundColor: isActive ? 'rgba(255,255,255,0.25)' : tab.iconColor + '18' },
+                    isDisabled && { opacity: 0.35 },
                   ]}>
                   {tab.iconText ? (
-                    <Text allowFontScaling={false} style={{fontSize: 15, color: isActive ? '#FFFFFF' : tab.iconColor, fontWeight: '700'}}>
+                    <Text allowFontScaling={false} style={{ fontSize: 15, color: isActive ? '#FFFFFF' : tab.iconColor, fontWeight: '700' }}>
                       {tab.iconText}
                     </Text>
                   ) : tab.iconImage ? (
                     <Image
                       source={tab.iconImage}
-                      style={{width: 20, height: 20, tintColor: isActive ? '#FFFFFF' : tab.iconColor}}
+                      style={{ width: 20, height: 20, tintColor: isActive ? '#FFFFFF' : tab.iconColor }}
                       resizeMode="contain"
                     />
                   ) : (
@@ -279,7 +279,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                     style={[
                       styles.subTabText,
                       isActive && styles.subTabTextActive,
-                      isDisabled && {opacity: 0.35},
+                      isDisabled && { opacity: 0.35 },
                     ]}>
                     {tab.label}
                   </Text>
@@ -290,14 +290,16 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
 
           {/* About button — icon only, pushed to far end */}
           {onAbout && (
-            <TouchableOpacity
-              style={[isPhone ? styles.subTabIconOnly : styles.subTab, isRTL ? { marginRight: 'auto' } : { marginLeft: 'auto' }]}
-              onPress={onAbout}
-              activeOpacity={0.7}>
-              <View style={[styles.iconCircleTiny, {backgroundColor: colors.primary + '18'}]}>
-                <MyIcon info={{ name: 'information-circle-outline', type: 'Ionicons', color: colors.primary, size: 16 }} />
-              </View>
-            </TouchableOpacity>
+            <View style={[styles.subTabAboutHContainer, isRTL && { flexDirection: "row-reverse" }]}>
+              <TouchableOpacity
+                style={[styles.subTabIconOnly]}
+                onPress={onAbout}
+                activeOpacity={0.7}>
+                <View style={[styles.iconCircleTiny, { backgroundColor: colors.primary + '18' }]}>
+                  <MyIcon info={{ name: 'information-circle-outline', type: 'Ionicons', color: colors.primary, size: 16 }} />
+                </View>
+              </TouchableOpacity>
+            </View>
           )}
         </View>
       </View>
@@ -322,7 +324,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
           <View
             style={[
               styles.iconCircleSmall,
-              {backgroundColor: keyboardActive ? 'rgba(255,255,255,0.25)' : colors.primary + '18'},
+              { backgroundColor: keyboardActive ? 'rgba(255,255,255,0.25)' : colors.primary + '18' },
             ]}>
             <MyIcon
               info={{
@@ -345,7 +347,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
           <View
             style={[
               styles.iconCircleSmall,
-              {backgroundColor: activeTab === 'voice' ? 'rgba(255,255,255,0.25)' : VOICE_TAB.iconColor + '18'},
+              { backgroundColor: activeTab === 'voice' ? 'rgba(255,255,255,0.25)' : VOICE_TAB.iconColor + '18' },
             ]}>
             <MyIcon
               info={{
@@ -373,7 +375,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
           <View
             style={[
               styles.iconCircleSmall,
-              {backgroundColor: activeTab === 'language' ? 'rgba(255,255,255,0.25)' : LANGUAGE_TAB.iconColor + '18'},
+              { backgroundColor: activeTab === 'language' ? 'rgba(255,255,255,0.25)' : LANGUAGE_TAB.iconColor + '18' },
             ]}>
             <MyIcon
               info={{
@@ -396,14 +398,16 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
 
         {/* About button */}
         {onAbout && (
-          <TouchableOpacity
-            style={[styles.tab, isRTL ? { marginRight: 'auto' } : { marginLeft: 'auto' }, isRTL && { flexDirection: 'row-reverse' }]}
-            onPress={onAbout}
-            activeOpacity={0.7}>
-            <View style={[styles.iconCircleSmall, {backgroundColor: colors.primary + '18'}]}>
-              <MyIcon info={{ name: 'information-circle-outline', type: 'Ionicons', color: colors.primary, size: 18 }} />
-            </View>
-          </TouchableOpacity>
+          <View style={[styles.subTabAboutContainer]}>
+            <TouchableOpacity
+              style={[styles.tab, isRTL ? { marginRight: 'auto' } : { marginLeft: 'auto' }, isRTL && { flexDirection: 'row-reverse' }]}
+              onPress={onAbout}
+              activeOpacity={0.7}>
+              <View style={[styles.iconCircleSmall, { backgroundColor: colors.primary + '18' }]}>
+                <MyIcon info={{ name: 'information-circle-outline', type: 'Ionicons', color: colors.primary, size: 18 }} />
+              </View>
+            </TouchableOpacity>
+          </View>
         )}
       </View>
 
@@ -423,17 +427,17 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                 <View
                   style={[
                     styles.iconCircleTiny,
-                    {backgroundColor: isActive ? 'rgba(255,255,255,0.25)' : tab.iconColor + '18'},
-                    isDisabled && {opacity: 0.35},
+                    { backgroundColor: isActive ? 'rgba(255,255,255,0.25)' : tab.iconColor + '18' },
+                    isDisabled && { opacity: 0.35 },
                   ]}>
                   {tab.iconText ? (
-                    <Text allowFontScaling={false} style={{fontSize: 15, color: isActive ? '#FFFFFF' : tab.iconColor, fontWeight: '700'}}>
+                    <Text allowFontScaling={false} style={{ fontSize: 15, color: isActive ? '#FFFFFF' : tab.iconColor, fontWeight: '700' }}>
                       {tab.iconText}
                     </Text>
                   ) : tab.iconImage ? (
                     <Image
                       source={tab.iconImage}
-                      style={{width: 20, height: 20, tintColor: isActive ? '#FFFFFF' : tab.iconColor}}
+                      style={{ width: 20, height: 20, tintColor: isActive ? '#FFFFFF' : tab.iconColor }}
                       resizeMode="contain"
                     />
                   ) : (
@@ -453,7 +457,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                     style={[
                       styles.subTabText,
                       isActive && styles.subTabTextActive,
-                      isDisabled && {opacity: 0.35},
+                      isDisabled && { opacity: 0.35 },
                     ]}>
                     {tab.label}
                   </Text>
@@ -697,6 +701,16 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#F1F5F9',
     ...subtleShadow,
+  },
+  subTabAboutHContainer: {
+    justifyContent: 'flex-end',
+    flexDirection: "row",
+    flex: 1,
+  },
+  subTabAboutVContainer: {
+    alignItems: 'flex-end',
+    flexDirection: "row",
+    flex: 1,
   },
   subTabActive: {
     backgroundColor: colors.primary,

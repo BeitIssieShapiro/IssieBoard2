@@ -10,7 +10,7 @@
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, StyleSheet, Linking, Alert } from 'react-native';
+import { View, StyleSheet, Linking, Alert, Platform } from 'react-native';
 import { ClassicEditorScreen } from './screens/ClassicEditorScreen';
 import KeyboardPreferences from './native/KeyboardPreferences';
 import { LocalizationProvider } from './localization';
@@ -46,6 +46,7 @@ export const AppNavigator: React.FC = () => {
   const [initialLanguage, setInitialLanguage] = useState<LanguageId | undefined>(undefined);
   const [initialLoaded, setInitialLoaded] = useState(false);
   const [isV1User, setIsV1User] = useState(false);
+  const [classicButtonRevealed, setClassicButtonRevealed] = useState(false);
   // Key to force EditorScreen to remount when opened from keyboard
   const [editorKey, setEditorKey] = useState(0);
   const [importResult, setImportResult] = useState<ImportInfo | null>(null);
@@ -124,7 +125,7 @@ export const AppNavigator: React.FC = () => {
             // Not a v1 user
           }
         }
-        const showClassicToggle = true //__DEV__ || v1User;
+        const showClassicToggle = Platform.OS === 'ios' && v1User; // (__DEV__ || v1User);
         setIsV1User(showClassicToggle);
 
         // Check last used view mode
@@ -256,7 +257,9 @@ export const AppNavigator: React.FC = () => {
               key={editorKey}
               appContext="issieboard"
               initialLanguage={initialLanguage}
-              onSwitchToClassic={isV1User ? handleSwitchToClassic : undefined}
+              onSwitchToClassic={Platform.OS === 'ios' ? handleSwitchToClassic : undefined}
+              showClassicButton={isV1User || classicButtonRevealed}
+              onRevealClassicButton={() => setClassicButtonRevealed(true)}
             />
           </View>
         </VoiceLocalizationProvider>

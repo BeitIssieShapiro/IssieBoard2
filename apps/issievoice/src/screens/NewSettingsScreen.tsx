@@ -43,9 +43,13 @@ interface NewSettingsScreenProps {
   initialLanguage?: 'en' | 'he' | 'ar';
   /** Called when classic/legacy view toggle is requested */
   onSwitchToClassic?: () => void;
+  /** Whether to show the classic view button visibly (v1 users only) */
+  showClassicButton?: boolean;
+  /** Called when secret tap reveals the classic button */
+  onRevealClassicButton?: () => void;
 }
 
-const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route, appContext, initialLanguage: initialLangProp, onSwitchToClassic }) => {
+const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route, appContext, initialLanguage: initialLangProp, onSwitchToClassic, showClassicButton, onRevealClassicButton }) => {
   const resolvedContext = appContext || route?.params?.appContext || 'issievoice';
   const isKeyboardOnly = resolvedContext === 'issieboard';
   const canGoBack = !!navigation?.goBack;
@@ -277,6 +281,8 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
             onSwitchToClassic!();
           }
         } : undefined}
+        showClassicButton={showClassicButton}
+        onRevealClassicButton={onRevealClassicButton}
         onAbout={() => setShowAbout(true)}
         canGoBack={canGoBack}
         onGoBack={handleGoBack}

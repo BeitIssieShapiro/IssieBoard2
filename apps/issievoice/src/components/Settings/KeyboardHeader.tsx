@@ -6,6 +6,7 @@ import {
   StyleSheet,
   useWindowDimensions,
   Animated,
+  Platform,
 } from 'react-native';
 import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 import { colors } from '../../constants';
@@ -23,6 +24,8 @@ export interface KeyboardHeaderProps {
   showFullAccessBadge?: boolean;
   onFullAccessBadgePress?: () => void;
   onSwitchToClassic?: () => void;
+  showClassicButton?: boolean;
+  onRevealClassicButton?: () => void;
   onAbout?: () => void;
   onDiscard?: () => void;
   canGoBack?: boolean;
@@ -46,6 +49,8 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
   showFullAccessBadge,
   onFullAccessBadgePress,
   onSwitchToClassic,
+  showClassicButton,
+  onRevealClassicButton,
   onAbout,
   onDiscard,
   canGoBack,
@@ -61,6 +66,22 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
 
   const saveOpacity = useRef(new Animated.Value(1)).current;
   const blinkAnim = useRef<Animated.CompositeAnimation | null>(null);
+  const secretTapCount = useRef(0);
+  const secretTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleSecretTap = () => {
+    if (Platform.OS !== 'ios' || !onSwitchToClassic) return;
+    secretTapCount.current += 1;
+    if (secretTapTimer.current) clearTimeout(secretTapTimer.current);
+    if (secretTapCount.current >= 5) {
+      secretTapCount.current = 0;
+      onRevealClassicButton?.();
+      return;
+    }
+    secretTapTimer.current = setTimeout(() => {
+      secretTapCount.current = 0;
+    }, 1000);
+  };
 
   useEffect(() => {
     if (isDirty) {
@@ -78,7 +99,7 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
   }, [isDirty, saveOpacity]);
 
   return (
-    <View style={[styles.container, twoRows && styles.containerTwoRows, !twoRows && isRTL && { flexDirection: 'row-reverse' }]}>
+    <View key={twoRows ? 'portrait' : 'landscape'} style={[styles.container, twoRows && styles.containerTwoRows, !twoRows && isRTL && { flexDirection: 'row-reverse' }]}>
 
       {/* Row 1 (portrait) / inline elements (landscape): lang pills + classic */}
       <View style={[styles.row1, twoRows && styles.row1TwoRows, isRTL && { flexDirection: 'row-reverse' }]}>
@@ -122,7 +143,7 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
         </View>
 
         {/* Classic View: absolute in portrait, removed from here in landscape (rendered at container level) */}
-        {onSwitchToClassic && twoRows && (
+        {showClassicButton && twoRows && (
           <TouchableOpacity
             style={[styles.classicButton, isRTL ? styles.classicButtonAbsLeft : styles.classicButtonAbsRight]}
             onPress={onSwitchToClassic}
@@ -140,13 +161,17 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
           </TouchableOpacity>
         )}
 
-        <Text allowFontScaling={false} style={styles.profileLabel}>{strings.profiles.currentKeyboard}</Text>
+        {!(isPhone && twoRows) && (
+          <TouchableOpacity onPress={handleSecretTap} activeOpacity={1}>
+            <Text allowFontScaling={false} style={styles.profileLabel}>{strings.profiles.currentKeyboard}</Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
-          style={styles.profileButton}
+          style={[styles.profileButton, isRTL && { flexDirection: 'row-reverse' }]}
           onPress={onProfilePress}
           activeOpacity={0.7}>
           <MyIcon info={{ name: 'keyboard-settings-outline', type: 'MDI', color: colors.primary, size: 22 }} />
-          <Text allowFontScaling={false} style={styles.profileName} numberOfLines={1} ellipsizeMode="tail">
+          <Text allowFontScaling={false} style={[styles.profileName, isRTL && { textAlign: 'right' }]} numberOfLines={1} ellipsizeMode="tail">
             {profileName}
           </Text>
           <MyIcon info={{ name: 'chevron-down', type: 'Ionicons', color: colors.textLight, size: 20 }} />
@@ -200,7 +225,7 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
       </View>
 
       {/* Classic View in landscape: after row2, so it's rightmost (LTR) / leftmost (RTL via container row-reverse) */}
-      {onSwitchToClassic && !twoRows && (
+      {showClassicButton && !twoRows && (
         <TouchableOpacity style={[styles.classicButton, isRTL ?{marginInlineEnd: 25} : {marginInlineStart: 25}]} onPress={onSwitchToClassic} activeOpacity={0.7}>
           <Text style={styles.classicButtonText}>{strings.editor.classicView}</Text>
         </TouchableOpacity>
@@ -220,12 +245,17 @@ const styles = StyleSheet.create({
     gap: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
+    flexShrink: 0,
+    overflow: 'hidden',
+    alignSelf: 'stretch',
   },
   containerTwoRows: {
     flexDirection: 'column',
     alignItems: 'stretch',
     gap: 8,
     paddingVertical: 12,
+    minHeight: 120,
+    flexShrink: 0,
   },
   row1: {
     flexDirection: 'row',
@@ -296,6 +326,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
     gap: 10,
+    minWidth: 0,
   },
   row2TwoRows: {
     flex: undefined,
@@ -304,6 +335,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: colors.text,
+    flexShrink: 0,
   },
   profileButton: {
     flexDirection: 'row',
@@ -328,6 +360,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    flexShrink: 0,
   },
   cancelButton: {
     flexDirection: 'row',
