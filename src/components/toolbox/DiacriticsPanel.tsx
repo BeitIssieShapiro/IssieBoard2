@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -87,15 +87,13 @@ export const DiacriticsPanel: React.FC = () => {
   const isTopRowMode = settings.nikkudMode === 'topRow';
   const isTopRowAlways = settings.nikkudMode === 'topRowAlways';
   
-  // Determine current mode based on settings
-  const getCurrentMode = (): NikkudMode => {
+  // Determine current mode based on settings — computed directly so it resets on cancel
+  const currentMode: NikkudMode = (() => {
     if (isNikkudDisabled) return 'none';
     if (isSimpleMode && hiddenItems.length === 0 && disabledModifiers.length === 0) return 'basic';
     if (!isSimpleMode && hiddenItems.length === 0 && disabledModifiers.length === 0) return 'full';
     return 'custom';
-  };
-
-  const [currentMode, setCurrentMode] = useState<NikkudMode>(getCurrentMode());
+  })();
 
   // Sample letter
   const sampleLetter = useMemo(() => {
@@ -110,7 +108,6 @@ export const DiacriticsPanel: React.FC = () => {
   }, [currentKeyboardId]);
 
   const handleModeChange = (mode: NikkudMode) => {
-    setCurrentMode(mode);
 
     switch (mode) {
       case 'none':
@@ -118,7 +115,7 @@ export const DiacriticsPanel: React.FC = () => {
           type: 'UPDATE_DIACRITICS_SETTINGS',
           payload: {
             keyboardId: currentKeyboardId,
-            settings: { ...settings, disabled: true },
+            settings: { ...settings, disabled: true, nikkudMode: undefined },
           },
         });
         break;
