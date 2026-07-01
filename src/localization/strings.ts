@@ -36,6 +36,9 @@ export interface Strings {
     classicViewNotice: string;
     newProfile: string;
     duplicateProfile: string;
+    cloneKeyboard: string;
+    cloneKeyboardSubtitle: string;
+    copyOf: string;
     newProfilePlaceholder: string;
     select: string;
     saveAs: string;
@@ -370,6 +373,9 @@ const en: Strings = {
     classicViewNotice: 'This view is intended for users familiar with IssieBoard v1. It contains only a subset of v2 features — we recommend switching to the New View. This view will be removed in a future release.',
     newProfile: 'New Keyboard',
     duplicateProfile: 'Duplicate Keyboard',
+    cloneKeyboard: 'Clone Keyboard',
+    cloneKeyboardSubtitle: 'Create a copy of',
+    copyOf: 'Copy of',
     newProfilePlaceholder: 'Enter keyboard name',
     select: 'Select',
     saveAs: 'Save As',
@@ -706,6 +712,9 @@ const he: Strings = {
     classicViewNotice: 'תצוגה זו מיועדת למשתמשים הרגילים לגרסה 1 של IssieBoard. היא כוללת רק חלק מהאפשרויות של גרסה 2 — אנו ממליצים לעבור לתצוגה החדשה. תצוגה זו תוסר בגרסאות עתידיות.',
     newProfile: 'מקלדת חדשה',
     duplicateProfile: 'שכפל מקלדת',
+    cloneKeyboard: 'שכפל מקלדת',
+    cloneKeyboardSubtitle: 'צור עותק של',
+    copyOf: 'עותק של',
     newProfilePlaceholder: 'הזן שם מקלדת',
     select: 'בחר',
     saveAs: 'שמור בשם',
@@ -1042,6 +1051,9 @@ const ar: Strings = {
     classicViewNotice: 'هذا العرض مخصص للمستخدمين المعتادين على IssieBoard الإصدار 1. يحتوي على جزء فقط من ميزات الإصدار 2 — نوصي بالتبديل إلى العرض الجديد. سيتم إزالة هذا العرض في إصدارات مستقبلية.',
     newProfile: 'لوحة مفاتيح جديدة',
     duplicateProfile: 'تكرار لوحة المفاتيح',
+    cloneKeyboard: 'استنساخ لوحة المفاتيح',
+    cloneKeyboardSubtitle: 'إنشاء نسخة من',
+    copyOf: 'نسخة من',
     newProfilePlaceholder: 'أدخل اسم لوحة المفاتيح',
     select: 'اختر',
     saveAs: 'حفظ باسم',

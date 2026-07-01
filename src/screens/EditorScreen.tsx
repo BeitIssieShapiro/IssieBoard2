@@ -506,6 +506,9 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   const [settingActive, setSettingActive] = useState(false);
   const [showProfilePicker, setShowProfilePicker] = useState(false);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [showCloneModal, setShowCloneModal] = useState(false);
+  const [profileToClone, setProfileToClone] = useState<ProfileOption | null>(null);
+  const [cloneName, setCloneName] = useState('');
 
   // Speak button in keyboard setting (IssieVoice only)
   const [speakButtonInKeyboard, setSpeakButtonInKeyboard] = useState(false);
@@ -1374,6 +1377,129 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     );
   }, [currentProfileId, currentLanguage, currentKeyboardId, appContext, onDelete, onSetActiveForProfile, showToast, loadProfilesList, setConfig, onProfileChange, strings]);
 
+  const handleOpenCloneModal = useCallback((profile: ProfileOption) => {
+    const openModal = () => {
+      setProfileToClone(profile);
+      setCloneName(`${strings.editor.copyOf} ${profile.name}`);
+      setShowProfilePicker(false);
+      setShowCloneModal(true);
+    };
+
+    if (state.isDirty) {
+      Alert.alert(
+        strings.alerts.unsavedChanges,
+        strings.alerts.unsavedChangesMessage,
+        [
+          { text: strings.common.cancel, style: 'cancel' },
+          {
+            text: strings.alerts.discard,
+            style: 'destructive',
+            onPress: async () => {
+              const current = profiles.find(p => p.id === currentProfileId);
+              if (current) await loadProfileInternal(current);
+              openModal();
+            },
+          },
+          {
+            text: strings.alerts.saveFirst,
+            onPress: async () => {
+              await handleSave();
+              openModal();
+            },
+          },
+        ]
+      );
+      return;
+    }
+
+    openModal();
+  }, [state.isDirty, strings, handleSave, profiles, currentProfileId, loadProfileInternal]);
+
+  const handleCloneProfile = useCallback(async () => {
+    if (!cloneName.trim() || !profileToClone) {
+      Alert.alert(strings.common.error, strings.alerts.enterProfileName);
+      return;
+    }
+
+    setShowCloneModal(false);
+    const newName = cloneName.trim();
+    const newProfileId = `custom_${Date.now()}`;
+
+    try {
+      let profileDef: any;
+      let styleGroups: any[] = [];
+
+      const saved = await loadProfileById(profileToClone.id);
+      if (saved) {
+        profileDef = { ...saved.profileDef, id: newProfileId, name: newName };
+        styleGroups = saved.styleGroups;
+      } else if (profileToClone.isBuiltIn) {
+        const templateId = extractTemplateId(profileToClone.id);
+        const template = templateId ? getBuiltInProfileTemplate(templateId) : undefined;
+        if (template) {
+          profileDef = {
+            id: newProfileId,
+            name: newName,
+            version: '1.0.0',
+            language: profileToClone.language,
+            keyboardId: profileToClone.keyboardId,
+            ...template.config,
+            groups: [],
+          };
+          const createdAt = new Date().toISOString();
+          styleGroups = template.styleGroups.map((sg: any, index: number) => ({
+            ...sg,
+            id: `builtin_${templateId}_${index}`,
+            createdAt,
+          }));
+        } else {
+          profileDef = createFactoryDefaultProfile(
+            newProfileId,
+            newName,
+            profileToClone.language,
+            profileToClone.keyboardId
+          );
+        }
+      } else {
+        showToast('✗ ' + strings.alerts.failedToSaveProfile);
+        return;
+      }
+
+      await KeyboardPreferences.setProfile(JSON.stringify(profileDef), `profile_def_${newProfileId}`);
+      await KeyboardPreferences.setProfile(JSON.stringify(styleGroups), `${newProfileId}_styleGroups`);
+
+      let savedList: { name: string; key: string; language: string; keyboardId: string }[] = [];
+      try {
+        const savedListJson = await KeyboardPreferences.getProfile('saved_list');
+        if (savedListJson) savedList = JSON.parse(savedListJson);
+      } catch { /* ignore */ }
+      savedList.push({
+        name: newName,
+        key: newProfileId,
+        language: profileToClone.language,
+        keyboardId: profileToClone.keyboardId,
+      });
+      await KeyboardPreferences.setProfile(JSON.stringify(savedList), 'saved_list');
+
+      await loadProfilesList();
+      await loadProfileInternal({
+        id: newProfileId,
+        name: newName,
+        language: profileToClone.language,
+        keyboardId: profileToClone.keyboardId,
+        isBuiltIn: false,
+      });
+
+      dispatch({ type: 'MARK_SAVED' });
+      setShowProfilePicker(false);
+      setCloneName('');
+      setProfileToClone(null);
+      showToast(`✓ ${strings.alerts.profileSaved.replace('!', '')} "${newName}"`);
+    } catch {
+      showToast('✗ ' + strings.alerts.failedToSaveProfile);
+    }
+  }, [cloneName, profileToClone, strings, showToast, loadProfilesList, loadProfileInternal, dispatch]);
+
   const handleRenameProfile = useCallback((profileToRename: ProfileOption) => {
     if (profileToRename.isBuiltIn) return;
 
@@ -1720,6 +1846,14 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
                           <MyIcon info={{ name: 'share-outline', type: 'Ionicons', color: item.id === currentProfileId ? '#FFFFFF' : '#6B7280', size: 18 }} />
                         </TouchableOpacity>
                       )}
+                      <TouchableOpacity
+                        style={styles.profilePillClone}
+                        onPress={() => { handleOpenCloneModal(item); }}
+                        activeOpacity={0.7}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <MyIcon info={{ name: 'copy-outline', type: 'Ionicons', color: item.id === currentProfileId ? '#FFFFFF' : '#6B7280', size: 18 }} />
+                      </TouchableOpacity>
                       {!item.isBuiltIn && (
                         <TouchableOpacity
                           style={styles.profilePillDelete}
@@ -1766,6 +1900,48 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
           originalName={currentProfileName}
           existingNames={profiles.map(p => p.name)}
         />
+
+        {/* Clone Keyboard Modal — shared between headless and full mode */}
+        <Modal
+          visible={showCloneModal}
+          transparent
+          animationType="fade"
+          supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']}
+          onRequestClose={() => { setShowCloneModal(false); setCloneName(''); setProfileToClone(null); }}
+        >
+          <KeyboardAvoidingView
+            style={styles.modalOverlay}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          >
+            <View style={styles.duplicateModalContainer}>
+              <Text allowFontScaling={false} style={styles.duplicateModalTitle}>{strings.editor.cloneKeyboard}</Text>
+              <Text allowFontScaling={false} style={styles.duplicateModalSubtitle}>
+                {strings.editor.cloneKeyboardSubtitle}: "{profileToClone?.name}"
+              </Text>
+              <TextInput
+                style={styles.duplicateInput}
+                placeholder={strings.editor.newProfilePlaceholder}
+                value={cloneName}
+                onChangeText={setCloneName}
+                autoFocus
+              />
+              <View style={styles.duplicateModalButtons}>
+                <TouchableOpacity
+                  style={styles.duplicateCancelButton}
+                  onPress={() => { setShowCloneModal(false); setCloneName(''); setProfileToClone(null); }}
+                >
+                  <Text allowFontScaling={false} style={styles.duplicateCancelText}>{strings.common.cancel}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.duplicateConfirmButton}
+                  onPress={handleCloneProfile}
+                >
+                  <Text allowFontScaling={false} style={styles.duplicateConfirmText}>{strings.common.create}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
       </View>
     );
   }
@@ -1797,6 +1973,48 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         originalName={currentProfileName}
         existingNames={profiles.map(p => p.name)}
       />
+
+      {/* Clone Keyboard Modal */}
+      <Modal
+        visible={showCloneModal}
+        transparent
+        animationType="fade"
+        supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']}
+        onRequestClose={() => { setShowCloneModal(false); setCloneName(''); setProfileToClone(null); }}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <View style={styles.duplicateModalContainer}>
+            <Text allowFontScaling={false} style={styles.duplicateModalTitle}>{strings.editor.cloneKeyboard}</Text>
+            <Text allowFontScaling={false} style={styles.duplicateModalSubtitle}>
+              {strings.editor.cloneKeyboardSubtitle}: "{profileToClone?.name}"
+            </Text>
+            <TextInput
+              style={styles.duplicateInput}
+              placeholder={strings.editor.newProfilePlaceholder}
+              value={cloneName}
+              onChangeText={setCloneName}
+              autoFocus
+            />
+            <View style={styles.duplicateModalButtons}>
+              <TouchableOpacity
+                style={styles.duplicateCancelButton}
+                onPress={() => { setShowCloneModal(false); setCloneName(''); setProfileToClone(null); }}
+              >
+                <Text allowFontScaling={false} style={styles.duplicateCancelText}>{strings.common.cancel}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.duplicateConfirmButton}
+                onPress={handleCloneProfile}
+              >
+                <Text allowFontScaling={false} style={styles.duplicateConfirmText}>{strings.common.create}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {/* Duplicate Profile Modal */}
       <Modal
@@ -3129,6 +3347,9 @@ const styles = StyleSheet.create({
   },
   profilePillExport: {
     marginLeft: 'auto',
+    padding: 4,
+  },
+  profilePillClone: {
     padding: 4,
   },
   profilePillDelete: {
