@@ -284,13 +284,16 @@ class NikkudPickerController {
                 rows.append([])
             }
 
-            let button = UIButton(type: .system)
-            button.setTitle(caption, for: .normal)
-            button.titleLabel?.font = UIFont.systemFont(ofSize: keyFontSize, weight: keyFontWeight)
+            let button = UIButton(type: .custom)
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: UIFont.systemFont(ofSize: keyFontSize, weight: keyFontWeight),
+                .foregroundColor: UIColor.label,
+                .underlineStyle: NSUnderlineStyle.init(rawValue: 0).rawValue,
+            ]
+            button.setAttributedTitle(NSAttributedString(string: caption, attributes: attrs), for: .normal)
             button.titleLabel?.adjustsFontSizeToFitWidth = true
             button.titleLabel?.minimumScaleFactor = 0.5
             button.backgroundColor = UIColor.systemBackground
-            button.setTitleColor(.label, for: .normal)
             button.layer.cornerRadius = 8
             button.layer.borderWidth = 1
             button.layer.borderColor = UIColor.systemGray4.cgColor
@@ -418,13 +421,16 @@ class NikkudPickerController {
                 rows.append([])
             }
 
-            let button = UIButton(type: .system)
-            button.setTitle(caption, for: .normal)
-            button.titleLabel?.font = UIFont.systemFont(ofSize: keyFontSize, weight: keyFontWeight)
+            let button = UIButton(type: .custom)
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: UIFont.systemFont(ofSize: keyFontSize, weight: keyFontWeight),
+                .foregroundColor: UIColor.label,
+                .underlineStyle: NSUnderlineStyle.init(rawValue: 0).rawValue,
+            ]
+            button.setAttributedTitle(NSAttributedString(string: caption, attributes: attrs), for: .normal)
             button.titleLabel?.adjustsFontSizeToFitWidth = true
             button.titleLabel?.minimumScaleFactor = 0.5
             button.backgroundColor = UIColor.systemBackground
-            button.setTitleColor(.label, for: .normal)
             button.layer.cornerRadius = 8
             button.layer.borderWidth = 1
             button.layer.borderColor = UIColor.systemGray4.cgColor
@@ -457,11 +463,14 @@ class NikkudPickerController {
         
         // Close button
         let closeButtonSize: CGFloat = 30
-        let closeButton = UIButton(type: .system)
+        let closeButton = UIButton(type: .custom)
         let closeFont = UIFont.systemFont(ofSize: 18, weight: .medium)
-        closeButton.setTitle("✕", for: .normal)
-        closeButton.setTitleColor(.systemGray, for: .normal)
-        closeButton.titleLabel?.font = closeFont
+        let closeAttrs: [NSAttributedString.Key: Any] = [
+            .font: closeFont,
+            .foregroundColor: UIColor.systemGray,
+            .underlineStyle: NSUnderlineStyle.init(rawValue: 0).rawValue,
+        ]
+        closeButton.setAttributedTitle(NSAttributedString(string: "✕", attributes: closeAttrs), for: .normal)
         closeButton.addTarget(self, action: #selector(dismissPicker), for: .touchUpInside)
         picker.addSubview(closeButton)
         closeButton.frame = CGRect(x: containerWidth + 2 * padding - closeButtonSize - 8, y: 6, width: closeButtonSize, height: closeButtonSize)
@@ -573,20 +582,23 @@ class NikkudPickerController {
     
     /// Create a raised key-style button for modifiers
     private func createModifierKeyButton(title: String, isSelected: Bool, size: CGFloat) -> UIButton {
-        let button = UIButton(type: .system)
-        button.setTitle(title, for: .normal)
-        button.titleLabel?.font = UIFont.systemFont(ofSize: keyFontSize * 0.85, weight: keyFontWeight)
+        let button = UIButton(type: .custom)
+        let titleColor: UIColor = isSelected ? .systemBlue : .label
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: UIFont.systemFont(ofSize: keyFontSize * 0.85, weight: keyFontWeight),
+            .foregroundColor: titleColor,
+            .underlineStyle: NSUnderlineStyle.init(rawValue: 0).rawValue,
+        ]
+        button.setAttributedTitle(NSAttributedString(string: title, attributes: attrs), for: .normal)
         button.titleLabel?.adjustsFontSizeToFitWidth = true
         button.titleLabel?.minimumScaleFactor = 0.6
-        
+
         if isSelected {
             button.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.3)
-            button.setTitleColor(.systemBlue, for: .normal)
             button.layer.borderWidth = 2
             button.layer.borderColor = UIColor.systemBlue.cgColor
         } else {
             button.backgroundColor = UIColor.systemBackground
-            button.setTitleColor(.label, for: .normal)
             button.layer.borderWidth = 1
             button.layer.borderColor = UIColor.systemGray4.cgColor
         }
