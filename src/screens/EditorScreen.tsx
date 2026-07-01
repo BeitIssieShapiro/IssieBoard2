@@ -1263,26 +1263,52 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
             if (loaded) {
               const config = buildConfiguration(loaded.profileDef);
               setConfig(config, loaded.styleGroups);
+              setCurrentKeyboardId(loaded.profileDef.keyboardId);
               showToast('✓ ' + strings.alerts.editCancelled);
             } else {
-              // Profile not saved yet - load factory defaults
-              const langDef = LANGUAGES.find(l => l.id === currentLanguage);
-              const defaultKeyboardId = langDef?.keyboards[0]?.id || currentLanguage;
-              const profileDef = createFactoryDefaultProfile(
-                currentProfileId,
-                currentProfileName,
-                currentLanguage,
-                defaultKeyboardId
-              );
-              const config = buildConfiguration(profileDef);
-              setConfig(config, []);
+              // Built-in profile not saved yet — reload from template
+              const templateId = extractTemplateId(currentProfileId);
+              const template = templateId ? getBuiltInProfileTemplate(templateId) : null;
+              if (template) {
+                const langDef = LANGUAGES.find(l => l.id === currentLanguage);
+                const firstKeyboardId = langDef?.keyboards[0]?.id || currentLanguage;
+                const profileDef: SavedProfileDefinition = {
+                  id: currentProfileId,
+                  name: getLocalizedProfileName(templateId!, uiLanguage),
+                  version: '1.0.0',
+                  language: currentLanguage,
+                  keyboardId: firstKeyboardId,
+                  ...template.config,
+                  groups: [],
+                };
+                const styleGroups = template.styleGroups.map((sg: any, index: number) => ({
+                  ...sg,
+                  id: `builtin_${templateId}_${index}`,
+                }));
+                const config = buildConfiguration(profileDef);
+                setConfig(config, styleGroups);
+                setCurrentKeyboardId(firstKeyboardId);
+              } else {
+                // Truly unsaved custom profile — factory defaults
+                const langDef = LANGUAGES.find(l => l.id === currentLanguage);
+                const defaultKeyboardId = langDef?.keyboards[0]?.id || currentLanguage;
+                const profileDef = createFactoryDefaultProfile(
+                  currentProfileId,
+                  currentProfileName,
+                  currentLanguage,
+                  defaultKeyboardId
+                );
+                const config = buildConfiguration(profileDef);
+                setConfig(config, []);
+                setCurrentKeyboardId(defaultKeyboardId);
+              }
               showToast('✓ ' + strings.alerts.editCancelled);
             }
           }
         },
       ]
     );
-  }, [currentProfileId, currentLanguage, currentProfileName, setConfig, showToast, LANGUAGES, strings.alerts.discard, strings.alerts.discardChanges, strings.alerts.discardChangesMessage, strings.alerts.editCancelled, strings.common.cancel]);
+  }, [currentProfileId, currentLanguage, currentProfileName, setConfig, setCurrentKeyboardId, showToast, LANGUAGES, uiLanguage, strings.alerts.discard, strings.alerts.discardChanges, strings.alerts.discardChangesMessage, strings.alerts.editCancelled, strings.common.cancel]);
 
   const handleClearConfig = useCallback(async () => {
     Alert.alert(
