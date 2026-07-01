@@ -183,23 +183,20 @@ abstract class BaseKeyboardService : InputMethodService() {
             }
 
             onGetCharBeforeCursor = {
-                val before = currentInputConnection?.getTextBeforeCursor(5, 0)?.toString() ?: ""
+                val before = currentInputConnection?.getTextBeforeCursor(10, 0)?.toString() ?: ""
                 if (before.isEmpty()) {
                     null
                 } else {
-                    val lastCluster = before.takeLast(1)
-                    val firstLetter = lastCluster.codePoints().toArray().firstOrNull { cp ->
+                    // Walk backwards through code points to find the last non-combining base letter.
+                    // Combining marks (Hebrew nikkud U+0591–U+05C7) sit after the base letter.
+                    val codePoints = before.codePoints().toArray()
+                    val baseLetter = codePoints.reversed().firstOrNull { cp ->
                         val type = Character.getType(cp)
                         type == Character.OTHER_LETTER.toInt() ||
                         type == Character.UPPERCASE_LETTER.toInt() ||
                         type == Character.LOWERCASE_LETTER.toInt()
                     }
-                    if (firstLetter != null) {
-                        String(Character.toChars(firstLetter))
-                    } else {
-                        val first = lastCluster.codePoints().toArray().firstOrNull()
-                        if (first != null) String(Character.toChars(first)) else ""
-                    }
+                    if (baseLetter != null) String(Character.toChars(baseLetter)) else null
                 }
             }
             

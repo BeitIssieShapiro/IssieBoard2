@@ -142,26 +142,21 @@ class KeyboardEngine(
         }
 
         renderer.onGetCharBeforeCursor = {
-            // Prefer live proxy context; fall back to shadow buffer (empty when hardware kb active)
+            // Android: getTextBeforeCursor is fully reliable — no shadow buffer needed.
+            // Walk backwards through code points to find the last base letter, skipping combining marks.
             val before = textProxy.documentContextBeforeInput ?: ""
             val source = if (before.isEmpty()) shadowTextBefore else before
             if (source.isEmpty()) {
                 null
             } else {
-                val lastCluster = source.takeLast(1)
-                // Return the letter base (strip combining marks, find first letter scalar)
-                val firstLetter = lastCluster.codePoints().toArray().firstOrNull { cp ->
+                val codePoints = source.codePoints().toArray()
+                val baseLetter = codePoints.reversed().firstOrNull { cp ->
                     val type = Character.getType(cp)
                     type == Character.OTHER_LETTER.toInt() ||
                     type == Character.UPPERCASE_LETTER.toInt() ||
                     type == Character.LOWERCASE_LETTER.toInt()
                 }
-                if (firstLetter != null) {
-                    String(Character.toChars(firstLetter))
-                } else {
-                    val first = lastCluster.codePoints().toArray().firstOrNull()
-                    if (first != null) String(Character.toChars(first)) else ""
-                }
+                if (baseLetter != null) String(Character.toChars(baseLetter)) else null
             }
         }
     }
@@ -316,23 +311,34 @@ class KeyboardEngine(
     }
 
     private fun handleBackspace() {
-        // Always attempt deleteBackward — hasText is unreliable when hardware keyboard
-        // has typed text (documentContextBeforeInput is empty in that case)
+        // Remove last grapheme cluster from shadow BEFORE deleting — so we know what was removed
+        val shadowBefore = shadowTextBefore
+        if (shadowBefore.isNotEmpty()) {
+            val breaker = java.text.BreakIterator.getCharacterInstance()
+            breaker.setText(shadowBefore)
+            breaker.last()
+            val start = breaker.previous()
+            shadowTextBefore = if (start == java.text.BreakIterator.DONE) "" else shadowBefore.substring(0, start)
+        }
+
         textProxy.deleteBackward()
-        // Try live proxy first; if empty (external kb context), trim shadow manually
+
+        // Sync shadow from live proxy if available (more accurate than our manual trim)
         val live = textProxy.documentContextBeforeInput ?: ""
         if (live.isNotEmpty()) {
             shadowTextBefore = live
-        } else if (shadowTextBefore.isNotEmpty()) {
-            // Remove the last grapheme cluster from shadow to keep it in sync
-            shadowTextBefore = shadowTextBefore.dropLast(1)
         }
+        // If live is empty, shadowTextBefore already trimmed above — leave it
+
         if (!suggestionController.handleBackspace()) {
-            suggestionController.detectCurrentWord(textProxy.documentContextBeforeInput ?: "")
+            suggestionController.detectCurrentWord(shadowTextBefore)
         }
 
         if (renderer.isNikkudTopRowActive) {
-            renderer.updateNikkudTopRowModifierStates()
+            // Post to next frame — IC.getTextBeforeCursor may not reflect deletion yet
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                renderer.updateNikkudTopRowModifierStates()
+            }
         }
 
         autoShiftAfterPunctuation()

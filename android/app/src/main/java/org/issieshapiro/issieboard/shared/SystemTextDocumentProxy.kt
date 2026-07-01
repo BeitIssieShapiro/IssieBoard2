@@ -46,7 +46,18 @@ class SystemTextDocumentProxy(
     }
 
     override fun deleteBackward() {
-        inputConnection.deleteSurroundingText(1, 0)
+        // Delete the last grapheme cluster (may be multiple code units for nikkud-decorated Hebrew)
+        val before = inputConnection.getTextBeforeCursor(10, 0)?.toString()
+        if (!before.isNullOrEmpty()) {
+            val breaker = java.text.BreakIterator.getCharacterInstance()
+            breaker.setText(before)
+            breaker.last()
+            val start = breaker.previous()
+            val clusterLen = before.length - start
+            inputConnection.deleteSurroundingText(clusterLen, 0)
+        } else {
+            inputConnection.deleteSurroundingText(1, 0)
+        }
     }
 
     override fun adjustTextPosition(offset: Int) {

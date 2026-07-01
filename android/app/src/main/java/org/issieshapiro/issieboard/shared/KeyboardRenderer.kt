@@ -2513,27 +2513,19 @@ class KeyboardRenderer(private val context: Context) {
         val container = container ?: return
         val diacriticsDefinition = config?.getDiacritics(currentKeyboardId) ?: return
 
-        val charBefore = onGetCharBeforeCursor?.invoke() ?: ""
-
         // Find the nikkud top row view
         val topRowView = container.findViewWithTag<View>(NIKKUD_TOP_ROW_TAG) as? ViewGroup ?: return
 
         val modifiers = diacriticsDefinition.getAllModifiers()
         val disabledModifiers = config?.diacriticsSettings?.get(currentKeyboardId ?: "")?.disabledModifiers ?: emptyList()
 
+        val charBefore = ""  // Modifiers always enabled — char-before detection unreliable
+
         // Build the same ordered list of modifier marks as buildNikkudTopRow
         var modifierIndex = 0
         for (modifier in modifiers) {
             if (disabledModifiers.contains(modifier.id)) continue
-            val applies: Boolean = if (charBefore.isEmpty()) {
-                true
-            } else {
-                when {
-                    modifier.appliesTo != null -> modifier.appliesTo.contains(charBefore)
-                    modifier.excludeFor != null -> !modifier.excludeFor.contains(charBefore)
-                    else -> true
-                }
-            }
+            val applies = true
             val markCount = modifier.options?.size ?: (if (modifier.mark != null) 1 else 0)
             repeat(markCount) {
                 val btn = topRowView.findViewWithTag<View>(NIKKUD_MODIFIER_BUTTON_TAG_BASE + modifierIndex)
@@ -2598,21 +2590,12 @@ class KeyboardRenderer(private val context: Context) {
         // Build modifier marks: always show all enabled modifiers, but disable those that don't apply
         data class MarkEntry(val mark: String, val baseLetter: String, val isEnabled: Boolean)
         val modifierMarks = mutableListOf<MarkEntry>()
-        val charBeforeCursor = onGetCharBeforeCursor?.invoke() ?: ""
+        val charBeforeCursor = ""  // Modifiers always enabled — char-before detection unreliable
 
         for (modifier in diacriticsDefinition.getAllModifiers()) {
             if (disabledModifiers.contains(modifier.id)) continue
 
-            // Determine if modifier applies to the current letter
-            val applies: Boolean = if (charBeforeCursor.isEmpty()) {
-                true // unknown — show enabled
-            } else {
-                when {
-                    modifier.appliesTo != null -> modifier.appliesTo.contains(charBeforeCursor)
-                    modifier.excludeFor != null -> !modifier.excludeFor.contains(charBeforeCursor)
-                    else -> true
-                }
-            }
+            val applies = true
 
             // Base letter for display: shinSin always uses ש; dagesh always uses ב
             val base: String = modifier.appliesTo?.firstOrNull() ?: "ב" // ב
@@ -2671,6 +2654,13 @@ class KeyboardRenderer(private val context: Context) {
                     onNikkudSelected?.invoke(mark)
                 }
             }
+            setOnTouchListener { _, event ->
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> { highlightKey(this); false }
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> { unhighlightKey(this); false }
+                    else -> false
+                }
+            }
             contentDescription = mark
         }
 
@@ -2680,6 +2670,7 @@ class KeyboardRenderer(private val context: Context) {
                 cornerRadius = scaledCornerRadius
             }
             elevation = dpToPx(1).toFloat()
+            tag = VISUAL_KEY_TAG
             layoutDirection = View.LAYOUT_DIRECTION_LTR
         }
 
@@ -2767,6 +2758,13 @@ class KeyboardRenderer(private val context: Context) {
                     onNikkudSelected?.invoke(mark)
                 }
             }
+            setOnTouchListener { _, event ->
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> { highlightKey(this); false }
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> { unhighlightKey(this); false }
+                    else -> false
+                }
+            }
             contentDescription = mark
         }
 
@@ -2776,6 +2774,7 @@ class KeyboardRenderer(private val context: Context) {
                 cornerRadius = scaledCornerRadius
             }
             elevation = dpToPx(1).toFloat()
+            tag = VISUAL_KEY_TAG
         }
 
         val markColor = if (isEnabled) textColor else Color.LTGRAY
