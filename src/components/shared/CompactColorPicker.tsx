@@ -11,28 +11,11 @@ import {
 import WheelColorPicker from 'react-native-wheel-color-picker';
 import { customColorsManager } from '../../utils/customColorsManager';
 import { useLocalization } from '../../localization';
+import { DEFAULT_COLOR_PRESETS, checkmarkColorFor } from './colorPresets';
 
 // Special value for system default
 export const SYSTEM_DEFAULT_COLOR = '';
 const colorCircleSize = 50;
-// Basic vibrant colors (no pastels)
-const DEFAULT_PRESETS = [
-  '#FFFFFF', // White
-  '#000000', // Black
-  '#808080', // Gray
-  '#C0C0C0', // Light Gray
-  '#404040', // Dark Gray
-  '#FF0000', // Red
-  '#00FF00', // Green
-  '#0000FF', // Blue
-  '#FFFF00', // Yellow
-  '#FF00FF', // Magenta
-  '#00FFFF', // Cyan
-  '#FF8000', // Orange
-  '#8000FF', // Purple
-  '#0080FF', // Sky Blue
-  '#FF0080', // Hot Pink
-];
 
 interface CompactColorPickerProps {
   title: string;
@@ -47,7 +30,7 @@ export const CompactColorPicker: React.FC<CompactColorPickerProps> = ({
   title,
   value,
   onChange,
-  presets = DEFAULT_PRESETS,
+  presets = DEFAULT_COLOR_PRESETS,
   showSystemDefault = false,
   systemDefaultLabel: systemDefaultLabelProp,
 }) => {
@@ -215,10 +198,7 @@ export const CompactColorPicker: React.FC<CompactColorPickerProps> = ({
                       onPress={() => handleColorSelect(color)}
                     >
                       {isSelected(color) && (
-                        <Text allowFontScaling={false} style={[
-                          styles.checkmarkText,
-                          { color: color === '#FFFFFF' || color === '#FFFF00' ? '#000' : '#FFF' }
-                        ]}>✓</Text>
+                        <Text allowFontScaling={false} style={[styles.checkmarkText, { color: checkmarkColorFor(color) }]}>✓</Text>
                       )}
                     </TouchableOpacity>
                   ))}
@@ -235,10 +215,7 @@ export const CompactColorPicker: React.FC<CompactColorPickerProps> = ({
                       onPress={() => handleColorSelect(color)}
                     >
                       {isSelected(color) && (
-                        <Text allowFontScaling={false} style={[
-                          styles.checkmarkText,
-                          { color: color === '#FFFFFF' ? '#000' : '#FFF' }
-                        ]}>✓</Text>
+                        <Text allowFontScaling={false} style={[styles.checkmarkText, { color: checkmarkColorFor(color) }]}>✓</Text>
                       )}
                     </TouchableOpacity>
                   ))}

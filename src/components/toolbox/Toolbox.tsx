@@ -8,6 +8,7 @@ import { DiacriticsPanel } from './DiacriticsPanel';
 import { ActionButton } from '../shared/ActionButton';
 import { AddStyleRuleModal } from './AddStyleRuleModal';
 import { StyleGroup } from '../../../types';
+import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 
 // Import predefined rules
 import heTemplates from '../../../assets/predefined-rules/he.json';
@@ -59,6 +60,19 @@ export interface ToolboxProps {
   onKeyboardVariantChange?: (keyboardId: string) => void;
   /** Current profile name for breadcrumb display */
   profileName?: string;
+  /** If set, render only this section without accordion wrappers.
+   *  'general' | 'keys-groups' | 'nikkud' | 'features' | 'advanced' */
+  section?: string;
+  /** App context — hides settings button toggle for IssieVoice */
+  appContext?: 'issievoice' | 'issieboard';
+  /** Callback when speak-button-in-keyboard setting changes (IssieVoice only) */
+  onSpeakButtonInKeyboardChange?: (value: boolean) => void;
+  /** Selected languages for IssieVoice language key injection */
+  selectedLanguages?: string[];
+  /** Whether speak button is shown in keyboard (IssieVoice only) */
+  speakButtonInKeyboard?: boolean;
+  /** Description text to show below the fixed action buttons (keys-groups tab only) */
+  tabDescription?: string;
 }
 
 export const Toolbox: React.FC<ToolboxProps> = ({
@@ -66,9 +80,15 @@ export const Toolbox: React.FC<ToolboxProps> = ({
   currentKeyboardId,
   onKeyboardVariantChange,
   profileName,
+  section,
+  appContext,
+  onSpeakButtonInKeyboardChange,
+  selectedLanguages,
+  speakButtonInKeyboard,
+  tabDescription,
 }) => {
   const { state, clearSelection } = useEditor();
-  const { strings } = useLocalization();
+  const { strings, isRTL } = useLocalization();
   const [showStyleRuleModal, setShowStyleRuleModal] = useState(false);
   const [showTemplatesModal, setShowTemplatesModal] = useState(false);
   const [editingGroup, setEditingGroup] = useState<StyleGroup | null>(null);
@@ -86,11 +106,11 @@ export const Toolbox: React.FC<ToolboxProps> = ({
   // Convert currently selected position IDs to key values
   const getSelectedKeyValues = useCallback((): string[] => {
     if (state.selectedKeys.length === 0) return [];
-    
+
     const keyValues = state.selectedKeys
       .map(posId => getKeyValueFromPositionId(posId, state.config.keysets))
       .filter((v): v is string => v !== null);
-    
+
     return [...new Set(keyValues)]; // Remove duplicates
   }, [state.selectedKeys, state.config.keysets]);
 
@@ -146,24 +166,24 @@ export const Toolbox: React.FC<ToolboxProps> = ({
     });
   };
 
-  const AccordionSection = ({ 
-    id, 
-    title, 
-    badge, 
+  const AccordionSection = ({
+    id,
+    title,
+    badge,
     actionButton,
-    children 
-  }: { 
-    id: SectionId; 
-    title: string; 
+    children
+  }: {
+    id: SectionId;
+    title: string;
     badge?: string;
     actionButton?: React.ReactNode;
     children: React.ReactNode;
   }) => {
     const isOpen = openSections.has(id);
-    
+
     return (
       <View style={styles.accordionSection}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.accordionHeader}
           onPress={() => toggleSection(id)}
           activeOpacity={0.7}
@@ -186,8 +206,167 @@ export const Toolbox: React.FC<ToolboxProps> = ({
     );
   };
 
+  // Section-specific rendering (for headless per-tab mode)
+  if (section) {
+    const renderSectionContent = () => {
+      switch (section) {
+        case 'general':
+          return (
+            <GlobalSettingsPanel
+              keyboardVariants={keyboardVariants}
+              currentKeyboardId={currentKeyboardId}
+              onKeyboardVariantChange={onKeyboardVariantChange}
+              advancedExpanded={false}
+              setAdvancedExpanded={() => { }}
+              appContext={appContext}
+              featuresExpanded={false}
+              setFeaturesExpanded={() => { }}
+              section="general"
+            />
+          );
+        case 'keys-groups':
+          return (
+            <StyleRulesPanel
+              onEditPressed={handleEditPressed}
+              onCreatePressed={handleCreatePressed}
+            />
+          );
+        case 'nikkud':
+          return state.config.diacritics ? <DiacriticsPanel /> : null;
+        case 'features':
+          return (
+            <GlobalSettingsPanel
+              keyboardVariants={keyboardVariants}
+              currentKeyboardId={currentKeyboardId}
+              onKeyboardVariantChange={onKeyboardVariantChange}
+              advancedExpanded={false}
+              setAdvancedExpanded={() => { }}
+              appContext={appContext}
+              onSpeakButtonInKeyboardChange={onSpeakButtonInKeyboardChange}
+              featuresExpanded={true}
+              setFeaturesExpanded={() => { }}
+              section="features"
+            />
+          );
+        case 'advanced':
+          return (
+            <GlobalSettingsPanel
+              keyboardVariants={keyboardVariants}
+              currentKeyboardId={currentKeyboardId}
+              onKeyboardVariantChange={onKeyboardVariantChange}
+              advancedExpanded={true}
+              setAdvancedExpanded={() => { }}
+              appContext={appContext}
+              featuresExpanded={false}
+              setFeaturesExpanded={() => { }}
+              section="advanced"
+            />
+          );
+        default:
+          return null;
+      }
+    };
+
+    return (
+      <View style={{ flex: 1 }}>
+        {/* Keys-groups action buttons — fixed above scroll */}
+        {section === 'keys-groups' && (
+          <View style={[styles.keysGroupsActions, isRTL && { flexDirection: 'row-reverse' }]}>
+            <TouchableOpacity
+              style={styles.subtleButton}
+              onPress={() => setShowTemplatesModal(true)}
+              activeOpacity={0.7}>
+              <MyIcon info={{ name: 'list', type: 'Ionicons', color: '#3B82F6', size: 18 }} />
+              <Text allowFontScaling={false} style={styles.subtleButtonText}>{strings.toolbox.presets}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.subtleButton}
+              onPress={handleCreatePressed}
+              activeOpacity={0.7}>
+              <MyIcon info={{ name: 'add', type: 'Ionicons', color: '#3B82F6', size: 18 }} />
+              <Text allowFontScaling={false} style={styles.subtleButtonText}>{strings.toolbox.createNew}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        <ScrollView style={[styles.container, { backgroundColor: 'transparent' }]}>
+          {tabDescription ? (
+            <View style={styles.tabDescriptionBanner}>
+              <Text allowFontScaling={false} style={styles.tabDescriptionText}>{tabDescription}</Text>
+            </View>
+          ) : null}
+          <View style={isRTL ? { direction: 'rtl' } : undefined}>
+            {renderSectionContent()}
+          </View>
+
+          {/* Presets Browser Modal (needed for keys-groups) */}
+          <Modal
+            visible={showTemplatesModal}
+            transparent
+            animationType="fade"
+            supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']}
+            onRequestClose={() => setShowTemplatesModal(false)}
+          >
+            <TouchableOpacity
+              style={styles.modalOverlay}
+              activeOpacity={1}
+              onPress={() => setShowTemplatesModal(false)}
+            >
+              <View style={styles.templatesModal} onStartShouldSetResponder={() => true}>
+                <View style={styles.templatesHeader}>
+                  <Text allowFontScaling={false} style={styles.templatesTitle}>📋 {strings.toolbox.presetsModalTitle}</Text>
+                  <TouchableOpacity onPress={() => setShowTemplatesModal(false)}>
+                    <Text allowFontScaling={false} style={styles.templatesCloseButton}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+                <FlatList
+                  data={currentTemplates}
+                  keyExtractor={(item, index) => `${item.name}_${index}`}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={styles.templateItem}
+                      onPress={() => handleTemplateSelect(item)}
+                    >
+                      <View style={styles.templateInfo}>
+                        <Text allowFontScaling={false} style={styles.templateName}>{item.name}</Text>
+                        <Text allowFontScaling={false} style={styles.templateDescription}>{item.description}</Text>
+                        <Text allowFontScaling={false} style={styles.templateKeys}>
+                          {resolveMembers(item, currentKeyboardId).length} {strings.toolbox.keysLabel}: {resolveMembers(item, currentKeyboardId).slice(0, 8).join(', ')}
+                          {resolveMembers(item, currentKeyboardId).length > 8 ? '...' : ''}
+                        </Text>
+                      </View>
+                      <Text allowFontScaling={false} style={styles.templateArrow}>›</Text>
+                    </TouchableOpacity>
+                  )}
+                />
+              </View>
+            </TouchableOpacity>
+          </Modal>
+
+          {/* Add/Edit Style Rule Modal */}
+          <AddStyleRuleModal
+            visible={showStyleRuleModal}
+            editingGroup={editingGroup}
+            initialSelectedKeys={editingGroup ? undefined : (templateData ? resolveMembers(templateData, currentKeyboardId) : getSelectedKeyValues())}
+            initialName={templateData?.name}
+            initialBgColor={templateData?.style.bgColor}
+            initialTextColor={templateData?.style.color}
+            initialVisibilityMode={templateData?.style.visibilityMode}
+            isPreset={!!(templateData && !editingGroup) || !!(editingGroup?.presetId)}
+            presetId={templateData && !editingGroup ? templateData.id : editingGroup?.presetId}
+            profileName={profileName}
+            hideGlobeButton={appContext === 'issievoice'}
+            hideCloseKey={appContext === 'issievoice'}
+            selectedLanguages={selectedLanguages}
+            speakButtonInKeyboard={speakButtonInKeyboard}
+            onClose={handleCloseModal}
+          />
+        </ScrollView>
+      </View>
+    );
+  }
+
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, isRTL && { direction: 'rtl' }]}>
       <AccordionSection id="settings" title={`🎨 ${strings.toolbox.generalAppearance}`}>
         <GlobalSettingsPanel
           keyboardVariants={keyboardVariants}
@@ -197,31 +376,35 @@ export const Toolbox: React.FC<ToolboxProps> = ({
           setAdvancedExpanded={setAdvancedExpanded}
           featuresExpanded={featuresExpanded}
           setFeaturesExpanded={setFeaturesExpanded}
+          appContext={appContext}
+          onSpeakButtonInKeyboardChange={onSpeakButtonInKeyboardChange}
         />
       </AccordionSection>
 
-      <AccordionSection 
-        id="styleRules" 
+      <AccordionSection
+        id="styleRules"
         title={`☰ ${strings.toolbox.keysGroups}`}
         badge={state.styleGroups.length > 0 ? `${state.styleGroups.length}` : undefined}
         actionButton={
           <View onStartShouldSetResponder={() => true} style={{ flexDirection: 'row', gap: 8 }}>
-            <ActionButton
-              label={strings.toolbox.presets}
-              color="blue"
-              icon="📋"
+            <TouchableOpacity
+              style={styles.subtleButton}
               onPress={() => setShowTemplatesModal(true)}
-            />
-            <ActionButton
-              label={strings.toolbox.new}
-              color="green"
-              icon="+"
+              activeOpacity={0.7}>
+              <MyIcon info={{ name: 'list', type: 'Ionicons', color: '#3B82F6', size: 18 }} />
+              <Text allowFontScaling={false} style={styles.subtleButtonText}>{strings.toolbox.presets}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.subtleButton}
               onPress={handleCreatePressed}
-            />
+              activeOpacity={0.7}>
+              <MyIcon info={{ name: 'add', type: 'Ionicons', color: '#3B82F6', size: 18 }} />
+              <Text allowFontScaling={false} style={styles.subtleButtonText}>{strings.toolbox.createNew}</Text>
+            </TouchableOpacity>
           </View>
         }
       >
-        <StyleRulesPanel 
+        <StyleRulesPanel
           onEditPressed={handleEditPressed}
           onCreatePressed={handleCreatePressed}
         />
@@ -289,6 +472,9 @@ export const Toolbox: React.FC<ToolboxProps> = ({
         isPreset={!!(templateData && !editingGroup) || !!(editingGroup?.presetId)}
         presetId={templateData && !editingGroup ? templateData.id : editingGroup?.presetId}
         profileName={profileName}
+        hideGlobeButton={appContext === 'issievoice'}
+        hideCloseKey={appContext === 'issievoice'}
+        selectedLanguages={selectedLanguages}
         onClose={handleCloseModal}
       />
     </ScrollView>
@@ -363,6 +549,43 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 13,
     fontWeight: '600',
+  },
+  keysGroupsActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  tabDescriptionBanner: {
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 8,
+  },
+  tabDescriptionText: {
+    fontSize: 13,
+    color: '#64748B',
+    textAlign: 'center',
+  },
+  subtleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  subtleButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#3B82F6',
   },
   // Templates Modal Styles
   modalOverlay: {

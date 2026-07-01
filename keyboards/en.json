@@ -27,7 +27,6 @@
         },
         {
           "keys": [
-            { "hidden": true, "width": 0.5 },
             { "value": "a", "sValue": "A" },
             { "value": "s", "sValue": "S" },
             { "value": "d", "sValue": "D" },

@@ -75,6 +75,7 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
               borderRadius: dimensions.thumb / 2,
               left: thumbPosition,
             },
+            value && styles.thumbOn,
             disabled && styles.thumbDisabled,
           ]} />
         </View>
@@ -160,7 +161,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   trackOn: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#93C5FD',
   },
   trackOff: {
     backgroundColor: '#DDD',
@@ -176,6 +177,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 2,
     elevation: 2,
+  },
+  thumbOn: {
+    backgroundColor: '#3B82F6',
   },
   thumbDisabled: {
     backgroundColor: '#F5F5F5',

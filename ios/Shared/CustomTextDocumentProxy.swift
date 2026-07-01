@@ -23,6 +23,9 @@ class CustomTextDocumentProxy: TextDocumentProxyProtocol {
     /// Callback to notify React Native to delete backward
     var onDeleteBackward: (() -> Void)?
 
+    /// Callback to notify React Native to move cursor
+    var onCursorMove: ((Int) -> Void)?
+
     /// Cursor position (index in string) - always at end for now
     private var cursorPosition: Int {
         return getCurrentText?().count ?? 0
@@ -63,8 +66,8 @@ class CustomTextDocumentProxy: TextDocumentProxyProtocol {
     }
 
     func adjustTextPosition(byCharacterOffset offset: Int) {
-        // Not implemented for simple use case (cursor always at end)
-        print("📝 CustomTextDocumentProxy.adjustTextPosition: \(offset) (not implemented)")
+        print("📝 CustomTextDocumentProxy.adjustTextPosition: \(offset)")
+        onCursorMove?(offset)
     }
 
     // MARK: - Field Type Hints (not applicable for preview, return defaults)

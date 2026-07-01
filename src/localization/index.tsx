@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
-import { NativeModules, Platform } from 'react-native';
+import * as RNLocalize from 'react-native-localize';
 import { Language, Strings, getStrings as getRawStrings } from './strings';
 
 export type { Language, Strings } from './strings';
@@ -22,26 +22,15 @@ export const getStrings = (language: Language): Strings => {
 };
 
 // Get device language
-const getDeviceLanguage = (): Language => {
-  let deviceLang = 'en';
+const SUPPORTED_LANGUAGES: Language[] = ['he', 'en', 'ar'];
 
-  if (Platform.OS === 'ios') {
-    deviceLang = NativeModules.SettingsManager?.settings?.AppleLocale ||
-                 NativeModules.SettingsManager?.settings?.AppleLanguages?.[0] ||
-                 'en';
-  } else {
-    deviceLang = NativeModules.I18nManager?.localeIdentifier || 'en';
-  }
+export const getDeviceLanguage = (): Language => {
+  //return 'en'
+  const locales = RNLocalize.getLocales();
+  const langCode = (locales[0]?.languageTag || 'en').split(/[-_]/)[0].toLowerCase();
 
-  // Extract language code (e.g., "en_US" -> "en", "he_IL" -> "he")
-  const langCode = deviceLang.split(/[_-]/)[0].toLowerCase();
-
-  // TEMP for debug
-  //return 'he'
-
-  // Return supported language or fallback to English
-  if (langCode === 'he' || langCode === 'iw') return 'he';
-  if (langCode === 'ar') return 'ar';
+  if (langCode === 'iw') return 'he';
+  if (SUPPORTED_LANGUAGES.includes(langCode as Language)) return langCode as Language;
   return 'en';
 };
 

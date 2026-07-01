@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
-import { KeyboardPreview } from '../../components/KeyboardPreview';
+import { KeyboardPreview, KeyPressEvent, HeightChangeEvent } from '../../components/KeyboardPreview';
 import { useLocalization } from '../../localization';
 
 interface ClassicDetailViewProps {
@@ -8,6 +8,8 @@ interface ClassicDetailViewProps {
     onBack: () => void;
     configJson?: string;
     language?: string;
+    selectedKeys?: string;
+    onKeyPress?: (event: KeyPressEvent) => void;
     children: React.ReactNode;
 }
 
@@ -16,9 +18,18 @@ const ClassicDetailView: React.FC<ClassicDetailViewProps> = ({
     onBack,
     configJson,
     language,
+    selectedKeys,
+    onKeyPress,
     children,
 }) => {
     const { strings } = useLocalization();
+    const [kbHeight, setKbHeight] = useState(250);
+
+    const handleHeightChange = useCallback((event: HeightChangeEvent) => {
+        const { height } = event.nativeEvent;
+        if (height > 0) setKbHeight(height);
+    }, []);
+
     return (
         <SafeAreaView style={styles.container}>
             {/* Header with back button and title */}
@@ -39,9 +50,12 @@ const ClassicDetailView: React.FC<ClassicDetailViewProps> = ({
             {configJson && (
                 <View style={styles.previewContainer}>
                     <KeyboardPreview
-                        style={styles.preview}
+                        style={[styles.preview, { height: kbHeight }]}
                         configJson={configJson}
                         language={language}
+                        selectedKeys={selectedKeys}
+                        onKeyPress={onKeyPress}
+                        onHeightChange={handleHeightChange}
                     />
                 </View>
             )}
@@ -83,11 +97,11 @@ const styles = StyleSheet.create({
         paddingBottom: 8,
     },
     preview: {
-        height: 250,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: '#C6C6C8',
         borderRadius: 8,
         overflow: 'hidden',
+        backgroundColor: '#CBCFD8',
     },
     content: {
         flex: 1,

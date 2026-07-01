@@ -10,14 +10,18 @@
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, StyleSheet, Linking } from 'react-native';
-import { EditorScreen } from './screens/EditorScreen';
+import { View, StyleSheet, Linking, Alert, Platform } from 'react-native';
 import { ClassicEditorScreen } from './screens/ClassicEditorScreen';
 import KeyboardPreferences from './native/KeyboardPreferences';
 import { LocalizationProvider } from './localization';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { initializeFirebase } from './firebase-config';
 import { loadLanguage, LANGUAGE_SETTINGS } from '@beitissieshapiro/issie-shared';
+import NewSettingsScreen from '../apps/issievoice/src/screens/NewSettingsScreen';
+import { LocalizationProvider as VoiceLocalizationProvider } from '../apps/issievoice/src/context/LocalizationContext';
+import { useIncomingURL } from './common/linking-hook';
+import { importPackage, ImportInfo } from './import-export';
+import { ImportInfoDialog } from './common/import-info-dialog';
 
 type LanguageId = 'he' | 'en' | 'ar';
 
@@ -42,8 +46,26 @@ export const AppNavigator: React.FC = () => {
   const [initialLanguage, setInitialLanguage] = useState<LanguageId | undefined>(undefined);
   const [initialLoaded, setInitialLoaded] = useState(false);
   const [isV1User, setIsV1User] = useState(false);
+  const [classicButtonRevealed, setClassicButtonRevealed] = useState(false);
   // Key to force EditorScreen to remount when opened from keyboard
   const [editorKey, setEditorKey] = useState(0);
+  const [importResult, setImportResult] = useState<ImportInfo | null>(null);
+
+  const handleImportURL = useCallback(async (url: string) => {
+    try {
+      const info: ImportInfo = { importedProfiles: [], skippedExistingProfiles: [] };
+      await importPackage(url, info);
+      if (info.importedProfiles.length > 0 || info.skippedExistingProfiles.length > 0) {
+        setImportResult(info);
+        setEditorKey(prev => prev + 1);
+      }
+    } catch (error) {
+      console.warn('Import failed:', error);
+      Alert.alert('Import Failed', 'This file is not a valid IssieBoard keyboard file.');
+    }
+  }, []);
+
+  useIncomingURL(handleImportURL);
 
   // Initialize Firebase
   useEffect(() => {
@@ -103,7 +125,7 @@ export const AppNavigator: React.FC = () => {
             // Not a v1 user
           }
         }
-        const showClassicToggle = true //__DEV__ || v1User;
+        const showClassicToggle = Platform.OS === 'ios' && v1User; // (__DEV__ || v1User);
         setIsV1User(showClassicToggle);
 
         // Check last used view mode
@@ -207,32 +229,47 @@ export const AppNavigator: React.FC = () => {
   if (currentScreen.type === 'classic') {
     return (
       <LocalizationProvider>
-        <View style={styles.container}>
-          <ClassicEditorScreen
-            key={editorKey}
-            initialLanguage={initialLanguage}
-            onSwitchToAdvanced={handleSwitchToAdvanced}
+        <SafeAreaProvider>
+          <View style={styles.container}>
+            <ClassicEditorScreen
+              key={editorKey}
+              initialLanguage={initialLanguage}
+              onSwitchToAdvanced={handleSwitchToAdvanced}
+            />
+          </View>
+        </SafeAreaProvider>
+        {importResult && (
+          <ImportInfoDialog
+            importInfo={importResult}
+            onClose={() => setImportResult(null)}
           />
-        </View>
+        )}
       </LocalizationProvider>
     );
   }
 
-  const profileId = currentScreen.type === 'editor' ? currentScreen.profileId : undefined;
-
   return (
     <LocalizationProvider>
       <SafeAreaProvider>
-
-        <View style={styles.container}>
-          <EditorScreen
-            key={editorKey}
-            profileId={profileId}
-            initialLanguage={initialLanguage}
-            onSwitchToClassic={isV1User ? handleSwitchToClassic : undefined}
-          />
-        </View>
+        <VoiceLocalizationProvider>
+          <View style={styles.container}>
+            <NewSettingsScreen
+              key={editorKey}
+              appContext="issieboard"
+              initialLanguage={initialLanguage}
+              onSwitchToClassic={Platform.OS === 'ios' ? handleSwitchToClassic : undefined}
+              showClassicButton={isV1User || classicButtonRevealed}
+              onRevealClassicButton={() => setClassicButtonRevealed(true)}
+            />
+          </View>
+        </VoiceLocalizationProvider>
       </SafeAreaProvider>
+      {importResult && (
+        <ImportInfoDialog
+          importInfo={importResult}
+          onClose={() => setImportResult(null)}
+        />
+      )}
     </LocalizationProvider>
   );
 };

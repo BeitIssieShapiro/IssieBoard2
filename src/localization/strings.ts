@@ -33,8 +33,12 @@ export interface Strings {
     settings: string;
     backToNewsettings: string;
     classicView: string;
+    classicViewNotice: string;
     newProfile: string;
     duplicateProfile: string;
+    cloneKeyboard: string;
+    cloneKeyboardSubtitle: string;
+    copyOf: string;
     newProfilePlaceholder: string;
     select: string;
     saveAs: string;
@@ -121,6 +125,8 @@ export interface Strings {
     middleThird: string;
     leftThird: string;
     typeCharacters: string;
+    showAll: string;
+    tapKeysToShow: string;
   };
   toolbox: {
     generalAppearance: string;
@@ -128,6 +134,7 @@ export interface Strings {
     nikkud: string;
     presets: string;
     new: string;
+    createNew: string;
     presetsModalTitle: string;
     keysLabel: string;
   };
@@ -149,6 +156,10 @@ export interface Strings {
     autoCorrectDesc: string;
     settingsButton: string;
     settingsButtonDesc: string;
+    speakButtonInKeyboard: string;
+    speakButtonInKeyboardDesc: string;
+    symbolsInSuggestions: string;
+    symbolsInSuggestionsDesc: string;
     advancedSettings: string;
     keyboardHeight: string;
     fontSize: string;
@@ -208,9 +219,12 @@ export interface Strings {
     diacriticsSection: string;
     modifiers: string;
     noDiacritics: string;
-  };
-  styleRuleModal: {
+    inputMode: string;
+    popup: string;
+    topRow: string;
+    topRowAlways: string;
     newKeysGroup: string;
+    groupNamePrefix: string;
     nameLabel: string;
     namePlaceholder: string;
     presetKeysLocked: string;
@@ -262,12 +276,18 @@ export interface Strings {
     keyboardsInProfile: string;
     customConfiguration: string;
     keyboardPreview: string;
+    currentKeyboard: string;
     previewHelpText: string;
     generatedConfiguration: string;
     editingHelpText: string;
     editorHelpText: string;
     aboutProfiles: string;
     helpText: string;
+    builtInNames: {
+      default: string;
+      classic: string;
+      highContrast: string;
+    };
   };
   status: {
     initializing: string;
@@ -294,10 +314,26 @@ export interface Strings {
     setupStep4: string;
     setupStep5: string;
     setupStep6: string;
+    androidSetupStep1: string;
+    androidSetupStep2: string;
+    androidSetupStep3: string;
+    androidSetupStep4: string;
     fullAccessTitle: string;
     fullAccessStep1: string;
     fullAccessStep2: string;
     fullAccessStep3: string;
+  };
+  importExport: {
+    exportProfile: string;
+    backupAll: string;
+    importSuccessTitle: string;
+    importedProfiles: string;
+    skippedProfiles: string;
+    skippedNote: string;
+    importFailed: string;
+    invalidFile: string;
+    ok: string;
+    noProfilesToExport: string;
   };
 }
 
@@ -332,10 +368,14 @@ const en: Strings = {
     myKeyboards: 'My Keyboards',
     builtIn: 'Built-in',
     settings: 'Settings',
-    backToNewsettings: 'Back to Updated View',
+    backToNewsettings: 'New View',
     classicView: 'Classic View',
+    classicViewNotice: 'This view is intended for users familiar with IssieBoard v1. It contains only a subset of v2 features — we recommend switching to the New View. This view will be removed in a future release.',
     newProfile: 'New Keyboard',
     duplicateProfile: 'Duplicate Keyboard',
+    cloneKeyboard: 'Clone Keyboard',
+    cloneKeyboardSubtitle: 'Create a copy of',
+    copyOf: 'Copy of',
     newProfilePlaceholder: 'Enter keyboard name',
     select: 'Select',
     saveAs: 'Save As',
@@ -366,7 +406,7 @@ const en: Strings = {
     clearAll: 'Clear All',
     cannotDelete: 'Cannot Delete',
     cannotDeleteDefault: 'Built-in keyboards cannot be deleted.',
-    cannotDeleteActive: 'Cannot delete the active keyboard. Switch to another keyboard first.',
+    cannotDeleteActive: 'This is the active keyboard. Deleting it will switch to the default keyboard.',
     deleteProfile: 'Delete an IssieBoard',
     deleteConfirm: 'Are you sure you want to delete "{{name}}"?',
     renameProfile: 'Rename Keyboard',
@@ -422,6 +462,8 @@ const en: Strings = {
     middleThird: 'Middle Third',
     leftThird: 'Left Third',
     typeCharacters: 'Type characters to highlight',
+    showAll: 'Show All',
+    tapKeysToShow: 'Tap keys you wish to be visible',
   },
   toolbox: {
     generalAppearance: 'General Appearance',
@@ -429,6 +471,7 @@ const en: Strings = {
     nikkud: 'Nikkud',
     presets: 'Presets',
     new: 'New',
+    createNew: 'Create New',
     presetsModalTitle: 'Choose a Preset',
     keysLabel: 'Keys',
   },
@@ -450,6 +493,10 @@ const en: Strings = {
     autoCorrectDesc: 'Automatically correct common typos',
     settingsButton: 'Settings Button',
     settingsButtonDesc: 'Show settings gear icon on keyboard',
+    speakButtonInKeyboard: 'Speak Button in Keyboard',
+    speakButtonInKeyboardDesc: 'Show the speak button as part of the keyboard instead of above it',
+    symbolsInSuggestions: 'Symbols in Suggestions',
+    symbolsInSuggestionsDesc: 'Show picture symbols above word suggestions',
     advancedSettings: 'Advanced Settings',
     keyboardHeight: 'Keyboard Height',
     fontSize: 'Font Size',
@@ -463,7 +510,7 @@ const en: Strings = {
     weightMedium: 'Medium',
     weightSemibold: 'Semibold',
     weightBold: 'Bold',
-    weightHeavy: 'Heavy',
+    weightHeavy: 'Thick',
     sizeXS: 'XS',
     sizeS: 'S',
     sizeM: 'M',
@@ -494,8 +541,8 @@ const en: Strings = {
     deleteGroup: 'Delete Group',
     deleteGroupConfirm: 'Delete "{{name}}"? This will remove styling from {{count}} key(s).',
     noStyles: 'No custom styles applied.',
-    noGroupsYet: 'No groups yet',
-    noGroupsHint: 'Tap "New" to create a keys group and start customizing.',
+    noGroupsYet: 'No keys groups defined yet',
+    noGroupsHint: 'Select a preset group or tap "Create New" to add a group and customize key colors and visibility.',
     styleGroups: 'Style Groups',
     editing: 'Editing',
     inactive: 'Inactive',
@@ -509,9 +556,14 @@ const en: Strings = {
     diacriticsSection: 'Diacritics',
     modifiers: 'Modifiers',
     noDiacritics: 'No diacritics available for this language.',
+    inputMode: 'Input Mode',
+    popup: 'Popup',
+    topRow: 'Top Row',
+    topRowAlways: 'Top Row Always On',
   },
   styleRuleModal: {
     newKeysGroup: 'New Keys Group',
+    groupNamePrefix: 'Group',
     nameLabel: 'Name',
     namePlaceholder: 'Enter group name',
     presetKeysLocked: 'Preset keys are locked and cannot be changed.',
@@ -563,12 +615,18 @@ const en: Strings = {
     keyboardsInProfile: 'Keyboards in This Configuration:',
     customConfiguration: 'Custom configuration',
     keyboardPreview: 'Keyboard Preview',
+    currentKeyboard: 'Current keyboard:',
     previewHelpText: 'Live preview of your keyboard. Tap keys to test!',
     generatedConfiguration: 'Generated Configuration (Advanced):',
     editingHelpText: 'Make your changes below and tap "Save Changes" when done.',
     editorHelpText: 'You can manually edit the JSON below if needed. Changes will override the configuration.',
     aboutProfiles: 'About Keyboards',
     helpText: '• Keyboards combine key layouts with styling\n• Switch keyboards to change layouts and themes\n• Edit keyboards/ folder to add new languages\n• Edit profiles/ folder to create custom themes\n• See keyboards/README.md for details',
+    builtInNames: {
+      default: 'Default',
+      classic: 'IssieBoard Classic',
+      highContrast: 'High Contrast',
+    },
   },
   status: {
     initializing: 'Initializing...',
@@ -595,10 +653,26 @@ const en: Strings = {
     setupStep4: '4. Find and select "IssieBoard"',
     setupStep5: '5. Toggle on the language you want (e.g. "IssieBoard - English")',
     setupStep6: '6. Tap the > arrow and enable "Allow Full Access"',
+    androidSetupStep1: '1. Open Settings > System > Languages & input > On-screen keyboard',
+    androidSetupStep2: '2. Enable "IssieBoard"',
+    androidSetupStep3: '3. Tap OK on the confirmation dialog',
+    androidSetupStep4: '4. Return to your app and switch to IssieBoard when typing',
     fullAccessTitle: 'Enable Full Access',
     fullAccessStep1: '1. Open Settings > General > Keyboard > Keyboards',
     fullAccessStep2: '2. Tap "IssieBoard"',
     fullAccessStep3: '3. Enable "Allow Full Access"',
+  },
+  importExport: {
+    exportProfile: 'Share Keyboard',
+    backupAll: 'Backup All Keyboards',
+    importSuccessTitle: 'Import Complete',
+    importedProfiles: 'Imported Keyboards',
+    skippedProfiles: 'Skipped (already exist)',
+    skippedNote: 'Keyboards with existing names were skipped.',
+    importFailed: 'Import Failed',
+    invalidFile: 'This file is not a valid IssieBoard keyboard file.',
+    ok: 'OK',
+    noProfilesToExport: 'No custom keyboards to export.',
   },
 };
 
@@ -633,10 +707,14 @@ const he: Strings = {
     myKeyboards: 'המקלדות שלי',
     builtIn: 'מובנה',
     settings: 'הגדרות',
-    backToNewsettings: 'חזרה לתצוגה חדשה',
+    backToNewsettings: 'תצוגה חדשה',
     classicView: 'תצוגה קלאסית',
+    classicViewNotice: 'תצוגה זו מיועדת למשתמשים הרגילים לגרסה 1 של IssieBoard. היא כוללת רק חלק מהאפשרויות של גרסה 2 — אנו ממליצים לעבור לתצוגה החדשה. תצוגה זו תוסר בגרסאות עתידיות.',
     newProfile: 'מקלדת חדשה',
     duplicateProfile: 'שכפל מקלדת',
+    cloneKeyboard: 'שכפל מקלדת',
+    cloneKeyboardSubtitle: 'צור עותק של',
+    copyOf: 'עותק של',
     newProfilePlaceholder: 'הזן שם מקלדת',
     select: 'בחר',
     saveAs: 'שמור בשם',
@@ -667,7 +745,7 @@ const he: Strings = {
     clearAll: 'נקה הכל',
     cannotDelete: 'לא ניתן למחוק',
     cannotDeleteDefault: 'לא ניתן למחוק מקלדות מובנות.',
-    cannotDeleteActive: 'לא ניתן למחוק את המקלדת הפעילה. עבור למקלדת אחרת תחילה.',
+    cannotDeleteActive: 'זוהי המקלדת הפעילה. מחיקתה תחזיר למקלדת ברירת המחדל.',
     deleteProfile: 'מחיקת מקלדת',
     deleteConfirm: 'האם אתה בטוח שברצונך למחוק את "{{name}}"?',
     renameProfile: 'שינוי שם מקלדת',
@@ -723,6 +801,8 @@ const he: Strings = {
     middleThird: 'שליש אמצעי',
     leftThird: 'שליש שמאלי',
     typeCharacters: 'הקלד תווים להדגשה',
+    showAll: 'הצג הכל',
+    tapKeysToShow: 'לחץ על המקשים שברצונך להציג',
   },
   toolbox: {
     generalAppearance: 'מראה כללי',
@@ -730,6 +810,7 @@ const he: Strings = {
     nikkud: 'ניקוד',
     presets: 'תבניות',
     new: 'חדש',
+    createNew: 'צור חדש',
     presetsModalTitle: 'בחר תבנית',
     keysLabel: 'מקשים',
   },
@@ -751,6 +832,10 @@ const he: Strings = {
     autoCorrectDesc: 'תקן שגיאות הקלדה נפוצות באופן אוטומטי',
     settingsButton: 'כפתור הגדרות',
     settingsButtonDesc: 'הצג סמל הגדרות על המקלדת',
+    speakButtonInKeyboard: 'כפתור הקראה במקלדת',
+    speakButtonInKeyboardDesc: 'הצג את כפתור ההקראה כחלק מהמקלדת במקום מעליה',
+    symbolsInSuggestions: 'סמלים בהצעות',
+    symbolsInSuggestionsDesc: 'הצג סמלי תמונה מעל הצעות מילים',
     advancedSettings: 'הגדרות מתקדמות',
     keyboardHeight: 'גובה מקלדת',
     fontSize: 'גודל גופן',
@@ -764,7 +849,7 @@ const he: Strings = {
     weightMedium: 'בינוני',
     weightSemibold: 'מעט מודגש',
     weightBold: 'מודגש',
-    weightHeavy: 'כבד',
+    weightHeavy: 'עבה',
     sizeXS: 'XS',
     sizeS: 'S',
     sizeM: 'M',
@@ -795,8 +880,8 @@ const he: Strings = {
     deleteGroup: 'מחק קבוצה',
     deleteGroupConfirm: 'למחוק את "{{name}}"? פעולה זו תסיר עיצוב מ-{{count}} מקש(ים).',
     noStyles: 'לא הוחלו עיצובים מותאמים.',
-    noGroupsYet: 'אין קבוצות עדיין',
-    noGroupsHint: 'לחץ "חדש" כדי ליצור קבוצת מקשים ולהתחיל להתאים אישית.',
+    noGroupsYet: 'אין קבוצות מקשים עדיין',
+    noGroupsHint: 'בחר קבוצה מוכנה מראש או לחץ "צור חדש" כדי להוסיף קבוצה ולהתאים צבעים וראות.',
     styleGroups: 'קבוצות עיצוב',
     editing: 'עריכה',
     inactive: 'לא פעיל',
@@ -810,9 +895,14 @@ const he: Strings = {
     diacriticsSection: 'סימני ניקוד',
     modifiers: 'מתאמים',
     noDiacritics: 'אין סימני ניקוד זמינים לשפה זו.',
+    inputMode: 'אופן הזנה',
+    popup: 'חלון קופץ',
+    topRow: 'שורה עליונה',
+    topRowAlways: 'שורה עליונה קבועה',
   },
   styleRuleModal: {
     newKeysGroup: 'קבוצת מקשים חדשה',
+    groupNamePrefix: 'קבוצה',
     nameLabel: 'שם',
     namePlaceholder: 'הזן שם קבוצה',
     presetKeysLocked: 'מקשי תבנית נעולים ולא ניתנים לשינוי.',
@@ -864,12 +954,18 @@ const he: Strings = {
     keyboardsInProfile: 'מקלדות בהגדרה זו:',
     customConfiguration: 'הגדרה מותאמת אישית',
     keyboardPreview: 'תצוגה מקדימה של המקלדת',
+    currentKeyboard: 'מקלדת נוכחית:',
     previewHelpText: 'תצוגה מקדימה של המקלדת. לחץ על כפתורים כדי לבדוק!',
     generatedConfiguration: 'הגדרות מתקדמות:',
     editingHelpText: 'ערוך את השינויים למטה ולחץ "שמור שינויים" בסיום.',
     editorHelpText: 'ניתן לערוך את ה-JSON למטה במידת הצורך. השינויים ידרסו את ההגדרות.',
     aboutProfiles: 'אודות מקלדות',
     helpText: '• מקלדות משלבות פריסת מקשים עם עיצוב\n• החלף מקלדות לשינוי פריסה וערכות נושא\n• ערוך תיקיית keyboards/ להוספת שפות\n• ערוך תיקיית profiles/ ליצירת ערכות נושא\n• ראה keyboards/README.md לפרטים',
+    builtInNames: {
+      default: 'ברירת מחדל',
+      classic: 'IssieBoard קלאסי',
+      highContrast: 'ניגודיות גבוהה',
+    },
   },
   status: {
     initializing: 'מאתחל...',
@@ -896,10 +992,26 @@ const he: Strings = {
     setupStep4: '4. מצאו ובחרו "IssieBoard"',
     setupStep5: '5. הפעילו את השפה הרצויה (למשל "IssieBoard - עברית")',
     setupStep6: '6. לחצו על החץ > והפעילו "גישה מלאה"',
+    androidSetupStep1: '1. פתחו הגדרות > מערכת > שפות וקלט > מקלדת על המסך',
+    androidSetupStep2: '2. הפעילו את "IssieBoard"',
+    androidSetupStep3: '3. לחצו אישור בחלון האישור',
+    androidSetupStep4: '4. חזרו לאפליקציה והחליפו ל-IssieBoard בזמן הקלדה',
     fullAccessTitle: 'הפעלת גישה מלאה',
     fullAccessStep1: '1. פתחו הגדרות > כללי > מקלדת > מקלדות',
     fullAccessStep2: '2. לחצו על "IssieBoard"',
     fullAccessStep3: '3. הפעילו "גישה מלאה"',
+  },
+  importExport: {
+    exportProfile: 'שתף מקלדת',
+    backupAll: 'גיבוי כל המקלדות',
+    importSuccessTitle: 'ייבוא הושלם',
+    importedProfiles: 'מקלדות שיובאו',
+    skippedProfiles: 'דולגו (כבר קיימות)',
+    skippedNote: 'מקלדות עם שמות קיימים דולגו.',
+    importFailed: 'הייבוא נכשל',
+    invalidFile: 'קובץ זה אינו קובץ מקלדת תקין של IssieBoard.',
+    ok: 'אישור',
+    noProfilesToExport: 'אין מקלדות מותאמות לייצוא.',
   },
 };
 
@@ -934,10 +1046,14 @@ const ar: Strings = {
     myKeyboards: 'لوحات المفاتيح',
     builtIn: 'مدمج',
     settings: 'إعدادات',
-    backToNewsettings: 'Back to Updated View',
+    backToNewsettings: 'New View',
     classicView: 'العرض الكلاسيكي',
+    classicViewNotice: 'هذا العرض مخصص للمستخدمين المعتادين على IssieBoard الإصدار 1. يحتوي على جزء فقط من ميزات الإصدار 2 — نوصي بالتبديل إلى العرض الجديد. سيتم إزالة هذا العرض في إصدارات مستقبلية.',
     newProfile: 'لوحة مفاتيح جديدة',
     duplicateProfile: 'تكرار لوحة المفاتيح',
+    cloneKeyboard: 'استنساخ لوحة المفاتيح',
+    cloneKeyboardSubtitle: 'إنشاء نسخة من',
+    copyOf: 'نسخة من',
     newProfilePlaceholder: 'أدخل اسم لوحة المفاتيح',
     select: 'اختر',
     saveAs: 'حفظ باسم',
@@ -968,7 +1084,7 @@ const ar: Strings = {
     clearAll: 'مسح الكل',
     cannotDelete: 'لا يمكن الحذف',
     cannotDeleteDefault: 'لا يمكن حذف لوحات المفاتيح الافتراضية.',
-    cannotDeleteActive: 'لا يمكن حذف لوحة المفاتيح النشطة. انتقل إلى لوحة مفاتيح أخرى أولاً.',
+    cannotDeleteActive: 'هذه هي لوحة المفاتيح النشطة. سيؤدي حذفها إلى التبديل إلى لوحة المفاتيح الافتراضية.',
     deleteProfile: 'حذف لوحة المفاتيح',
     deleteConfirm: 'هل أنت متأكد أنك تريد حذف "{{name}}"؟',
     renameProfile: 'إعادة تسمية لوحة المفاتيح',
@@ -1024,6 +1140,8 @@ const ar: Strings = {
     middleThird: 'الثلث الأوسط',
     leftThird: 'الثلث الأيسر',
     typeCharacters: 'اكتب أحرفًا لتمييزها',
+    showAll: 'إظهار الكل',
+    tapKeysToShow: 'اضغط على المفاتيح التي تريد إظهارها',
   },
   toolbox: {
     generalAppearance: 'المظهر العام',
@@ -1031,6 +1149,7 @@ const ar: Strings = {
     nikkud: 'تشكيل',
     presets: 'قوالب',
     new: 'جديد',
+    createNew: 'إنشاء جديد',
     presetsModalTitle: 'اختر قالبًا',
     keysLabel: 'مفاتيح',
   },
@@ -1052,6 +1171,10 @@ const ar: Strings = {
     autoCorrectDesc: 'تصحيح الأخطاء الإملائية الشائعة تلقائيًا',
     settingsButton: 'زر الإعدادات',
     settingsButtonDesc: 'إظهار أيقونة الإعدادات على لوحة المفاتيح',
+    speakButtonInKeyboard: 'زر التحدث في لوحة المفاتيح',
+    speakButtonInKeyboardDesc: 'عرض زر التحدث كجزء من لوحة المفاتيح بدلاً من فوقها',
+    symbolsInSuggestions: 'رموز في الاقتراحات',
+    symbolsInSuggestionsDesc: 'عرض رموز مصورة فوق اقتراحات الكلمات',
     advancedSettings: 'إعدادات متقدمة',
     keyboardHeight: 'ارتفاع لوحة المفاتيح',
     fontSize: 'حجم الخط',
@@ -1065,7 +1188,7 @@ const ar: Strings = {
     weightMedium: 'متوسط',
     weightSemibold: 'شبه عريض',
     weightBold: 'عريض',
-    weightHeavy: 'ثقيل',
+    weightHeavy: 'سميك',
     sizeXS: 'XS',
     sizeS: 'S',
     sizeM: 'M',
@@ -1096,8 +1219,8 @@ const ar: Strings = {
     deleteGroup: 'حذف المجموعة',
     deleteGroupConfirm: 'حذف "{{name}}"؟ سيؤدي ذلك إلى إزالة التنسيق من {{count}} مفتاح(مفاتيح).',
     noStyles: 'لا توجد أنماط مخصصة مطبقة.',
-    noGroupsYet: 'لا توجد مجموعات بعد',
-    noGroupsHint: 'اضغط "جديد" لإنشاء مجموعة مفاتيح والبدء في التخصيص.',
+    noGroupsYet: 'لا توجد مجموعات مفاتيح بعد',
+    noGroupsHint: 'اختر مجموعة جاهزة أو اضغط "إنشاء جديد" لإضافة مجموعة وتخصيص الألوان والرؤية.',
     styleGroups: 'مجموعات الأنماط',
     editing: 'تحرير',
     inactive: 'غير نشط',
@@ -1111,9 +1234,14 @@ const ar: Strings = {
     diacriticsSection: 'علامات التشكيل',
     modifiers: 'المعدّلات',
     noDiacritics: 'لا تتوفر علامات تشكيل لهذه اللغة.',
+    inputMode: 'وضع الإدخال',
+    popup: 'نافذة منبثقة',
+    topRow: 'الصف العلوي',
+    topRowAlways: 'صف علوي ثابت',
   },
   styleRuleModal: {
     newKeysGroup: 'مجموعة مفاتيح جديدة',
+    groupNamePrefix: 'مجموعة',
     nameLabel: 'الاسم',
     namePlaceholder: 'أدخل اسم المجموعة',
     presetKeysLocked: 'مفاتيح القالب مقفلة ولا يمكن تغييرها.',
@@ -1165,12 +1293,18 @@ const ar: Strings = {
     keyboardsInProfile: 'لوحات المفاتيح في هذا الإعداد:',
     customConfiguration: 'إعداد مخصص',
     keyboardPreview: 'عرض معاينة لوحة المفاتيح',
+    currentKeyboard: 'لوحة المفاتيح الحالية:',
     previewHelpText: 'عرض معاينة لوحة المفاتيح. اضغط على المفاتيح للاختبار!',
     generatedConfiguration: 'الإعدادات المتقدمة:',
     editingHelpText: 'قم بإجراء التغييرات أدناه واضغط "حفظ التغييرات" عند الانتهاء.',
     editorHelpText: 'يمكنك تحرير JSON أدناه إذا لزم الأمر. ستتجاوز التغييرات الإعدادات.',
     aboutProfiles: 'حول لوحات المفاتيح',
     helpText: '• لوحات المفاتيح تجمع بين تخطيط المفاتيح والتصميم\n• بدّل لوحات المفاتيح لتغيير التخطيط والسمات\n• حرر مجلد keyboards/ لإضافة لغات\n• حرر مجلد profiles/ لإنشاء سمات مخصصة\n• انظر keyboards/README.md للتفاصيل',
+    builtInNames: {
+      default: 'افتراضي',
+      classic: 'IssieBoard كلاسيكي',
+      highContrast: 'تباين عالٍ',
+    },
   },
   status: {
     initializing: 'جارٍ التهيئة...',
@@ -1197,10 +1331,26 @@ const ar: Strings = {
     setupStep4: '4. ابحث عن "IssieBoard" واختره',
     setupStep5: '5. فعّل اللغة المطلوبة (مثلاً "IssieBoard - العربية")',
     setupStep6: '6. اضغط على السهم > وفعّل "السماح بالوصول الكامل"',
+    androidSetupStep1: '1. افتح الإعدادات > النظام > اللغات والإدخال > لوحة المفاتيح على الشاشة',
+    androidSetupStep2: '2. فعّل "IssieBoard"',
+    androidSetupStep3: '3. اضغط موافق في نافذة التأكيد',
+    androidSetupStep4: '4. ارجع إلى التطبيق وانتقل إلى IssieBoard أثناء الكتابة',
     fullAccessTitle: 'تفعيل الوصول الكامل',
     fullAccessStep1: '1. افتح الإعدادات > عام > لوحة المفاتيح > لوحات المفاتيح',
     fullAccessStep2: '2. اضغط على "IssieBoard"',
     fullAccessStep3: '3. فعّل "السماح بالوصول الكامل"',
+  },
+  importExport: {
+    exportProfile: 'مشاركة لوحة مفاتيح',
+    backupAll: 'نسخ احتياطي لجميع لوحات المفاتيح',
+    importSuccessTitle: 'اكتمل الاستيراد',
+    importedProfiles: 'لوحات المفاتيح المستوردة',
+    skippedProfiles: 'تم تخطيها (موجودة بالفعل)',
+    skippedNote: 'تم تخطي لوحات المفاتيح ذات الأسماء الموجودة.',
+    importFailed: 'فشل الاستيراد',
+    invalidFile: 'هذا الملف ليس ملف لوحة مفاتيح IssieBoard صالحًا.',
+    ok: 'موافق',
+    noProfilesToExport: 'لا توجد لوحات مفاتيح مخصصة للتصدير.',
   },
 };
 

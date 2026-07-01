@@ -36,7 +36,8 @@ const NikkudKey: React.FC<NikkudKeyProps> = ({
     // Modifier with options - show first option
     sample = sampleLetter + item.options[0].mark;
   } else {
-    sample = sampleLetter + item.mark;
+    const base = ('sampleBase' in item && item.sampleBase) ? item.sampleBase : sampleLetter;
+    sample = base + item.mark;
   }
 
   return (
@@ -57,7 +58,7 @@ const NikkudKey: React.FC<NikkudKeyProps> = ({
 
 export const DiacriticsPanel: React.FC = () => {
   const { state, dispatch } = useEditor();
-  const { strings } = useLocalization();
+  const { strings, isRTL } = useLocalization();
   
   // Determine which keyboard is currently shown
   const keyboards = state.config.keyboards || [];
@@ -83,6 +84,8 @@ export const DiacriticsPanel: React.FC = () => {
   const disabledModifiers = settings.disabledModifiers || [];
   const isNikkudDisabled = settings.disabled || false;
   const isSimpleMode = settings.simpleMode ?? true;
+  const isTopRowMode = settings.nikkudMode === 'topRow';
+  const isTopRowAlways = settings.nikkudMode === 'topRowAlways';
   
   // Determine current mode based on settings
   const getCurrentMode = (): NikkudMode => {
@@ -108,10 +111,9 @@ export const DiacriticsPanel: React.FC = () => {
 
   const handleModeChange = (mode: NikkudMode) => {
     setCurrentMode(mode);
-    
+
     switch (mode) {
       case 'none':
-        // Disable nikkud completely
         dispatch({
           type: 'UPDATE_DIACRITICS_SETTINGS',
           payload: {
@@ -120,45 +122,49 @@ export const DiacriticsPanel: React.FC = () => {
           },
         });
         break;
-      
+
       case 'basic':
-        // Simple mode, no hidden items or disabled modifiers
         dispatch({
           type: 'UPDATE_DIACRITICS_SETTINGS',
           payload: {
             keyboardId: currentKeyboardId,
-            settings: { disabled: false, simpleMode: true, hidden: [], disabledModifiers: [] },
+            settings: { ...settings, disabled: false, simpleMode: true, hidden: [], disabledModifiers: [] },
           },
         });
         break;
-      
+
       case 'full':
-        // Full mode (not simple), no hidden items or disabled modifiers
         dispatch({
           type: 'UPDATE_DIACRITICS_SETTINGS',
           payload: {
             keyboardId: currentKeyboardId,
-            settings: { disabled: false, simpleMode: false, hidden: [], disabledModifiers: [] },
+            settings: { ...settings, disabled: false, simpleMode: false, hidden: [], disabledModifiers: [] },
           },
         });
         break;
-      
-      case 'custom':
-        // Enable custom mode - add a non-existent item to hidden to force custom mode
-        // This ensures getCurrentMode() returns 'custom'
+
+      case 'custom': {
+        const allDiacriticsItems = diacritics
+          ? [...(diacritics.items || []).filter(i => i.id !== 'plain')]
+          : [];
+        const allModifiers: DiacriticModifier[] = diacritics
+          ? (diacritics.modifiers || (diacritics.modifier ? [diacritics.modifier] : []))
+          : [];
         dispatch({
           type: 'UPDATE_DIACRITICS_SETTINGS',
           payload: {
             keyboardId: currentKeyboardId,
-            settings: { 
-              disabled: false, 
+            settings: {
+              ...settings,
+              disabled: false,
               simpleMode: true,
-              hidden: hiddenItems.length > 0 ? hiddenItems : ['__custom_mode_marker__'],
-              disabledModifiers: disabledModifiers.length > 0 ? disabledModifiers : [],
+              hidden: allDiacriticsItems.map(i => i.id),
+              disabledModifiers: allModifiers.map(m => m.id),
             },
           },
         });
         break;
+      }
     }
   };
 
@@ -180,7 +186,7 @@ export const DiacriticsPanel: React.FC = () => {
     const newDisabledModifiers = disabledModifiers.includes(modifierId)
       ? disabledModifiers.filter(id => id !== modifierId)
       : [...disabledModifiers, modifierId];
-    
+
     dispatch({
       type: 'UPDATE_DIACRITICS_SETTINGS',
       payload: {
@@ -189,7 +195,7 @@ export const DiacriticsPanel: React.FC = () => {
       },
     });
   };
-  
+
   if (!diacritics) {
     return (
       <View style={styles.emptyContainer}>
@@ -208,9 +214,10 @@ export const DiacriticsPanel: React.FC = () => {
   const allItems = [...basicItems, ...advancedItems];
   
   return (
-    <View style={styles.container}>
+    <View style={[styles.container]}>
       {/* Mode Selector */}
       <ButtonGroupRow
+        isRTL={isRTL}
         title={strings.diacritics.enableNikkud}
         options={[
           { id: 'basic', label: strings.diacritics.basic },
@@ -222,10 +229,36 @@ export const DiacriticsPanel: React.FC = () => {
         onSelect={(id) => handleModeChange(id as NikkudMode)}
       />
 
+      {/* Input Mode selector — visible when nikkud is enabled */}
+      {currentMode !== 'none' && (
+        <>
+          <View style={styles.divider} />
+          <ButtonGroupRow
+            isRTL={isRTL}
+            title={strings.diacritics.inputMode}
+            options={[
+              { id: 'popup', label: strings.diacritics.popup },
+              { id: 'topRow', label: strings.diacritics.topRow },
+              { id: 'topRowAlways', label: strings.diacritics.topRowAlways },
+            ]}
+            selectedId={isTopRowAlways ? 'topRowAlways' : isTopRowMode ? 'topRow' : 'popup'}
+            onSelect={(id) => {
+              dispatch({
+                type: 'UPDATE_DIACRITICS_SETTINGS',
+                payload: {
+                  keyboardId: currentKeyboardId,
+                  settings: { ...settings, nikkudMode: id as 'popup' | 'topRow' | 'topRowAlways' },
+                },
+              });
+            }}
+          />
+        </>
+      )}
+
       {/* Custom Mode - Show all nikkud options as toggleable keys */}
       {currentMode === 'custom' && (
         <View style={styles.section}>
-          <Text allowFontScaling={false} style={styles.sectionTitle}>{strings.diacritics.diacriticsSection}</Text>
+          <Text allowFontScaling={false} style={[styles.sectionTitle]}>{strings.diacritics.diacriticsSection}</Text>
           <View style={styles.nikkudGrid}>
             {allItems.map(item => (
               <NikkudKey
@@ -243,18 +276,14 @@ export const DiacriticsPanel: React.FC = () => {
       {/* Modifiers - Show for all modes except None */}
       {currentMode !== 'none' && modifiers.length > 0 && (
         <View style={styles.section}>
-          <Text allowFontScaling={false} style={[styles.sectionTitle, currentMode === 'custom' && { marginTop: 16 }]}>
+          <View style={styles.divider} />
+          <Text allowFontScaling={false} style={styles.sectionTitle}>
             {strings.diacritics.modifiers}
           </Text>
           {modifiers.map((modifier) => (
-            <View key={modifier.id} style={styles.modifierRow}>
-              <View style={styles.modifierInfo}>
+            <View key={modifier.id} style={[styles.modifierRow]}>
+              <View style={[styles.modifierInfo, isRTL && { marginRight: 0, marginLeft: 12 }]}>
                 <Text allowFontScaling={false} style={styles.modifierName}>{modifier.name}</Text>
-                {modifier.options && modifier.options.length > 0 && (
-                  <Text allowFontScaling={false} style={styles.modifierOptions}>
-                    {modifier.options.map(opt => opt.name).join(', ')}
-                  </Text>
-                )}
               </View>
               <ToggleSwitch
                 value={!disabledModifiers.includes(modifier.id)}
@@ -285,16 +314,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   section: {
-    marginTop: 8,
+    marginTop: 0,
+  },
+  divider: {
+    height: 0.5,
+    backgroundColor: '#DDD',
+    marginVertical: 8,
   },
   sectionTitle: {
+    textAlign: 'left',
     fontSize: 14,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 12,
-    paddingBottom: 4,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#DDD',
+    marginBottom: 8,
   },
   nikkudGrid: {
     flexDirection: 'row',
@@ -321,7 +353,7 @@ const styles = StyleSheet.create({
     borderColor: '#FFB74D',
   },
   nikkudKeySample: {
-    fontSize: 24,
+    fontSize: 30,
     color: '#333',
     marginBottom: 4,
     textAlign: 'center',

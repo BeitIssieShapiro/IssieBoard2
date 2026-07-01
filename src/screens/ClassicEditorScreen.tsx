@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,8 @@ import { extractClassicState, ClassicState, matchesPreset } from './classic/clas
 import ClassicSectionsList, { SettingId } from './classic/ClassicSectionsList';
 import ClassicDetailView from './classic/ClassicDetailView';
 import ClassicColorPicker from './classic/ClassicColorPicker';
+import { KeyPressEvent } from '../components/KeyboardPreview';
+import SaveAsModal from '../../components/SaveAsModal';
 
 // Import keyboard files
 import enKeyboard from '../../keyboards/en.json';
@@ -30,11 +32,12 @@ import { buildKeyboardConfig, SourceKeyboard, transformConfigForPreview } from '
 import enRules from '../../assets/predefined-rules/en.json';
 import heRules from '../../assets/predefined-rules/he.json';
 import arRules from '../../assets/predefined-rules/ar.json';
-import { BUILT_IN_PROFILES, isBuiltInProfileId, extractTemplateId, getBuiltInProfileTemplate } from '../data/builtInProfiles';
+import { BUILT_IN_PROFILES, isBuiltInProfileId, extractTemplateId, getBuiltInProfileTemplate, getLocalizedProfileName } from '../data/builtInProfiles';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalization } from '../localization';
 import { AboutScreen } from '../components/AboutScreen';
 import { ISSIEBOARD_ABOUT } from '../components/about-content';
+import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 
 const PREDEFINED_RULES: Record<string, any> = {
   'en': enRules,
@@ -197,7 +200,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
   initialLanguage,
   onSwitchToAdvanced,
 }) => {
-  const { strings } = useLocalization();
+  const { strings, isRTL } = useLocalization();
   const [loading, setLoading] = useState(true);
   const [currentLanguage, setCurrentLanguage] = useState<LanguageId>(initialLanguage || 'he');
   const [currentProfileId, setCurrentProfileId] = useState<string>('');
@@ -207,6 +210,10 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
   const [classicState, setClassicState] = useState<ClassicState | null>(null);
   const [configJson, setConfigJson] = useState<string>('');
   const [showAbout, setShowAbout] = useState(false);
+  const [showSaveAsModal, setShowSaveAsModal] = useState(false);
+
+  // Queued save: stores the def+groups to apply after user names a new profile from built-in
+  const pendingSaveRef = useRef<{ def: SavedProfileDefinition; groups: StyleGroup[] } | null>(null);
 
   // Navigation state: null = sections list, SettingId = detail view for that setting
   const [activeSetting, setActiveSetting] = useState<SettingId | null>(null);
@@ -225,7 +232,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
       const profileId = `${currentLanguage}-${template.id}`;
       profiles.push({
         id: profileId,
-        name: template.name,
+        name: getLocalizedProfileName(template.id, currentLanguage),
         isBuiltIn: true,
         isActive: profileId === activeId,
       });
@@ -270,7 +277,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
         const keyboardId = currentLanguage === 'he' ? 'he' : currentLanguage;
         newProfileDef = {
           id: profileId,
-          name: template.name,
+          name: getLocalizedProfileName(templateId!, currentLanguage),
           version: '1.0.0',
           language: currentLanguage,
           keyboardId,
@@ -367,6 +374,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
 
   useEffect(() => {
     loadProfile(currentLanguage);
+    loadSavedProfiles();
   }, [currentLanguage, loadProfile]);
 
   // Update classic state and config JSON when style groups change
@@ -375,14 +383,31 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
     const config = buildConfiguration(newProfileDef);
     const groupConfigs = convertStyleGroupsToGroupConfig(newStyleGroups);
     const configWithGroups = { ...config, groups: groupConfigs };
-    setConfigJson(JSON.stringify(transformConfigForPreview(configWithGroups)));
-  }, [currentLanguage]);
+    const showOnlyOpacity = activeSetting === 'visible-keys-text' ? 0.3 : undefined;
+    setConfigJson(JSON.stringify(transformConfigForPreview(configWithGroups, { showOnlyOpacity })));
+  }, [currentLanguage, activeSetting]);
 
-  // Save the current profile and push config to keyboard
+  // Re-transform config when entering/leaving visible-keys-text mode
+  useEffect(() => {
+    if (!profileDef) return;
+    const config = buildConfiguration(profileDef);
+    const groupConfigs = convertStyleGroupsToGroupConfig(styleGroups);
+    const configWithGroups = { ...config, groups: groupConfigs };
+    const showOnlyOpacity = activeSetting === 'visible-keys-text' ? 0.3 : undefined;
+    setConfigJson(JSON.stringify(transformConfigForPreview(configWithGroups, { showOnlyOpacity })));
+  }, [activeSetting]);
+
+  // Save the current profile and push config to keyboard.
+  // If the current profile is a built-in, queue the save and show the SaveAs modal instead.
   const saveProfile = useCallback(async (
     updatedDef: SavedProfileDefinition,
     updatedStyleGroups: StyleGroup[]
   ) => {
+    if (isBuiltInProfileId(updatedDef.id)) {
+      pendingSaveRef.current = { def: updatedDef, groups: updatedStyleGroups };
+      setShowSaveAsModal(true);
+      return;
+    }
     try {
       // Save profile definition
       await KeyboardPreferences.setProfile(
@@ -408,6 +433,48 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
       console.error('ClassicEditor: Failed to save profile:', error);
     }
   }, [currentLanguage]);
+
+  // Handle "Save As" when user names the copy of a built-in profile
+  const handleSaveAs = useCallback(async (newName: string): Promise<boolean> => {
+    const pending = pendingSaveRef.current;
+    if (!pending || !profileDef) return false;
+    try {
+      const newProfileId = `custom_${Date.now()}`;
+      const newDef: SavedProfileDefinition = { ...pending.def, id: newProfileId, name: newName };
+
+      // Save new profile
+      await KeyboardPreferences.setProfile(JSON.stringify(newDef), `profile_def_${newProfileId}`);
+      await KeyboardPreferences.setProfile(JSON.stringify(pending.groups), `${newProfileId}_styleGroups`);
+
+      // Add to saved list
+      let savedList: { name: string; key: string; language: string; keyboardId: string }[] = [];
+      try {
+        const savedListJson = await KeyboardPreferences.getProfile('saved_list');
+        if (savedListJson) savedList = JSON.parse(savedListJson);
+      } catch { /* ignore */ }
+      savedList.push({ name: newName, key: newProfileId, language: currentLanguage, keyboardId: pending.def.keyboardId });
+      await KeyboardPreferences.setProfile(JSON.stringify(savedList), 'saved_list');
+
+      // Push config to keyboard and set as active
+      const config = buildConfiguration(newDef);
+      const groupConfigs = convertStyleGroupsToGroupConfig(pending.groups);
+      const configWithGroups = { ...config, groups: groupConfigs };
+      await saveKeyboardConfig(configWithGroups, currentLanguage);
+      const activeProfileKey = getActiveProfileKey(currentLanguage);
+      await KeyboardPreferences.setProfile(newProfileId, activeProfileKey);
+
+      // Switch state to new profile
+      setProfileDef(newDef);
+      setCurrentProfileId(newProfileId);
+      pendingSaveRef.current = null;
+      setShowSaveAsModal(false);
+      await loadSavedProfiles();
+      return true;
+    } catch (error) {
+      console.error('ClassicEditor: Failed to save as:', error);
+      return false;
+    }
+  }, [profileDef, currentLanguage, loadSavedProfiles]);
 
   // Helper: update a specific style group's property and save.
   // If the group doesn't exist yet, create it using the provided presetId and members.
@@ -450,10 +517,16 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
     await saveProfile(profileDef, updatedGroups);
   }, [styleGroups, profileDef, refreshState, saveProfile]);
 
-  // Handle master color changes (updates all charset groups too)
+  // Handle master color changes (updates all charset groups too).
+  // '' = system default → stored as undefined so native uses its own default.
   const updateMasterColor = useCallback(async (property: 'keysBgColor' | 'textColor', color: string) => {
     if (!profileDef) return;
-    const updatedDef = { ...profileDef, [property]: color };
+    const updatedDef: SavedProfileDefinition = { ...profileDef };
+    if (color === '') {
+      delete updatedDef[property];
+    } else {
+      updatedDef[property] = color;
+    }
     setProfileDef(updatedDef);
 
     // Also update all charset groups if changing master key/text color
@@ -471,10 +544,16 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
     await saveProfile(updatedDef, updatedGroups);
   }, [profileDef, styleGroups, refreshState, saveProfile]);
 
-  // Handle background color change
+  // Handle background color change.
+  // '' = system default → stored as undefined so native gets transparent/liquid glass.
   const updateBackgroundColor = useCallback(async (color: string) => {
     if (!profileDef) return;
-    const updatedDef = { ...profileDef, backgroundColor: color };
+    const updatedDef: SavedProfileDefinition = { ...profileDef };
+    if (color === '') {
+      delete updatedDef.backgroundColor;
+    } else {
+      updatedDef.backgroundColor = color;
+    }
     setProfileDef(updatedDef);
     refreshState(styleGroups, updatedDef);
     await saveProfile(updatedDef, styleGroups);
@@ -775,6 +854,61 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
     await saveProfile(profileDef, updatedGroups);
   }, [profileDef, styleGroups, refreshState, saveProfile, strings]);
 
+  // Handle key tap on preview keyboard for special-keys-text and visible-keys-text
+  const handlePreviewKeyPress = useCallback((event: KeyPressEvent) => {
+    const { type, value } = event.nativeEvent;
+    // Skip non-character keys
+    if (type === 'keyset-changed' || type === 'keyset' || type === 'language' || type === 'longpress' ||
+        type === 'enter' || type === 'backspace' || type === 'space' || type === 'shift' ||
+        type === 'next-keyboard' || type === 'settings' || type === 'close' || type === 'nikkud') {
+      return;
+    }
+    const keyValue = value;
+    if (!keyValue || !keyValue.trim()) return;
+
+    if (activeSetting === 'special-keys-text') {
+      const currentMembers = classicState.specialKeysGroup?.members || [];
+      const newMembers = currentMembers.includes(keyValue)
+        ? currentMembers.filter(k => k !== keyValue)
+        : [...currentMembers, keyValue];
+      handleSpecialKeysTextChange(newMembers.join(''));
+    } else if (activeSetting === 'visible-keys-text') {
+      const currentMembers = classicState.visibleKeysGroup?.members || [];
+      const newMembers = currentMembers.includes(keyValue)
+        ? currentMembers.filter(k => k !== keyValue)
+        : [...currentMembers, keyValue];
+      handleVisibleKeysTextChange(newMembers.join(''));
+    }
+  }, [activeSetting, classicState, handleSpecialKeysTextChange, handleVisibleKeysTextChange]);
+
+  // Compute selectedKeysJson for highlighting on the preview keyboard
+  const selectedKeysJson = useMemo(() => {
+    if (activeSetting !== 'special-keys-text' && activeSetting !== 'visible-keys-text') return undefined;
+    const members = activeSetting === 'special-keys-text'
+      ? (classicState.specialKeysGroup?.members || [])
+      : (classicState.visibleKeysGroup?.members || []);
+    if (members.length === 0) return undefined;
+    try {
+      const config = JSON.parse(configJson);
+      const positionIds: string[] = [];
+      for (const keyset of (config.keysets || [])) {
+        for (let rowIndex = 0; rowIndex < keyset.rows.length; rowIndex++) {
+          const row = keyset.rows[rowIndex];
+          for (let keyIndex = 0; keyIndex < row.keys.length; keyIndex++) {
+            const key = row.keys[keyIndex];
+            const kv = key.value || key.caption || key.label || key.type;
+            if (kv && members.includes(kv)) {
+              positionIds.push(`${keyset.id}:${rowIndex}:${keyIndex}`);
+            }
+          }
+        }
+      }
+      return JSON.stringify(positionIds);
+    } catch {
+      return undefined;
+    }
+  }, [activeSetting, classicState, configJson]);
+
   // Handle reset
   const handleReset = useCallback(async () => {
     if (!profileDef) return;
@@ -801,7 +935,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
             if (template) {
               resetDef = {
                 id: profileDef.id,
-                name: template.name,
+                name: getLocalizedProfileName(templateId!, currentLanguage),
                 version: '1.0.0',
                 language: currentLanguage,
                 keyboardId,
@@ -852,26 +986,29 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
     }
   }, [handleReset]);
 
-  // Get the current color for a setting
+  // Get the current color for a setting.
+  // Returns '' (system default) when no explicit color is set — matches new editor behavior.
   const getColorForSetting = useCallback((settingId: SettingId): string => {
-    if (!classicState || !profileDef) return '#000000';
+    if (!classicState || !profileDef) return '';
+    const globalKeysBg = profileDef.keysBgColor ?? '';
+    const globalText = profileDef.textColor ?? '';
     switch (settingId) {
-      case 'bg-color': return profileDef.backgroundColor || '#FFFFFF';
-      case 'keys-color': return profileDef.keysBgColor || '#CCCCCC';
-      case 'text-color': return profileDef.textColor || '#000000';
-      case 'space-color': return classicState.actionGroups.space?.style.bgColor || '#4DD0E1';
-      case 'delete-color': return classicState.actionGroups.delete?.style.bgColor || '#4DD0E1';
-      case 'enter-color': return classicState.actionGroups.enter?.style.bgColor || '#4DD0E1';
-      case 'other-color': return classicState.actionGroups.other?.style.bgColor || '#4DD0E1';
-      case 'group1-keys-color': return classicState.charsetGroups[0]?.style.bgColor || '#CCCCCC';
-      case 'group1-text-color': return classicState.charsetGroups[0]?.style.color || '#000000';
-      case 'group2-keys-color': return classicState.charsetGroups[1]?.style.bgColor || '#CCCCCC';
-      case 'group2-text-color': return classicState.charsetGroups[1]?.style.color || '#000000';
-      case 'group3-keys-color': return classicState.charsetGroups[2]?.style.bgColor || '#CCCCCC';
-      case 'group3-text-color': return classicState.charsetGroups[2]?.style.color || '#000000';
+      case 'bg-color': return profileDef.backgroundColor ?? '';
+      case 'keys-color': return globalKeysBg;
+      case 'text-color': return globalText;
+      case 'space-color': return classicState.actionGroups.space?.style.bgColor || globalKeysBg;
+      case 'delete-color': return classicState.actionGroups.delete?.style.bgColor || globalKeysBg;
+      case 'enter-color': return classicState.actionGroups.enter?.style.bgColor || globalKeysBg;
+      case 'other-color': return classicState.actionGroups.other?.style.bgColor || globalKeysBg;
+      case 'group1-keys-color': return classicState.charsetGroups[0]?.style.bgColor || globalKeysBg;
+      case 'group1-text-color': return classicState.charsetGroups[0]?.style.color || globalText;
+      case 'group2-keys-color': return classicState.charsetGroups[1]?.style.bgColor || globalKeysBg;
+      case 'group2-text-color': return classicState.charsetGroups[1]?.style.color || globalText;
+      case 'group3-keys-color': return classicState.charsetGroups[2]?.style.bgColor || globalKeysBg;
+      case 'group3-text-color': return classicState.charsetGroups[2]?.style.color || globalText;
       case 'special-keys-color': return classicState.specialKeysGroup?.style.bgColor || '#FFFF00';
       case 'special-keys-text-color': return classicState.specialKeysGroup?.style.color || '#000000';
-      default: return '#000000';
+      default: return '';
     }
   }, [classicState, profileDef]);
 
@@ -1055,26 +1192,30 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
     <SafeAreaView style={styles.container}>
       {/* Sections list — always mounted, never unmounted or hidden */}
       <View style={styles.sectionsLayer} pointerEvents={activeSetting ? 'none' : 'auto'}>
-        <View style={styles.header}>
-          <Text allowFontScaling={false} style={styles.headerTitle}>{strings.editor.classicView}</Text>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
+        <View style={[styles.header, isRTL && { flexDirection: 'row-reverse' }]}>
+          <Text allowFontScaling={false} style={styles.headerTitle}>Issie Board ({strings.editor.classicView})</Text>
+          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 8 }}>
+            <TouchableOpacity style={styles.advancedButton} onPress={onSwitchToAdvanced}>
+              <Text allowFontScaling={false} style={styles.advancedButtonText}>{strings.editor.backToNewsettings}</Text>
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.aboutButton}
               onPress={() => setShowAbout(true)}
               accessibilityLabel="About"
             >
-              <Text allowFontScaling={false} style={styles.aboutButtonText}>ℹ️</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.advancedButton} onPress={onSwitchToAdvanced}>
-              <Text allowFontScaling={false} style={styles.advancedButtonText}>{strings.editor.backToNewsettings}</Text>
+              <MyIcon info={{ name: 'information-circle-outline', type: 'Ionicons', color: '#3B82F6', size: 24 }} />
             </TouchableOpacity>
           </View>
         </View>
+        <View style={[styles.noticeBar, isRTL && { flexDirection: 'row-reverse' }]}>
+          <Text allowFontScaling={false} style={styles.noticeIcon}>⚠️</Text>
+          <Text allowFontScaling={false} style={[styles.noticeText, isRTL && { textAlign: 'right' }]}>{strings.editor.classicViewNotice}</Text>
+        </View>
         <ClassicSectionsList
           classicState={classicState}
-          backgroundColor={profileDef.backgroundColor || '#FFFFFF'}
-          keysBgColor={profileDef.keysBgColor || '#CCCCCC'}
-          textColor={profileDef.textColor || '#000000'}
+          backgroundColor={profileDef.backgroundColor ?? ''}
+          keysBgColor={profileDef.keysBgColor ?? ''}
+          textColor={profileDef.textColor ?? ''}
           currentLanguage={currentLanguage}
           onSelectSetting={handleSelectSetting}
           onLanguageChange={handleLanguageChange}
@@ -1091,11 +1232,14 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
             onBack={() => setActiveSetting(null)}
             configJson={activeSetting !== 'nikkud' && activeSetting !== 'my-issieboards' ? configJson : undefined}
             language={currentLanguage}
+            selectedKeys={(activeSetting === 'special-keys-text' || activeSetting === 'visible-keys-text') ? selectedKeysJson : undefined}
+            onKeyPress={(activeSetting === 'special-keys-text' || activeSetting === 'visible-keys-text') ? handlePreviewKeyPress : undefined}
           >
           {isColorSetting(activeSetting) ? (
             <ClassicColorPicker
               currentColor={getColorForSetting(activeSetting)}
               onColorSelected={(color) => handleColorSelected(activeSetting, color)}
+              showSystemDefault={activeSetting === 'bg-color' || activeSetting === 'keys-color' || activeSetting === 'text-color'}
             />
           ) : activeSetting === 'key-order' ? (
             <View style={styles.pickerContainer}>
@@ -1138,32 +1282,37 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
           ) : activeSetting === 'special-keys-text' ? (
             <View style={styles.textInputContainer}>
               <Text allowFontScaling={false} style={styles.textInputLabel}>
-                {strings.classic.typeCharacters}
+                {strings.styleRuleModal.tapKeysToSelect}
               </Text>
               <TextInput
                 style={styles.textInput}
                 value={classicState.specialKeysGroup?.members.join('') || ''}
-                onChangeText={handleSpecialKeysTextChange}
+                editable={false}
                 placeholder={strings.classic.typeCharacters}
-                autoCorrect={false}
-                autoCapitalize="none"
-                spellCheck={false}
               />
             </View>
           ) : activeSetting === 'visible-keys-text' ? (
             <View style={styles.textInputContainer}>
               <Text allowFontScaling={false} style={styles.textInputLabel}>
-                {strings.classic.visibleKeys}
+                {strings.classic.tapKeysToShow}
               </Text>
-              <TextInput
-                style={styles.textInput}
-                value={classicState.visibleKeysGroup?.members.join('') || ''}
-                onChangeText={handleVisibleKeysTextChange}
-                placeholder={strings.classic.typeCharacters}
-                autoCorrect={false}
-                autoCapitalize="none"
-                spellCheck={false}
-              />
+              <View style={styles.visibleKeysRow}>
+                <TextInput
+                  style={[styles.textInput, {flex: 1}]}
+                  value={classicState.visibleKeysGroup?.members.join('') || ''}
+                  editable={false}
+                  placeholder={strings.classic.tapKeysToShow}                />
+                {classicState.visibleKeysGroup && classicState.visibleKeysGroup.members.length > 0 && (
+                  <TouchableOpacity
+                    style={styles.showAllButton}
+                    onPress={() => handleVisibleKeysTextChange('')}
+                  >
+                    <Text allowFontScaling={false} style={styles.showAllButtonText}>
+                      {strings.classic.showAll}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
           ) : activeSetting === 'my-issieboards' ? (
             <ScrollView style={styles.profileList}>
@@ -1184,13 +1333,24 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
         </ClassicDetailView>
         </View>
       )}
-      {showAbout && (
-        <AboutScreen
-          appName="IssieBoard"
-          onClose={() => setShowAbout(false)}
-          paragraphs={ISSIEBOARD_ABOUT}
-        />
-      )}
+      <AboutScreen
+        visible={showAbout}
+        appName="IssieBoard"
+        onClose={() => setShowAbout(false)}
+        paragraphs={ISSIEBOARD_ABOUT}
+      />
+      <SaveAsModal
+        visible={showSaveAsModal}
+        onClose={() => {
+          setShowSaveAsModal(false);
+          pendingSaveRef.current = null;
+          // Revert UI to the original built-in by reloading it
+          loadProfile(currentLanguage);
+        }}
+        onSaveAs={handleSaveAs}
+        originalName={profileDef?.name ?? ''}
+        existingNames={savedProfiles.map(p => p.name)}
+      />
     </SafeAreaView>
   );
 };
@@ -1198,7 +1358,7 @@ export const ClassicEditorScreen: React.FC<ClassicEditorScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#F5F5F5',
   },
   sectionsLayer: {
     flex: 1,
@@ -1210,7 +1370,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     zIndex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#F5F5F5',
   },
   header: {
     flexDirection: 'row',
@@ -1221,6 +1381,26 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#C6C6C8',
+  },
+  noticeBar: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#FFF8E1',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#FFE082',
+  },
+  noticeIcon: {
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  noticeText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#6D4C00',
+    lineHeight: 18,
   },
   headerTitle: {
     fontSize: 20,
@@ -1239,13 +1419,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   aboutButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    width: 38,
+    height: 38,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  aboutButtonText: {
-    fontSize: 22,
   },
   errorText: {
     fontSize: 16,
@@ -1293,6 +1471,24 @@ const styles = StyleSheet.create({
     padding: 14,
     fontSize: 20,
     minHeight: 50,
+  },
+  visibleKeysRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  showAllButton: {
+    backgroundColor: '#F0F0F0',
+    borderWidth: 1,
+    borderColor: '#C6C6C8',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  showAllButtonText: {
+    fontSize: 15,
+    color: '#007AFF',
+    fontWeight: '500',
   },
   profileList: {
     flex: 1,

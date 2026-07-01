@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, TouchableOpacity, Alert, StyleSheet } from 'react-native';
+import { Text, TouchableOpacity, Alert, StyleSheet, Platform } from 'react-native';
 import { useLocalization } from '../localization';
 
 interface SetupStatusStripProps {
@@ -8,7 +8,7 @@ interface SetupStatusStripProps {
 }
 
 export const SetupStatusStrip: React.FC<SetupStatusStripProps> = ({ isAdded, languageName }) => {
-  const { strings } = useLocalization();
+  const { strings, isRTL } = useLocalization();
 
   // Only show when keyboard is definitively NOT added
   if (isAdded !== false) {
@@ -18,21 +18,28 @@ export const SetupStatusStrip: React.FC<SetupStatusStripProps> = ({ isAdded, lan
   const stripText = strings.setup.keyboardNotAdded.replace('{{language}}', languageName);
 
   const showInstructions = () => {
-    const message = [
-      strings.setup.setupStep1,
-      strings.setup.setupStep2,
-      strings.setup.setupStep3,
-      strings.setup.setupStep4,
-      strings.setup.setupStep5,
-      strings.setup.setupStep6,
-    ].join('\n');
+    const steps = Platform.OS === 'android'
+      ? [
+          strings.setup.androidSetupStep1,
+          strings.setup.androidSetupStep2,
+          strings.setup.androidSetupStep3,
+          strings.setup.androidSetupStep4,
+        ]
+      : [
+          strings.setup.setupStep1,
+          strings.setup.setupStep2,
+          strings.setup.setupStep3,
+          strings.setup.setupStep4,
+          strings.setup.setupStep5,
+          strings.setup.setupStep6,
+        ];
 
-    Alert.alert(strings.setup.setupInstructionsTitle, message);
+    Alert.alert(strings.setup.setupInstructionsTitle, steps.join('\n'));
   };
 
   return (
     <TouchableOpacity
-      style={styles.strip}
+      style={[styles.strip, isRTL && { flexDirection: 'row-reverse' }]}
       onPress={showInstructions}
       activeOpacity={0.8}
       accessibilityRole="button"
@@ -40,7 +47,7 @@ export const SetupStatusStrip: React.FC<SetupStatusStripProps> = ({ isAdded, lan
       accessibilityHint={strings.setup.tapForInstructions}
     >
       <Text allowFontScaling={false} style={styles.icon}>&#x26A0;&#xFE0F;</Text>
-      <Text allowFontScaling={false} style={styles.text}>
+      <Text allowFontScaling={false} style={[styles.text, isRTL && { textAlign: 'right' }]}>
         {stripText}
       </Text>
     </TouchableOpacity>

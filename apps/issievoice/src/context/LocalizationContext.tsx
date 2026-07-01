@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
-import { NativeModules, Platform } from 'react-native';
 import { Language, Strings, getStrings as getRawStrings } from '../localization/strings';
+import { getDeviceLanguage } from '../../../../src/localization';
 
 export type { Language, Strings } from '../localization/strings';
 
@@ -31,25 +31,6 @@ interface LocalizationContextType {
 const LocalizationContext = createContext<LocalizationContextType | undefined>(
   undefined,
 );
-
-const getDeviceLanguage = (): Language => {
-  let deviceLanguage = 'en';
-
-  if (Platform.OS === 'ios') {
-    deviceLanguage =
-      NativeModules.SettingsManager?.settings?.AppleLocale ||
-      NativeModules.SettingsManager?.settings?.AppleLanguages?.[0] ||
-      'en';
-  } else {
-    deviceLanguage = NativeModules.I18nManager?.localeIdentifier || 'en';
-  }
-
-  const langCode = deviceLanguage.split('_')[0].split('-')[0].toLowerCase();
-
-  if (langCode === 'he' || langCode === 'iw') return 'he';
-  if (langCode === 'ar') return 'ar';
-  return 'en';
-};
 
 export const LocalizationProvider: React.FC<{ children: React.ReactNode }> = ({
   children,

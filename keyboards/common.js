@@ -27,7 +27,17 @@ module.exports = {
       // (does not affect bottomRow — that's always shared)
       keysetOverrides: {
         "abc": {
-          firstRow: { append: [{ type: "backspace", width: 1.5, forLanguages: ["he"] }] },
+          firstRow: { 
+            prepend: [
+              { "hidden": true, width: 0.5, forLanguages: ["he"] }
+            ],
+            append: [{ type: "backspace", width: 1.5, forLanguages: ["he"] }] 
+          },
+          secondRow: {
+            prepend: [
+              { "hidden": true, width: 0.5, forLanguages: ["en", "ar"] }
+            ],
+          },
           lastRow: {
             prepend: [
               { type: "shift", width: 1.5, forLanguages: ["en"] },
@@ -44,7 +54,7 @@ module.exports = {
         { type: "settings" },
         { type: "space", flex: true },
         { caption: "@", value: "@", width: 1, showForField: ["email"], forLanguages: ["en"] },
-        { type: "nikkud", ifHasDiacritics: true },
+        { type: "nikkud", ifHasDiacritics: true, forKeysets: ["abc"] },
         { type: "enter", width: 2 }
       ]
     },
@@ -59,10 +69,16 @@ module.exports = {
       lastRow: {},
       keysetOverrides: {
         "abc": {
-          firstRow: { append: [{ type: "backspace", width: 1.5 }] },
+          firstRow: { append: [
+            { type: "backspace", width: 1.5 }
+          ],
+          prepend: [
+            { value: ",",  forLanguages: ["he"] },
+            { value: ".",  forLanguages: ["he"] }
+          ] },
           secondRow: {
             prepend: [
-              { "hidden": true, width: 0.5, forLanguages: ["he"] }],
+              { "hidden": true, width: 0.5 }],
             append: [
               { type: "enter", width: 2, forLanguages: ["en"] },
               
@@ -81,6 +97,7 @@ module.exports = {
           }
         },
         "123": {
+          firstRow: { append: [{ type: "backspace", width: 1.5 }] },
           lastRow: {
             append: [
               { type: "enter", width: 1.5 }
@@ -88,6 +105,7 @@ module.exports = {
           }
         },
         "#+=" : {
+          firstRow: { append: [{ type: "backspace", width: 1.5 }] },
           lastRow: {
             append: [
               { type: "enter", width: 1.5 }
@@ -97,13 +115,13 @@ module.exports = {
       },
       // Appended as a new final row to every keyset
       bottomRow: [
-        { type: "keyset", width: 1.5 },
+        { type: "keyset", width: 1 },
         { type: "next-keyboard", width: 1 },
         { type: "settings" },
         { type: "space", flex: true },
         { caption: "@", value: "@", width: 1, showForField: ["email"], forLanguages: ["en"] },
         { type: "keyset", width: 1 },
-        { type: "nikkud", ifHasDiacritics: true },
+        { type: "nikkud", ifHasDiacritics: true, forKeysets: ["abc"] },
         { type: "close" }
       ]
     }

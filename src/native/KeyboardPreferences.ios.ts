@@ -215,6 +215,16 @@ class KeyboardPreferences {
   }
 
   /**
+   * Set a string value without the profile_ prefix
+   */
+  async setString(key: string, value: string): Promise<SetResult> {
+    if (!KeyboardPreferencesModule) {
+      return { success: false, error: 'Native module not available' };
+    }
+    return KeyboardPreferencesModule.setString(value, key);
+  }
+
+  /**
    * Print all preferences to console (for debugging)
    */
   async printAllPreferences(): Promise<PreferenceInfo> {

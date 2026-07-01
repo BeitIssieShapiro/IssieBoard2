@@ -1,17 +1,126 @@
+30-June
+-------
+V- move to advanced: gaps, layout
+V-top-row always
+V-in selecting custom nikkud, the cholam is on ב
+V-in the top row nikkud - change from dotted circle to solid circle with opaque
+V-instead of ב with dagesh - write "דגש"
+
+V-built-in groups in edit allow de-selecting - bad
+V-remove the preview of keys-groups
+
+V-cancel change of kb next to save
+V-redesign top keyboard name
+duplicate kb (button in the list)
+
+IssieBoard 11-May:
+-----------------
+V- classic view: 
+  V- rename back button to תצוגה חדשה
+  V- kb cut at bottom
+  V- don't override built in kb
+  V- default bg of classic
+V- new view: kb cut on other than advanced if tall or more
+V- when scaled, the suggested words are not cnetered/nor scaled
+
+
+V- different colors - (also issievoice)
+V- user forgets to save
+  V- auto-save on baground state (auto-name for built-in)+ blinking save button
+V- rename texts for new key groups and templates: "+ Create New"
+V- in ios18 the kb is not shown as keyboard (racheli)
+
+V- keys group
+  V- rename rule to key-group in the default name
+  V- in key-group header; remove count, and make circles for the colors. enlarge text (same as buttoms)
+V- nikkud custom: all unselected, plus add description
+V- link to beit issie in about
+
+X- the keygroup template is not saved when switching order (not a bug?)
+V- description on each tab of settings + larger font of tabs and descriptions
+  also refer to the presets in the description of keys group
+V- nikkud sign on nikkud tab is not the same as on kb
+V-  הצבעים של כפתור הכיבוי הדלקת חוקים משתנים. לפעמים מודגש ולפעמים לא
+  ⁠בגלל גודל הפונט באפליקציה יכול להיות יותר גדול
+
+
+
+
+
+
+
+IssieVoice:
+-----------
+V- Icon
+V- built-in group for language selection button
+V- remove globus and close button from text of built in special keys
+V- emojis - change cat all gone
+?- changes in issievoice settings, save modal disapear and default kb is back
+
+- move (+) fav to begin of row
+
+
+
+
 Android Bugs:
 - in mobile font wight options go out of screen
 - trying to edit fontSize/keyHeight - a kb is shown hiding
 - 
 
 
-todo - IssieBoard:
+
+Arabic:
+V- icon for nikkud - from Alla
+
+IssieBoard:
+V- change suggestions to look like issie IssieVoice
+V- control over the style (bg, color) is same as any key - add explanation in the advanced
+
+
+
+
+V- en/he from issie IssieVoice
+V- shifts, 123, close kb and nikkud should stay in showOnly
+V- fonts
+V- suggestion seperation
+
+
+V- share keyboard
+V- other keys preset (don't use keyset, change-to-numbers)
+V- in classic - highlight keys - use the preview kb to type (hide soft kb)
+  also for visible keys
+  also select them on the kb
+V- close-kb icon is too large?
+V- remove y from vowel 
+V- in "123" remove nikkud button
+
+
 ----
 Android:
   - x is invisible in Nikkud
-
 - not offer suggestion for certain input type? then ommit the header row?
 - URL/email no auto-shift
-- Globe icon color
+
+IssieVoice:
+----
+V- space swipe to locate curret
+V- capitalize I?
+- style the en/he button
+V- Arabic
+- reorder favorites does not work
+
+
+
+
+V- gaps: 
+  - large gaps is too much
+  - gaps should be equial vert and horiz
+V- key height preview is misleading
+V- classic view - the groups colors (if missing) should follow the global settings
+V- next-kb button is missing in preview
+V- 123 on left is larger than 123 on right in iPad
+
+
 
 
 

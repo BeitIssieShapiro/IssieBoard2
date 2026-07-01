@@ -1,4 +1,5 @@
 import DefaultPreference from 'react-native-default-preference';
+import { NativeModules } from 'react-native';
 
 export interface PreferenceInfo {
   appGroup: string;
@@ -204,6 +205,21 @@ class KeyboardPreferences {
     }
   }
 
+  /**
+   * Set a string value without the profile_ prefix
+   */
+  async setString(key: string, value: string): Promise<SetResult> {
+    try {
+      await DefaultPreference.setName('issieboard_keyboard_prefs');
+      await DefaultPreference.set(key, value);
+      console.log('📝 Android: Set string:', key);
+      return { success: true };
+    } catch (error) {
+      console.error('❌ Android: Failed to set string', error);
+      return { success: false, error: String(error) };
+    }
+  }
+
   async printAllPreferences(): Promise<PreferenceInfo> {
     const profile = await this.getCurrentProfile();
     const language = await this.getSelectedLanguage();
@@ -274,10 +290,23 @@ class KeyboardPreferences {
 
   /**
    * Get the keyboard setup status for a specific language
-   * Android stub - always reports as configured since Android setup is different
+   * Checks if the IssieBoard IME service is enabled in Android system settings
    */
   async getKeyboardSetupStatus(language: string): Promise<KeyboardSetupStatus> {
-    return { isAdded: true, hasFullAccess: true };
+    try {
+      const { KeyboardSetupModule } = NativeModules;
+      console.log('📱 [KeyboardSetup] Module available:', !!KeyboardSetupModule, 'language:', language);
+      if (KeyboardSetupModule) {
+        const result = await KeyboardSetupModule.getKeyboardSetupStatus(language);
+        console.log('📱 [KeyboardSetup] Result:', JSON.stringify(result));
+        return result;
+      }
+      console.log('📱 [KeyboardSetup] Module not available, returning null');
+      return { isAdded: null, hasFullAccess: null };
+    } catch (e) {
+      console.log('📱 [KeyboardSetup] Error:', e);
+      return { isAdded: null, hasFullAccess: null };
+    }
   }
 }
 

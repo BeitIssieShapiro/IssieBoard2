@@ -10,6 +10,8 @@ interface KeyPressEvent {
     keysetValue?: string;
     returnKeysetValue?: string;
     returnKeysetLabel?: string;
+    prevLength?: number;
+    deletedTo?: number;
   };
 }
 
@@ -46,6 +48,8 @@ interface KeyboardPreviewProps {
   text?: string;
   /** Maximum height for preview scaling (keyboard will scale proportionally to fit) */
   maxHeight?: number;
+  /** Hide the globe (next-keyboard) button in the preview (default: false, follows config) */
+  hideGlobeButton?: boolean;
   onKeyPress?: (event: KeyPressEvent) => void;
   onSuggestionsChange?: (event: SuggestionsChangeEvent) => void;
   onLanguageChange?: (event: LanguageChangeEvent) => void;
@@ -74,10 +78,6 @@ const NativeKeyboardPreview = requireNativeComponent<KeyboardPreviewProps>('Keyb
  * ```
  */
 export const KeyboardPreview: React.FC<KeyboardPreviewProps> = (props) => {
-  // Track previous language for change detection
-  const prevLanguage = React.useRef<string | undefined>(props.language);
-  const [configJson, setConfigJson] = React.useState<string | undefined>(props.configJson);
-  
   React.useEffect(() => {
     const componentName = 'KeyboardPreviewView';
     const isRegistered = UIManager.getViewManagerConfig(componentName);
@@ -86,35 +86,10 @@ export const KeyboardPreview: React.FC<KeyboardPreviewProps> = (props) => {
       console.error(`[KeyboardPreview] ${componentName} is NOT registered!`);
     }
   }, []);
-  
-  // Update configJsonString when language changes
-  React.useEffect(() => {
-    // Only update if the language has actually changed
-    if (props.language !== prevLanguage.current) {
-      console.log(`[KeyboardPreview] Language changed from ${prevLanguage.current} to ${props.language}`);
-      prevLanguage.current = props.language;
-      
-      // Update configJson when language changes to ensure native side gets the new language
-      if (props.configJson) {
-        try {
-          const config = JSON.parse(props.configJson);
-          // Set language in config
-          config.language = props.language;
-          // Update configJson with the new language
-          setConfigJson(JSON.stringify(config));
-        } catch (e) {
-          console.error('Error updating configJson with language:', e);
-          setConfigJson(props.configJson);
-        }
-      }
-    } else if (props.configJson !== configJson) {
-      setConfigJson(props.configJson);
-    }
-  }, [props.language, props.configJson]);
-  
-  console.log(`[KeyboardPreview] Rendering on ${Platform.OS} with configJson length:`, configJson?.length || 0);
-  
-  return <NativeKeyboardPreview {...props} configJson={configJson} />;
+
+  console.log(`[KeyboardPreview] Rendering on ${Platform.OS} with configJson length:`, props.configJson?.length || 0);
+
+  return <NativeKeyboardPreview {...props} />;
 };
 
 export type { KeyboardPreviewProps, KeyPressEvent, SuggestionsChangeEvent, LanguageChangeEvent, HeightChangeEvent, OpenSettingsEvent };

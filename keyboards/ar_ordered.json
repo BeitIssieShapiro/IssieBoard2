@@ -2,6 +2,11 @@
   "id": "ar_ordered",
   "name": "Arabic Ordered (أبج)",
   "includeKeysets": ["123", "#+="],
+  "labels": {
+    "abcLabel": "أبج",
+    "symbolsLabel": "123",
+    "spaceCaption": ""
+  },
   "diacritics": {
     "appliesTo": ["ا", "ب", "ت", "ث", "ج", "ح", "خ", "د", "ذ", "ر", "ز", "س", "ش", "ص", "ض", "ط", "ظ", "ع", "غ", "ف", "ق", "ك", "ل", "م", "ن", "ه", "و", "ي", "ء", "ؤ", "ئ", "ة", "ى"],
     "items": [
@@ -32,37 +37,23 @@
       "rows": [
         {
           "keys": [
-            { "value": "ا" }, { "value": "ب" }, { "value": "ت" }, { "value": "ث" }, { "value": "ج" },
-            { "value": "ح" }, { "value": "خ" }, { "value": "د" }, { "value": "ذ" }, { "value": "ر" },
-            { "value": "ز" }, { "value": "س" }
+            { "value": "س" }, { "value": "ز" }, { "value": "ر" }, { "value": "ذ" }, { "value": "د" },
+            { "value": "خ" }, { "value": "ح" }, { "value": "ج" }, { "value": "ث" }, { "value": "ت" },
+            { "value": "ب" }, { "value": "ا" }
           ]
         },
         {
           "keys": [
-            { "value": "ش" }, { "value": "ص" }, { "value": "ض" }, { "value": "ط" }, { "value": "ظ" },
-            { "value": "ع" }, { "value": "غ" }, { "value": "ف" }, { "value": "ق" }, { "value": "ك" },
-            { "value": "ل" }
+            { "value": "ل" }, { "value": "ك" }, { "value": "ق" }, { "value": "ف" }, { "value": "غ" },
+            { "value": "ع" }, { "value": "ظ" }, { "value": "ط" }, { "value": "ض" }, { "value": "ص" },
+            { "value": "ش" }
           ]
         },
         {
           "keys": [
-            { "value": "م" }, { "value": "ن" }, { "value": "ه" }, { "value": "و" }, { "value": "ي" },
-            { "value": "ء" }, { "value": "ؤ" }, { "value": "ئ" }, { "value": "ة" }, { "value": "ى" },
             { "value": "لا" },
-            { "type": "backspace", "width": 1.5, "alwaysInclude": true }
-          ]
-        },
-        {
-          "alwaysInclude": true,
-          "keys": [
-            { "type": "next-keyboard" },
-            { "type": "keyset", "keysetValue": "123", "returnKeysetValue": "abc", "label": "123", "returnKeysetLabel": "أبج", "width": 1.5 },
-            { "type": "settings" },
-            { "caption": "مسافة", "value": " ", "width": 4 },
-            { "value": ".", "sValue": "،" },
-            { "type": "nikkud" },
-            { "type": "close", "showOn": ["large-screen"] },
-            { "type": "enter" }
+            { "value": "ى" }, { "value": "ة" }, { "value": "ئ" }, { "value": "ؤ" }, { "value": "ء" },
+            { "value": "ي" }, { "value": "و" }, { "value": "ه" }, { "value": "ن" }, { "value": "م" }
           ]
         }
       ]

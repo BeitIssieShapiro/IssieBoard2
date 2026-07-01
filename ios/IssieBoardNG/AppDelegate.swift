@@ -37,73 +37,88 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     let moduleName = bundleId.contains("IssieVoice") ? "IssieVoice" : "IssieBoardNG"
     print("🎯 Loading module: \(moduleName)")
     
+    // Extract and prepare initial URL if app was opened via file
+    var initialProps: [AnyHashable: Any] = [:]
+    if let url = launchOptions?[.url] as? URL,
+       url.isFileURL,
+       let tempURL = securelyCopyToTemp(url: url) {
+      initialProps["url"] = tempURL.absoluteString
+    }
+
     factory.startReactNative(
       withModuleName: moduleName,
       in: window,
+      initialProperties: initialProps.isEmpty ? nil : initialProps,
       launchOptions: launchOptions
     )
 
     return true
   }
   
-  // Handle URL scheme for opening app from keyboard extension
+  // Handle URL scheme for opening app from keyboard extension or file import
   func application(
     _ app: UIApplication,
     open url: URL,
     options: [UIApplication.OpenURLOptionsKey: Any] = [:]
   ) -> Bool {
-    print("📱 App opened via URL scheme: \(url)")
+    print("App opened via URL: \(url)")
 
-    // Verify this is IssieBoard, not IssieVoice
-    let bundleId = Bundle.main.bundleIdentifier ?? ""
-    guard !bundleId.contains("IssieVoice") else {
-      print("⚠️ IssieVoice ignoring issieboard:// URL - wrong app")
-      return false
-    }
-
-    // Handle the issieboard:// URL scheme
+    // Handle issieboard:// URL scheme (existing keyboard extension logic)
     if url.scheme == "issieboard" {
-      // The app is now open - keyboard extension successfully triggered this
-      // You can handle specific paths here if needed, e.g., issieboard://settings
-      if url.host == "settings" {
-        // Navigate to settings screen if needed
-        print("📱 Opening settings from keyboard extension")
+      let bundleId = Bundle.main.bundleIdentifier ?? ""
+      guard !bundleId.contains("IssieVoice") else {
+        return false
+      }
 
-        // Extract the keyboard language parameter
+      if url.host == "settings" {
         if let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
            let queryItems = components.queryItems,
            let keyboardParam = queryItems.first(where: { $0.name == "keyboard" })?.value {
-          print("📱 Keyboard language parameter: \(keyboardParam)")
-
-          // Save it to preferences so React Native can read it
           let preferences = KeyboardPreferences()
           preferences.setString(keyboardParam, forKey: "launch_keyboard")
-          print("📱 Saved launch_keyboard preference: \(keyboardParam)")
-
-          // Verify it was saved correctly
-          if let readBack = preferences.getString(forKey: "launch_keyboard") {
-            print("📱 ✅ Verified launch_keyboard was saved: \(readBack)")
-          } else {
-            print("📱 ❌ ERROR: launch_keyboard is nil after saving!")
-          }
-
-          // Post a Darwin notification to wake up React Native
           CFNotificationCenterPostNotification(
             CFNotificationCenterGetDarwinNotifyCenter(),
             CFNotificationName("com.issieboard.launchKeyboard" as CFString),
-            nil,
-            nil,
-            true
+            nil, nil, true
           )
-          print("📱 Posted Darwin notification for language switch")
-        } else {
-          print("📱 ⚠️ No keyboard parameter found in URL")
         }
       }
       return true
     }
 
+    // Handle file URLs (import from share/open-with)
+    if url.isFileURL {
+      guard let tempURL = securelyCopyToTemp(url: url) else { return false }
+      return RCTLinkingManager.application(app, open: tempURL, options: options)
+    }
+
     return false
+  }
+
+  private func securelyCopyToTemp(url: URL) -> URL? {
+    let hasAccess = url.startAccessingSecurityScopedResource()
+    defer {
+      if hasAccess {
+        url.stopAccessingSecurityScopedResource()
+      }
+    }
+
+    do {
+      let fileName = url.lastPathComponent.removingPercentEncoding ?? url.lastPathComponent
+      let sanitizedFileName = fileName.replacingOccurrences(of: "/", with: "-")
+      let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(sanitizedFileName)
+
+      if FileManager.default.fileExists(atPath: tempURL.path) {
+        try FileManager.default.removeItem(at: tempURL)
+      }
+
+      try FileManager.default.copyItem(at: url, to: tempURL)
+      print("File copied to temp: \(tempURL.path)")
+      return tempURL
+    } catch {
+      print("Error copying file to temp: \(error)")
+      return nil
+    }
   }
 }
 

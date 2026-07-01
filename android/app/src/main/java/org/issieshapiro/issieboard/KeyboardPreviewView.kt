@@ -98,11 +98,11 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
         r.onDeleteWord = {
             handleDeleteWord()
         }
-        
-        r.onSuggestionSelected = { suggestion ->
-            handleSuggestionSelected(suggestion)
-        }
-        
+
+        // onSuggestionSelected is NOT set here — only set when entering input mode (setText).
+        // In config mode, the renderer's fallback creates a synthetic "suggestion" key
+        // and routes through onKeyPress, which is correct for group selection.
+
         r.onNikkudSelected = { value ->
             handleNikkudSelected(value)
         }
@@ -282,6 +282,11 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
         if (!isInputMode) {
             debugLog("🔧 Entering INPUT MODE (IssieVoice)")
             isInputMode = true
+
+            // In input mode, set onSuggestionSelected for engine-path suggestion handling
+            renderer?.onSuggestionSelected = { suggestion ->
+                handleSuggestionSelected(suggestion)
+            }
 
             // In input mode, we don't want selection mode, so don't set onKeyLongPress
             // (isSelectionMode in KeyboardRenderer is determined by onKeyLongPress != null)
@@ -536,9 +541,9 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
     
     private fun handleKeyPress(key: ParsedKey) {
         when (key.type.lowercase()) {
-            "event" -> {
-                // Event-only keys - just emit to React Native, don't modify text
-                debugLog("📢 Event key: ${key.value}")
+            "event", "suggestion" -> {
+                // Event-only and suggestion keys - just emit to React Native, don't modify text
+                debugLog("📢 Event/suggestion key: ${key.value}")
                 emitKeyPress(key)
             }
             "backspace" -> {

@@ -53,6 +53,9 @@ export interface Strings {
     removedFromFavorites: string;
     captionIconPromptTitle: string;
     captionIconPromptMessage: string;
+    noFavorites: string;
+    noFavoritesHint: string;
+    noFavoritesHintSuffix: string;
   };
   settings: {
     title: string;
@@ -66,6 +69,27 @@ export interface Strings {
     aboutTitle: string;
     aboutDescription: string;
     version: string;
+    test: string;
+    settingsTitle: string;
+    speakButtonInKeyboard: string;
+    speakButtonInKeyboardDesc: string;
+    tabs: {
+      keyboard: string;
+      general: string;
+      keysGroups: string;
+      nikkud: string;
+      features: string;
+      advanced: string;
+      voice: string;
+      language: string;
+      tabDescriptions: {
+        general: string;
+        keysGroups: string;
+        nikkud: string;
+        features: string;
+        advanced: string;
+      };
+    };
   };
   settingsModal: {
     title: string;
@@ -78,6 +102,7 @@ export interface Strings {
     autoDetectDesc: string;
     hebrewVoice: string;
     englishVoice: string;
+    arabicVoice: string;
     current: string;
     none: string;
   };
@@ -86,6 +111,12 @@ export interface Strings {
     savedSuccess: string;
     failedToSave: string;
     alreadyExists: string;
+  };
+  languageSettings: {
+    hebrew: string;
+    english: string;
+    arabic: string;
+    atLeastOne: string;
   };
 }
 
@@ -142,6 +173,9 @@ const en: Strings = {
     removedFromFavorites: 'Removed from favorites',
     captionIconPromptTitle: 'Set Caption & Icon?',
     captionIconPromptMessage: 'Would you like to set a caption and icon for this favorite?',
+    noFavorites: 'No favorites yet',
+    noFavoritesHint: 'Tap',
+    noFavoritesHintSuffix: 'to add',
   },
   settings: {
     title: 'Settings',
@@ -155,6 +189,27 @@ const en: Strings = {
     aboutTitle: 'About IssieVoice',
     aboutDescription: 'IssieVoice is an assistive communication app for people who need help speaking.',
     version: 'Version',
+    test: 'Test',
+    settingsTitle: 'Issie Voice Settings',
+    speakButtonInKeyboard: 'Speak Button in Keyboard',
+    speakButtonInKeyboardDesc: 'Show the speak button as part of the keyboard instead of above it',
+    tabs: {
+      keyboard: 'Keyboard',
+      general: 'General',
+      keysGroups: 'Keys Groups',
+      nikkud: 'Nikkud',
+      features: 'Features',
+      advanced: 'Advanced',
+      voice: 'Voice',
+      language: 'Language',
+      tabDescriptions: {
+        general: 'Control the overall look of your keyboard — background color, key size, font, spacing, and keys order.',
+        keysGroups: 'Customize your keyboard layout by creating groups of keys, or by using preset groups.',
+        nikkud: 'Control which Nikkud signs are available for your keyboard.',
+        features: 'Enable or disable keyboard features.',
+        advanced: 'Control advanced attributes of your keyboard.',
+      },
+    },
   },
   settingsModal: {
     title: 'Settings',
@@ -167,6 +222,7 @@ const en: Strings = {
     autoDetectDesc: 'Automatically detect language',
     hebrewVoice: 'Hebrew Voice',
     englishVoice: 'English Voice',
+    arabicVoice: 'Arabic Voice',
     current: 'Current:',
     none: 'None',
   },
@@ -175,6 +231,12 @@ const en: Strings = {
     savedSuccess: 'Your text has been saved successfully.',
     failedToSave: 'Failed to save text. Please try again.',
     alreadyExists: 'This sentence is already saved.',
+  },
+  languageSettings: {
+    hebrew: 'Hebrew',
+    english: 'English',
+    arabic: 'Arabic',
+    atLeastOne: 'At least one language must be selected',
   },
 };
 
@@ -231,6 +293,9 @@ const he: Strings = {
     removedFromFavorites: 'הוסר מהמועדפים',
     captionIconPromptTitle: 'להגדיר כיתוב וסמל?',
     captionIconPromptMessage: 'האם תרצה להגדיר כיתוב וסמל למועדף זה?',
+    noFavorites: 'אין מועדפים עדיין',
+    noFavoritesHint: 'לחץ',
+    noFavoritesHintSuffix: 'להוספה',
   },
   settings: {
     title: 'הגדרות',
@@ -244,6 +309,27 @@ const he: Strings = {
     aboutTitle: 'אודות IssieVoice',
     aboutDescription: 'IssieVoice הוא אפליקציית תקשורת תומכת עבור אנשים שזקוקים לעזרה בדיבור.',
     version: 'גרסה',
+    test: 'בדיקה',
+    settingsTitle: 'הגדרות Issie Voice',
+    speakButtonInKeyboard: 'כפתור הקראה במקלדת',
+    speakButtonInKeyboardDesc: 'הצג את כפתור ההקראה כחלק מהמקלדת במקום מעליה',
+    tabs: {
+      keyboard: 'מקלדת',
+      general: 'כללי',
+      keysGroups: 'קבוצות מקשים',
+      nikkud: 'ניקוד',
+      features: 'תכונות',
+      advanced: 'מתקדם',
+      voice: 'קול',
+      language: 'שפה',
+      tabDescriptions: {
+        general: 'שליטה על המראה הכללי של המקלדת — צבע רקע, גודל מקש, גופן, ריווח וסדר מקשים.',
+        keysGroups: 'התאם אישית את פריסת המקלדת שלך על ידי יצירת קבוצות מקשים, או שימוש בתבניות המוכנות מראש.',
+        nikkud: 'שליטה על אילו סימני ניקוד זמינים במקלדת שלך.',
+        features: 'הפעל או כבה תכונות מקלדת.',
+        advanced: 'שליטה על מאפיינים מתקדמים של המקלדת שלך.',
+      },
+    },
   },
   settingsModal: {
     title: 'הגדרות',
@@ -256,6 +342,7 @@ const he: Strings = {
     autoDetectDesc: 'זיהוי שפה אוטומטי',
     hebrewVoice: 'קול עברית',
     englishVoice: 'קול אנגלית',
+    arabicVoice: 'קול ערבית',
     current: 'נוכחי:',
     none: 'ללא',
   },
@@ -264,6 +351,12 @@ const he: Strings = {
     savedSuccess: 'הטקסט שלך נשמר בהצלחה.',
     failedToSave: 'שמירת הטקסט נכשלה. אנא נסה שוב.',
     alreadyExists: 'המשפט הזה כבר שמור.',
+  },
+  languageSettings: {
+    hebrew: 'עברית',
+    english: 'אנגלית',
+    arabic: 'ערבית',
+    atLeastOne: 'יש לבחור לפחות שפה אחת',
   },
 };
 
@@ -320,6 +413,9 @@ const ar: Strings = {
     removedFromFavorites: 'تمت الإزالة من المفضلة',
     captionIconPromptTitle: 'تعيين التسمية والأيقونة؟',
     captionIconPromptMessage: 'هل تريد تعيين تسمية وأيقونة لهذه المفضلة؟',
+    noFavorites: 'لا توجد مفضلة بعد',
+    noFavoritesHint: 'اضغط',
+    noFavoritesHintSuffix: 'للإضافة',
   },
   settings: {
     title: 'الإعدادات',
@@ -333,6 +429,27 @@ const ar: Strings = {
     aboutTitle: 'حول IssieVoice',
     aboutDescription: 'IssieVoice هو تطبيق تواصل مساعد للأشخاص الذين يحتاجون إلى مساعدة في التحدث.',
     version: 'الإصدار',
+    test: 'اختبار',
+    settingsTitle: 'إعدادات Issie Voice',
+    speakButtonInKeyboard: 'زر التحدث في لوحة المفاتيح',
+    speakButtonInKeyboardDesc: 'عرض زر التحدث كجزء من لوحة المفاتيح بدلاً من فوقها',
+    tabs: {
+      keyboard: 'لوحة مفاتيح',
+      general: 'عام',
+      keysGroups: 'مجموعات المفاتيح',
+      nikkud: 'تشكيل',
+      features: 'ميزات',
+      advanced: 'متقدم',
+      voice: 'صوت',
+      language: 'لغة',
+      tabDescriptions: {
+        general: 'تحكم في المظهر العام للوحة المفاتيح — لون الخلفية، حجم المفتاح، الخط، التباعد، وترتيب المفاتيح.',
+        keysGroups: 'خصّص تخطيط لوحة مفاتيحك بإنشاء مجموعات مفاتيح، أو باستخدام مجموعات جاهزة.',
+        nikkud: 'تحكم في علامات التشكيل المتاحة للوحة مفاتيحك.',
+        features: 'تفعيل أو تعطيل ميزات لوحة المفاتيح.',
+        advanced: 'تحكم في الخصائص المتقدمة للوحة مفاتيحك.',
+      },
+    },
   },
   settingsModal: {
     title: 'الإعدادات',
@@ -345,6 +462,7 @@ const ar: Strings = {
     autoDetectDesc: 'كشف اللغة تلقائياً',
     hebrewVoice: 'الصوت العبري',
     englishVoice: 'الصوت الإنجليزي',
+    arabicVoice: 'الصوت العربي',
     current: 'الحالي:',
     none: 'لا شيء',
   },
@@ -353,6 +471,12 @@ const ar: Strings = {
     savedSuccess: 'تم حفظ النص بنجاح.',
     failedToSave: 'فشل حفظ النص. يرجى المحاولة مرة أخرى.',
     alreadyExists: 'هذه الجملة محفوظة بالفعل.',
+  },
+  languageSettings: {
+    hebrew: 'العبرية',
+    english: 'الإنجليزية',
+    arabic: 'العربية',
+    atLeastOne: 'يجب اختيار لغة واحدة على الأقل',
   },
 };
 

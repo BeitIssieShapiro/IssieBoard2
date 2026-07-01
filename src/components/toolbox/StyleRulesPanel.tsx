@@ -5,11 +5,12 @@ import {
   StyleSheet,
   Alert,
   TouchableOpacity,
+  Switch,
 } from 'react-native';
 import { useEditor } from '../../context/EditorContext';
 import { useLocalization } from '../../localization';
 import { StyleGroup } from '../../../types';
-import { ActionButton } from '../shared/ActionButton';
+import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 
 export interface StyleRulesPanelProps {
   onEditPressed: (group: StyleGroup) => void;
@@ -43,15 +44,16 @@ export const StyleRulesPanel: React.FC<StyleRulesPanelProps> = ({
   }, []);
 
   // Build display string for group members
-  const getMemberDisplay = useCallback((members: string[]): string => {
-    const MAX_DISPLAY = 10;
-    const captions = members.slice(0, MAX_DISPLAY).map(getKeyCaption);
-    const display = captions.join(', ');
-    if (members.length > MAX_DISPLAY) {
-      return `${display}... (+${members.length - MAX_DISPLAY} more)`;
-    }
-    return display;
-  }, [getKeyCaption]);
+  // const getMemberDisplay = useCallback((members: string[]): string => {
+  //   const MAX_DISPLAY = 10;
+  //   const captions = members.slice(0, MAX_DISPLAY).map(getKeyCaption);
+  //   const display = captions.join(', ');
+  //   if (members.length > MAX_DISPLAY) {
+  //     return `${display}...`;
+  //     // return `${display}... (+${members.length - MAX_DISPLAY} more)`;
+  //   }
+  //   return display;
+  // }, [getKeyCaption]);
 
   const handleDeleteGroup = (group: StyleGroup) => {
     Alert.alert(
@@ -126,9 +128,12 @@ export const StyleRulesPanel: React.FC<StyleRulesPanelProps> = ({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container]}>
       {state.styleGroups.length === 0 ? (
         <View style={styles.emptyContainer}>
+          <Text allowFontScaling={false} style={styles.emptyTitle}>
+            {strings.styleRules.noGroupsYet}
+          </Text>
           <Text allowFontScaling={false} style={styles.emptyText}>
             {strings.styleRules.noGroupsHint}
           </Text>
@@ -141,46 +146,39 @@ export const StyleRulesPanel: React.FC<StyleRulesPanelProps> = ({
             return (
               <View
                 key={group.id}
-                style={styles.groupRow}
+                style={[styles.groupRow]}
               >
-                {/* Checkbox */}
-                <TouchableOpacity
-                  onPress={() => toggleGroupActive(group.id)}
-                  hitSlop={{ top: 10, bottom: 10, left: 5, right: 10 }}
-                >
-                  <View style={[
-                    styles.checkbox,
-                    isGroupActive && styles.checkboxChecked,
-                  ]}>
-                    {isGroupActive && <Text allowFontScaling={false} style={styles.checkboxCheckmark}>✓</Text>}
-                  </View>
-                </TouchableOpacity>
+                {/* Enable/Disable Switch */}
+                <Switch
+                  value={isGroupActive}
+                  onValueChange={() => toggleGroupActive(group.id)}
+                  trackColor={{ false: '#D1D5DB', true: '#3B82F6' }}
+                  thumbColor={isGroupActive ? '#FFFFFF' : '#F3F4F6'}
+                  ios_backgroundColor="#D1D5DB"
+                  style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
+                />
                 
                 {/* Group Name */}
                 <Text allowFontScaling={false} style={[styles.groupName, !isGroupActive && styles.groupNameInactive]} numberOfLines={1}>
                   {group.name}
                 </Text>
-                
-                {/* Member Count */}
-                <Text allowFontScaling={false} style={styles.memberCount}>({group.members.length})</Text>
-                
-                {/* Style Indicators - inline */}
-                <View style={styles.inlineStyleIndicators}>
-                  {getStylePreview(group)}
-                </View>
-                
+
                 {/* Action Buttons */}
                 <View style={styles.groupActions}>
-                  <ActionButton
-                    label={strings.common.edit}
-                    color="blue"
+                  <TouchableOpacity
+                    style={styles.iconButton}
                     onPress={() => onEditPressed(group)}
-                  />
-                  <ActionButton
-                    label={strings.common.delete}
-                    color="red"
+                    activeOpacity={0.7}>
+                    <MyIcon info={{ name: 'edit', type: 'MI', color: '#3B82F6', size: 16 }} />
+                    <Text allowFontScaling={false} style={styles.iconButtonTextBlue}>{strings.common.edit}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.iconButton}
                     onPress={() => handleDeleteGroup(group)}
-                  />
+                    activeOpacity={0.7}>
+                    <MyIcon info={{ name: 'delete-outline', type: 'MDI', color: '#EF4444', size: 16 }} />
+                    <Text allowFontScaling={false} style={styles.iconButtonTextRed}>{strings.common.delete}</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
             );
@@ -193,17 +191,30 @@ export const StyleRulesPanel: React.FC<StyleRulesPanelProps> = ({
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     backgroundColor: 'transparent',
+    padding: 12,
   },
   listContainer: {
   },
   emptyContainer: {
-    padding: 12,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+    gap: 8,
+  },
+  emptyTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#555',
+    textAlign: 'center',
   },
   emptyText: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#999',
-    fontStyle: 'italic',
+    textAlign: 'center',
+    lineHeight: 20,
   },
   // Thin row layout - everything on one line
   groupRow: {
@@ -215,30 +226,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     gap: 10,
   },
-  checkbox: {
-    width: 18,
-    height: 18,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: '#BDBDBD',
-    backgroundColor: '#FFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: '#4CAF50',
-    borderColor: '#4CAF50',
-  },
-  checkboxCheckmark: {
-    color: '#FFF',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
   groupName: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
     color: '#333',
     flex: 1,
+    textAlign: 'left'
   },
   groupNameInactive: {
     color: '#999',
@@ -257,19 +250,43 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 6,
   },
+  iconButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  iconButtonTextBlue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#3B82F6',
+  },
+  iconButtonTextRed: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#EF4444',
+  },
   colorSwatchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
   },
   colorLabel: {
-    fontSize: 10,
-    color: '#888',
+    fontSize: 14,
+    color: 'black',
   },
   colorSwatch: {
     width: 16,
     height: 16,
-    borderRadius: 3,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: '#DDD',
   },
