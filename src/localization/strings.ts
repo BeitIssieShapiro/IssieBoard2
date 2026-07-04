@@ -219,6 +219,7 @@ export interface Strings {
     diacriticsSection: string;
     modifiers: string;
     noDiacritics: string;
+    nothingSelected: string;
     inputMode: string;
     popup: string;
     topRow: string;
@@ -556,6 +557,7 @@ const en: Strings = {
     diacriticsSection: 'Diacritics',
     modifiers: 'Modifiers',
     noDiacritics: 'No diacritics available for this language.',
+    nothingSelected: 'Nothing selected — keyboard has no active diacritics.',
     inputMode: 'Input Mode',
     popup: 'Popup',
     topRow: 'Top Row',
@@ -895,6 +897,7 @@ const he: Strings = {
     diacriticsSection: 'סימני ניקוד',
     modifiers: 'מתאמים',
     noDiacritics: 'אין סימני ניקוד זמינים לשפה זו.',
+    nothingSelected: 'לא נבחר כלום — אין ניקוד פעיל במקלדת.',
     inputMode: 'אופן הזנה',
     popup: 'חלון קופץ',
     topRow: 'שורה עליונה',
@@ -1234,6 +1237,7 @@ const ar: Strings = {
     diacriticsSection: 'علامات التشكيل',
     modifiers: 'المعدّلات',
     noDiacritics: 'لا تتوفر علامات تشكيل لهذه اللغة.',
+    nothingSelected: 'لم يتم تحديد شيء — لا توجد تشكيلات نشطة في لوحة المفاتيح.',
     inputMode: 'وضع الإدخال',
     popup: 'نافذة منبثقة',
     topRow: 'الصف العلوي',

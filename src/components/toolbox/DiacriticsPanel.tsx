@@ -203,12 +203,16 @@ export const DiacriticsPanel: React.FC = () => {
     );
   }
   
-  const modifiers: DiacriticModifier[] = diacritics.modifiers || 
+  const modifiers: DiacriticModifier[] = diacritics.modifiers ||
     (diacritics.modifier ? [diacritics.modifier] : []);
-  
+
   const basicItems = diacritics.items.filter(item => item.id !== 'plain' && !item.isAdvanced);
   const advancedItems = diacritics.items.filter(item => item.isAdvanced);
   const allItems = [...basicItems, ...advancedItems];
+
+  const isCustomNothingSelected = currentMode === 'custom'
+    && allItems.every(item => hiddenItems.includes(item.id))
+    && modifiers.every(m => disabledModifiers.includes(m.id));
   
   return (
     <View style={[styles.container]}>
@@ -225,6 +229,13 @@ export const DiacriticsPanel: React.FC = () => {
         selectedId={currentMode}
         onSelect={(id) => handleModeChange(id as NikkudMode)}
       />
+
+      {/* Warning: custom mode with nothing selected */}
+      {isCustomNothingSelected && (
+        <Text allowFontScaling={false} style={styles.nothingSelectedWarning}>
+          {strings.diacritics.nothingSelected}
+        </Text>
+      )}
 
       {/* Input Mode selector — visible when nikkud is enabled */}
       {currentMode !== 'none' && (
@@ -308,6 +319,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 14,
     color: '#666',
+    textAlign: 'center',
+  },
+  nothingSelectedWarning: {
+    fontSize: 13,
+    color: '#E65100',
+    marginTop: 8,
     textAlign: 'center',
   },
   section: {
