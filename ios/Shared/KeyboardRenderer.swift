@@ -1327,7 +1327,7 @@ class KeyboardRenderer {
                     continue
                 }
                 
-                // Skip nikkud key if disabled
+                // Skip nikkud key if disabled or topRowAlways (row always visible, button not needed)
                 if keyType == "nikkud" && (isNikkudDisabled || isNikkudAlwaysTopRow) {
                     continue
                 }
@@ -1478,7 +1478,7 @@ class KeyboardRenderer {
             }
 
             // Check for hidden nikkud key - this IS in baseline, so redistribute
-            if keyType == "nikkud" && isNikkudDisabled {
+            if keyType == "nikkud" && (isNikkudDisabled || isNikkudAlwaysTopRow) {
                 hiddenWidthToRedistribute += parsedKey.width
                 continue
             }
@@ -1539,8 +1539,9 @@ class KeyboardRenderer {
                 continue
             }
             
-            // Skip nikkud key if nikkud is disabled for this keyboard
-            if keyType == "nikkud" && isNikkudDisabled {
+            // Skip nikkud key if disabled or topRowAlways (row always visible, button not needed)
+            let isNikkudAlwaysTopRowRender = config?.diacriticsSettings?[currentKeyboardId ?? ""]?.isTopRowAlways ?? false
+            if keyType == "nikkud" && (isNikkudDisabled || isNikkudAlwaysTopRowRender) {
                 keyIndex += 1
                 continue
             }
