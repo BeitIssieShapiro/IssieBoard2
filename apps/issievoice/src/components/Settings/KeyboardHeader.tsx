@@ -30,6 +30,7 @@ export interface KeyboardHeaderProps {
   onDiscard?: () => void;
   canGoBack?: boolean;
   onGoBack?: () => void;
+  activeTab?: string;
 }
 
 const LANGUAGES: { id: 'en' | 'he' | 'ar'; label: string }[] = [
@@ -55,7 +56,9 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
   onDiscard,
   canGoBack,
   onGoBack,
+  activeTab,
 }) => {
+  const isGeneralTab = activeTab === 'general';
   const {width, height} = useWindowDimensions();
   const shortSide = Math.min(width, height);
   const isPhone = shortSide < 500;
@@ -167,11 +170,11 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
           </TouchableOpacity>
         )}
         <TouchableOpacity
-          style={[styles.profileButton, isRTL && { flexDirection: 'row-reverse' }]}
+          style={[styles.profileButton, isRTL && { flexDirection: 'row-reverse' }, isGeneralTab && styles.profileButtonHero]}
           onPress={onProfilePress}
           activeOpacity={0.7}>
-          <MyIcon info={{ name: 'keyboard-settings-outline', type: 'MDI', color: colors.primary, size: 22 }} />
-          <Text allowFontScaling={false} style={[styles.profileName, isRTL && { textAlign: 'right' }]} numberOfLines={1} ellipsizeMode="tail">
+          <MyIcon info={{ name: 'keyboard-settings-outline', type: 'MDI', color: colors.primary, size: isGeneralTab ? 28 : 22 }} />
+          <Text allowFontScaling={false} style={[styles.profileName, isRTL && { textAlign: 'right' }, isGeneralTab && styles.profileNameHero]} numberOfLines={1} ellipsizeMode="tail">
             {profileName}
           </Text>
           <MyIcon info={{ name: 'chevron-down', type: 'Ionicons', color: colors.textLight, size: 20 }} />
@@ -349,12 +352,23 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.primary + '55',
   },
+  profileButtonHero: {
+    height: 56,
+    paddingHorizontal: 16,
+    borderWidth: 2,
+    borderColor: colors.primary + '88',
+    backgroundColor: '#EFF6FF',
+  },
   profileName: {
     fontSize: 16,
     fontWeight: '700',
     color: colors.text,
     flex: 1,
     textAlign: 'left'
+  },
+  profileNameHero: {
+    fontSize: 22,
+    fontWeight: '800',
   },
   actions: {
     flexDirection: 'row',

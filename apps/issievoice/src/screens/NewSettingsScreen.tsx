@@ -262,7 +262,7 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, isKeyboardOnly && styles.containerIssieboard]}>
       {/* Keyboard Header — IssieBoard only: always shown at top level */}
       {isKeyboardOnly && <KeyboardHeader
         currentLanguage={kbLanguage}
@@ -272,6 +272,7 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
         onSave={() => saveRef.current?.()}
         onDiscard={() => discardRef.current?.()}
         isDirty={isDirty}
+        activeTab={activeTab}
         showFullAccessBadge={showFullAccessBadge}
         onFullAccessBadgePress={handleFullAccessBadgePress}
         onSwitchToClassic={onSwitchToClassic ? () => {
@@ -344,6 +345,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  containerIssieboard: {
+    backgroundColor: '#D4E4F7',
   },
   mainContent: {
     flex: 1,
