@@ -65,6 +65,14 @@ const KEYBOARD_CONFIGS = [
     language: 'ar',
     systemRowAtTop: false,
   },
+  {
+    sourceFile: 'calc.json',
+    iosTargetDir: 'IssieCalc',
+    androidConfigName: 'calc_config.json',
+    language: 'calc',
+    systemRowAtTop: false,
+    noStructural: true,  // skip structural key injection (no backspace/space/enter)
+  },
 ];
 
 // ============================================
@@ -349,7 +357,7 @@ function resolveKeysetToggle(targetKeysetId, labels, suffix) {
  * 5. buildBottomRow and append
  * 6. Return { id, rows }
  */
-function buildKeysetVariant(keyset, variant, structural, language, hasDiacritics, labels) {
+function buildKeysetVariant(keyset, variant, structural, language, hasDiacritics, labels, noStructural) {
   const suffix = variant === 'large' ? '_large' : '';
   const variantTemplate = structural[variant] || {};
 
@@ -359,8 +367,10 @@ function buildKeysetVariant(keyset, variant, structural, language, hasDiacritics
   // 2. Filter by language
   rows = filterRowsByLanguage(rows, language);
 
-  // 3. Apply row injections (prepend/append structural keys)
-  rows = applyRowInjections(rows, variantTemplate, language, hasDiacritics, keyset.id);
+  if (!noStructural) {
+    // 3. Apply row injections (prepend/append structural keys)
+    rows = applyRowInjections(rows, variantTemplate, language, hasDiacritics, keyset.id);
+  }
 
   // 4. If large variant: suffix keyset references in content rows
   if (variant === 'large') {
@@ -370,10 +380,12 @@ function buildKeysetVariant(keyset, variant, structural, language, hasDiacritics
     }));
   }
 
-  // 5. Build bottom row and append
-  const bottomRowTemplate = variantTemplate.bottomRow || [];
-  const bottomRow = buildBottomRow(bottomRowTemplate, language, hasDiacritics, labels, keyset.id, variant);
-  rows.push(bottomRow);
+  if (!noStructural) {
+    // 5. Build bottom row and append
+    const bottomRowTemplate = variantTemplate.bottomRow || [];
+    const bottomRow = buildBottomRow(bottomRowTemplate, language, hasDiacritics, labels, keyset.id, variant);
+    rows.push(bottomRow);
+  }
 
   // 6. Return variant keyset
   return {
@@ -454,9 +466,9 @@ function buildKeyboardConfig(sourceKeyboard, config, common) {
   if (sourceKeyboard.keysets && Array.isArray(sourceKeyboard.keysets)) {
     for (const keyset of sourceKeyboard.keysets) {
       // Mobile variant
-      allKeysets.push(buildKeysetVariant(keyset, 'mobile', structural, config.language, hasDiacritics, labels));
+      allKeysets.push(buildKeysetVariant(keyset, 'mobile', structural, config.language, hasDiacritics, labels, config.noStructural));
       // Large variant
-      allKeysets.push(buildKeysetVariant(keyset, 'large', structural, config.language, hasDiacritics, labels));
+      allKeysets.push(buildKeysetVariant(keyset, 'large', structural, config.language, hasDiacritics, labels, config.noStructural));
     }
   }
 
@@ -469,14 +481,17 @@ function buildKeyboardConfig(sourceKeyboard, config, common) {
         continue;
       }
       // Mobile variant
-      allKeysets.push(buildKeysetVariant(commonKeyset, 'mobile', structural, config.language, hasDiacritics, labels));
+      allKeysets.push(buildKeysetVariant(commonKeyset, 'mobile', structural, config.language, hasDiacritics, labels, config.noStructural));
       // Large variant
-      allKeysets.push(buildKeysetVariant(commonKeyset, 'large', structural, config.language, hasDiacritics, labels));
+      allKeysets.push(buildKeysetVariant(commonKeyset, 'large', structural, config.language, hasDiacritics, labels, config.noStructural));
     }
   }
 
   outputConfig.keysets = allKeysets;
-  outputConfig.defaultKeyset = sourceKeyboard.defaultKeyset || 'abc';
+  outputConfig.defaultKeyset = sourceKeyboard.defaultKeyset || (config.noStructural ? allKeysets[0]?.id : 'abc');
+  if (config.noStructural) {
+    outputConfig.wordSuggestionsEnabled = false;
+  }
   outputConfig.groups = [];
 
   return outputConfig;

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- IssieCalc App Icon -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="blueGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#4A90E2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2962FF;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded square background (iOS style) -->
+  <rect x="0" y="0" width="1024" height="1024" rx="180" ry="180" fill="url(#blueGradient)"/>
+
+  <!-- 3x3 grid of calculator key rects -->
+  <!-- Cell size: 180x150, gap: 40, grid total: 620x550, centered in 1024x1024 -->
+  <!-- Origin X: (1024-620)/2 = 202, Origin Y: (1024-550)/2 - 30 = 207 (shifted up slightly for label) -->
+
+  <!-- Row 1 -->
+  <rect x="202" y="207" width="180" height="150" rx="28" ry="28" fill="#ffffff" opacity="0.92"/>
+  <rect x="422" y="207" width="180" height="150" rx="28" ry="28" fill="#ffffff" opacity="0.92"/>
+  <rect x="642" y="207" width="180" height="150" rx="28" ry="28" fill="#ffffff" opacity="0.92"/>
+
+  <!-- Row 2 -->
+  <rect x="202" y="397" width="180" height="150" rx="28" ry="28" fill="#ffffff" opacity="0.92"/>
+  <rect x="422" y="397" width="180" height="150" rx="28" ry="28" fill="#ffffff" opacity="0.92"/>
+  <rect x="642" y="397" width="180" height="150" rx="28" ry="28" fill="#ffffff" opacity="0.92"/>
+
+  <!-- Row 3 -->
+  <rect x="202" y="587" width="180" height="150" rx="28" ry="28" fill="#ffffff" opacity="0.92"/>
+  <rect x="422" y="587" width="180" height="150" rx="28" ry="28" fill="#ffffff" opacity="0.92"/>
+  <rect x="642" y="587" width="180" height="150" rx="28" ry="28" fill="#ffffff" opacity="0.92"/>
+
+  <!-- App name badge -->
+  <g transform="translate(512, 930)">
+    <text x="0" y="0" font-family="Arial, sans-serif" font-size="48" font-weight="bold"
+          fill="#ffffff" text-anchor="middle" opacity="0.9">
+      IssieCalc
+    </text>
+  </g>
+</svg>

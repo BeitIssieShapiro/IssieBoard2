@@ -8,3 +8,7 @@ AppRegistry.registerComponent('IssieBoardNG', () => AppNavigator);
 // Register IssieVoice (assistive communication app)
 import IssieVoice from './apps/issievoice/App';
 AppRegistry.registerComponent('IssieVoice', () => IssieVoice);
+
+// Register IssieCalc (calculator app)
+import IssieCalc from './apps/issiecalc/App';
+AppRegistry.registerComponent('IssieCalc', () => IssieCalc);

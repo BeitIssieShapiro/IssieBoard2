@@ -42,7 +42,7 @@ export interface GlobalSettingsPanelProps {
   /** If set, show only this section: 'general' | 'features' | 'advanced' */
   section?: string;
   /** App context — hides settings button toggle for IssieVoice */
-  appContext?: 'issievoice' | 'issieboard';
+  appContext?: 'issievoice' | 'issieboard' | 'issiecalc';
   /** Callback when speak-button-in-keyboard setting changes (IssieVoice only) */
   onSpeakButtonInKeyboardChange?: (value: boolean) => void;
 }

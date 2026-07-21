@@ -64,7 +64,7 @@ export interface ToolboxProps {
    *  'general' | 'keys-groups' | 'nikkud' | 'features' | 'advanced' */
   section?: string;
   /** App context — hides settings button toggle for IssieVoice */
-  appContext?: 'issievoice' | 'issieboard';
+  appContext?: 'issievoice' | 'issieboard' | 'issiecalc';
   /** Callback when speak-button-in-keyboard setting changes (IssieVoice only) */
   onSpeakButtonInKeyboardChange?: (value: boolean) => void;
   /** Selected languages for IssieVoice language key injection */

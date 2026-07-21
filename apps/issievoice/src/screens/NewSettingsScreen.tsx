@@ -38,7 +38,7 @@ interface NewSettingsScreenProps {
   navigation?: any;
   route?: any;
   /** 'issievoice' (default) = Voice + Keyboard tabs; 'issieboard' = Keyboard tabs only */
-  appContext?: 'issievoice' | 'issieboard';
+  appContext?: 'issievoice' | 'issieboard' | 'issiecalc';
   /** Initial language (alternative to route.params.initialLanguage) */
   initialLanguage?: 'en' | 'he' | 'ar';
   /** Called when classic/legacy view toggle is requested */

@@ -394,7 +394,7 @@ class BaseKeyboardViewController: UIInputViewController {
         let editorContext = analyzeEditorContext()
 
         var initialKeyset: String
-        if !keyboardEngine.renderer.currentKeysetId.isEmpty && keyboardEngine.renderer.currentKeysetId != "abc" {
+        if !keyboardEngine.renderer.currentKeysetId.isEmpty {
             initialKeyset = keyboardEngine.renderer.currentKeysetId
         } else if let savedKeyset = loadSavedKeyset() {
             initialKeyset = savedKeyset

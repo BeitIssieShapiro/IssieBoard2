@@ -1,0 +1,151 @@
+{
+  "id": "calc",
+  "name": "Calculator",
+  "defaultKeyset": "basic",
+  "includeKeysets": [],
+  "labels": {
+    "abcLabel": "BASIC",
+    "symbolsLabel": "SCI",
+    "spaceCaption": ""
+  },
+  "groups": [
+    {
+      "id": "operator",
+      "bgColor": "#FF9500",
+      "textColor": "#FFFFFF",
+      "items": ["/", "*", "-", "+", "="]
+    },
+    {
+      "id": "utility",
+      "bgColor": "#636366",
+      "textColor": "#FFFFFF",
+      "items": ["C", "+/-", "%"]
+    },
+    {
+      "id": "digit",
+      "bgColor": "#333333",
+      "textColor": "#FFFFFF",
+      "items": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "."]
+    },
+    {
+      "id": "function",
+      "bgColor": "#1C1C1E",
+      "textColor": "#FFFFFF",
+      "items": ["sin(", "cos(", "tan(", "x^2", "sqrt(", "log(", "(", ")", "pi"]
+    },
+    {
+      "id": "mode",
+      "bgColor": "#2C2C2E",
+      "textColor": "#FFFFFF",
+      "items": ["[SCI]", "[BASIC]"]
+    }
+  ],
+  "keysets": [
+    {
+      "id": "basic",
+      "rows": [
+        {
+          "keys": [
+            { "value": "7" },
+            { "value": "8" },
+            { "value": "9" },
+            { "value": "/", "caption": "÷" }
+          ]
+        },
+        {
+          "keys": [
+            { "value": "4" },
+            { "value": "5" },
+            { "value": "6" },
+            { "value": "*", "caption": "×" }
+          ]
+        },
+        {
+          "keys": [
+            { "value": "1" },
+            { "value": "2" },
+            { "value": "3" },
+            { "value": "-" }
+          ]
+        },
+        {
+          "keys": [
+            { "value": "C" },
+            { "value": "0" },
+            { "value": "." },
+            { "value": "+" }
+          ]
+        },
+        {
+          "keys": [
+            { "value": "+/-" },
+            { "value": "%" },
+            { "value": "=", "caption": "=" },
+            { "type": "keyset", "keysetValue": "scientific", "caption": "SCI", "value": "", "bgColor": "#2C2C2E", "textColor": "#FFFFFF" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scientific",
+      "rows": [
+        {
+          "keys": [
+            { "value": "sin(", "caption": "sin" },
+            { "value": "cos(", "caption": "cos" },
+            { "value": "tan(", "caption": "tan" },
+            { "value": "x^2", "caption": "x²" }
+          ]
+        },
+        {
+          "keys": [
+            { "value": "sqrt(", "caption": "√x" },
+            { "value": "log(", "caption": "log" },
+            { "value": "(" },
+            { "value": ")" }
+          ]
+        },
+        {
+          "keys": [
+            { "value": "7" },
+            { "value": "8" },
+            { "value": "9" },
+            { "value": "/", "caption": "÷" }
+          ]
+        },
+        {
+          "keys": [
+            { "value": "4" },
+            { "value": "5" },
+            { "value": "6" },
+            { "value": "*", "caption": "×" }
+          ]
+        },
+        {
+          "keys": [
+            { "value": "1" },
+            { "value": "2" },
+            { "value": "3" },
+            { "value": "-" }
+          ]
+        },
+        {
+          "keys": [
+            { "value": "C" },
+            { "value": "0" },
+            { "value": "." },
+            { "value": "+" }
+          ]
+        },
+        {
+          "keys": [
+            { "value": "pi", "caption": "π" },
+            { "value": "+/-" },
+            { "value": "=", "caption": "=" },
+            { "type": "keyset", "keysetValue": "basic", "caption": "BASIC", "value": "", "bgColor": "#2C2C2E", "textColor": "#FFFFFF" }
+          ]
+        }
+      ]
+    }
+  ]
+}

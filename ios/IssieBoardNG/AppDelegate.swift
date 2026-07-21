@@ -34,7 +34,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     let bundleId = Bundle.main.bundleIdentifier ?? ""
     print("🔍 Bundle ID: \(bundleId)")
     
-    let moduleName = bundleId.contains("IssieVoice") ? "IssieVoice" : "IssieBoardNG"
+    let moduleName: String
+    if bundleId.contains("IssieVoice") {
+      moduleName = "IssieVoice"
+    } else if bundleId.contains("IssieCalc") {
+      moduleName = "IssieCalc"
+    } else {
+      moduleName = "IssieBoardNG"
+    }
     print("🎯 Loading module: \(moduleName)")
     
     // Extract and prepare initial URL if app was opened via file

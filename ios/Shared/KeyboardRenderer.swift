@@ -121,7 +121,7 @@ class KeyboardRenderer {
     private var nikkudActive: Bool = false
     private var cursorMoveMode: Bool = false
     private var config: KeyboardConfig?
-    var currentKeysetId: String = "abc"  // Public so container can read it (but shouldn't write)
+    var currentKeysetId: String = ""  // Public so container can read it (but shouldn't write)
     private var editorContext: (enterVisible: Bool, enterLabel: String, enterAction: Int, fieldType: String)?
     
     // Cursor movement tracking
@@ -238,10 +238,10 @@ class KeyboardRenderer {
             fontSizePreset: fontPreset
         )
 
-        // Calculate row height (4 rows, with or without suggestions)
-        // Check if suggestions are enabled (considering both config and override)
+        // Calculate row height based on actual keyset row count (default 4 for standard keyboards)
         let hasSuggestions = wordSuggestionsOverrideEnabled ?? wordSuggestionsEnabled
-        let calculatedRowHeight = dimensions.calculateRowHeight(numberOfRows: 4, hasSuggestions: hasSuggestions)
+        let currentRowCount = config?.keysets.first(where: { $0.id == currentKeysetId })?.rows.count ?? 4
+        let calculatedRowHeight = dimensions.calculateRowHeight(numberOfRows: currentRowCount, hasSuggestions: hasSuggestions)
 
         print("📐 [rowHeight] calculated: \(calculatedRowHeight)")
 
@@ -274,7 +274,8 @@ class KeyboardRenderer {
         )
 
         let hasSuggestions = wordSuggestionsOverrideEnabled ?? wordSuggestionsEnabled
-        let rh = dimensions.calculateRowHeight(numberOfRows: 4, hasSuggestions: hasSuggestions)
+        let currentRowCount = config?.keysets.first(where: { $0.id == currentKeysetId })?.rows.count ?? 4
+        let rh = dimensions.calculateRowHeight(numberOfRows: currentRowCount, hasSuggestions: hasSuggestions)
         return dimensions.calculateFontSize(rowHeight: rh)
     }
 
@@ -749,7 +750,7 @@ class KeyboardRenderer {
         }
         
         // Only set currentKeysetId from parameter if renderer hasn't been initialized yet
-        if self.currentKeysetId == "abc" && currentKeysetId != "abc" {
+        if self.currentKeysetId.isEmpty && !currentKeysetId.isEmpty {
             self.currentKeysetId = currentKeysetId
         }
 
