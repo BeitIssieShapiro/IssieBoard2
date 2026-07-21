@@ -1,21 +1,23 @@
-function sanitize(expr: string): string {
-  return expr
-    .replace(/pi/g, String(Math.PI))
-    .replace(/sin\(/g, 'Math.sin(')
-    .replace(/cos\(/g, 'Math.cos(')
-    .replace(/tan\(/g, 'Math.tan(')
-    .replace(/sqrt\(/g, 'Math.sqrt(')
-    .replace(/log\(/g, 'Math.log10(')
-    .replace(/x\^2/g, '**2')
-    .replace(/\^/g, '**')
-    .replace(/%/g, '/100');
+import { evaluate as acEvaluate } from 'advanced-calculator';
+
+// Normalize expression tokens to what advanced-calculator expects
+function normalize(expression: string): string {
+  return expression
+    .replace(/×/g, '*')
+    .replace(/÷/g, '/')
+    .replace(/x\^2/g, '^2')
+    .replace(/sqrt\(/g, 'sqrt(')
+    .replace(/sin\(/g, 'sin(')
+    .replace(/cos\(/g, 'cos(')
+    .replace(/tan\(/g, 'tan(')
+    .replace(/log\(/g, 'log(')
+    .replace(/\bpi\b/g, '3.14159265358979');
 }
 
-// Returns true if the expression is in an incomplete state and shouldn't be evaluated yet
-export function isIncomplete(expression: string): boolean {
+// Returns '' when expression is incomplete (trailing operator/open paren)
+function isIncomplete(expression: string): boolean {
   const trimmed = expression.trim();
   if (!trimmed) return true;
-  // Ends with an operator or opening paren
   return /[\+\-\*\/\(]$/.test(trimmed);
 }
 
@@ -23,11 +25,11 @@ export function evaluate(expression: string): string {
   if (!expression || expression.trim() === '') return '0';
   if (isIncomplete(expression)) return '';
   try {
-    const sanitized = sanitize(expression);
-    // eslint-disable-next-line no-new-func
-    const result = new Function(`"use strict"; return (${sanitized})`)();
-    if (typeof result !== 'number' || !isFinite(result)) return 'Error';
-    const rounded = parseFloat(result.toPrecision(12));
+    const result = acEvaluate(normalize(expression));
+    if (result === 'Invalid input' || result === undefined || result === null) return 'Error';
+    if (result === Infinity || result === -Infinity) return 'Error';
+    if (typeof result === 'number' && isNaN(result)) return 'Error';
+    const rounded = parseFloat(Number(result).toPrecision(12));
     return String(rounded);
   } catch {
     return 'Error';

@@ -399,6 +399,9 @@ class KeyboardPreviewView: UIView {
                 }
             }
 
+            // Reset keyset so defaultKeyset from the new config takes effect
+            renderer?.currentKeysetId = ""
+
             // Check if nikkud picker is showing
             let hasNikkudPicker = subviews.contains(where: { $0.tag == 999 })
 

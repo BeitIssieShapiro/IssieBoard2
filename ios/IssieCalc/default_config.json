@@ -23,6 +23,24 @@
         {
           "keys": [
             {
+              "value": "⌫",
+              "caption": "⌫"
+            },
+            {
+              "value": "AC"
+            },
+            {
+              "value": "%"
+            },
+            {
+              "value": "/",
+              "caption": "÷"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
               "value": "7"
             },
             {
@@ -32,8 +50,9 @@
               "value": "9"
             },
             {
-              "value": "/",
-              "caption": "÷"
+              "value": "*",
+              "caption": "×",
+              "fontSizePreset": "small"
             }
           ]
         },
@@ -49,8 +68,7 @@
               "value": "6"
             },
             {
-              "value": "*",
-              "caption": "×"
+              "value": "-"
             }
           ]
         },
@@ -66,6 +84,80 @@
               "value": "3"
             },
             {
+              "value": "+"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "+/-"
+            },
+            {
+              "value": "0"
+            },
+            {
+              "value": "."
+            },
+            {
+              "value": "=",
+              "caption": "="
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "basic_large",
+      "rows": [
+        {
+          "keys": [
+            {
+              "value": "⌫",
+              "caption": "⌫"
+            },
+            {
+              "value": "AC"
+            },
+            {
+              "value": "%"
+            },
+            {
+              "value": "/",
+              "caption": "÷"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "7"
+            },
+            {
+              "value": "8"
+            },
+            {
+              "value": "9"
+            },
+            {
+              "value": "*",
+              "caption": "×",
+              "fontSizePreset": "small"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "4"
+            },
+            {
+              "value": "5"
+            },
+            {
+              "value": "6"
+            },
+            {
               "value": "-"
             }
           ]
@@ -73,13 +165,13 @@
         {
           "keys": [
             {
-              "value": "C"
+              "value": "1"
             },
             {
-              "value": "0"
+              "value": "2"
             },
             {
-              "value": "."
+              "value": "3"
             },
             {
               "value": "+"
@@ -92,24 +184,21 @@
               "value": "+/-"
             },
             {
-              "value": "%"
+              "value": "0"
+            },
+            {
+              "value": "."
             },
             {
               "value": "=",
               "caption": "="
-            },
-            {
-              "type": "keyset",
-              "keysetValue": "scientific",
-              "caption": "SCI",
-              "value": ""
             }
           ]
         }
       ]
     },
     {
-      "id": "basic_large",
+      "id": "basic_landscape",
       "rows": [
         {
           "keys": [
@@ -123,6 +212,10 @@
               "value": "9"
             },
             {
+              "value": "⌫",
+              "caption": "⌫"
+            },
+            {
               "value": "/",
               "caption": "÷"
             }
@@ -140,8 +233,12 @@
               "value": "6"
             },
             {
+              "value": "AC"
+            },
+            {
               "value": "*",
-              "caption": "×"
+              "caption": "×",
+              "fontSizePreset": "small"
             }
           ]
         },
@@ -157,23 +254,10 @@
               "value": "3"
             },
             {
+              "value": "%"
+            },
+            {
               "value": "-"
-            }
-          ]
-        },
-        {
-          "keys": [
-            {
-              "value": "C"
-            },
-            {
-              "value": "0"
-            },
-            {
-              "value": "."
-            },
-            {
-              "value": "+"
             }
           ]
         },
@@ -183,17 +267,103 @@
               "value": "+/-"
             },
             {
-              "value": "%"
+              "value": "0"
+            },
+            {
+              "value": "."
             },
             {
               "value": "=",
               "caption": "="
             },
             {
-              "type": "keyset",
-              "keysetValue": "scientific_large",
-              "caption": "SCI",
-              "value": ""
+              "value": "+"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "basic_landscape_large",
+      "rows": [
+        {
+          "keys": [
+            {
+              "value": "7"
+            },
+            {
+              "value": "8"
+            },
+            {
+              "value": "9"
+            },
+            {
+              "value": "⌫",
+              "caption": "⌫"
+            },
+            {
+              "value": "/",
+              "caption": "÷"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "4"
+            },
+            {
+              "value": "5"
+            },
+            {
+              "value": "6"
+            },
+            {
+              "value": "AC"
+            },
+            {
+              "value": "*",
+              "caption": "×",
+              "fontSizePreset": "small"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "1"
+            },
+            {
+              "value": "2"
+            },
+            {
+              "value": "3"
+            },
+            {
+              "value": "%"
+            },
+            {
+              "value": "-"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "+/-"
+            },
+            {
+              "value": "0"
+            },
+            {
+              "value": "."
+            },
+            {
+              "value": "=",
+              "caption": "="
+            },
+            {
+              "value": "+"
             }
           ]
         }
@@ -243,6 +413,24 @@
         {
           "keys": [
             {
+              "value": "⌫",
+              "caption": "⌫"
+            },
+            {
+              "value": "AC"
+            },
+            {
+              "value": "%"
+            },
+            {
+              "value": "/",
+              "caption": "÷"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
               "value": "7"
             },
             {
@@ -252,8 +440,9 @@
               "value": "9"
             },
             {
-              "value": "/",
-              "caption": "÷"
+              "value": "*",
+              "caption": "×",
+              "fontSizePreset": "small"
             }
           ]
         },
@@ -269,8 +458,7 @@
               "value": "6"
             },
             {
-              "value": "*",
-              "caption": "×"
+              "value": "-"
             }
           ]
         },
@@ -284,22 +472,6 @@
             },
             {
               "value": "3"
-            },
-            {
-              "value": "-"
-            }
-          ]
-        },
-        {
-          "keys": [
-            {
-              "value": "C"
-            },
-            {
-              "value": "0"
-            },
-            {
-              "value": "."
             },
             {
               "value": "+"
@@ -316,14 +488,14 @@
               "value": "+/-"
             },
             {
-              "value": "=",
-              "caption": "="
+              "value": "0"
             },
             {
-              "type": "keyset",
-              "keysetValue": "basic",
-              "caption": "BASIC",
-              "value": ""
+              "value": "."
+            },
+            {
+              "value": "=",
+              "caption": "="
             }
           ]
         }
@@ -373,6 +545,24 @@
         {
           "keys": [
             {
+              "value": "⌫",
+              "caption": "⌫"
+            },
+            {
+              "value": "AC"
+            },
+            {
+              "value": "%"
+            },
+            {
+              "value": "/",
+              "caption": "÷"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
               "value": "7"
             },
             {
@@ -382,8 +572,9 @@
               "value": "9"
             },
             {
-              "value": "/",
-              "caption": "÷"
+              "value": "*",
+              "caption": "×",
+              "fontSizePreset": "small"
             }
           ]
         },
@@ -399,8 +590,7 @@
               "value": "6"
             },
             {
-              "value": "*",
-              "caption": "×"
+              "value": "-"
             }
           ]
         },
@@ -414,22 +604,6 @@
             },
             {
               "value": "3"
-            },
-            {
-              "value": "-"
-            }
-          ]
-        },
-        {
-          "keys": [
-            {
-              "value": "C"
-            },
-            {
-              "value": "0"
-            },
-            {
-              "value": "."
             },
             {
               "value": "+"
@@ -446,14 +620,298 @@
               "value": "+/-"
             },
             {
+              "value": "0"
+            },
+            {
+              "value": "."
+            },
+            {
+              "value": "=",
+              "caption": "="
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scientific_landscape",
+      "rows": [
+        {
+          "keys": [
+            {
+              "value": "sin(",
+              "caption": "sin"
+            },
+            {
+              "value": "cos(",
+              "caption": "cos"
+            },
+            {
+              "value": "tan(",
+              "caption": "tan"
+            },
+            {
+              "value": "x^2",
+              "caption": "x²"
+            },
+            {
+              "value": "7"
+            },
+            {
+              "value": "8"
+            },
+            {
+              "value": "9"
+            },
+            {
+              "value": "⌫",
+              "caption": "⌫"
+            },
+            {
+              "value": "/",
+              "caption": "÷"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "sqrt(",
+              "caption": "√x"
+            },
+            {
+              "value": "log(",
+              "caption": "log"
+            },
+            {
+              "value": "("
+            },
+            {
+              "value": ")"
+            },
+            {
+              "value": "4"
+            },
+            {
+              "value": "5"
+            },
+            {
+              "value": "6"
+            },
+            {
+              "value": "%"
+            },
+            {
+              "value": "*",
+              "caption": "×",
+              "fontSizePreset": "small"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "pi",
+              "caption": "π"
+            },
+            {
+              "value": "x^2",
+              "caption": "x²"
+            },
+            {
+              "value": "sqrt(",
+              "caption": "√"
+            },
+            {
+              "value": "log(",
+              "caption": "log"
+            },
+            {
+              "value": "1"
+            },
+            {
+              "value": "2"
+            },
+            {
+              "value": "3"
+            },
+            {
+              "value": "+/-"
+            },
+            {
+              "value": "-"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "AC"
+            },
+            {
+              "value": "("
+            },
+            {
+              "value": ")"
+            },
+            {
+              "value": "pi",
+              "caption": "π"
+            },
+            {
+              "value": "0"
+            },
+            {
+              "value": "."
+            },
+            {
               "value": "=",
               "caption": "="
             },
             {
-              "type": "keyset",
-              "keysetValue": "basic_large",
-              "caption": "BASIC",
-              "value": ""
+              "value": "+"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scientific_landscape_large",
+      "rows": [
+        {
+          "keys": [
+            {
+              "value": "sin(",
+              "caption": "sin"
+            },
+            {
+              "value": "cos(",
+              "caption": "cos"
+            },
+            {
+              "value": "tan(",
+              "caption": "tan"
+            },
+            {
+              "value": "x^2",
+              "caption": "x²"
+            },
+            {
+              "value": "7"
+            },
+            {
+              "value": "8"
+            },
+            {
+              "value": "9"
+            },
+            {
+              "value": "⌫",
+              "caption": "⌫"
+            },
+            {
+              "value": "/",
+              "caption": "÷"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "sqrt(",
+              "caption": "√x"
+            },
+            {
+              "value": "log(",
+              "caption": "log"
+            },
+            {
+              "value": "("
+            },
+            {
+              "value": ")"
+            },
+            {
+              "value": "4"
+            },
+            {
+              "value": "5"
+            },
+            {
+              "value": "6"
+            },
+            {
+              "value": "%"
+            },
+            {
+              "value": "*",
+              "caption": "×",
+              "fontSizePreset": "small"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "pi",
+              "caption": "π"
+            },
+            {
+              "value": "x^2",
+              "caption": "x²"
+            },
+            {
+              "value": "sqrt(",
+              "caption": "√"
+            },
+            {
+              "value": "log(",
+              "caption": "log"
+            },
+            {
+              "value": "1"
+            },
+            {
+              "value": "2"
+            },
+            {
+              "value": "3"
+            },
+            {
+              "value": "+/-"
+            },
+            {
+              "value": "-"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "AC"
+            },
+            {
+              "value": "("
+            },
+            {
+              "value": ")"
+            },
+            {
+              "value": "pi",
+              "caption": "π"
+            },
+            {
+              "value": "0"
+            },
+            {
+              "value": "."
+            },
+            {
+              "value": "=",
+              "caption": "="
+            },
+            {
+              "value": "+"
             }
           ]
         }
