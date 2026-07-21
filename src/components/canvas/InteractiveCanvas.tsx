@@ -1,5 +1,5 @@
 import React, { useMemo, useCallback, useState } from 'react';
-import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, useWindowDimensions, TouchableOpacity } from 'react-native';
 import { KeyboardPreview, KeyPressEvent } from '../KeyboardPreview';
 import { useEditor } from '../../context/EditorContext';
 import { useLocalization } from '../../localization';
@@ -55,6 +55,8 @@ interface InteractiveCanvasProps {
   speakButtonInKeyboard?: boolean;
   /** Selected languages for IssieVoice language key injection */
   selectedLanguages?: string[];
+  /** App context — enables calc-specific preview toggle */
+  appContext?: 'issieboard' | 'issievoice' | 'issiecalc';
 }
 
 // Language display names
@@ -64,9 +66,10 @@ const LANGUAGE_NAMES: Record<string, string> = {
   'ar': 'العربية',
 };
 
-export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInput, height, hideHeader, hideSettingsKey, hideCloseKey, hideGlobeButton, activeTab, speakButtonInKeyboard, selectedLanguages }) => {
+export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInput, height, hideHeader, hideSettingsKey, hideCloseKey, hideGlobeButton, activeTab, speakButtonInKeyboard, selectedLanguages, appContext }) => {
   const { state, dispatch } = useEditor();
   const { strings } = useLocalization();
+  const [calcPreviewKeyset, setCalcPreviewKeyset] = useState<'basic' | 'scientific'>('basic');
   const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets()
@@ -274,8 +277,12 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
   }, [state.config, state.styleGroups, hideCloseKey, hideGlobeButton, speakButtonInKeyboard, selectedLanguages]);
 
   const configJson = useMemo(() => {
-    return JSON.stringify(transformConfigForPreview(configWithGroups));
-  }, [configWithGroups]);
+    const base = transformConfigForPreview(configWithGroups);
+    if (appContext === 'issiecalc') {
+      return JSON.stringify({ ...base, defaultKeyset: calcPreviewKeyset });
+    }
+    return JSON.stringify(base);
+  }, [configWithGroups, appContext, calcPreviewKeyset]);
 
   console.log("📐 [InteractiveCanvas] Render - keyboardHeight:", keyboardHeight, "containerHeight:", height, "windowWidth:", windowWidth);
 
@@ -299,6 +306,22 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
           </Text>
         </View>
       </View>
+      )}
+
+      {/* Calc Basic/Scientific toggle */}
+      {appContext === 'issiecalc' && (
+        <View style={styles.calcToggle}>
+          <TouchableOpacity
+            style={[styles.calcToggleBtn, calcPreviewKeyset === 'basic' && styles.calcToggleBtnActive]}
+            onPress={() => setCalcPreviewKeyset('basic')}>
+            <Text allowFontScaling={false} style={[styles.calcToggleText, calcPreviewKeyset === 'basic' && styles.calcToggleTextActive]}>Basic</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.calcToggleBtn, calcPreviewKeyset === 'scientific' && styles.calcToggleBtnActive]}
+            onPress={() => setCalcPreviewKeyset('scientific')}>
+            <Text allowFontScaling={false} style={[styles.calcToggleText, calcPreviewKeyset === 'scientific' && styles.calcToggleTextActive]}>Scientific</Text>
+          </TouchableOpacity>
+        </View>
       )}
 
       {/* Keyboard Preview */}
@@ -330,7 +353,30 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
 };
 
 const styles = StyleSheet.create({
-
+  calcToggle: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 6,
+    backgroundColor: '#F2F2F7',
+  },
+  calcToggleBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 5,
+    borderRadius: 7,
+    backgroundColor: '#E0E0E6',
+  },
+  calcToggleBtnActive: {
+    backgroundColor: '#2962FF',
+  },
+  calcToggleText: {
+    fontSize: 13,
+    color: '#555',
+    fontWeight: '500',
+  },
+  calcToggleTextActive: {
+    color: '#FFFFFF',
+  },
   previewHeader: {
     margin: 5,
     marginStart: 16,

@@ -406,8 +406,8 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
 
           {(section || advancedExpanded) && (
             <View style={section ? styles.content : styles.advancedContent}>
-              {/* Keyboard Layout (only show if multiple variants) */}
-              {keyboardVariants && keyboardVariants.length > 1 && (
+              {/* Keyboard Layout (only show if multiple variants, not for IssieCalc) */}
+              {appContext !== 'issiecalc' && keyboardVariants && keyboardVariants.length > 1 && (
                 <>
                   <View style={styles.section}>
                     <ButtonGroupRow

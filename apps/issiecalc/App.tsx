@@ -4,6 +4,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { CalcProvider } from './src/context/CalcContext';
+import { LocalizationProvider } from '../../src/localization';
+import { LocalizationProvider as VoiceLocalizationProvider } from '../issievoice/src/context/LocalizationContext';
 import CalcScreen from './src/screens/CalcScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 
@@ -14,14 +16,18 @@ const Stack = createStackNavigator();
 
 const App = () => (
   <SafeAreaProvider>
-    <CalcProvider>
-      <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="Calc" component={CalcScreen} />
-          <Stack.Screen name="Settings" component={SettingsScreen} />
-        </Stack.Navigator>
-      </NavigationContainer>
-    </CalcProvider>
+    <LocalizationProvider>
+      <VoiceLocalizationProvider>
+        <CalcProvider>
+        <NavigationContainer>
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="Calc" component={CalcScreen} />
+            <Stack.Screen name="Settings" component={SettingsScreen} />
+          </Stack.Navigator>
+        </NavigationContainer>
+        </CalcProvider>
+      </VoiceLocalizationProvider>
+    </LocalizationProvider>
   </SafeAreaProvider>
 );
 

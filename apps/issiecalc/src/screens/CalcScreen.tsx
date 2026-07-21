@@ -1,8 +1,10 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { KeyboardPreview, KeyPressEvent } from '../../../../src/components/KeyboardPreview';
 import { useCalc } from '../context/CalcContext';
+import KeyboardPreferences from '../../../../src/native/KeyboardPreferences';
 
 const builtConfig = require('../../../../ios/IssieCalc/default_config.json');
 
@@ -26,6 +28,17 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const [keyboardHeight, setKeyboardHeight] = useState(500);
   const [landscape, setLandscape] = useState(isLandscape());
+  const [liveConfig, setLiveConfig] = useState<any>(builtConfig);
+
+  useFocusEffect(useCallback(() => {
+    KeyboardPreferences.getString('keyboardConfig_issiecalc_calc').then(saved => {
+      if (saved) {
+        try { setLiveConfig(JSON.parse(saved)); } catch {}
+      } else {
+        setLiveConfig(builtConfig);
+      }
+    });
+  }, []));
 
   useEffect(() => {
     const sub = Dimensions.addEventListener('change', () => {
@@ -41,8 +54,8 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
     } else {
       defaultKeyset = landscape ? 'basic_landscape' : 'basic';
     }
-    return JSON.stringify({ ...builtConfig, defaultKeyset });
-  }, [keyset, landscape]);
+    return JSON.stringify({ ...liveConfig, defaultKeyset });
+  }, [keyset, landscape, liveConfig]);
 
   const handleKeyPress = (event: KeyPressEvent) => {
     const { value } = event.nativeEvent;

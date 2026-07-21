@@ -1510,6 +1510,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = IssieBoardNG/IssieBoardNG.entitlements;
 				CURRENT_PROJECT_VERSION = 17;
+				DEVELOPMENT_TEAM = SKNJT9TD9G;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = "IssieCalc/IssieCalc-info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = IssieCalc;
@@ -1525,7 +1526,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = org.issieshapiro.IssieCalc;
+				PRODUCT_BUNDLE_IDENTIFIER = com.issieshapiro.IssieCalc;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -1546,6 +1547,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = IssieBoardNG/IssieBoardNG.entitlements;
 				CURRENT_PROJECT_VERSION = 17;
+				DEVELOPMENT_TEAM = SKNJT9TD9G;
 				INFOPLIST_FILE = "IssieCalc/IssieCalc-info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = IssieCalc;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
@@ -1560,7 +1562,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = org.issieshapiro.IssieCalc;
+				PRODUCT_BUNDLE_IDENTIFIER = com.issieshapiro.IssieCalc;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;

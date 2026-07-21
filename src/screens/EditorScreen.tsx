@@ -83,7 +83,7 @@ const FACTORY_DEFAULT_FONT_SIZE: number | null = 48;  // Change this to test dif
 // ============================================
 
 // Language definitions
-type LanguageId = 'he' | 'en' | 'ar';
+type LanguageId = 'he' | 'en' | 'ar' | 'calc';
 
 interface LanguageDefinition {
   id: LanguageId;
@@ -331,7 +331,7 @@ const loadProfileById = async (profileId: string): Promise<{
   }
 };
 
-type AppContext = 'issieboard' | 'issievoice';
+type AppContext = 'issieboard' | 'issievoice' | 'issiecalc';
 
 /**
  * Get the active profile key for a given language and app context
@@ -351,8 +351,8 @@ const getKeyboardConfigKey = (language: LanguageId, appContext: AppContext = 'is
     // IssieBoard uses language-only keys that native keyboards read
     return `keyboardConfig_${language}`;
   } else {
-    // IssieVoice uses app-specific keys for in-app preview
-    return `keyboardConfig_issievoice_${language}`;
+    // IssieVoice/IssieCalc use app-specific keys for in-app preview
+    return `keyboardConfig_${appContext}_${language}`;
   }
 };
 
@@ -767,6 +767,22 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   const handleLanguageChange = useCallback(async (newLanguage: LanguageId) => {
     console.log(`📱 handleLanguageChange: switching to ${newLanguage} (appContext: ${appContext})`);
     setCurrentLanguage(newLanguage);
+
+    // IssieCalc: load calc config directly, bypass language/profile system
+    if (appContext === 'issiecalc') {
+      const savedJson = await KeyboardPreferences.getString('keyboardConfig_issiecalc_calc');
+      if (savedJson) {
+        try {
+          const savedConfig = JSON.parse(savedJson);
+          setConfig(savedConfig, []);
+          return;
+        } catch {}
+      }
+      // Fallback to built-in calc config
+      const calcConfig = require('../../ios/IssieCalc/default_config.json');
+      setConfig(calcConfig, []);
+      return;
+    }
 
     // Get first keyboard for this language
     const langDef = LANGUAGES.find(l => l.id === newLanguage);
@@ -1777,7 +1793,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
           return (
             <View style={[styles.headlessPreview, { backgroundColor: (state.config.backgroundColor && state.config.backgroundColor !== 'default') ? state.config.backgroundColor : '#CBCFD8' }]}>
               <View style={styles.headlessPreviewInner}>
-                <InteractiveCanvas onTestInput={handleTestInput} height={previewH} hideHeader hideSettingsKey={appContext === 'issievoice'} hideCloseKey={appContext === 'issievoice'} hideGlobeButton={appContext === 'issievoice'} activeTab={activeTab} speakButtonInKeyboard={speakButtonInKeyboard} selectedLanguages={selectedLanguages} />
+                <InteractiveCanvas onTestInput={handleTestInput} height={previewH} hideHeader hideSettingsKey={appContext === 'issievoice'} hideCloseKey={appContext === 'issievoice' || appContext === 'issiecalc'} hideGlobeButton={appContext === 'issievoice' || appContext === 'issiecalc'} activeTab={activeTab} speakButtonInKeyboard={speakButtonInKeyboard} selectedLanguages={selectedLanguages} appContext={appContext} />
               </View>
             </View>
           );
@@ -2205,7 +2221,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
           </Text>
         </View>
         <View style={styles.languageTabs}>
-          {LANGUAGES.map(lang => (
+          {appContext !== 'issiecalc' && LANGUAGES.map(lang => (
             <TouchableOpacity
               key={lang.id}
               style={[
@@ -2437,7 +2453,28 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
   useEffect(() => {
     const loadInitial = async () => {
       try {
-        // Priority for language:
+        // IssieCalc: bypass language/profile system entirely
+        if (appContext === 'issiecalc') {
+          setCurrentLanguage('calc');
+          setCurrentKeyboardId('calc');
+          setCurrentProfileId('issiecalc-default');
+          setProfileName('Calculator');
+          const calcConfig = require('../../ios/IssieCalc/default_config.json');
+          const savedJson = await KeyboardPreferences.getString('keyboardConfig_issiecalc_calc');
+          if (savedJson) {
+            try {
+              const savedConfig = JSON.parse(savedJson);
+              setInitialConfig(savedConfig);
+              setInitialStyleGroups([]);
+              setLoading(false);
+              return;
+            } catch {}
+          }
+          setInitialConfig(calcConfig);
+          setInitialStyleGroups([]);
+          setLoading(false);
+          return;
+        }
         // 1. propInitialLanguage (from keyboard launch via deep link or launch_keyboard pref)
         // 2. Saved preference
         // 3. Default 'he'

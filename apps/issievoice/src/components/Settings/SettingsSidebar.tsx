@@ -10,6 +10,8 @@ export interface SettingsSidebarProps {
   onTabChange: (tabId: string) => void;
   isLandscape: boolean;
   disabledTabs?: string[];
+  /** Tabs to completely hide (not shown at all) */
+  hiddenTabs?: string[];
   /** 'voice' = IssieVoice (Keyboard group + Voice tab), 'keyboard' = IssieBoard (keyboard tabs only) */
   mode?: 'voice' | 'keyboard';
   /** Current keyboard language — used to pick the correct nikkud icon */
@@ -133,6 +135,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   onTabChange,
   isLandscape,
   disabledTabs,
+  hiddenTabs,
   mode = 'voice',
   kbLanguage = 'he',
   onAbout,
@@ -141,12 +144,12 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const shortSide = Math.min(screenWidth, screenHeight);
   const isPhone = shortSide < 600;
-  // Voice mode on phone has more tabs — needs extra compact sidebar
   const isPhoneVoice = isPhone && !keyboardOnly;
 
   const { strings, isRTL } = useLocalization();
   const tabLabels = strings.settings.tabs;
-  const KEYBOARD_CHILDREN = getKeyboardChildren(tabLabels, kbLanguage);
+  const ALL_KEYBOARD_CHILDREN = getKeyboardChildren(tabLabels, kbLanguage);
+  const KEYBOARD_CHILDREN = hiddenTabs ? ALL_KEYBOARD_CHILDREN.filter(t => !hiddenTabs.includes(t.id)) : ALL_KEYBOARD_CHILDREN;
   const VOICE_TAB = getVoiceTab(tabLabels.voice);
   const LANGUAGE_TAB = getLanguageTab(tabLabels.language);
 

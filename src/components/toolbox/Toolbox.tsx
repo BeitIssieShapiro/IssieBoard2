@@ -232,6 +232,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
             />
           );
         case 'nikkud':
+          if (appContext === 'issiecalc') return null;
           return state.config.diacritics ? <DiacriticsPanel /> : null;
         case 'features':
           return (
