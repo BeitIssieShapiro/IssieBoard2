@@ -11,7 +11,8 @@ function normalize(expression: string): string {
     .replace(/cos\(/g, 'cos(')
     .replace(/tan\(/g, 'tan(')
     .replace(/log\(/g, 'log(')
-    .replace(/\bpi\b/g, '3.14159265358979');
+    .replace(/\bpi\b/g, '3.14159265358979')
+    .replace(/%/g, '/100');
 }
 
 // Returns '' when expression is incomplete (trailing operator/open paren)
@@ -41,5 +42,10 @@ export function negateLastNumber(expression: string): string {
   if (!match) return expression;
   const num = match[1];
   const before = expression.slice(0, expression.length - num.length);
-  return `${before}(-(${num}))`;
+  // Simple case: the entire expression is just a number
+  if (!before.trim()) {
+    return num.startsWith('-') ? num.slice(1) : '-' + num;
+  }
+  // After an operator: wrap with negation
+  return `${before}(-${num})`;
 }
