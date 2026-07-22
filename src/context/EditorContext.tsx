@@ -452,7 +452,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
     case 'UPDATE_FONT_WEIGHT': {
       return {
         ...state,
-        config: { ...state.config, fontWeight: action.payload },
+        config: { ...state.config, fontWeight: action.payload, fontWeight_large: action.payload },
         isDirty: true,
       };
     }
@@ -460,7 +460,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
     case 'UPDATE_KEY_GAP': {
       return {
         ...state,
-        config: { ...state.config, keyGap: action.payload },
+        config: { ...state.config, keyGap: action.payload, keyGap_large: action.payload },
         isDirty: true,
       };
     }

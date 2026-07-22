@@ -173,7 +173,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
   };
 
   const updateHeightPreset = (preset: string) => {
-    const updatedConfig = { ...state.config, heightPreset: preset as 'compact' | 'normal' | 'tall' | 'x-tall' };
+    const updatedConfig = { ...state.config, heightPreset: preset as 'compact' | 'normal' | 'tall' | 'x-tall', heightPreset_large: preset as 'compact' | 'normal' | 'tall' | 'x-tall' };
     dispatch({
       type: 'SET_CONFIG',
       payload: { config: updatedConfig, styleGroups: state.styleGroups },
@@ -182,7 +182,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
   };
 
   const updateFontSizePreset = (preset: string) => {
-    const updatedConfig = { ...state.config, fontSizePreset: preset as 'xs' | 'small' | 'normal' | 'large' | 'xl' };
+    const updatedConfig = { ...state.config, fontSizePreset: preset as 'xs' | 'small' | 'normal' | 'large' | 'xl', fontSizePreset_large: preset as 'xs' | 'small' | 'normal' | 'large' | 'xl' };
     dispatch({
       type: 'SET_CONFIG',
       payload: { config: updatedConfig, styleGroups: state.styleGroups },

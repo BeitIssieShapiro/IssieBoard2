@@ -17,8 +17,10 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
 
-  const handleClose = useCallback(() => {
-    autoSaveRef.current?.();
+  const handleClose = useCallback(async () => {
+    if (autoSaveRef.current) {
+      await autoSaveRef.current();
+    }
     navigation.goBack();
   }, [navigation]);
 

@@ -338,9 +338,12 @@ class KeyboardRenderer {
         return rowHeight * effectiveDimensionScale
     }
 
-    /// Scaled key gap
+    /// Scaled key gap — reads from config.keyGap if set, falls back to keyInternalPadding (3)
     private var scaledKeyGap: CGFloat {
-        return keyInternalPadding * effectiveDimensionScale
+        let base = (UIDevice.current.userInterfaceIdiom == .pad ? config?.keyGap_large : nil).map { CGFloat($0) }
+            ?? config?.keyGap.map { CGFloat($0) }
+            ?? keyInternalPadding
+        return base * effectiveDimensionScale
     }
 
     /// Scaled corner radius
@@ -353,9 +356,12 @@ class KeyboardRenderer {
         return suggestionsBarHeight * effectiveDimensionScale
     }
 
-    /// Scaled key vertical padding
+    /// Scaled key vertical padding — tracks keyGap + 2 to maintain proportional row spacing
     private var scaledKeyVerticalPadding: CGFloat {
-        return keyVerticalPadding * effectiveDimensionScale
+        let base = (UIDevice.current.userInterfaceIdiom == .pad ? config?.keyGap_large : nil).map { CGFloat($0) + 2 }
+            ?? config?.keyGap.map { CGFloat($0) + 2 }
+            ?? keyVerticalPadding
+        return base * effectiveDimensionScale
     }
 
     // MARK: - Modular Helper Classes
@@ -610,6 +616,9 @@ class KeyboardRenderer {
     func setPreviewMode(maxHeight: CGFloat?) {
         isPreviewMode = true
         previewMaxHeight = maxHeight
+        if maxHeight == nil {
+            currentScale = 1.0
+        }
     }
 
     /// Calculate preview scale based on keyboard height and maxHeight

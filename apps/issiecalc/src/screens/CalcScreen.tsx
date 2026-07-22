@@ -38,7 +38,7 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
         setLiveConfig(builtConfig);
       }
     });
-  }, []));
+  }));
 
   useEffect(() => {
     const sub = Dimensions.addEventListener('change', () => {

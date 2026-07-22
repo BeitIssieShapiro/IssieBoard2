@@ -266,10 +266,12 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
     // Return the base config with the current groups and filtered keysets
     // Disable word suggestions for preview
     // IMPORTANT: Preserve all config properties (heightPreset, fontSizePreset, colors, etc.)
+    // For issiecalc: groups come from config.groups (not styleGroups), so fall back when styleGroups is empty
+    const resolvedGroups = groupConfigs.length > 0 ? groupConfigs : (state.config.groups || []);
     const previewConfig: KeyboardConfig = {
       ...state.config,
       keysets: finalKeysets,
-      groups: groupConfigs,
+      groups: resolvedGroups,
       wordSuggestionsEnabled: state.config.wordSuggestionsEnabled ?? true,
     };
 
@@ -290,8 +292,8 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
   const windowAvailableWidth = windowWidth - insets.left - insets.right
   // In advanced tab, use native-reported height for realistic preview (no maxHeight cap).
   // All other tabs: fixed height container, native scales KB to fit via maxHeight.
-  const useRealisticHeight = activeTab === 'advanced' && keyboardHeight > 0;
-  const effectiveHeight = useRealisticHeight ? keyboardHeight : height;
+  const useRealisticHeight = activeTab === 'advanced';
+  const effectiveHeight = (useRealisticHeight && keyboardHeight > 0) ? keyboardHeight : height;
 
   return (
     <View style={{ flexDirection: isLandscape && !hideHeader ? "row" : "column", minHeight: hideHeader ? effectiveHeight : height + 20 }}>

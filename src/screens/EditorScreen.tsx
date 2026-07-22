@@ -2464,8 +2464,24 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
           if (savedJson) {
             try {
               const savedConfig = JSON.parse(savedJson);
+              // Restore styleGroups from config.groups so GroupsPanel shows saved groups
+              const restoredStyleGroups = (savedConfig.groups || [])
+                .filter((g: any) => g.name && !g.name.startsWith('_'))
+                .map((g: any, i: number) => ({
+                  id: `calc_group_${i}_${g.name}`,
+                  name: g.name,
+                  members: g.items || [],
+                  style: {
+                    color: g.template?.color || '',
+                    bgColor: g.template?.bgColor || '',
+                    hidden: g.template?.hidden,
+                    visibilityMode: g.template?.visibilityMode,
+                  },
+                  active: true,
+                  createdAt: new Date().toISOString(),
+                }));
               setInitialConfig(savedConfig);
-              setInitialStyleGroups([]);
+              setInitialStyleGroups(restoredStyleGroups);
               setLoading(false);
               return;
             } catch {}
@@ -2606,9 +2622,12 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
     const groupConfigs = convertStyleGroupsToGroupConfig(styleGroups);
     console.log(`📱 groupConfigs count after conversion: ${groupConfigs.length}`);
 
+    // For issiecalc, groups live in config.groups (not styleGroups) — preserve them
+    const resolvedGroups = groupConfigs.length > 0 ? groupConfigs : (config.groups || []);
+
     const configWithGroups: KeyboardConfig = {
       ...config,
-      groups: groupConfigs,
+      groups: resolvedGroups,
     };
 
     const profileDef = extractProfileDefinition(
