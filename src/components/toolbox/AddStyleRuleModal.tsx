@@ -34,6 +34,7 @@ interface AddStyleRuleModalProps {
   hideCloseKey?: boolean; // Hide close button in keyboard preview
   selectedLanguages?: string[]; // Selected languages for IssieVoice language key
   speakButtonInKeyboard?: boolean; // Show speak button in keyboard preview
+  appContext?: 'issievoice' | 'issieboard' | 'issiecalc';
   onClose: () => void;
 }
 
@@ -52,8 +53,10 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
   hideCloseKey,
   selectedLanguages,
   speakButtonInKeyboard,
+  appContext,
   onClose,
 }) => {
+  const [calcKeyset, setCalcKeyset] = useState<'basic' | 'scientific'>('basic');
   const {
     state,
     createGroupFromValues,
@@ -415,7 +418,13 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
     };
   }, [state.config, state.styleGroups, selectedKeyValues, bgColor, textColor, visibilityMode, hideCloseKey, hideGlobeButton, selectedLanguages, speakButtonInKeyboard]);
 
-  const previewConfigJson = useMemo(() => JSON.stringify(transformConfigForPreview(previewConfig)), [previewConfig]);
+  const previewConfigJson = useMemo(() => {
+    const base = transformConfigForPreview(previewConfig);
+    if (appContext === 'issiecalc') {
+      return JSON.stringify({ ...base, defaultKeyset: calcKeyset });
+    }
+    return JSON.stringify(base);
+  }, [previewConfig, appContext, calcKeyset]);
 
   // Get window dimensions to detect orientation
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
@@ -531,6 +540,20 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
                   ? strings.styleRuleModal.presetKeysLocked
                   : strings.styleRuleModal.tapKeysToSelect}
               </Text>
+              {appContext === 'issiecalc' && (
+                <View style={styles.calcToggle}>
+                  <TouchableOpacity
+                    style={[styles.calcToggleBtn, calcKeyset === 'basic' && styles.calcToggleBtnActive]}
+                    onPress={() => setCalcKeyset('basic')}>
+                    <Text allowFontScaling={false} style={[styles.calcToggleText, calcKeyset === 'basic' && styles.calcToggleTextActive]}>Basic</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.calcToggleBtn, calcKeyset === 'scientific' && styles.calcToggleBtnActive]}
+                    onPress={() => setCalcKeyset('scientific')}>
+                    <Text allowFontScaling={false} style={[styles.calcToggleText, calcKeyset === 'scientific' && styles.calcToggleTextActive]}>Scientific</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
               <View style={styles.previewContainer}>
                 <KeyboardPreview
                   key="modal-preview"
@@ -766,6 +789,35 @@ const styles = StyleSheet.create({
   },
   selectedKeysHeader: {
     marginBottom: 12,
+  },
+  calcToggle: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 6,
+    backgroundColor: '#F2F2F7',
+    borderRadius: 8,
+    marginBottom: 6,
+  },
+  calcToggleBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 5,
+    borderRadius: 7,
+  },
+  calcToggleBtnActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+  },
+  calcToggleText: {
+    fontSize: 13,
+    color: '#666',
+  },
+  calcToggleTextActive: {
+    color: '#000',
+    fontWeight: '600',
   },
   previewContainer: {
     backgroundColor: '#CBCFD8',

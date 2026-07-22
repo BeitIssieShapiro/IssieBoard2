@@ -359,6 +359,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
             hideCloseKey={appContext === 'issievoice'}
             selectedLanguages={selectedLanguages}
             speakButtonInKeyboard={speakButtonInKeyboard}
+            appContext={appContext}
             onClose={handleCloseModal}
           />
         </ScrollView>
@@ -476,6 +477,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
         hideGlobeButton={appContext === 'issievoice'}
         hideCloseKey={appContext === 'issievoice'}
         selectedLanguages={selectedLanguages}
+        appContext={appContext}
         onClose={handleCloseModal}
       />
     </ScrollView>

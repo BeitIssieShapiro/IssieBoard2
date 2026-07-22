@@ -315,12 +315,12 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
         <View style={styles.calcToggle}>
           <TouchableOpacity
             style={[styles.calcToggleBtn, calcPreviewKeyset === 'basic' && styles.calcToggleBtnActive]}
-            onPress={() => setCalcPreviewKeyset('basic')}>
+            onPress={() => { setCalcPreviewKeyset('basic'); dispatch({ type: 'SET_ACTIVE_KEYSET', payload: 'basic' }); }}>
             <Text allowFontScaling={false} style={[styles.calcToggleText, calcPreviewKeyset === 'basic' && styles.calcToggleTextActive]}>Basic</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.calcToggleBtn, calcPreviewKeyset === 'scientific' && styles.calcToggleBtnActive]}
-            onPress={() => setCalcPreviewKeyset('scientific')}>
+            onPress={() => { setCalcPreviewKeyset('scientific'); dispatch({ type: 'SET_ACTIVE_KEYSET', payload: 'scientific' }); }}>
             <Text allowFontScaling={false} style={[styles.calcToggleText, calcPreviewKeyset === 'scientific' && styles.calcToggleTextActive]}>Scientific</Text>
           </TouchableOpacity>
         </View>
