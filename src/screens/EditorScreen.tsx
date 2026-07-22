@@ -69,6 +69,13 @@ import {
   isBuiltInProfileId,
   getLocalizedProfileName
 } from '../data/builtInProfiles';
+import {
+  CALC_BUILT_IN_PROFILES,
+  getCalcBuiltInProfile,
+  getCalcBuiltInProfileId,
+  extractCalcTemplateId,
+  isCalcBuiltInProfileId,
+} from '../data/calcBuiltInProfiles';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { cardShadow } from '../styles/shadows';
 
@@ -242,7 +249,6 @@ const buildConfiguration = (profile: SavedProfileDefinition): KeyboardConfig => 
   if (!keyboard) {
     throw new Error(`Keyboard "${profile.keyboardId}" not found`);
   }
-
   // Use 'default' for empty/undefined background color to trigger transparent/liquid glass effect
   const bgColor = profile.backgroundColor !== undefined ? profile.backgroundColor : 'default';
 
@@ -649,18 +655,32 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     const langDef = LANGUAGES.find(l => l.id === currentLanguage);
     const firstKeyboardId = langDef?.keyboards[0]?.id || currentLanguage;
 
-    // Add all built-in profiles (Default, Classic, High Contrast)
-    // Loop over templates instead of hardcoding each one
-    for (const template of BUILT_IN_PROFILES) {
-      const profileId = `${currentLanguage}-${template.id}`;
-      profileList.push({
-        id: profileId,
-        name: getLocalizedProfileName(template.id, uiLanguage),
-        language: currentLanguage,
-        keyboardId: firstKeyboardId,
-        isBuiltIn: true,
-        isSystemActive: profileId === systemActiveProfileId,
-      });
+    // IssieCalc: show calc built-in profiles instead of language-based ones
+    if (appContext === 'issiecalc') {
+      for (const template of CALC_BUILT_IN_PROFILES) {
+        const profileId = getCalcBuiltInProfileId(template.id);
+        profileList.push({
+          id: profileId,
+          name: template.name,
+          language: currentLanguage,
+          keyboardId: 'calc',
+          isBuiltIn: true,
+          isSystemActive: profileId === systemActiveProfileId,
+        });
+      }
+    } else {
+      // Add all built-in profiles (Default, Classic, High Contrast)
+      for (const template of BUILT_IN_PROFILES) {
+        const profileId = `${currentLanguage}-${template.id}`;
+        profileList.push({
+          id: profileId,
+          name: getLocalizedProfileName(template.id, uiLanguage),
+          language: currentLanguage,
+          keyboardId: firstKeyboardId,
+          isBuiltIn: true,
+          isSystemActive: profileId === systemActiveProfileId,
+        });
+      }
     }
 
     // Load saved custom profiles for this language
@@ -670,7 +690,10 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         const savedList = JSON.parse(savedListJson);
         for (const saved of savedList) {
           // Only show profiles for current language, and skip built-in profiles
-          if (saved.language === currentLanguage && !isBuiltInProfileId(saved.key)) {
+          const isBuiltIn = appContext === 'issiecalc'
+            ? isCalcBuiltInProfileId(saved.key)
+            : isBuiltInProfileId(saved.key);
+          if (saved.language === currentLanguage && !isBuiltIn) {
             profileList.push({
               id: saved.key,
               name: saved.name,
@@ -687,7 +710,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     }
 
     setProfiles(profileList);
-  }, [currentLanguage, activeKeyboardProfileId, LANGUAGES]);
+  }, [currentLanguage, activeKeyboardProfileId, LANGUAGES, appContext]);
 
   // Load profiles when language changes
   useEffect(() => {
@@ -917,7 +940,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   const handleSave = useCallback(async () => {
     // Check if this is a built-in (read-only) profile
     const currentProfile = profiles.find(p => p.id === currentProfileId);
-    const isBuiltInProfile = currentProfile?.isBuiltIn || false;
+    const isBuiltInProfile = currentProfile?.isBuiltIn || isCalcBuiltInProfileId(currentProfileId);
 
     if (isBuiltInProfile) {
       // For built-in profiles, open Save As modal instead
@@ -956,7 +979,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   const handleAutoSave = useCallback(async () => {
     if (!state.isDirty) return;
     const currentProfile = profiles.find(p => p.id === currentProfileId);
-    if (currentProfile?.isBuiltIn) {
+    if (currentProfile?.isBuiltIn || isCalcBuiltInProfileId(currentProfileId)) {
       const copyName = `${currentProfileName} Copy`;
       await handleSaveAs(copyName);
     } else {
@@ -1187,8 +1210,64 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   }, [state.isDirty, handleSave, strings.alerts.discard, strings.alerts.saveFirst, strings.alerts.unsavedChanges, strings.alerts.unsavedChangesMessage, strings.common.cancel]);
 
   const loadProfileInternal = useCallback(async (profile: ProfileOption) => {
+    // IssieCalc: load calc built-in profile from template
+    if (appContext === 'issiecalc' && profile.isBuiltIn) {
+      const templateId = extractCalcTemplateId(profile.id);
+      const template = templateId ? getCalcBuiltInProfile(templateId) : undefined;
+      if (template) {
+        const base = require('../../ios/IssieCalc/default_config.json');
+        const newConfig = { ...base, ...template.config };
+        const createdAt = new Date().toISOString();
+        const styleGroups = template.styleGroups.map((sg, index) => ({
+          ...sg,
+          id: `calc_builtin_${templateId}_${index}`,
+          createdAt,
+        }));
+        // groups come from styleGroups for calc built-ins
+        newConfig.groups = styleGroups.map(sg => ({
+          name: sg.name,
+          items: sg.members,
+          template: { color: sg.style.color || '', bgColor: sg.style.bgColor || '' },
+        }));
+        setConfig(newConfig, styleGroups);
+        setCurrentProfileName(profile.name);
+        setCurrentProfileId(profile.id);
+        onProfileChange(profile.id, profile.name, profile.language, 'calc');
+        await saveKeyboardConfig(newConfig, 'calc' as LanguageId, appContext);
+        const activeProfileKey = getActiveProfileKey('calc' as LanguageId, appContext);
+        await KeyboardPreferences.setProfile(profile.id, activeProfileKey);
+        return;
+      }
+    }
+
     const loaded = await loadProfileById(profile.id);
     if (loaded) {
+      // IssieCalc custom profiles: profileDef has settings, merge onto base calc config
+      if (appContext === 'issiecalc') {
+        const baseConfig = require('../../ios/IssieCalc/default_config.json');
+        const merged = { ...baseConfig, ...loaded.profileDef };
+        // Restore styleGroups from saved style groups or from merged groups
+        const styleGroups = loaded.styleGroups.length > 0
+          ? loaded.styleGroups
+          : (merged.groups || [])
+            .filter((g: any) => g.name && !g.name.startsWith('_'))
+            .map((g: any, i: number) => ({
+              id: `calc_group_${i}_${g.name}`,
+              name: g.name,
+              members: g.items || [],
+              style: { color: g.template?.color || '', bgColor: g.template?.bgColor || '' },
+              active: true,
+              createdAt: new Date().toISOString(),
+            }));
+        setConfig(merged, styleGroups);
+        setCurrentProfileName(profile.name);
+        setCurrentProfileId(profile.id);
+        onProfileChange(profile.id, profile.name, profile.language, 'calc');
+        await saveKeyboardConfig(merged, 'calc' as LanguageId, appContext);
+        const activeProfileKey = getActiveProfileKey('calc' as LanguageId, appContext);
+        await KeyboardPreferences.setProfile(profile.id, activeProfileKey);
+        return;
+      }
       // Profile was found in preferences (previously saved)
       const config = buildConfiguration(loaded.profileDef);
       setConfig(config, loaded.styleGroups);
@@ -1248,7 +1327,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     } else {
       Alert.alert(strings.common.error, strings.alerts.failedToLoadProfile);
     }
-  }, [setConfig, onProfileChange, strings.common.error, strings.alerts.failedToLoadProfile]);
+  }, [setConfig, onProfileChange, strings.common.error, strings.alerts.failedToLoadProfile, appContext]);
 
   // Update handleLoadProfile's dependency now that loadProfileInternal exists
 
@@ -2420,6 +2499,8 @@ interface EditorScreenProps {
   tabDescription?: string;
   /** Selected languages for IssieVoice language key injection */
   selectedLanguages?: string[];
+  /** Ref to trigger the profile picker modal */
+  showProfilePickerRef?: React.MutableRefObject<(() => void) | null>;
 }
 
 export const EditorScreen: React.FC<EditorScreenProps> = ({
@@ -2457,8 +2538,16 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
         if (appContext === 'issiecalc') {
           setCurrentLanguage('calc');
           setCurrentKeyboardId('calc');
-          setCurrentProfileId('issiecalc-default');
-          setProfileName('Calculator');
+          // Load active profile id (default to calc-default built-in)
+          const activeProfileKey = getActiveProfileKey('calc' as LanguageId, 'issiecalc');
+          const savedActiveId = await KeyboardPreferences.getProfile(activeProfileKey);
+          const activeId = savedActiveId || getCalcBuiltInProfileId('default');
+          const activeTemplate = extractCalcTemplateId(activeId);
+          setCurrentProfileId(activeId);
+          setActiveKeyboardProfileId(activeId);
+          setProfileName(activeTemplate
+            ? (getCalcBuiltInProfile(activeTemplate)?.name || 'Calculator')
+            : 'Calculator');
           const calcConfig = require('../../ios/IssieCalc/default_config.json');
           const savedJson = await KeyboardPreferences.getString('keyboardConfig_issiecalc_calc');
           if (savedJson) {
@@ -2702,6 +2791,14 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
   const handleSetActive = useCallback(async () => {
     console.log(`📱 handleSetActive: setting ${currentProfileId} as active for language ${currentLanguage}, keyboard ${currentKeyboardId}, appContext ${appContext}`);
 
+    // IssieCalc: just persist active profile key
+    if (appContext === 'issiecalc') {
+      const activeProfileKey = getActiveProfileKey('calc' as LanguageId, 'issiecalc');
+      await KeyboardPreferences.setProfile(currentProfileId, activeProfileKey);
+      setActiveKeyboardProfileId(currentProfileId);
+      return;
+    }
+
     // Get the current config and save it to the KEYBOARD-SPECIFIC key
     let config: KeyboardConfig | null = null;
 
@@ -2812,6 +2909,14 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
     setCurrentProfileId(newProfileId);
     setProfileName(newName);
 
+    // IssieCalc: don't use buildConfiguration — use current saved config as base
+    if (appContext === 'issiecalc') {
+      const savedJson = await KeyboardPreferences.getString('keyboardConfig_issiecalc_calc');
+      const config = savedJson ? JSON.parse(savedJson) : require('../../ios/IssieCalc/default_config.json');
+      setInitialConfig(config);
+      return { newProfileId, newConfig: config, styleGroups };
+    }
+
     const config = buildConfiguration(profileDef);
     setInitialConfig(config);
 
@@ -2855,6 +2960,14 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
 
   const handleSetActiveForProfile = useCallback(async (profileIdToActivate: string) => {
     console.log(`📱 handleSetActiveForProfile: setting ${profileIdToActivate} as active for language ${currentLanguage}`);
+
+    // IssieCalc: just persist the active profile key — config already saved in loadProfileInternal
+    if (appContext === 'issiecalc') {
+      const activeProfileKey = getActiveProfileKey('calc' as LanguageId, 'issiecalc');
+      await KeyboardPreferences.setProfile(profileIdToActivate, activeProfileKey);
+      setActiveKeyboardProfileId(profileIdToActivate);
+      return;
+    }
 
     // Load the profile
     const loaded = await loadProfileById(profileIdToActivate);

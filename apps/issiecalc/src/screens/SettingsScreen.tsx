@@ -5,8 +5,6 @@ import { EditorScreen } from '../../../../src/screens/EditorScreen';
 import SettingsSidebar from '../../../issievoice/src/components/Settings/SettingsSidebar';
 import KeyboardHeader from '../../../issievoice/src/components/Settings/KeyboardHeader';
 
-const CALC_TABS = ['general', 'keys-groups', 'features', 'advanced'];
-
 const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState('general');
   const [profileName, setProfileName] = useState('Calculator');
@@ -14,6 +12,7 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const saveRef = useRef<(() => void) | null>(null);
   const autoSaveRef = useRef<(() => void) | null>(null);
   const discardRef = useRef<(() => void) | null>(null);
+  const showProfilePickerRef = useRef<(() => void) | null>(null);
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
 
@@ -42,6 +41,7 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       saveRef={saveRef}
       autoSaveRef={autoSaveRef}
       discardRef={discardRef}
+      showProfilePickerRef={showProfilePickerRef}
     />
   );
 
@@ -51,7 +51,7 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         currentLanguage="he"
         onLanguageChange={() => {}}
         profileName={profileName}
-        onProfilePress={() => {}}
+        onProfilePress={() => showProfilePickerRef.current?.()}
         onSave={() => saveRef.current?.()}
         onDiscard={() => discardRef.current?.()}
         isDirty={isDirty}
