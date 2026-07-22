@@ -58,6 +58,7 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         activeTab={activeTab}
         canGoBack
         onGoBack={handleClose}
+        hideLanguageTabs
       />
       <View style={styles.mainContent}>
         {isLandscape ? (

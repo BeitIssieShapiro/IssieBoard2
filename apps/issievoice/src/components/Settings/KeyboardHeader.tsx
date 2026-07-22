@@ -31,6 +31,8 @@ export interface KeyboardHeaderProps {
   canGoBack?: boolean;
   onGoBack?: () => void;
   activeTab?: string;
+  hideLanguageTabs?: boolean;
+  profileLabel?: string;
 }
 
 const LANGUAGES: { id: 'en' | 'he' | 'ar'; label: string }[] = [
@@ -57,13 +59,15 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
   canGoBack,
   onGoBack,
   activeTab,
+  hideLanguageTabs,
+  profileLabel,
 }) => {
   const isGeneralTab = activeTab === 'general';
   const {width, height} = useWindowDimensions();
   const shortSide = Math.min(width, height);
   const isPhone = shortSide < 500;
   const isPortrait = height > width;
-  const twoRows = isPortrait;
+  const twoRows = isPortrait && !(hideLanguageTabs && !showClassicButton);
   const { language: uiLanguage, isRTL } = useLocalization();
   const strings = getStrings(uiLanguage);
 
@@ -105,6 +109,7 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
     <View key={twoRows ? 'portrait' : 'landscape'} style={[styles.container, twoRows && styles.containerTwoRows, !twoRows && isRTL && { flexDirection: 'row-reverse' }]}>
 
       {/* Row 1 (portrait) / inline elements (landscape): lang pills + classic */}
+      {!(hideLanguageTabs && twoRows && !showClassicButton) && (
       <View style={[styles.row1, twoRows && styles.row1TwoRows, isRTL && { flexDirection: 'row-reverse' }]}>
         {canGoBack && !twoRows && (
           <TouchableOpacity style={styles.backButton} onPress={onGoBack} activeOpacity={0.7}>
@@ -113,7 +118,7 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
         )}
 
         <View style={[styles.languageTabs, twoRows && styles.languageTabsFill]}>
-          {LANGUAGES.map(lang => {
+          {!hideLanguageTabs && LANGUAGES.map(lang => {
             const isActive = currentLanguage === lang.id;
             return (
               <TouchableOpacity
@@ -144,8 +149,6 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
             );
           })}
         </View>
-
-        {/* Classic View: absolute in portrait, removed from here in landscape (rendered at container level) */}
         {showClassicButton && twoRows && (
           <TouchableOpacity
             style={[styles.classicButton, isRTL ? styles.classicButtonAbsLeft : styles.classicButtonAbsRight]}
@@ -155,6 +158,7 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
           </TouchableOpacity>
         )}
       </View>
+      )}
 
       {/* Row 2 (portrait) / remaining inline (landscape): profile label + dropdown + cancel + save */}
       <View style={[styles.row2, twoRows && styles.row2TwoRows, isRTL && { flexDirection: 'row-reverse' }]}>
@@ -166,7 +170,9 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
 
         {!(isPhone && twoRows) && (
           <TouchableOpacity onPress={handleSecretTap} activeOpacity={1}>
-            <Text allowFontScaling={false} style={styles.profileLabel}>{strings.profiles.currentKeyboard}</Text>
+            <Text allowFontScaling={false} style={styles.profileLabel}>
+              {profileLabel ?? (hideLanguageTabs ? strings.profiles.currentCalculator : strings.profiles.currentKeyboard)}
+            </Text>
           </TouchableOpacity>
         )}
         <TouchableOpacity

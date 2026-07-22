@@ -278,6 +278,7 @@ export interface Strings {
     customConfiguration: string;
     keyboardPreview: string;
     currentKeyboard: string;
+    currentCalculator: string;
     previewHelpText: string;
     generatedConfiguration: string;
     editingHelpText: string;
@@ -618,6 +619,7 @@ const en: Strings = {
     customConfiguration: 'Custom configuration',
     keyboardPreview: 'Keyboard Preview',
     currentKeyboard: 'Current keyboard:',
+    currentCalculator: 'Current calculator:',
     previewHelpText: 'Live preview of your keyboard. Tap keys to test!',
     generatedConfiguration: 'Generated Configuration (Advanced):',
     editingHelpText: 'Make your changes below and tap "Save Changes" when done.',
@@ -958,6 +960,7 @@ const he: Strings = {
     customConfiguration: 'הגדרה מותאמת אישית',
     keyboardPreview: 'תצוגה מקדימה של המקלדת',
     currentKeyboard: 'מקלדת נוכחית:',
+    currentCalculator: 'מחשבון נוכחי:',
     previewHelpText: 'תצוגה מקדימה של המקלדת. לחץ על כפתורים כדי לבדוק!',
     generatedConfiguration: 'הגדרות מתקדמות:',
     editingHelpText: 'ערוך את השינויים למטה ולחץ "שמור שינויים" בסיום.',
@@ -1298,6 +1301,7 @@ const ar: Strings = {
     customConfiguration: 'إعداد مخصص',
     keyboardPreview: 'عرض معاينة لوحة المفاتيح',
     currentKeyboard: 'لوحة المفاتيح الحالية:',
+    currentCalculator: 'الآلة الحاسبة الحالية:',
     previewHelpText: 'عرض معاينة لوحة المفاتيح. اضغط على المفاتيح للاختبار!',
     generatedConfiguration: 'الإعدادات المتقدمة:',
     editingHelpText: 'قم بإجراء التغييرات أدناه واضغط "حفظ التغييرات" عند الانتهاء.',
