@@ -73,6 +73,15 @@ export interface Strings {
     settingsTitle: string;
     speakButtonInKeyboard: string;
     speakButtonInKeyboardDesc: string;
+    calcReadout: string;
+    calcReadoutOff: string;
+    calcReadoutEveryDigit: string;
+    calcReadoutEveryNumber: string;
+    calcTerminology: string;
+    calcTerminologyYoung: string;
+    calcTerminologyStandard: string;
+    calcDecimalDigits: string;
+    calcDecimalAll: string;
     tabs: {
       keyboard: string;
       general: string;
@@ -193,6 +202,15 @@ const en: Strings = {
     settingsTitle: 'Issie Voice Settings',
     speakButtonInKeyboard: 'Speak Button in Keyboard',
     speakButtonInKeyboardDesc: 'Show the speak button as part of the keyboard instead of above it',
+    calcReadout: 'Readout',
+    calcReadoutOff: 'Off',
+    calcReadoutEveryDigit: 'Every digit',
+    calcReadoutEveryNumber: 'Every number',
+    calcTerminology: 'Terminology',
+    calcTerminologyYoung: 'Young',
+    calcTerminologyStandard: 'Standard',
+    calcDecimalDigits: 'Decimal digits to read',
+    calcDecimalAll: 'All',
     tabs: {
       keyboard: 'Keyboard',
       general: 'General',
@@ -313,6 +331,15 @@ const he: Strings = {
     settingsTitle: 'הגדרות Issie Voice',
     speakButtonInKeyboard: 'כפתור הקראה במקלדת',
     speakButtonInKeyboardDesc: 'הצג את כפתור ההקראה כחלק מהמקלדת במקום מעליה',
+    calcReadout: 'הקראה',
+    calcReadoutOff: 'כבוי',
+    calcReadoutEveryDigit: 'כל ספרה',
+    calcReadoutEveryNumber: 'כל מספר',
+    calcTerminology: 'מינוח',
+    calcTerminologyYoung: 'צעיר',
+    calcTerminologyStandard: 'סטנדרטי',
+    calcDecimalDigits: 'ספרות אחרי הנקודה',
+    calcDecimalAll: 'הכל',
     tabs: {
       keyboard: 'מקלדת',
       general: 'כללי',
@@ -433,6 +460,15 @@ const ar: Strings = {
     settingsTitle: 'إعدادات Issie Voice',
     speakButtonInKeyboard: 'زر التحدث في لوحة المفاتيح',
     speakButtonInKeyboardDesc: 'عرض زر التحدث كجزء من لوحة المفاتيح بدلاً من فوقها',
+    calcReadout: 'قراءة',
+    calcReadoutOff: 'إيقاف',
+    calcReadoutEveryDigit: 'كل رقم',
+    calcReadoutEveryNumber: 'كل عدد',
+    calcTerminology: 'المصطلحات',
+    calcTerminologyYoung: 'مبتدئ',
+    calcTerminologyStandard: 'قياسي',
+    calcDecimalDigits: 'أرقام عشرية للقراءة',
+    calcDecimalAll: 'الكل',
     tabs: {
       keyboard: 'لوحة مفاتيح',
       general: 'عام',

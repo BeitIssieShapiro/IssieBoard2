@@ -5,6 +5,7 @@ import { EditorScreen } from '../../../../src/screens/EditorScreen';
 import SettingsSidebar from '../../../issievoice/src/components/Settings/SettingsSidebar';
 import KeyboardHeader from '../../../issievoice/src/components/Settings/KeyboardHeader';
 import CalcVoiceSettingsPanel from '../components/CalcVoiceSettingsPanel';
+import { useLocalization } from '../../../issievoice/src/context/LocalizationContext';
 
 const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState('general');
@@ -16,10 +17,11 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const showProfilePickerRef = useRef<(() => void) | null>(null);
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
+  const { strings } = useLocalization();
 
   const VOICE_EXTRA_TAB = {
     id: 'voice',
-    label: 'Voice',
+    label: strings.settings.tabs.voice,
     iconName: 'volume-high-outline',
     iconType: 'Ionicons' as const,
     iconColor: '#D97706',

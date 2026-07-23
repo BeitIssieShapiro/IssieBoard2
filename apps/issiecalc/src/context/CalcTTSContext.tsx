@@ -8,8 +8,10 @@ const PITCH_KEY = 'issiecalc_tts_pitch';
 const VOICE_ID_KEY = 'issiecalc_tts_voice_id';
 const LANGUAGE_KEY = 'issiecalc_tts_language';
 const DECIMAL_DIGITS_KEY = 'issiecalc_tts_decimal_digits';
+const MATH_LEVEL_KEY = 'issiecalc_tts_math_level';
 
 export type ReadoutMode = 'off' | 'every-digit' | 'every-number';
+export type MathLevel = 'young' | 'standard';
 
 interface CalcTTSContextValue {
   readoutMode: ReadoutMode;
@@ -18,11 +20,13 @@ interface CalcTTSContextValue {
   voiceId: string | null;
   language: string | null;
   decimalDigits: number;
+  mathLevel: MathLevel;
   setReadoutMode: (mode: ReadoutMode) => void;
   setRate: (rate: number) => void;
   setPitch: (pitch: number) => void;
   setVoice: (voiceId: string, language: string) => void;
   setDecimalDigits: (n: number) => void;
+  setMathLevel: (level: MathLevel) => void;
   readout: (keyValue: string, expression: string, result: string, angleMode?: 'deg' | 'rad') => void;
 }
 
@@ -103,13 +107,24 @@ const SUBSTITUTIONS: Record<string, SubMap> = {
   },
 };
 
-function getSubMap(language: string | null): SubMap {
+// Young-level overrides per language (only keys that differ)
+const YOUNG_OVERRIDES: Partial<Record<string, SubMap>> = {
+  he: {
+    '+': 'ועוד', '-': 'פחות', '*': 'פַּעֲמִים', '/': 'חָלְקִי',
+  },
+};
+
+function getSubMap(language: string | null, mathLevel?: MathLevel): SubMap {
   const prefix = (language ?? '').split('-')[0].toLowerCase();
-  return SUBSTITUTIONS[prefix] ?? SUBSTITUTIONS.en;
+  const base = SUBSTITUTIONS[prefix] ?? SUBSTITUTIONS.en;
+  if (mathLevel === 'young' && YOUNG_OVERRIDES[prefix]) {
+    return { ...base, ...YOUNG_OVERRIDES[prefix] };
+  }
+  return base;
 }
 
-function getOperatorName(key: string, language: string | null): string {
-  const map = getSubMap(language);
+function getOperatorName(key: string, language: string | null, mathLevel?: MathLevel): string {
+  const map = getSubMap(language, mathLevel);
   return map[key] ?? key;
 }
 
@@ -178,6 +193,7 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [voiceId, setVoiceIdState] = useState<string | null>(null);
   const [language, setLanguageState] = useState<string | null>(null);
   const [decimalDigits, setDecimalDigitsState] = useState(2);
+  const [mathLevel, setMathLevelState] = useState<MathLevel>('standard');
 
   const readoutModeRef = useRef<ReadoutMode>('off');
   const rateRef = useRef(0.5);
@@ -185,6 +201,7 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const voiceIdRef = useRef<string | null>(null);
   const languageRef = useRef<string | null>(null);
   const decimalDigitsRef = useRef(2);
+  const mathLevelRef = useRef<MathLevel>('standard');
 
   useEffect(() => {
     TTS.initialize().then(() => {
@@ -195,7 +212,8 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
         KeyboardPreferences.getString(VOICE_ID_KEY),
         KeyboardPreferences.getString(LANGUAGE_KEY),
         KeyboardPreferences.getString(DECIMAL_DIGITS_KEY),
-      ]).then(([mode, rateStr, pitchStr, vid, lang, decStr]) => {
+        KeyboardPreferences.getString(MATH_LEVEL_KEY),
+      ]).then(([mode, rateStr, pitchStr, vid, lang, decStr, levelStr]) => {
         if (mode === 'off' || mode === 'every-digit' || mode === 'every-number') {
           readoutModeRef.current = mode;
           setReadoutModeState(mode);
@@ -213,6 +231,10 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
         if (decStr) {
           const d = parseInt(decStr, 10);
           if (!isNaN(d)) { decimalDigitsRef.current = d; setDecimalDigitsState(d); }
+        }
+        if (levelStr === 'young' || levelStr === 'standard') {
+          mathLevelRef.current = levelStr;
+          setMathLevelState(levelStr);
         }
       });
     });
@@ -255,8 +277,13 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
     KeyboardPreferences.setString(DECIMAL_DIGITS_KEY, String(n));
   }, []);
 
+  const setMathLevel = useCallback((level: MathLevel) => {
+    mathLevelRef.current = level;
+    setMathLevelState(level);
+    KeyboardPreferences.setString(MATH_LEVEL_KEY, level);
+  }, []);
+
   const speak = useCallback((text: string) => {
-    console.log('🔊 speak:', JSON.stringify(text));
     TTS.speak(text).catch(() => {});
   }, []);
 
@@ -266,21 +293,22 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (SILENT_KEYS.has(keyValue)) return;
 
     const lang = languageRef.current;
+    const ml = mathLevelRef.current;
 
     if (mode === 'every-digit') {
       if (keyValue === '=') {
-        const eq = getSubMap(lang)['='] ?? 'equals';
+        const eq = getSubMap(lang, ml)['='] ?? 'equals';
         const spoken = result === 'Error' ? `${eq} error` : `${eq} ${speakableNumber(formatResult(result, decimalDigitsRef.current, lang), lang)}`;
         speak(spoken);
         return;
       }
-      speak(getSubMap(lang)[keyValue] ?? keyValue);
+      speak(getSubMap(lang, ml)[keyValue] ?? keyValue);
       return;
     }
 
     if (mode === 'every-number') {
       if (keyValue === '=') {
-        const eq = getSubMap(lang)['='] ?? 'equals';
+        const eq = getSubMap(lang, ml)['='] ?? 'equals';
         const endsWithFunction = /[a-zA-Z]+\([^)]*\)$/.test(expression.trim()) ||
           /x\^2$/.test(expression.trim()) || /x\^3$/.test(expression.trim());
         if (endsWithFunction) {
@@ -296,7 +324,7 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (OPERATOR_KEYS.has(keyValue)) {
         const beforeOp = expression.slice(0, -1).trim();
         const operand = speakableNumber(extractLastOperand(beforeOp || expression), lang);
-        speak(`${operand} ${getOperatorName(keyValue, lang)}`);
+        speak(`${operand} ${getOperatorName(keyValue, lang, ml)}`);
         return;
       }
       if (WRAPPING_FUNCTIONS.has(keyValue)) {
@@ -307,7 +335,7 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
         } else {
           operand = speakableNumber(extractLastOperand(expression), lang);
         }
-        const fnName = getSubMap(lang)[keyValue] ?? keyValue;
+        const fnName = getSubMap(lang, ml)[keyValue] ?? keyValue;
         if (POSTFIX_FUNCTIONS.has(keyValue)) {
           speak(operand ? `${operand} ${fnName}` : fnName);
         } else if (operand && ANGLE_FUNCTIONS.has(keyValue) && angleMode) {
@@ -327,8 +355,8 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   return (
     <CalcTTSContext.Provider value={{
-      readoutMode, rate, pitch, voiceId, language, decimalDigits,
-      setReadoutMode, setRate, setPitch, setVoice, setDecimalDigits, readout,
+      readoutMode, rate, pitch, voiceId, language, decimalDigits, mathLevel,
+      setReadoutMode, setRate, setPitch, setVoice, setDecimalDigits, setMathLevel, readout,
     }}>
       {children}
     </CalcTTSContext.Provider>
