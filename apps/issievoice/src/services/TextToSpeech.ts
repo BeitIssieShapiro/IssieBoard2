@@ -40,8 +40,8 @@ class TextToSpeechService {
   async stop(): Promise<void> {
     try {
       await Tts.stop();
-    } catch (error) {
-      console.error('Failed to stop TTS:', error);
+    } catch {
+      // ignore — stop fails if nothing is playing
     }
   }
 

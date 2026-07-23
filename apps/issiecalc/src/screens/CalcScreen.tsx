@@ -13,7 +13,12 @@ const builtConfig = require('../../../../ios/IssieCalc/default_config.json');
 const KB_BG = '#000000';
 
 function formatExpression(expr: string): string {
-  return expr.replace(/\*/g, '×').replace(/\//g, '÷');
+  return expr
+    .replace(/factorial\(([^)]*)\)/g, '$1!')
+    .replace(/x\^2/g, '²')
+    .replace(/x\^3/g, '³')
+    .replace(/\*/g, '×')
+    .replace(/\//g, '÷');
 }
 
 function isLandscape() {

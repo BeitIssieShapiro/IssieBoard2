@@ -43,6 +43,9 @@ const WRAPPING_FUNCTIONS = new Set([
   'x^2', 'x^3',
 ]);
 
+// Postfix functions: operand comes first in readout ("[operand] [fn]")
+const POSTFIX_FUNCTIONS = new Set(['x^2', 'x^3', 'factorial(']);
+
 // Localized "of" connectors and angle unit words
 const LANG_OF: Record<string, string> = { en: 'of', he: 'של', ar: 'من' };
 const LANG_DEG: Record<string, string> = { en: 'degrees', he: 'מעלות', ar: 'درجات' };
@@ -71,7 +74,7 @@ const SUBSTITUTIONS: Record<string, SubMap> = {
     'pi': 'pi', 'e': 'e', '=': 'equals',
   },
   he: {
-    '+': 'ועוד', '-': 'פחות', '*': 'כפול', '/': 'חלקי',
+    '+': 'פלוס', '-': 'פחות', '*': 'כפול', '/': 'חלקי',
     '^': 'בחזקת', '%': 'אחוז',
     'sqrt(': 'שורש', 'ln(': 'ln', 'log(': 'לוג', 'log2(': 'לוג בסיס 2',
     'logy(': 'לוג בסיס y', '2root(': 'שורש ריבועי', '3root(': 'שורש שלישי', 'yroot(': 'שורש y',
@@ -79,7 +82,7 @@ const SUBSTITUTIONS: Record<string, SubMap> = {
     'asin(': 'ארקסינוס', 'acos(': 'ארקקוסינוס', 'atan(': 'ארקטנגנס',
     'sinh(': 'סינוס היפרבולי', 'cosh(': 'קוסינוס היפרבולי', 'tanh(': 'טנגנס היפרבולי',
     'asinh(': 'ארקסינוס היפרבולי', 'acosh(': 'ארקקוסינוס היפרבולי', 'atanh(': 'ארקטנגנס היפרבולי',
-    'x^2': 'בריבוע', 'x^3': 'בשלישית', 'x^(': 'בחזקת',
+    'x^2': 'בָּרִיבּוּעַ', 'x^3': 'בָּשְׁלִישִׁית', 'x^(': 'בחזקת',
     '^(': 'בחזקת', '2^(': '2 בחזקת', '1/(': '1 חלקי',
     '(': 'סוגר פתוח', ')': 'סוגר סגור',
     'pi': 'פאי', 'e': 'e', '=': 'שווה',
@@ -111,18 +114,27 @@ function getOperatorName(key: string, language: string | null): string {
 }
 
 function extractLastOperand(expression: string): string {
-  // Strip outer function call: sin(50) → 50, sin(50)+3 finds 3 after +
-  const match = expression.match(/([+\-*\/^%])([^+\-*\/^%]*)$/);
-  if (match) {
-    // operand after last operator — strip any leading function name
-    const part = match[2].trim();
-    const inner = part.replace(/^[a-zA-Z]+\(/, '').replace(/\)$/, '');
-    return inner || part;
+  const expr = expression.trim();
+  // Scan right-to-left for a binary operator (preceded by digit or closing paren)
+  for (let i = expr.length - 1; i >= 1; i--) {
+    const ch = expr[i];
+    if ('+-*/^%'.includes(ch)) {
+      const prev = expr[i - 1];
+      // Only treat as binary operator if preceded by digit or )
+      if (/[0-9)]/.test(prev)) {
+        const part = expr.slice(i + 1).trim();
+        // Strip outer parens: (-9) → -9
+        const unparened = part.replace(/^\((.+)\)$/, '$1');
+        // Strip leading function name: sin(50) → 50
+        const inner = unparened.replace(/^[a-zA-Z]+\(/, '').replace(/\)$/, '');
+        return inner || unparened || part;
+      }
+    }
   }
-  // Whole expression — extract number inside outermost function call if present
-  const funcMatch = expression.match(/^[a-zA-Z]+\((.+)\)$/);
+  // Whole expression — strip outer function call if present
+  const funcMatch = expr.match(/^[a-zA-Z]+\((.+)\)$/);
   if (funcMatch) return funcMatch[1];
-  return expression.trim();
+  return expr;
 }
 
 const LANG_MORE_DIGITS: Record<string, (n: number) => string> = {
@@ -130,6 +142,17 @@ const LANG_MORE_DIGITS: Record<string, (n: number) => string> = {
   he: (n) => `ועוד ${n} סְפָרוֹת`,
   ar: (n) => `و ${n} أرقام إضافية`,
 };
+
+const LANG_MINUS: Record<string, string> = { en: 'minus', he: 'מינוס', ar: 'ناقص' };
+
+function speakableNumber(value: string, language: string | null): string {
+  const prefix = (language ?? '').split('-')[0].toLowerCase();
+  if (value.startsWith('-')) {
+    const minus = LANG_MINUS[prefix] ?? LANG_MINUS.en;
+    return `${minus} ${value.slice(1)}`;
+  }
+  return value;
+}
 
 function formatResult(result: string, decimalDigits: number, language: string | null): string {
   if (decimalDigits === -1) return result; // "all" — read as-is
@@ -232,11 +255,9 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
     KeyboardPreferences.setString(DECIMAL_DIGITS_KEY, String(n));
   }, []);
 
-  const speak = useCallback(async (text: string) => {
-    try {
-      await TTS.stop();
-      await TTS.speak(text);
-    } catch {}
+  const speak = useCallback((text: string) => {
+    console.log('🔊 speak:', JSON.stringify(text));
+    TTS.speak(text).catch(() => {});
   }, []);
 
   const readout = useCallback((keyValue: string, expression: string, result: string, angleMode?: 'deg' | 'rad') => {
@@ -249,7 +270,7 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (mode === 'every-digit') {
       if (keyValue === '=') {
         const eq = getSubMap(lang)['='] ?? 'equals';
-        const spoken = result === 'Error' ? `${eq} error` : `${eq} ${formatResult(result, decimalDigitsRef.current, lang)}`;
+        const spoken = result === 'Error' ? `${eq} error` : `${eq} ${speakableNumber(formatResult(result, decimalDigitsRef.current, lang), lang)}`;
         speak(spoken);
         return;
       }
@@ -260,35 +281,41 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (mode === 'every-number') {
       if (keyValue === '=') {
         const eq = getSubMap(lang)['='] ?? 'equals';
-        // If expression ends with a closed function call (e.g. sin(60)), the function
-        // was already read aloud — just say "equals result"
-        const endsWithFunction = /[a-zA-Z]+\([^)]*\)$/.test(expression.trim());
+        const endsWithFunction = /[a-zA-Z]+\([^)]*\)$/.test(expression.trim()) ||
+          /x\^2$/.test(expression.trim()) || /x\^3$/.test(expression.trim());
         if (endsWithFunction) {
-          const spoken = result === 'Error' ? `${eq} error` : `${eq} ${formatResult(result, decimalDigitsRef.current, lang)}`;
-          speak(spoken);
+          const res = result === 'Error' ? 'error' : speakableNumber(formatResult(result, decimalDigitsRef.current, lang), lang);
+          speak(`${eq} ${res}`);
         } else {
-          const operand = extractLastOperand(expression);
-          const spoken = result === 'Error' ? `${operand} ${eq} error` : `${operand} ${eq} ${formatResult(result, decimalDigitsRef.current, lang)}`;
-          speak(spoken);
+          const operand = speakableNumber(extractLastOperand(expression), lang);
+          const res = result === 'Error' ? 'error' : speakableNumber(formatResult(result, decimalDigitsRef.current, lang), lang);
+          speak(`${operand} ${eq} ${res}`);
         }
         return;
       }
       if (OPERATOR_KEYS.has(keyValue)) {
         const beforeOp = expression.slice(0, -1).trim();
-        const operand = extractLastOperand(beforeOp || expression);
+        const operand = speakableNumber(extractLastOperand(beforeOp || expression), lang);
         speak(`${operand} ${getOperatorName(keyValue, lang)}`);
         return;
       }
       if (WRAPPING_FUNCTIONS.has(keyValue)) {
-        const operand = extractLastOperand(expression);
+        let operand: string;
+        if (keyValue === 'x^2' || keyValue === 'x^3') {
+          const base = expression.endsWith(keyValue) ? expression.slice(0, -keyValue.length) : expression;
+          operand = speakableNumber(extractLastOperand(base), lang);
+        } else {
+          operand = speakableNumber(extractLastOperand(expression), lang);
+        }
         const fnName = getSubMap(lang)[keyValue] ?? keyValue;
-        const of_ = getLangWord(LANG_OF, lang);
-        if (operand && ANGLE_FUNCTIONS.has(keyValue) && angleMode) {
-          const unit = angleMode === 'deg'
-            ? getLangWord(LANG_DEG, lang)
-            : getLangWord(LANG_RAD, lang);
+        if (POSTFIX_FUNCTIONS.has(keyValue)) {
+          speak(operand ? `${operand} ${fnName}` : fnName);
+        } else if (operand && ANGLE_FUNCTIONS.has(keyValue) && angleMode) {
+          const of_ = getLangWord(LANG_OF, lang);
+          const unit = angleMode === 'deg' ? getLangWord(LANG_DEG, lang) : getLangWord(LANG_RAD, lang);
           speak(`${fnName} ${of_} ${operand} ${unit}`);
         } else if (operand) {
+          const of_ = getLangWord(LANG_OF, lang);
           speak(`${fnName} ${of_} ${operand}`);
         } else {
           speak(fnName);

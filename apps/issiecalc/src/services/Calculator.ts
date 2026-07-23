@@ -34,6 +34,9 @@ function normalize(expression: string, angleMode: 'rad' | 'deg'): string {
   // Display glyphs → operators
   e = e.replace(/×/g, '*').replace(/÷/g, '/');
 
+  // Postfix shorthands
+  e = e.replace(/x\^2/g, '^2').replace(/x\^3/g, '^3');
+
   // Constants — replace bare `e` (not followed by ^) before other substitutions
   e = e.replace(/\bpi\b/g, String(Math.PI));
   e = e.replace(/\be(?!\^)/g, String(Math.E));
