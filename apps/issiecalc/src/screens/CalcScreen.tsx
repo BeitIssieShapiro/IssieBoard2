@@ -172,7 +172,7 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
         newExpr = expression + value;
         appendToExpression(value);
       }
-      readout(value, newExpr, result);
+      readout(value, newExpr, result, angleMode);
       return;
     }
     if (value) {

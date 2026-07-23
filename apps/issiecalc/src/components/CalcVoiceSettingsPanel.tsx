@@ -14,7 +14,7 @@ interface Voice {
 }
 
 const CalcVoiceSettingsPanel: React.FC = () => {
-  const { readoutMode, rate, pitch, voiceId, setReadoutMode, setRate, setPitch, setVoice } = useCalcTTS();
+  const { readoutMode, rate, pitch, voiceId, decimalDigits, setReadoutMode, setRate, setPitch, setVoice, setDecimalDigits } = useCalcTTS();
   const [voices, setVoices] = useState<Voice[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
@@ -48,6 +48,15 @@ const CalcVoiceSettingsPanel: React.FC = () => {
       await TTS.speak('Hello');
     } catch {}
   }, []);
+
+  const decimalOptions = [
+    { id: '0', label: '0' },
+    { id: '1', label: '1' },
+    { id: '2', label: '2' },
+    { id: '3', label: '3' },
+    { id: '4', label: '4' },
+    { id: '-1', label: 'All' },
+  ];
 
   const currentRateId = rate <= 0.3 ? 'slow' : rate >= 0.7 ? 'fast' : 'normal';
   const currentPitchId = pitch <= 0.8 ? 'low' : pitch >= 1.2 ? 'high' : 'normal';
@@ -103,6 +112,13 @@ const CalcVoiceSettingsPanel: React.FC = () => {
             options={pitchOptions}
             selectedId={currentPitchId}
             onSelect={handlePitchChange}
+          />
+          <View style={styles.separator} />
+          <ButtonGroupRow
+            title="How many digits after decimal point to readout"
+            options={decimalOptions}
+            selectedId={String(decimalDigits)}
+            onSelect={id => setDecimalDigits(parseInt(id, 10))}
           />
           <View style={styles.separator} />
           <Text style={styles.sectionTitle}>Voice</Text>
