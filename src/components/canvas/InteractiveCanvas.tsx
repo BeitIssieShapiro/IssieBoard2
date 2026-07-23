@@ -290,9 +290,9 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
 
   const isLandscape = windowWidth > windowHeight;
   const windowAvailableWidth = windowWidth - insets.left - insets.right
-  // In advanced tab, use native-reported height for realistic preview (no maxHeight cap).
-  // All other tabs: fixed height container, native scales KB to fit via maxHeight.
-  const useRealisticHeight = activeTab === 'advanced';
+  // IssieCalc: always use native height (scale=1, no maxHeight cap).
+  // Advanced tab: same. Other tabs: fixed height container, native scales KB to fit via maxHeight.
+  const useRealisticHeight = activeTab === 'advanced' || appContext === 'issiecalc';
   const effectiveHeight = (useRealisticHeight && keyboardHeight > 0) ? keyboardHeight : height;
 
   return (

@@ -62,7 +62,7 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
   hideLanguageTabs,
   profileLabel,
 }) => {
-  const isGeneralTab = activeTab === 'general';
+  const isGeneralTab = activeTab === 'general' || hideLanguageTabs;
   const {width, height} = useWindowDimensions();
   const shortSide = Math.min(width, height);
   const isPhone = shortSide < 500;
