@@ -78,7 +78,7 @@ const SUBSTITUTIONS: Record<string, SubMap> = {
     'pi': 'pi', 'e': 'e', '=': 'equals',
   },
   he: {
-    '+': 'פלוס', '-': 'פחות', '*': 'כפול', '/': 'חלקי',
+    '+': 'פלוס', '-': 'פחות', '*': 'כפול', '/': 'חֵלְקֵי',
     '^': 'בחזקת', '%': 'אחוז',
     'sqrt(': 'שורש', 'ln(': 'ln', 'log(': 'לוג', 'log2(': 'לוג בסיס 2',
     'logy(': 'לוג בסיס y', '2root(': 'שורש ריבועי', '3root(': 'שורש שלישי', 'yroot(': 'שורש y',
@@ -110,7 +110,7 @@ const SUBSTITUTIONS: Record<string, SubMap> = {
 // Young-level overrides per language (only keys that differ)
 const YOUNG_OVERRIDES: Partial<Record<string, SubMap>> = {
   he: {
-    '+': 'ועוד', '-': 'פחות', '*': 'פַּעֲמִים', '/': 'חָלְקִי',
+    '+': 'ועוד', '-': 'פחות', '*': 'פַּעֲמִים', '/': 'חֵלְקֵי',
   },
 };
 
@@ -287,6 +287,11 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
     TTS.speak(text).catch(() => {});
   }, []);
 
+  const speakWithPause = useCallback((before: string, after: string, pauseMs = 500) => {
+    TTS.speak(before).catch(() => {});
+    setTimeout(() => { TTS.speak(after).catch(() => {}); }, pauseMs);
+  }, []);
+
   const readout = useCallback((keyValue: string, expression: string, result: string, angleMode?: 'deg' | 'rad') => {
     const mode = readoutModeRef.current;
     if (mode === 'off') return;
@@ -298,8 +303,8 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (mode === 'every-digit') {
       if (keyValue === '=') {
         const eq = getSubMap(lang, ml)['='] ?? 'equals';
-        const spoken = result === 'Error' ? `${eq} error` : `${eq} ${speakableNumber(formatResult(result, decimalDigitsRef.current, lang), lang)}`;
-        speak(spoken);
+        const res = result === 'Error' ? 'error' : speakableNumber(formatResult(result, decimalDigitsRef.current, lang), lang);
+        speakWithPause(eq, res);
         return;
       }
       speak(getSubMap(lang, ml)[keyValue] ?? keyValue);
@@ -313,11 +318,12 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
           /x\^2$/.test(expression.trim()) || /x\^3$/.test(expression.trim());
         if (endsWithFunction) {
           const res = result === 'Error' ? 'error' : speakableNumber(formatResult(result, decimalDigitsRef.current, lang), lang);
-          speak(`${eq} ${res}`);
+          speakWithPause(eq, res);
         } else {
           const operand = speakableNumber(extractLastOperand(expression), lang);
           const res = result === 'Error' ? 'error' : speakableNumber(formatResult(result, decimalDigitsRef.current, lang), lang);
-          speak(`${operand} ${eq} ${res}`);
+          speak(operand);
+          setTimeout(() => speakWithPause(eq, res), 500);
         }
         return;
       }
@@ -351,7 +357,7 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return;
       }
     }
-  }, [speak]);
+  }, [speak, speakWithPause]);
 
   return (
     <CalcTTSContext.Provider value={{
