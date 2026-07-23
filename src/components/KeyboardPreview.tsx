@@ -48,6 +48,8 @@ interface KeyboardPreviewProps {
   text?: string;
   /** Maximum height for preview scaling (keyboard will scale proportionally to fit) */
   maxHeight?: number;
+  /** Fixed render height — overrides heightPreset, rows expand to fill this height exactly */
+  targetHeight?: number;
   /** Hide the globe (next-keyboard) button in the preview (default: false, follows config) */
   hideGlobeButton?: boolean;
   onKeyPress?: (event: KeyPressEvent) => void;

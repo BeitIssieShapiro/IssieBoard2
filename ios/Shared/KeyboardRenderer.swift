@@ -241,6 +241,13 @@ class KeyboardRenderer {
         // Calculate row height based on actual keyset row count (default 4 for standard keyboards)
         let hasSuggestions = wordSuggestionsOverrideEnabled ?? wordSuggestionsEnabled
         let currentRowCount = config?.keysets.first(where: { $0.id == currentKeysetId })?.rows.count ?? 4
+
+        // If a fixed render height is set, derive row height from it directly
+        if let fixed = fixedRenderHeight, fixed > 0, currentRowCount > 0 {
+            let bottomPadding: CGFloat = 4
+            return (fixed - bottomPadding) / CGFloat(currentRowCount)
+        }
+
         let calculatedRowHeight = dimensions.calculateRowHeight(numberOfRows: currentRowCount, hasSuggestions: hasSuggestions)
 
         print("📐 [rowHeight] calculated: \(calculatedRowHeight)")
@@ -321,6 +328,9 @@ class KeyboardRenderer {
 
     /// Maximum height for preview mode (if set, keyboard will scale to fit)
     private var previewMaxHeight: CGFloat?
+
+    /// Fixed render height — overrides calculateKeyboardHeight() when set
+    private var fixedRenderHeight: CGFloat?
 
     /// Current scale factor (1.0 = full size, 0.8 = 80%, etc.)
     private var currentScale: CGFloat = 1.0
@@ -534,10 +544,14 @@ class KeyboardRenderer {
         )
 
         let baseRowCount = keyset.rows.count
-        let calculatedRowHeight = dimensions.calculateRowHeight(numberOfRows: baseRowCount, hasSuggestions: suggestionsEnabled)
-
-        // When nikkud top-row is active, add one full extra row on top of the normal height
         let totalRowCount = baseRowCount + (nikkudTopRowActive ? 1 : 0)
+
+        // If a fixed render height is set, use it directly
+        if let fixed = fixedRenderHeight, fixed > 0 {
+            return fixed
+        }
+
+        let calculatedRowHeight = dimensions.calculateRowHeight(numberOfRows: baseRowCount, hasSuggestions: suggestionsEnabled)
         let rowsHeight = CGFloat(totalRowCount) * calculatedRowHeight
         let spacingHeight = CGFloat(max(0, totalRowCount - 1)) * rowSpacing
         let suggestionsHeight = suggestionsEnabled ? calculatedRowHeight * 0.75 : 0
@@ -619,6 +633,12 @@ class KeyboardRenderer {
         if maxHeight == nil {
             currentScale = 1.0
         }
+    }
+
+    /// Set a fixed render height, bypassing heightPreset calculation.
+    /// The renderer will divide this height equally among rows.
+    func setFixedRenderHeight(_ height: CGFloat?) {
+        fixedRenderHeight = height
     }
 
     /// Calculate preview scale based on keyboard height and maxHeight

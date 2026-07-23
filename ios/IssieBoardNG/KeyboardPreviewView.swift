@@ -54,6 +54,9 @@ class KeyboardPreviewView: UIView {
     // Maximum height for preview scaling
     private var previewMaxHeight: CGFloat?
 
+    // Fixed render height — overrides heightPreset, rows expand to fill exactly
+    private var targetRenderHeight: CGFloat?
+
     // Synced text that mirrors React Native state (single source of truth proxy)
     private var syncedText: String = ""
 
@@ -183,6 +186,17 @@ class KeyboardPreviewView: UIView {
             // Re-render at full size
             renderKeyboard()
         }
+    }
+
+    @objc func setTargetHeight(_ targetHeight: NSNumber?) {
+        if let height = targetHeight?.doubleValue, height > 0 {
+            targetRenderHeight = CGFloat(height)
+            renderer?.setFixedRenderHeight(CGFloat(height))
+        } else {
+            targetRenderHeight = nil
+            renderer?.setFixedRenderHeight(nil)
+        }
+        renderKeyboard()
     }
 
     // MARK: - Mode Initialization
@@ -443,6 +457,9 @@ class KeyboardPreviewView: UIView {
 
         let renderer = engine.renderer
 
+        // Apply fixed render height if set
+        renderer.setFixedRenderHeight(targetRenderHeight)
+
         // Configure for input mode — use hideGlobeButton prop
         renderer.setShowGlobeButton(!hideGlobeButton)
 
@@ -520,6 +537,7 @@ class KeyboardPreviewView: UIView {
 
         guard let renderer = configModeRenderer else { return }
 
+        renderer.setFixedRenderHeight(targetRenderHeight)
         renderer.setShowGlobeButton(!hideGlobeButton)  // Use prop to control globe visibility
 
         // Set preview mode with maxHeight if available

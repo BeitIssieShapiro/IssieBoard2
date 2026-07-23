@@ -13,31 +13,65 @@
       "id": "operator",
       "bgColor": "#FF9500",
       "textColor": "#FFFFFF",
-      "items": ["/", "*", "-", "+", "="]
+      "items": [
+        "/",
+        "*",
+        "-",
+        "+",
+        "="
+      ]
     },
     {
       "id": "utility",
       "bgColor": "#636366",
       "textColor": "#FFFFFF",
-      "items": ["AC", "%"]
+      "items": [
+        "AC",
+        "%"
+      ]
     },
     {
       "id": "digit",
       "bgColor": "#333333",
       "textColor": "#FFFFFF",
-      "items": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "+/-"]
+      "items": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        ".",
+        "+/-"
+      ]
     },
     {
       "id": "function",
       "bgColor": "#1C1C1E",
       "textColor": "#FFFFFF",
-      "items": ["sin(", "cos(", "tan(", "x^2", "sqrt(", "log(", "(", ")", "pi"]
+      "items": [
+        "sin(",
+        "cos(",
+        "tan(",
+        "x^2",
+        "sqrt(",
+        "log(",
+        "(",
+        ")",
+        "pi"
+      ]
     },
     {
       "id": "backspace",
       "bgColor": "#636366",
       "textColor": "#FFFFFF",
-      "items": ["⌫"]
+      "items": [
+        "⌫"
+      ]
     }
   ],
   "keysets": [
@@ -46,42 +80,87 @@
       "rows": [
         {
           "keys": [
-            { "value": "⌫", "caption": "⌫" },
-            { "value": "AC" },
-            { "value": "%" },
-            { "value": "/", "caption": "÷" }
+            {
+              "value": "⌫",
+              "caption": "⌫"
+            },
+            {
+              "value": "AC"
+            },
+            {
+              "value": "%"
+            },
+            {
+              "value": "/",
+              "caption": "÷"
+            }
           ]
         },
         {
           "keys": [
-            { "value": "7" },
-            { "value": "8" },
-            { "value": "9" },
-            { "value": "*", "caption": "×", "fontSizePreset": "small" }
+            {
+              "value": "7"
+            },
+            {
+              "value": "8"
+            },
+            {
+              "value": "9"
+            },
+            {
+              "value": "*",
+              "caption": "×",
+              "fontSizePreset": "small"
+            }
           ]
         },
         {
           "keys": [
-            { "value": "4" },
-            { "value": "5" },
-            { "value": "6" },
-            { "value": "-" }
+            {
+              "value": "4"
+            },
+            {
+              "value": "5"
+            },
+            {
+              "value": "6"
+            },
+            {
+              "value": "-"
+            }
           ]
         },
         {
           "keys": [
-            { "value": "1" },
-            { "value": "2" },
-            { "value": "3" },
-            { "value": "+" }
+            {
+              "value": "1"
+            },
+            {
+              "value": "2"
+            },
+            {
+              "value": "3"
+            },
+            {
+              "value": "+"
+            }
           ]
         },
         {
           "keys": [
-            { "value": "+/-" },
-            { "value": "0" },
-            { "value": "." },
-            { "value": "=", "caption": "=" }
+            {
+              "value": "+/-"
+            },
+            {
+              "value": "0"
+            },
+            {
+              "value": "."
+            },
+            {
+              "value": "=",
+              "caption": "="
+            }
           ]
         }
       ]
@@ -91,38 +170,83 @@
       "rows": [
         {
           "keys": [
-            { "value": "7" },
-            { "value": "8" },
-            { "value": "9" },
-            { "value": "⌫", "caption": "⌫" },
-            { "value": "/", "caption": "÷" }
+            {
+              "value": "7"
+            },
+            {
+              "value": "8"
+            },
+            {
+              "value": "9"
+            },
+            {
+              "value": "⌫",
+              "caption": "⌫"
+            },
+            {
+              "value": "/",
+              "caption": "÷"
+            }
           ]
         },
         {
           "keys": [
-            { "value": "4" },
-            { "value": "5" },
-            { "value": "6" },
-            { "value": "AC" },
-            { "value": "*", "caption": "×", "fontSizePreset": "small" }
+            {
+              "value": "4"
+            },
+            {
+              "value": "5"
+            },
+            {
+              "value": "6"
+            },
+            {
+              "value": "AC"
+            },
+            {
+              "value": "*",
+              "caption": "×",
+              "fontSizePreset": "small"
+            }
           ]
         },
         {
           "keys": [
-            { "value": "1" },
-            { "value": "2" },
-            { "value": "3" },
-            { "value": "%" },
-            { "value": "-" }
+            {
+              "value": "1"
+            },
+            {
+              "value": "2"
+            },
+            {
+              "value": "3"
+            },
+            {
+              "value": "%"
+            },
+            {
+              "value": "-"
+            }
           ]
         },
         {
           "keys": [
-            { "value": "+/-" },
-            { "value": "0" },
-            { "value": "." },
-            { "value": "=", "caption": "=" },
-            { "value": "+" }
+            {
+              "value": "+/-"
+            },
+            {
+              "value": "0"
+            },
+            {
+              "value": "."
+            },
+            {
+              "value": "=",
+              "caption": "="
+            },
+            {
+              "value": "+"
+            }
           ]
         }
       ]
@@ -132,59 +256,519 @@
       "rows": [
         {
           "keys": [
-            { "value": "sin(", "caption": "sin" },
-            { "value": "cos(", "caption": "cos" },
-            { "value": "tan(", "caption": "tan" },
-            { "value": "x^2", "caption": "x²" }
+            {
+              "value": "(",
+              "width": 0.8
+            },
+            {
+              "value": ")",
+              "width": 0.8
+            },
+            {
+              "value": "ms",
+              "caption": "ms",
+              "width": 0.8
+            },
+            {
+              "value": "mr",
+              "caption": "mr",
+              "width": 0.8
+            },
+            {
+              "value": "[2ND]",
+              "caption": "2nd",
+              "width": 0.8
+            }
           ]
         },
         {
           "keys": [
-            { "value": "sqrt(", "caption": "√x" },
-            { "value": "log(", "caption": "log" },
-            { "value": "(" },
-            { "value": ")" }
+            {
+              "value": "[ANGLE_TOGGLE]",
+              "caption": "Rad",
+              "width": 0.8
+            },
+            {
+              "value": "x^2",
+              "caption": "x²",
+              "width": 0.8
+            },
+            {
+              "value": "x^3",
+              "caption": "x³",
+              "width": 0.8
+            },
+            {
+              "value": "x^(",
+              "caption": "xʸ",
+              "width": 0.8
+            },
+            {
+              "value": "^(",
+              "caption": "yˣ",
+              "width": 0.8
+            }
           ]
         },
         {
           "keys": [
-            { "value": "⌫", "caption": "⌫" },
-            { "value": "AC" },
-            { "value": "%" },
-            { "value": "/", "caption": "÷" }
+            {
+              "value": "e^(",
+              "caption": "eˣ",
+              "width": 0.8
+            },
+            {
+              "value": "2^(",
+              "caption": "2ˣ",
+              "width": 0.8
+            },
+            {
+              "value": "1/(",
+              "caption": "¹/ₓ",
+              "width": 0.8
+            },
+            {
+              "value": "2root(",
+              "caption": "²√x",
+              "width": 0.8
+            },
+            {
+              "value": "3root(",
+              "caption": "³√x",
+              "width": 0.8
+            }
           ]
         },
         {
           "keys": [
-            { "value": "7" },
-            { "value": "8" },
-            { "value": "9" },
-            { "value": "*", "caption": "×", "fontSizePreset": "small" }
+            {
+              "value": "yroot(",
+              "caption": "ʸ√x",
+              "width": 0.8
+            },
+            {
+              "value": "ln(",
+              "caption": "ln",
+              "width": 0.8
+            },
+            {
+              "value": "log(",
+              "caption": "log₁₀",
+              "width": 0.8
+            },
+            {
+              "value": "log2(",
+              "caption": "log₂",
+              "width": 0.8
+            },
+            {
+              "value": "logy(",
+              "caption": "logᵧ",
+              "width": 0.8
+            }
           ]
         },
         {
           "keys": [
-            { "value": "4" },
-            { "value": "5" },
-            { "value": "6" },
-            { "value": "-" }
+            {
+              "value": "factorial(",
+              "caption": "x!",
+              "width": 0.8
+            },
+            {
+              "value": "sin(",
+              "caption": "sin",
+              "width": 0.8
+            },
+            {
+              "value": "cos(",
+              "caption": "cos",
+              "width": 0.8
+            },
+            {
+              "value": "tan(",
+              "caption": "tan",
+              "width": 0.8
+            },
+            {
+              "value": "e",
+              "width": 0.8
+            }
           ]
         },
         {
           "keys": [
-            { "value": "1" },
-            { "value": "2" },
-            { "value": "3" },
-            { "value": "+" }
+            {
+              "value": "rand",
+              "caption": "Rand",
+              "width": 0.8
+            },
+            {
+              "value": "sinh(",
+              "caption": "sinh",
+              "width": 0.8
+            },
+            {
+              "value": "cosh(",
+              "caption": "cosh",
+              "width": 0.8
+            },
+            {
+              "value": "tanh(",
+              "caption": "tanh",
+              "width": 0.8
+            },
+            {
+              "value": "pi",
+              "caption": "π",
+              "width": 0.8
+            }
           ]
         },
         {
           "keys": [
-            { "value": "pi", "caption": "π" },
-            { "value": "+/-" },
-            { "value": "0" },
-            { "value": "." },
-            { "value": "=", "caption": "=" }
+            {
+              "value": "⌫",
+              "caption": "⌫"
+            },
+            {
+              "value": "AC"
+            },
+            {
+              "value": "%"
+            },
+            {
+              "value": "/",
+              "caption": "÷"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "7"
+            },
+            {
+              "value": "8"
+            },
+            {
+              "value": "9"
+            },
+            {
+              "value": "*",
+              "caption": "×",
+              "fontSizePreset": "small"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "4"
+            },
+            {
+              "value": "5"
+            },
+            {
+              "value": "6"
+            },
+            {
+              "value": "-"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "1"
+            },
+            {
+              "value": "2"
+            },
+            {
+              "value": "3"
+            },
+            {
+              "value": "+"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "+/-"
+            },
+            {
+              "value": "0"
+            },
+            {
+              "value": "."
+            },
+            {
+              "value": "=",
+              "caption": "="
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scientific_2nd",
+      "rows": [
+        {
+          "keys": [
+            {
+              "value": "(",
+              "width": 0.8
+            },
+            {
+              "value": ")",
+              "width": 0.8
+            },
+            {
+              "value": "ms",
+              "caption": "ms",
+              "width": 0.8
+            },
+            {
+              "value": "mr",
+              "caption": "mr",
+              "width": 0.8
+            },
+            {
+              "value": "[2ND_OFF]",
+              "caption": "2nd",
+              "width": 0.8
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "[ANGLE_TOGGLE]",
+              "caption": "Rad",
+              "width": 0.8
+            },
+            {
+              "value": "x^2",
+              "caption": "x²",
+              "width": 0.8
+            },
+            {
+              "value": "x^3",
+              "caption": "x³",
+              "width": 0.8
+            },
+            {
+              "value": "x^(",
+              "caption": "xʸ",
+              "width": 0.8
+            },
+            {
+              "value": "^(",
+              "caption": "yˣ",
+              "width": 0.8
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "e^(",
+              "caption": "eˣ",
+              "width": 0.8
+            },
+            {
+              "value": "2^(",
+              "caption": "2ˣ",
+              "width": 0.8
+            },
+            {
+              "value": "1/(",
+              "caption": "¹/ₓ",
+              "width": 0.8
+            },
+            {
+              "value": "2root(",
+              "caption": "²√x",
+              "width": 0.8
+            },
+            {
+              "value": "3root(",
+              "caption": "³√x",
+              "width": 0.8
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "yroot(",
+              "caption": "ʸ√x",
+              "width": 0.8
+            },
+            {
+              "value": "ln(",
+              "caption": "ln",
+              "width": 0.8
+            },
+            {
+              "value": "log(",
+              "caption": "log₁₀",
+              "width": 0.8
+            },
+            {
+              "value": "log2(",
+              "caption": "log₂",
+              "width": 0.8
+            },
+            {
+              "value": "logy(",
+              "caption": "logᵧ",
+              "width": 0.8
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "factorial(",
+              "caption": "x!",
+              "width": 0.8
+            },
+            {
+              "value": "asin(",
+              "caption": "sin⁻¹",
+              "width": 0.8
+            },
+            {
+              "value": "acos(",
+              "caption": "cos⁻¹",
+              "width": 0.8
+            },
+            {
+              "value": "atan(",
+              "caption": "tan⁻¹",
+              "width": 0.8
+            },
+            {
+              "value": "e",
+              "width": 0.8
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "rand",
+              "caption": "Rand",
+              "width": 0.8
+            },
+            {
+              "value": "asinh(",
+              "caption": "sinh⁻¹",
+              "width": 0.8
+            },
+            {
+              "value": "acosh(",
+              "caption": "cosh⁻¹",
+              "width": 0.8
+            },
+            {
+              "value": "atanh(",
+              "caption": "tanh⁻¹",
+              "width": 0.8
+            },
+            {
+              "value": "pi",
+              "caption": "π",
+              "width": 0.8
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "⌫",
+              "caption": "⌫"
+            },
+            {
+              "value": "AC"
+            },
+            {
+              "value": "%"
+            },
+            {
+              "value": "/",
+              "caption": "÷"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "7"
+            },
+            {
+              "value": "8"
+            },
+            {
+              "value": "9"
+            },
+            {
+              "value": "*",
+              "caption": "×",
+              "fontSizePreset": "small"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "4"
+            },
+            {
+              "value": "5"
+            },
+            {
+              "value": "6"
+            },
+            {
+              "value": "-"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "1"
+            },
+            {
+              "value": "2"
+            },
+            {
+              "value": "3"
+            },
+            {
+              "value": "+"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "+/-"
+            },
+            {
+              "value": "0"
+            },
+            {
+              "value": "."
+            },
+            {
+              "value": "=",
+              "caption": "="
+            }
           ]
         }
       ]
@@ -194,53 +778,404 @@
       "rows": [
         {
           "keys": [
-            { "value": "sin(", "caption": "sin" },
-            { "value": "cos(", "caption": "cos" },
-            { "value": "tan(", "caption": "tan" },
-            { "value": "x^2", "caption": "x²" },
-            { "value": "7" },
-            { "value": "8" },
-            { "value": "9" },
-            { "value": "⌫", "caption": "⌫" },
-            { "value": "/", "caption": "÷" }
+            {
+              "value": "("
+            },
+            {
+              "value": ")"
+            },
+            {
+              "value": "ms",
+              "caption": "ms"
+            },
+            {
+              "value": "mr",
+              "caption": "mr"
+            },
+            {
+              "value": "⌫",
+              "caption": "⌫",
+              "width": 1.5,
+              "offset": 0.5
+            },
+            {
+              "value": "AC",
+              "width": 1.5
+            },
+            {
+              "value": "%",
+              "offset": 0.5
+            },
+            {
+              "value": "/",
+              "caption": "÷"
+            }
           ]
         },
         {
           "keys": [
-            { "value": "sqrt(", "caption": "√x" },
-            { "value": "log(", "caption": "log" },
-            { "value": "(" },
-            { "value": ")" },
-            { "value": "4" },
-            { "value": "5" },
-            { "value": "6" },
-            { "value": "%" },
-            { "value": "*", "caption": "×", "fontSizePreset": "small" }
+            {
+              "value": "[2ND]",
+              "caption": "2nd"
+            },
+            {
+              "value": "x^2",
+              "caption": "x²"
+            },
+            {
+              "value": "x^3",
+              "caption": "x³"
+            },
+            {
+              "value": "x^(",
+              "caption": "xʸ"
+            },
+            {
+              "value": "^(",
+              "caption": "yˣ"
+            },
+            {
+              "value": "2^(",
+              "caption": "2ˣ"
+            },
+            {
+              "value": "7"
+            },
+            {
+              "value": "8"
+            },
+            {
+              "value": "9"
+            },
+            {
+              "value": "*",
+              "caption": "×",
+              "fontSizePreset": "small"
+            }
           ]
         },
         {
           "keys": [
-            { "value": "pi", "caption": "π" },
-            { "value": "x^2", "caption": "x²" },
-            { "value": "sqrt(", "caption": "√" },
-            { "value": "log(", "caption": "log" },
-            { "value": "1" },
-            { "value": "2" },
-            { "value": "3" },
-            { "value": "+/-" },
-            { "value": "-" }
+            {
+              "value": "1/(",
+              "caption": "¹/ₓ"
+            },
+            {
+              "value": "2root(",
+              "caption": "²√x"
+            },
+            {
+              "value": "3root(",
+              "caption": "³√x"
+            },
+            {
+              "value": "yroot(",
+              "caption": "ʸ√x"
+            },
+            {
+              "value": "logy(",
+              "caption": "logᵧ"
+            },
+            {
+              "value": "log2(",
+              "caption": "log₂"
+            },
+            {
+              "value": "4"
+            },
+            {
+              "value": "5"
+            },
+            {
+              "value": "6"
+            },
+            {
+              "value": "-"
+            }
           ]
         },
         {
           "keys": [
-            { "value": "AC" },
-            { "value": "(" },
-            { "value": ")" },
-            { "value": "pi", "caption": "π" },
-            { "value": "0" },
-            { "value": "." },
-            { "value": "=", "caption": "=" },
-            { "value": "+" }
+            {
+              "value": "factorial(",
+              "caption": "x!"
+            },
+            {
+              "value": "sin(",
+              "caption": "sin"
+            },
+            {
+              "value": "cos(",
+              "caption": "cos"
+            },
+            {
+              "value": "tan(",
+              "caption": "tan"
+            },
+            {
+              "value": "e"
+            },
+            {
+              "value": "ln(",
+              "caption": "ln"
+            },
+            {
+              "value": "1"
+            },
+            {
+              "value": "2"
+            },
+            {
+              "value": "3"
+            },
+            {
+              "value": "+"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "rand",
+              "caption": "Rand"
+            },
+            {
+              "value": "sinh(",
+              "caption": "sinh"
+            },
+            {
+              "value": "cosh(",
+              "caption": "cosh"
+            },
+            {
+              "value": "tanh(",
+              "caption": "tanh"
+            },
+            {
+              "value": "pi",
+              "caption": "π"
+            },
+            {
+              "value": "[ANGLE_TOGGLE]",
+              "caption": "Rad"
+            },
+            {
+              "value": "+/-"
+            },
+            {
+              "value": "0"
+            },
+            {
+              "value": "."
+            },
+            {
+              "value": "=",
+              "caption": "="
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scientific_landscape_2nd",
+      "rows": [
+        {
+          "keys": [
+            {
+              "value": "("
+            },
+            {
+              "value": ")"
+            },
+            {
+              "value": "ms",
+              "caption": "ms"
+            },
+            {
+              "value": "mr",
+              "caption": "mr"
+            },
+            {
+              "value": "⌫",
+              "caption": "⌫",
+              "width": 1.5,
+              "offset": 0.5
+            },
+            {
+              "value": "AC",
+              "width": 1.5
+            },
+            {
+              "value": "%",
+              "offset": 0.5
+            },
+            {
+              "value": "/",
+              "caption": "÷"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "[2ND_OFF]",
+              "caption": "2nd"
+            },
+            {
+              "value": "x^2",
+              "caption": "x²"
+            },
+            {
+              "value": "x^3",
+              "caption": "x³"
+            },
+            {
+              "value": "x^(",
+              "caption": "xʸ"
+            },
+            {
+              "value": "^(",
+              "caption": "yˣ"
+            },
+            {
+              "value": "2^(",
+              "caption": "2ˣ"
+            },
+            {
+              "value": "7"
+            },
+            {
+              "value": "8"
+            },
+            {
+              "value": "9"
+            },
+            {
+              "value": "*",
+              "caption": "×",
+              "fontSizePreset": "small"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "1/(",
+              "caption": "¹/ₓ"
+            },
+            {
+              "value": "2root(",
+              "caption": "²√x"
+            },
+            {
+              "value": "3root(",
+              "caption": "³√x"
+            },
+            {
+              "value": "yroot(",
+              "caption": "ʸ√x"
+            },
+            {
+              "value": "logy(",
+              "caption": "logᵧ"
+            },
+            {
+              "value": "log2(",
+              "caption": "log₂"
+            },
+            {
+              "value": "4"
+            },
+            {
+              "value": "5"
+            },
+            {
+              "value": "6"
+            },
+            {
+              "value": "-"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "factorial(",
+              "caption": "x!"
+            },
+            {
+              "value": "asin(",
+              "caption": "sin⁻¹"
+            },
+            {
+              "value": "acos(",
+              "caption": "cos⁻¹"
+            },
+            {
+              "value": "atan(",
+              "caption": "tan⁻¹"
+            },
+            {
+              "value": "e^(",
+              "caption": "eˣ"
+            },
+            {
+              "value": "ln(",
+              "caption": "ln"
+            },
+            {
+              "value": "1"
+            },
+            {
+              "value": "2"
+            },
+            {
+              "value": "3"
+            },
+            {
+              "value": "+"
+            }
+          ]
+        },
+        {
+          "keys": [
+            {
+              "value": "rand",
+              "caption": "Rand"
+            },
+            {
+              "value": "asinh(",
+              "caption": "sinh⁻¹"
+            },
+            {
+              "value": "acosh(",
+              "caption": "cosh⁻¹"
+            },
+            {
+              "value": "atanh(",
+              "caption": "tanh⁻¹"
+            },
+            {
+              "value": "pi",
+              "caption": "π"
+            },
+            {
+              "value": "[ANGLE_TOGGLE]",
+              "caption": "Rad"
+            },
+            {
+              "value": "+/-"
+            },
+            {
+              "value": "0"
+            },
+            {
+              "value": "."
+            },
+            {
+              "value": "=",
+              "caption": "="
+            }
           ]
         }
       ]

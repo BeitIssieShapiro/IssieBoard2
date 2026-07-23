@@ -15,6 +15,9 @@ RCT_EXPORT_VIEW_PROPERTY(text, NSString)
 // Export the maxHeight property for preview scaling
 RCT_EXPORT_VIEW_PROPERTY(maxHeight, NSNumber)
 
+// Export the targetHeight property for fixed render height (bypasses heightPreset)
+RCT_EXPORT_VIEW_PROPERTY(targetHeight, NSNumber)
+
 // Export the hideGlobeButton property
 RCT_EXPORT_VIEW_PROPERTY(hideGlobeButton, BOOL)
 
