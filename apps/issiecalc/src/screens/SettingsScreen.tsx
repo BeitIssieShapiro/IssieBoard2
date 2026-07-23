@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { EditorScreen } from '../../../../src/screens/EditorScreen';
 import SettingsSidebar from '../../../issievoice/src/components/Settings/SettingsSidebar';
 import KeyboardHeader from '../../../issievoice/src/components/Settings/KeyboardHeader';
+import CalcVoiceSettingsPanel from '../components/CalcVoiceSettingsPanel';
 
 const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState('general');
@@ -16,6 +17,14 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
 
+  const VOICE_EXTRA_TAB = {
+    id: 'voice',
+    label: 'Voice',
+    iconName: 'volume-high-outline',
+    iconType: 'Ionicons' as const,
+    iconColor: '#D97706',
+  };
+
   const handleClose = useCallback(async () => {
     if (autoSaveRef.current) {
       await autoSaveRef.current();
@@ -27,23 +36,28 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     setActiveTab(tabId);
   }, []);
 
-  const renderContent = () => (
-    <EditorScreen
-      appContext="issiecalc"
-      initialLanguage="calc"
-      onClose={handleClose}
-      onStateChange={({ profileName: name, isDirty: dirty }) => {
-        setProfileName(name);
-        setIsDirty(dirty);
-      }}
-      headless
-      activeTab={activeTab}
-      saveRef={saveRef}
-      autoSaveRef={autoSaveRef}
-      discardRef={discardRef}
-      showProfilePickerRef={showProfilePickerRef}
-    />
-  );
+  const renderContent = () => {
+    if (activeTab === 'voice') {
+      return <CalcVoiceSettingsPanel />;
+    }
+    return (
+      <EditorScreen
+        appContext="issiecalc"
+        initialLanguage="calc"
+        onClose={handleClose}
+        onStateChange={({ profileName: name, isDirty: dirty }) => {
+          setProfileName(name);
+          setIsDirty(dirty);
+        }}
+        headless
+        activeTab={activeTab}
+        saveRef={saveRef}
+        autoSaveRef={autoSaveRef}
+        discardRef={discardRef}
+        showProfilePickerRef={showProfilePickerRef}
+      />
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -70,6 +84,7 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               hiddenTabs={['nikkud', 'features']}
               mode="keyboard"
               kbLanguage="en"
+              extraTabs={[VOICE_EXTRA_TAB]}
             />
             <View style={styles.detailArea}>{renderContent()}</View>
           </View>
@@ -82,6 +97,7 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               hiddenTabs={['nikkud', 'features']}
               mode="keyboard"
               kbLanguage="en"
+              extraTabs={[VOICE_EXTRA_TAB]}
             />
             <View style={styles.detailArea}>{renderContent()}</View>
           </View>

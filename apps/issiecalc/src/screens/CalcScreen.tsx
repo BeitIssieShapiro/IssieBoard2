@@ -4,6 +4,8 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useFocusEffect } from '@react-navigation/native';
 import { KeyboardPreview, KeyPressEvent } from '../../../../src/components/KeyboardPreview';
 import { useCalc } from '../context/CalcContext';
+import { useCalcTTS } from '../context/CalcTTSContext';
+import { evaluate } from '../services/Calculator';
 import KeyboardPreferences from '../../../../src/native/KeyboardPreferences';
 
 const builtConfig = require('../../../../ios/IssieCalc/default_config.json');
@@ -25,6 +27,13 @@ const FUNCTION_KEYS = new Set([
   'ln(', 'log(', 'log2(', 'logy(', '2root(', '3root(', 'yroot(',
   'factorial(', 'sqrt(',
 ]);
+
+const OPERATORS_RE = /^[+\-*/^%]$/;
+const FUNCTIONS_RE = /^(sin\(|cos\(|tan\(|asin\(|acos\(|atan\(|sinh\(|cosh\(|tanh\(|asinh\(|acosh\(|atanh\(|sqrt\(|ln\(|log\(|log2\(|logy\(|2root\(|3root\(|yroot\(|factorial\(|x\^2|x\^3|x\^\(|\^\(|2\^\(|1\/\(|\(|\)|pi|e)$/;
+
+function isOpOrFn(val: string): boolean {
+  return OPERATORS_RE.test(val) || FUNCTIONS_RE.test(val);
+}
 
 // Extract trailing operand: last balanced (...) group or last number/constant.
 // Returns [before, operand] or null if nothing to wrap.
@@ -87,6 +96,7 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
     memoryStore, memoryRecall,
     replaceExpression,
   } = useCalc();
+  const { readout } = useCalcTTS();
   const insets = useSafeAreaInsets();
   const [keyboardHeight, setKeyboardHeight] = useState(500);
   const [screenHeight, setScreenHeight] = useState(Dimensions.get('window').height);
@@ -135,27 +145,41 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
 
   const handleKeyPress = (event: KeyPressEvent) => {
     const { value } = event.nativeEvent;
-    if (value === '⌫') { backspace(); return; }
-    if (value === 'AC') { clearAll(); return; }
-    if (value === '=') { computeResult(); return; }
-    if (value === '+/-') { toggleSign(); return; }
-    if (value === '[2ND]') { setKeyset(landscape ? 'scientific_landscape_2nd' : 'scientific_2nd'); return; }
-    if (value === '[2ND_OFF]') { setKeyset('scientific'); return; }
-    if (value === '[ANGLE_TOGGLE]') { toggleAngleMode(); return; }
-    if (value === 'ms') { memoryStore(); return; }
-    if (value === 'mr') { memoryRecall(); return; }
-    if (value === 'rand') { appendToExpression(String(parseFloat(Math.random().toFixed(9)))); return; }
-    if (value && FUNCTION_KEYS.has(value)) {
-      const parts = extractTrailingOperand(expression);
-      if (parts) {
-        const [before, operand] = parts;
-        replaceExpression(`${before}${value}${operand})`);
-        return;
-      }
-      appendToExpression(value);
+    if (value === '⌫') { backspace(); readout(value, expression, result); return; }
+    if (value === 'AC') { clearAll(); readout(value, expression, result); return; }
+    if (value === '=') {
+      computeResult();
+      const res = evaluate(expression, angleMode);
+      const finalRes = res === '' ? 'Error' : res;
+      readout('=', expression, finalRes);
       return;
     }
-    if (value) appendToExpression(value);
+    if (value === '+/-') { toggleSign(); readout(value, expression, result); return; }
+    if (value === '[2ND]') { setKeyset(landscape ? 'scientific_landscape_2nd' : 'scientific_2nd'); readout(value, expression, result); return; }
+    if (value === '[2ND_OFF]') { setKeyset('scientific'); readout(value, expression, result); return; }
+    if (value === '[ANGLE_TOGGLE]') { toggleAngleMode(); readout(value, expression, result); return; }
+    if (value === 'ms') { memoryStore(); readout(value, expression, result); return; }
+    if (value === 'mr') { memoryRecall(); readout(value, expression, result); return; }
+    if (value === 'rand') { appendToExpression(String(parseFloat(Math.random().toFixed(9)))); readout(value, expression, result); return; }
+    if (value && FUNCTION_KEYS.has(value)) {
+      const parts = extractTrailingOperand(expression);
+      let newExpr: string;
+      if (parts) {
+        const [before, operand] = parts;
+        newExpr = `${before}${value}${operand})`;
+        replaceExpression(newExpr);
+      } else {
+        newExpr = expression + value;
+        appendToExpression(value);
+      }
+      readout(value, newExpr, result);
+      return;
+    }
+    if (value) {
+      const newExpr = resultMode ? (isOpOrFn(value) ? result + value : value) : expression + value;
+      appendToExpression(value);
+      readout(value, newExpr, result);
+    }
   };
 
   return (

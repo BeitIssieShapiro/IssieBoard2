@@ -1,4 +1,5 @@
 import Tts from 'react-native-tts';
+import { NativeModules } from 'react-native';
 
 export interface TTSSettings {
   rate: number; // 0.01 to 0.99
@@ -46,7 +47,9 @@ class TextToSpeechService {
 
   async setRate(rate: number): Promise<void> {
     try {
-      await Tts.setDefaultRate(rate);
+      // Call native directly — the react-native-tts JS wrapper passes an extra boolean arg
+      // that causes a bridge type error on iOS (BOOL* vs float mismatch).
+      await NativeModules.TextToSpeech.setDefaultRate(rate);
     } catch (error) {
       console.error('Failed to set rate:', error);
     }

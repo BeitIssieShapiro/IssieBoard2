@@ -18,6 +18,14 @@ export interface SettingsSidebarProps {
   kbLanguage?: 'en' | 'he' | 'ar';
   /** Called when the About (i) button is pressed */
   onAbout?: () => void;
+  /** Additional tabs shown after keyboard children (e.g. IssieCalc voice tab) */
+  extraTabs?: Array<{
+    id: string;
+    label: string;
+    iconName: string;
+    iconType: IconType;
+    iconColor: string;
+  }>;
 }
 
 type TabId = 'general' | 'keys-groups' | 'nikkud' | 'features' | 'advanced' | 'voice' | 'language';
@@ -139,6 +147,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   mode = 'voice',
   kbLanguage = 'he',
   onAbout,
+  extraTabs,
 }) => {
   const keyboardOnly = mode === 'keyboard';
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
@@ -190,6 +199,24 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
             isRTL={isRTL}
           />
         ))}
+
+        {/* Extra tabs (e.g. IssieCalc voice tab) */}
+        {extraTabs && extraTabs.length > 0 && (
+          <>
+            <View style={styles.divider} />
+            {extraTabs.map(tab => (
+              <TabItem
+                key={tab.id}
+                tab={tab}
+                isActive={activeTab === tab.id}
+                onPress={() => onTabChange(tab.id)}
+                compact={isPhone}
+                extraCompact={isPhoneVoice}
+                isRTL={isRTL}
+              />
+            ))}
+          </>
+        )}
 
         {/* Divider + Voice tab — only in voice mode */}
         {!keyboardOnly && (
@@ -290,6 +317,37 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
               </TouchableOpacity>
             );
           })}
+
+          {/* Extra tabs (e.g. IssieCalc voice tab) */}
+          {extraTabs && extraTabs.map(tab => (
+            <TouchableOpacity
+              key={tab.id}
+              style={[isPhone ? styles.subTabIconOnly : styles.subTab, activeTab === tab.id && styles.subTabActive]}
+              onPress={() => onTabChange(tab.id)}
+              activeOpacity={0.7}>
+              <View
+                style={[
+                  styles.iconCircleTiny,
+                  { backgroundColor: activeTab === tab.id ? 'rgba(255,255,255,0.25)' : tab.iconColor + '18' },
+                ]}>
+                <MyIcon
+                  info={{
+                    name: tab.iconName,
+                    type: tab.iconType,
+                    color: activeTab === tab.id ? '#FFFFFF' : tab.iconColor,
+                    size: 16,
+                  }}
+                />
+              </View>
+              {!isPhone && (
+                <Text
+                  allowFontScaling={false}
+                  style={[styles.subTabText, activeTab === tab.id && styles.subTabTextActive]}>
+                  {tab.label}
+                </Text>
+              )}
+            </TouchableOpacity>
+          ))}
 
           {/* About button — icon only, pushed to far end */}
           {onAbout && (
