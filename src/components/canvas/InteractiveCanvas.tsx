@@ -271,11 +271,11 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
         })
       : langKeysets;
 
-    // Return the base config with the current groups and filtered keysets
-    // Disable word suggestions for preview
-    // IMPORTANT: Preserve all config properties (heightPreset, fontSizePreset, colors, etc.)
-    // For issiecalc: groups come from config.groups (not styleGroups), so fall back when styleGroups is empty
-    const resolvedGroups = groupConfigs.length > 0 ? groupConfigs : (state.config.groups || []);
+    // For issiecalc: groups come from config.groups (not styleGroups), so fall back only
+    // when styleGroups has no rules at all — not when rules exist but are all disabled.
+    const resolvedGroups = (groupConfigs.length > 0 || state.styleGroups.length > 0)
+      ? groupConfigs
+      : (state.config.groups || []);
     const previewConfig: KeyboardConfig = {
       ...state.config,
       keysets: finalKeysets,
