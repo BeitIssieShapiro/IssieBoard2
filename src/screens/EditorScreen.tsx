@@ -2545,9 +2545,19 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
           const activeTemplate = extractCalcTemplateId(activeId);
           setCurrentProfileId(activeId);
           setActiveKeyboardProfileId(activeId);
-          setProfileName(activeTemplate
-            ? (getCalcBuiltInProfile(activeTemplate)?.name || 'Calculator')
-            : 'Calculator');
+          if (activeTemplate) {
+            setProfileName(getCalcBuiltInProfile(activeTemplate)?.name || 'Calculator');
+          } else {
+            // Custom saved profile — look up name from saved_list
+            try {
+              const savedListJson = await KeyboardPreferences.getProfile('saved_list');
+              const savedList: { name: string; key: string }[] = savedListJson ? JSON.parse(savedListJson) : [];
+              const savedEntry = savedList.find(e => e.key === activeId);
+              setProfileName(savedEntry?.name || 'Calculator');
+            } catch {
+              setProfileName('Calculator');
+            }
+          }
           const calcConfig = require('../../ios/IssieCalc/default_config.json');
           const savedJson = await KeyboardPreferences.getString('keyboardConfig_issiecalc_calc');
           if (savedJson) {

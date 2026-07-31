@@ -9,7 +9,7 @@ import { useLocalization } from '../../../issievoice/src/context/LocalizationCon
 
 const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState('general');
-  const [profileName, setProfileName] = useState('Calculator');
+  const [profileName, setProfileName] = useState('');
   const [isDirty, setIsDirty] = useState(false);
   const saveRef = useRef<(() => void) | null>(null);
   const autoSaveRef = useRef<(() => void) | null>(null);
@@ -57,6 +57,7 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         autoSaveRef={autoSaveRef}
         discardRef={discardRef}
         showProfilePickerRef={showProfilePickerRef}
+        profileName={profileName}
       />
     );
   };
