@@ -3,6 +3,10 @@
   "name": "Calculator",
   "defaultKeyset": "basic",
   "includeKeysets": [],
+  "backgroundColor": "#1C1C1E",
+  "textColor": "#FFFFFF",
+  "keysBgColor": "#2C2C2E",
+  "roundedKeys": true,
   "labels": {
     "abcLabel": "BASIC",
     "symbolsLabel": "SCI",
@@ -51,7 +55,7 @@
     },
     {
       "id": "function",
-      "bgColor": "#1C1C1E",
+      "bgColor": "#2C2C2E",
       "textColor": "#FFFFFF",
       "items": [
         "sin(",

@@ -492,7 +492,26 @@ function buildKeyboardConfig(sourceKeyboard, config, common) {
   if (config.noStructural) {
     outputConfig.wordSuggestionsEnabled = false;
   }
-  outputConfig.groups = [];
+  // Convert source groups to config format (items + template)
+  // Source format: { id, bgColor, textColor, items }
+  // Config format: { items, template: { bgColor, color } }
+  if (sourceKeyboard.groups && sourceKeyboard.groups.length > 0) {
+    outputConfig.groups = sourceKeyboard.groups.map(g => ({
+      items: g.items || [],
+      template: {
+        bgColor: g.bgColor || '',
+        color: g.textColor || g.color || '',
+      }
+    }));
+  } else {
+    outputConfig.groups = [];
+  }
+
+  // Pass through optional visual/style overrides from source keyboard
+  if (sourceKeyboard.backgroundColor !== undefined) outputConfig.backgroundColor = sourceKeyboard.backgroundColor;
+  if (sourceKeyboard.textColor !== undefined) outputConfig.textColor = sourceKeyboard.textColor;
+  if (sourceKeyboard.keysBgColor !== undefined) outputConfig.keysBgColor = sourceKeyboard.keysBgColor;
+  if (sourceKeyboard.roundedKeys !== undefined) outputConfig.roundedKeys = sourceKeyboard.roundedKeys;
 
   return outputConfig;
 }
