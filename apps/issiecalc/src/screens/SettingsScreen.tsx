@@ -7,10 +7,13 @@ import KeyboardHeader from '../../../issievoice/src/components/Settings/Keyboard
 import CalcVoiceSettingsPanel from '../components/CalcVoiceSettingsPanel';
 import { useLocalization } from '../../../issievoice/src/context/LocalizationContext';
 
+const builtConfig = require('../../../../ios/IssieCalc/default_config.json');
+
 const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState('general');
   const [profileName, setProfileName] = useState('');
   const [isDirty, setIsDirty] = useState(false);
+  const [configBg, setConfigBg] = useState<string | undefined>(undefined);
   const saveRef = useRef<(() => void) | null>(null);
   const autoSaveRef = useRef<(() => void) | null>(null);
   const discardRef = useRef<(() => void) | null>(null);
@@ -47,9 +50,10 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         appContext="issiecalc"
         initialLanguage="calc"
         onClose={handleClose}
-        onStateChange={({ profileName: name, isDirty: dirty }) => {
+        onStateChange={({ profileName: name, isDirty: dirty, backgroundColor }) => {
           setProfileName(name);
           setIsDirty(dirty);
+          setConfigBg(backgroundColor);
         }}
         headless
         activeTab={activeTab}
@@ -62,8 +66,10 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     );
   };
 
+  const screenBg = configBg ?? '#D4E4F7';
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: screenBg }]}>
       <KeyboardHeader
         currentLanguage="he"
         onLanguageChange={() => {}}

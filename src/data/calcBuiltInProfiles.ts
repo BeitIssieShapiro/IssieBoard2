@@ -34,7 +34,6 @@ export const CALC_BUILT_IN_PROFILES: CalcBuiltInProfile[] = [
     name: 'Default',
     localizedName: { en: 'Default', he: 'ברירת מחדל', ar: 'افتراضي' },
     config: {
-      backgroundColor: 'default',
       fontSizePreset: 'normal',
       fontSizePreset_large: 'normal',
       heightPreset: 'normal',

@@ -441,7 +441,7 @@ interface EditorScreenInnerProps {
   /** Ref to expose language change to parent */
   changeLanguageRef?: React.MutableRefObject<((lang: LanguageId) => void) | null>;
   /** Callback to report state changes (language, profile, dirty) to parent */
-  onStateChange?: (state: { language: LanguageId; profileName: string; isDirty: boolean }) => void;
+  onStateChange?: (state: { language: LanguageId; profileName: string; isDirty: boolean; backgroundColor?: string }) => void;
   /** Selected languages for IssieVoice language key injection */
   selectedLanguages?: string[];
 }
@@ -1028,7 +1028,9 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   // Report state changes to parent (language, profile name, dirty status)
   useEffect(() => {
     if (onStateChange) {
-      onStateChange({ language: currentLanguage, profileName: currentProfileName, isDirty: state.isDirty });
+      const rawBg = state.config.backgroundColor;
+      const resolvedBg = (rawBg && rawBg !== 'default') ? rawBg : undefined;
+      onStateChange({ language: currentLanguage, profileName: currentProfileName, isDirty: state.isDirty, backgroundColor: resolvedBg });
     }
   }, [currentLanguage, currentProfileName, state.isDirty, onStateChange]);
 
@@ -1911,7 +1913,15 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
             ? (isPhoneLandscape ? windowHeight * 0.25 : windowHeight / 3)
             : windowHeight / 4;
           return (
-            <View style={[styles.headlessPreview, { backgroundColor: (state.config.backgroundColor && state.config.backgroundColor !== 'default') ? state.config.backgroundColor : '#CBCFD8' }]}>
+            <View style={[styles.headlessPreview, { backgroundColor: (() => {
+              const bg = state.config.backgroundColor;
+              if (bg && bg !== 'default') return bg;
+              if (appContext === 'issiecalc') {
+                const bc = require('../../ios/IssieCalc/default_config.json');
+                return (bc.backgroundColor && bc.backgroundColor !== 'default') ? bc.backgroundColor : '#1C1C1E';
+              }
+              return '#CBCFD8';
+            })() }]}>
               <View style={styles.headlessPreviewInner}>
                 <InteractiveCanvas onTestInput={handleTestInput} height={previewH} hideHeader hideSettingsKey={appContext === 'issievoice'} hideCloseKey={appContext === 'issievoice' || appContext === 'issiecalc'} hideGlobeButton={appContext === 'issievoice' || appContext === 'issiecalc'} activeTab={activeTab} speakButtonInKeyboard={speakButtonInKeyboard} selectedLanguages={selectedLanguages} appContext={appContext} />
               </View>
@@ -2526,7 +2536,7 @@ interface EditorScreenProps {
   onBack?: () => void;       // Made optional for IssieVoice
   onClose?: () => void;      // Close callback for IssieVoice
   onSwitchToClassic?: () => void;  // Switch to classic editor view
-  onStateChange?: (state: { language: LanguageId; profileName: string; isDirty: boolean }) => void;
+  onStateChange?: (state: { language: LanguageId; profileName: string; isDirty: boolean; backgroundColor?: string }) => void;
   showProfilePickerRef?: React.MutableRefObject<(() => void) | null>;
   changeLanguageRef?: React.MutableRefObject<((lang: LanguageId) => void) | null>;
   headless?: boolean;
@@ -2601,6 +2611,35 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
             }
           }
           const calcConfig = require('../../ios/IssieCalc/default_config.json');
+          // If active profile is a built-in, load from template (not from saved JSON which may be from a custom profile)
+          if (activeTemplate) {
+            const builtInTemplate = getCalcBuiltInProfile(activeTemplate);
+            const newConfig = builtInTemplate ? { ...calcConfig, ...builtInTemplate.config } : calcConfig;
+            const createdAt = new Date().toISOString();
+            const sourceGroups = (builtInTemplate?.styleGroups?.length ?? 0) > 0
+              ? builtInTemplate!.styleGroups
+              : (calcConfig.groups || []).map((g: any) => ({
+                  name: g.name || g.id || '',
+                  members: g.items || [],
+                  style: { color: g.template?.color || '', bgColor: g.template?.bgColor || '' },
+                  active: true,
+                  isBuiltIn: true,
+                }));
+            const styleGroups = sourceGroups.map((sg: any, i: number) => ({
+              ...sg,
+              id: `calc_builtin_${activeTemplate}_${i}`,
+              createdAt,
+            }));
+            newConfig.groups = styleGroups.map((sg: any) => ({
+              name: sg.name,
+              items: sg.members,
+              template: { color: sg.style.color || '', bgColor: sg.style.bgColor || '' },
+            }));
+            setInitialConfig(newConfig);
+            setInitialStyleGroups(styleGroups);
+            setLoading(false);
+            return;
+          }
           const savedJson = await KeyboardPreferences.getString('keyboardConfig_issiecalc_calc');
           if (savedJson) {
             try {
