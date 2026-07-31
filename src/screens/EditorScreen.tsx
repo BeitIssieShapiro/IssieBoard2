@@ -1357,6 +1357,25 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
           style: 'destructive',
           onPress: async () => {
             // Reload the current profile from saved state
+            if (appContext === 'issiecalc') {
+              // issiecalc bypasses buildConfiguration — reload from saved JSON directly
+              const savedJson = await KeyboardPreferences.getString('keyboardConfig_issiecalc_calc');
+              const calcConfig = require('../../ios/IssieCalc/default_config.json');
+              const restoredConfig = savedJson ? (() => { try { return JSON.parse(savedJson); } catch { return calcConfig; } })() : calcConfig;
+              const restoredStyleGroups = (restoredConfig.groups || [])
+                .filter((g: any) => g.name && !g.name.startsWith('_'))
+                .map((g: any, i: number) => ({
+                  id: `calc_group_${i}_${g.name}`,
+                  name: g.name,
+                  members: g.items || [],
+                  style: { color: g.template?.color || '', bgColor: g.template?.bgColor || '', hidden: g.template?.hidden, visibilityMode: g.template?.visibilityMode },
+                  active: true,
+                  createdAt: new Date().toISOString(),
+                }));
+              setConfig(restoredConfig, restoredStyleGroups);
+              showToast('✓ ' + strings.alerts.editCancelled);
+              return;
+            }
             const loaded = await loadProfileById(currentProfileId);
             if (loaded) {
               const config = buildConfiguration(loaded.profileDef);
