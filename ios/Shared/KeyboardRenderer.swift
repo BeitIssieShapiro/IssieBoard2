@@ -308,7 +308,10 @@ class KeyboardRenderer {
     private let keyInternalPadding: CGFloat = 3  // Visual gap between keys (internal margin)
     private let keyVerticalPadding: CGFloat = 5  // Vertical padding for visual gap between rows (2px more than horizontal)
     private static let specialKeyTypes: Set<String> = ["space", "backspace", "shift", "keyset", "nikkud", "enter", "next-keyboard", "settings", "close", "language"]
-    private let keyCornerRadius: CGFloat = 5
+    private var keyCornerRadius: CGFloat {
+        guard config?.roundedKeys == true else { return 5 }
+        return rowHeight * 0.5
+    }
     private let fontSize: CGFloat = 24
     private let largeFontSize: CGFloat = 28
     private var suggestionsBarHeight: CGFloat {

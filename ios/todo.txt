@@ -1,6 +1,12 @@
 IssieCalc:
 - is voice settings per keyboard?
 
+bugs:
+- in keys group edit, the other groups are not shown
+- name of current is always "calculator"
+
+
+
 
 
 30-June

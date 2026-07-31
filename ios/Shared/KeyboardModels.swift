@@ -28,6 +28,7 @@ struct KeyboardConfig: Codable {
     let keyGap_large: Double?
     let fontWeight_large: String?
     let fontSizePreset_large: String?
+    let roundedKeys: Bool?
 
     enum CodingKeys: String, CodingKey {
         case backgroundColor
@@ -52,6 +53,7 @@ struct KeyboardConfig: Codable {
         case keyGap_large
         case fontWeight_large
         case fontSizePreset_large
+        case roundedKeys
     }
     
     /// Check if word suggestions are enabled (defaults to true if not specified)

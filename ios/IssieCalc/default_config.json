@@ -9,6 +9,7 @@
   "fontWeight": "regular",
   "heightPreset_large": "x-tall",
   "keyGap_large": 4,
+  "roundedKeys": true,
   "fontWeight_large": "heavy",
   "fontSize_large": "large",
   "keyboards": [
