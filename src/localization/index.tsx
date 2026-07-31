@@ -25,7 +25,7 @@ export const getStrings = (language: Language): Strings => {
 const SUPPORTED_LANGUAGES: Language[] = ['he', 'en', 'ar'];
 
 export const getDeviceLanguage = (): Language => {
-  //return 'en'
+  return 'he'
   const locales = RNLocalize.getLocales();
   const langCode = (locales[0]?.languageTag || 'en').split(/[-_]/)[0].toLowerCase();
 

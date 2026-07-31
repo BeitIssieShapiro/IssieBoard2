@@ -1,0 +1,72 @@
+{
+  "language": "calc",
+  "languageName": "Calculator",
+  "rules": [
+    {
+      "id": "all-operators",
+      "name": "Operators",
+      "localizedName": { "he": "פעולות", "en": "Operators", "ar": "العمليات" },
+      "description": "All operator keys",
+      "members": ["+", "-", "=", "*", "/", "%"],
+      "style": {
+        "bgColor": "#FF9500",
+        "color": "#FFFFFF"
+      }
+    },
+    {
+      "id": "basic-operators",
+      "name": "+ -",
+      "localizedName": { "he": "חיבור וחיסור", "en": "+ -", "ar": "جمع وطرح" },
+      "description": "Addition and subtraction keys",
+      "members": ["+", "-"],
+      "style": {
+        "bgColor": "#FF9500",
+        "color": "#FFFFFF"
+      }
+    },
+    {
+      "id": "basic-ops",
+      "name": "+ - % * =",
+      "localizedName": { "he": "+ - % * =", "en": "+ - % * =", "ar": "+ - % * =" },
+      "description": "Basic operator keys",
+      "members": ["+", "-", "%", "*", "="],
+      "style": {
+        "bgColor": "#FF9500",
+        "color": "#FFFFFF"
+      }
+    },
+    {
+      "id": "delete-clear",
+      "name": "Delete & Clear",
+      "localizedName": { "he": "מחיקה ואיפוס", "en": "Delete & Clear", "ar": "حذف وإعادة" },
+      "description": "Delete and clear keys",
+      "members": ["⌫", "AC"],
+      "style": {
+        "bgColor": "#636366",
+        "color": "#FFFFFF"
+      }
+    },
+    {
+      "id": "digits-1-5",
+      "name": "1-5",
+      "localizedName": { "he": "1-5", "en": "1-5", "ar": "1-5" },
+      "description": "Digit keys 1 through 5",
+      "members": ["1", "2", "3", "4", "5"],
+      "style": {
+        "bgColor": "#333333",
+        "color": "#FFFFFF"
+      }
+    },
+    {
+      "id": "digits-0-9",
+      "name": "0-9",
+      "localizedName": { "he": "0-9", "en": "0-9", "ar": "0-9" },
+      "description": "All digit keys",
+      "members": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
+      "style": {
+        "bgColor": "#333333",
+        "color": "#FFFFFF"
+      }
+    }
+  ]
+}

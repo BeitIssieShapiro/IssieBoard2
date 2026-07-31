@@ -497,6 +497,8 @@ function buildKeyboardConfig(sourceKeyboard, config, common) {
   // Config format: { items, template: { bgColor, color } }
   if (sourceKeyboard.groups && sourceKeyboard.groups.length > 0) {
     outputConfig.groups = sourceKeyboard.groups.map(g => ({
+      id: g.id,
+      name: g.id,  // preserve id as name so styleGroups reconstruction has a label
       items: g.items || [],
       template: {
         bgColor: g.bgColor || '',

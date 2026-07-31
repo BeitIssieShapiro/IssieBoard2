@@ -14,6 +14,7 @@ import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 import heTemplates from '../../../assets/predefined-rules/he.json';
 import enTemplates from '../../../assets/predefined-rules/en.json';
 import arTemplates from '../../../assets/predefined-rules/ar.json';
+import calcTemplates from '../../../assets/predefined-rules/calc.json';
 
 // Template definitions for each language
 interface GroupTemplate {
@@ -22,12 +23,17 @@ interface GroupTemplate {
   description: string;
   members: string[];
   orderedMembers?: string[];
+  localizedName?: Record<string, string>;
   style: {
     hidden?: boolean;
     visibilityMode?: 'default' | 'hide' | 'showOnly';
     bgColor?: string;
     color?: string;
   };
+}
+
+function resolveTemplateName(template: GroupTemplate, uiLanguage: string): string {
+  return template.localizedName?.[uiLanguage] || template.name;
 }
 
 /** Resolve the correct members array based on keyboardId (e.g., he_ordered uses orderedMembers) */
@@ -42,6 +48,7 @@ const TEMPLATES: Record<string, GroupTemplate[]> = {
   he: heTemplates.rules,
   en: enTemplates.rules,
   ar: arTemplates.rules,
+  calc: calcTemplates.rules,
 };
 
 type SectionId = 'settings' | 'styleRules' | 'diacritics';
@@ -88,7 +95,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
   tabDescription,
 }) => {
   const { state, clearSelection } = useEditor();
-  const { strings, isRTL } = useLocalization();
+  const { strings, isRTL, language: uiLanguage } = useLocalization();
   const [showStyleRuleModal, setShowStyleRuleModal] = useState(false);
   const [showTemplatesModal, setShowTemplatesModal] = useState(false);
   const [editingGroup, setEditingGroup] = useState<StyleGroup | null>(null);
@@ -324,13 +331,13 @@ export const Toolbox: React.FC<ToolboxProps> = ({
                   keyExtractor={(item, index) => `${item.name}_${index}`}
                   renderItem={({ item }) => (
                     <TouchableOpacity
-                      style={styles.templateItem}
+                      style={[styles.templateItem, appContext === 'issiecalc' && styles.templateItemLTR]}
                       onPress={() => handleTemplateSelect(item)}
                     >
                       <View style={styles.templateInfo}>
-                        <Text allowFontScaling={false} style={styles.templateName}>{item.name}</Text>
-                        <Text allowFontScaling={false} style={styles.templateDescription}>{item.description}</Text>
-                        <Text allowFontScaling={false} style={styles.templateKeys}>
+                        <Text allowFontScaling={false} style={[styles.templateName, appContext === 'issiecalc' && styles.templateTextLTR]}>{resolveTemplateName(item, uiLanguage)}</Text>
+                        <Text allowFontScaling={false} style={[styles.templateDescription, appContext === 'issiecalc' && styles.templateTextLTR]}>{item.description}</Text>
+                        <Text allowFontScaling={false} style={[styles.templateKeys, appContext === 'issiecalc' && styles.templateTextLTR]}>
                           {resolveMembers(item, currentKeyboardId).length} {strings.toolbox.keysLabel}: {resolveMembers(item, currentKeyboardId).slice(0, 8).join(', ')}
                           {resolveMembers(item, currentKeyboardId).length > 8 ? '...' : ''}
                         </Text>
@@ -348,7 +355,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
             visible={showStyleRuleModal}
             editingGroup={editingGroup}
             initialSelectedKeys={editingGroup ? undefined : (templateData ? resolveMembers(templateData, currentKeyboardId) : getSelectedKeyValues())}
-            initialName={templateData?.name}
+            initialName={templateData ? resolveTemplateName(templateData, uiLanguage) : undefined}
             initialBgColor={templateData?.style.bgColor}
             initialTextColor={templateData?.style.color}
             initialVisibilityMode={templateData?.style.visibilityMode}
@@ -443,13 +450,13 @@ export const Toolbox: React.FC<ToolboxProps> = ({
               keyExtractor={(item, index) => `${item.name}_${index}`}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={styles.templateItem}
+                  style={[styles.templateItem, appContext === 'issiecalc' && styles.templateItemLTR]}
                   onPress={() => handleTemplateSelect(item)}
                 >
                   <View style={styles.templateInfo}>
-                    <Text allowFontScaling={false} style={styles.templateName}>{item.name}</Text>
-                    <Text allowFontScaling={false} style={styles.templateDescription}>{item.description}</Text>
-                    <Text allowFontScaling={false} style={styles.templateKeys}>
+                    <Text allowFontScaling={false} style={[styles.templateName, appContext === 'issiecalc' && styles.templateTextLTR]}>{resolveTemplateName(item, uiLanguage)}</Text>
+                    <Text allowFontScaling={false} style={[styles.templateDescription, appContext === 'issiecalc' && styles.templateTextLTR]}>{item.description}</Text>
+                    <Text allowFontScaling={false} style={[styles.templateKeys, appContext === 'issiecalc' && styles.templateTextLTR]}>
                       {resolveMembers(item, currentKeyboardId).length} {strings.toolbox.keysLabel}: {resolveMembers(item, currentKeyboardId).slice(0, 8).join(', ')}
                       {resolveMembers(item, currentKeyboardId).length > 8 ? '...' : ''}
                     </Text>
@@ -656,6 +663,13 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: '#3B82F6',
     marginLeft: 12,
+  },
+  templateItemLTR: {
+    flexDirection: 'row',
+  },
+  templateTextLTR: {
+    textAlign: 'left',
+    writingDirection: 'ltr',
   },
 });
 

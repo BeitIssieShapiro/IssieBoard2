@@ -1221,13 +1221,23 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         const base = require('../../ios/IssieCalc/default_config.json');
         const newConfig = { ...base, ...template.config };
         const createdAt = new Date().toISOString();
-        const styleGroups = template.styleGroups.map((sg, index) => ({
+        // If template has no styleGroups (e.g. default), reconstruct from base config groups
+        const sourceGroups = template.styleGroups.length > 0
+          ? template.styleGroups
+          : (base.groups || []).map((g: any) => ({
+              name: g.name || g.id || '',
+              members: g.items || [],
+              style: { color: g.template?.color || '', bgColor: g.template?.bgColor || '' },
+              active: true,
+              isBuiltIn: true,
+            }));
+        const styleGroups = sourceGroups.map((sg: any, index: number) => ({
           ...sg,
           id: `calc_builtin_${templateId}_${index}`,
           createdAt,
         }));
         // groups come from styleGroups for calc built-ins
-        newConfig.groups = styleGroups.map(sg => ({
+        newConfig.groups = styleGroups.map((sg: any) => ({
           name: sg.name,
           items: sg.members,
           template: { color: sg.style.color || '', bgColor: sg.style.bgColor || '' },
@@ -1249,10 +1259,10 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       if (appContext === 'issiecalc') {
         const baseConfig = require('../../ios/IssieCalc/default_config.json');
         const merged = { ...baseConfig, ...loaded.profileDef };
-        // Restore styleGroups from saved style groups or from merged groups
+        // Restore styleGroups from saved style groups or from base config groups
         const styleGroups = loaded.styleGroups.length > 0
           ? loaded.styleGroups
-          : (merged.groups || [])
+          : (baseConfig.groups || [])
             .filter((g: any) => g.name && !g.name.startsWith('_'))
             .map((g: any, i: number) => ({
               id: `calc_group_${i}_${g.name}`,
@@ -1262,6 +1272,14 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
               active: true,
               createdAt: new Date().toISOString(),
             }));
+        // Derive groups from styleGroups (not profileDef.groups which may be stale/partial)
+        merged.groups = styleGroups
+          .filter((sg: any) => sg.active !== false)
+          .map((sg: any) => ({
+            name: sg.name,
+            items: sg.members,
+            template: { color: sg.style.color || '', bgColor: sg.style.bgColor || '' },
+          }));
         setConfig(merged, styleGroups);
         setCurrentProfileName(profile.name);
         setCurrentProfileId(profile.id);
@@ -2616,7 +2634,18 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
             } catch {}
           }
           setInitialConfig(calcConfig);
-          setInitialStyleGroups([]);
+          setInitialStyleGroups(
+            (calcConfig.groups || [])
+              .filter((g: any) => g.name && !g.name.startsWith('_'))
+              .map((g: any, i: number) => ({
+                id: `calc_group_${i}_${g.name}`,
+                name: g.name,
+                members: g.items || [],
+                style: { color: g.template?.color || '', bgColor: g.template?.bgColor || '' },
+                active: true,
+                createdAt: new Date().toISOString(),
+              }))
+          );
           setLoading(false);
           return;
         }
