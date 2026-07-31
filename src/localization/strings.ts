@@ -143,6 +143,7 @@ export interface Strings {
     background: string;
     keysBackground: string;
     keysText: string;
+    calcDisplayColor: string;
     font: string;
     keyGap: string;
     keyGapRegular: string;
@@ -482,6 +483,7 @@ const en: Strings = {
     background: 'Background',
     keysBackground: 'Keys Background',
     keysText: 'Keys Text',
+    calcDisplayColor: 'Display Text',
     font: 'Font',
     keyGap: 'Key Gap',
     keyGapRegular: 'Regular',
@@ -823,6 +825,7 @@ const he: Strings = {
     background: 'רקע',
     keysBackground: 'רקע מקשים',
     keysText: 'טקסט מקשים',
+    calcDisplayColor: 'טקסט תצוגה',
     font: 'גופן',
     keyGap: 'רווח בין מקשים',
     keyGapRegular: 'רגיל',
@@ -1164,6 +1167,7 @@ const ar: Strings = {
     background: 'الخلفية',
     keysBackground: 'خلفية المفاتيح',
     keysText: 'نص المفاتيح',
+    calcDisplayColor: 'نص الشاشة',
     font: 'الخط',
     keyGap: 'المسافة بين المفاتيح',
     keyGapRegular: 'عادي',

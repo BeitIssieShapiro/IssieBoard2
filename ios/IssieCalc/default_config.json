@@ -2300,5 +2300,6 @@
   ],
   "textColor": "#FFFFFF",
   "keysBgColor": "#2C2C2E",
-  "roundedKeys": true
+  "roundedKeys": true,
+  "calcDisplayColor": "#FFFFFF"
 }

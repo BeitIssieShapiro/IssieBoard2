@@ -163,6 +163,16 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
     dispatch({ type: 'MARK_DIRTY' });
   };
 
+  const calcDisplayColor = (state.config as any).calcDisplayColor || '';
+  const updateCalcDisplayColor = (color: string) => {
+    const updatedConfig = { ...state.config, calcDisplayColor: color } as any;
+    dispatch({
+      type: 'SET_CONFIG',
+      payload: { config: updatedConfig, styleGroups: state.styleGroups },
+    });
+    dispatch({ type: 'MARK_DIRTY' });
+  };
+
   const updateKeysBgColor = (color: string) => {
     const updatedConfig = { ...state.config, keysBgColor: color } as any;
     dispatch({
@@ -208,6 +218,9 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
                 <Text allowFontScaling={false} style={styles.colorColumnHeader}>{strings.globalSettings.background}</Text>
                 <Text allowFontScaling={false} style={styles.colorColumnHeader}>{strings.globalSettings.keysBackground}</Text>
                 <Text allowFontScaling={false} style={styles.colorColumnHeader}>{strings.globalSettings.keysText}</Text>
+                {appContext === 'issiecalc' && (
+                  <Text allowFontScaling={false} style={styles.colorColumnHeader}>{strings.globalSettings.calcDisplayColor}</Text>
+                )}
               </View>
 
               {/* Color Buttons Row */}
@@ -241,6 +254,18 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
                     systemDefaultLabel={strings.common.default}
                   />
                 </View>
+
+                {appContext === 'issiecalc' && (
+                  <View style={styles.colorColumn}>
+                    <CompactColorPicker
+                      title=""
+                      value={calcDisplayColor}
+                      onChange={updateCalcDisplayColor}
+                      showSystemDefault
+                      systemDefaultLabel={strings.common.default}
+                    />
+                  </View>
+                )}
               </View>
             </View>
           </View>

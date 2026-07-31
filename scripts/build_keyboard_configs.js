@@ -512,6 +512,7 @@ function buildKeyboardConfig(sourceKeyboard, config, common) {
   if (sourceKeyboard.textColor !== undefined) outputConfig.textColor = sourceKeyboard.textColor;
   if (sourceKeyboard.keysBgColor !== undefined) outputConfig.keysBgColor = sourceKeyboard.keysBgColor;
   if (sourceKeyboard.roundedKeys !== undefined) outputConfig.roundedKeys = sourceKeyboard.roundedKeys;
+  if (sourceKeyboard.calcDisplayColor !== undefined) outputConfig.calcDisplayColor = sourceKeyboard.calcDisplayColor;
 
   return outputConfig;
 }

@@ -10,7 +10,7 @@ import KeyboardPreferences from '../../../../src/native/KeyboardPreferences';
 
 const builtConfig = require('../../../../ios/IssieCalc/default_config.json');
 
-const KB_BG = '#000000';
+const KB_BG = builtConfig.backgroundColor && builtConfig.backgroundColor !== 'default' ? builtConfig.backgroundColor : '#000000';
 
 function formatExpression(expr: string): string {
   return expr
@@ -187,49 +187,68 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
     }
   };
 
+  const screenBg = (liveConfig?.backgroundColor && liveConfig.backgroundColor !== 'default')
+    ? liveConfig.backgroundColor
+    : KB_BG;
+
+  // Derive display text color: calcDisplayColor > luminance-based contrast
+  const displayTextColor = (() => {
+    if (liveConfig?.calcDisplayColor) return liveConfig.calcDisplayColor;
+    const hex = screenBg.replace('#', '');
+    if (hex.length === 6) {
+      const r = parseInt(hex.slice(0, 2), 16) / 255;
+      const g = parseInt(hex.slice(2, 4), 16) / 255;
+      const b = parseInt(hex.slice(4, 6), 16) / 255;
+      return (0.299 * r + 0.587 * g + 0.114 * b) > 0.5 ? '#000000' : '#FFFFFF';
+    }
+    return '#FFFFFF';
+  })();
+  const dimTextColor = displayTextColor === '#000000' ? '#555555' : '#8E8E93';
+  const fadedTextStyle = { color: displayTextColor, opacity: 0.6 } as const;
+
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: screenBg }]} edges={['top', 'left', 'right']}>
       {/* Top bar */}
-      <View style={styles.topBar}>
+      <View style={[styles.topBar, { backgroundColor: screenBg }]}>
         <View style={styles.segmented}>
           <TouchableOpacity
             style={[styles.segment, keyset === 'basic' && styles.segmentActive]}
             onPress={() => setKeyset('basic')}>
-            <Text style={[styles.segmentText, keyset === 'basic' && styles.segmentTextActive]}>Basic</Text>
+          <Text style={[styles.segmentText, keyset === 'basic' && styles.segmentTextActive, { color: dimTextColor }, keyset === 'basic' && { color: displayTextColor }]}>Basic</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.segment, (keyset === 'scientific' || keyset === 'scientific_landscape_2nd' || keyset === 'scientific_2nd') && styles.segmentActive]}
             onPress={() => setKeyset('scientific')}>
-            <Text style={[styles.segmentText, (keyset === 'scientific' || keyset === 'scientific_landscape_2nd' || keyset === 'scientific_2nd') && styles.segmentTextActive]}>Scientific</Text>
+            <Text style={[styles.segmentText, (keyset === 'scientific' || keyset === 'scientific_landscape_2nd' || keyset === 'scientific_2nd') && styles.segmentTextActive, { color: dimTextColor }, (keyset === 'scientific' || keyset === 'scientific_landscape_2nd' || keyset === 'scientific_2nd') && { color: displayTextColor }]}>Scientific</Text>
           </TouchableOpacity>
         </View>
         <TouchableOpacity style={styles.gearButton} onPress={() => navigation?.navigate('Settings')}>
-          <Text style={styles.gearIcon}>⚙</Text>
+          <Text style={[styles.gearIcon, { color: dimTextColor }]}>⚙</Text>
         </TouchableOpacity>
       </View>
 
       {/* Display */}
-      <View style={styles.display}>
+      <View style={[styles.display, { backgroundColor: screenBg }]}>
         {resultMode ? (
           <>
             <View style={styles.expressionRow}>
               {(keyset === 'scientific' || keyset === 'scientific_landscape_2nd' || keyset === 'scientific_2nd') && (
-                <Text style={styles.angleIndicator}>{angleMode === 'rad' ? 'Rad' : 'Deg'}</Text>
+                <Text style={[styles.angleIndicator, fadedTextStyle]}>{angleMode === 'rad' ? 'Rad' : 'Deg'}</Text>
               )}
-              <Text style={styles.expression} numberOfLines={1} adjustsFontSizeToFit>
+              <Text style={[styles.expression, fadedTextStyle]} numberOfLines={1} adjustsFontSizeToFit>
                 {formatExpression(expression)}
               </Text>
             </View>
-            <Text style={styles.result} numberOfLines={1} adjustsFontSizeToFit>
+            <Text style={[styles.result, { color: displayTextColor }]} numberOfLines={1} adjustsFontSizeToFit>
               {result}
             </Text>
           </>
         ) : (
           <View style={styles.expressionRow}>
             {(keyset === 'scientific' || keyset === 'scientific_landscape_2nd') && (
-              <Text style={styles.angleIndicator}>{angleMode === 'rad' ? 'Rad' : 'Deg'}</Text>
+              <Text style={[styles.angleIndicator, fadedTextStyle]}>{angleMode === 'rad' ? 'Rad' : 'Deg'}</Text>
             )}
-            <Text style={styles.result} numberOfLines={1} adjustsFontSizeToFit>
+            <Text style={[styles.result, { color: displayTextColor }]} numberOfLines={1} adjustsFontSizeToFit>
               {formatExpression(expression) || '0'}
             </Text>
           </View>
@@ -239,21 +258,21 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
       {/* Keyboard */}
       <View style={styles.keyboardContainer}>
         <KeyboardPreview
-          style={{ height: effectiveKbHeight, backgroundColor: KB_BG }}
+          style={{ height: effectiveKbHeight, backgroundColor: screenBg }}
           configJson={configJson}
           hideGlobeButton
           targetHeight={landscape ? undefined : effectiveKbHeight}
           onKeyPress={handleKeyPress}
           onHeightChange={e => setKeyboardHeight(e.nativeEvent.height)}
         />
-        <View style={{ height: insets.bottom, backgroundColor: KB_BG }} />
+        <View style={{ height: insets.bottom, backgroundColor: screenBg }} />
       </View>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000000' },
+  container: { flex: 1, backgroundColor: KB_BG },
   topBar: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4,

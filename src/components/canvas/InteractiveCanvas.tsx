@@ -320,7 +320,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
 
       {/* Calc Basic/Scientific toggle */}
       {appContext === 'issiecalc' && (
-        <View style={styles.calcToggle}>
+        <View style={[styles.calcToggle, state.config.backgroundColor && state.config.backgroundColor !== 'default' ? { backgroundColor: state.config.backgroundColor } : undefined]}>
           <TouchableOpacity
             style={[styles.calcToggleBtn, calcPreviewKeyset === 'basic' && styles.calcToggleBtnActive]}
             onPress={() => { setCalcPreviewKeyset('basic'); dispatch({ type: 'SET_ACTIVE_KEYSET', payload: 'basic' }); }}>
