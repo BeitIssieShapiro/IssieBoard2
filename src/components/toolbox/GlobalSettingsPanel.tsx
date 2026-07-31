@@ -173,6 +173,16 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
     dispatch({ type: 'MARK_DIRTY' });
   };
 
+  const showScientific = (state.config as any).showScientific !== false;
+  const updateShowScientific = (value: boolean) => {
+    const updatedConfig = { ...state.config, showScientific: value } as any;
+    dispatch({
+      type: 'SET_CONFIG',
+      payload: { config: updatedConfig, styleGroups: state.styleGroups },
+    });
+    dispatch({ type: 'MARK_DIRTY' });
+  };
+
   const updateKeysBgColor = (color: string) => {
     const updatedConfig = { ...state.config, keysBgColor: color } as any;
     dispatch({
@@ -269,6 +279,25 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
               </View>
             </View>
           </View>
+
+          {/* Show Scientific toggle (issiecalc only) */}
+          {appContext === 'issiecalc' && (
+            <>
+              <View style={styles.separator} />
+              <View style={styles.featureRow}>
+                <View style={[styles.featureInfo, isRTL && { marginRight: 0, marginLeft: 12 }]}>
+                  <Text allowFontScaling={false} style={styles.featureLabel}>{strings.globalSettings.showScientific}</Text>
+                </View>
+                <ToggleSwitch
+                  value={showScientific}
+                  onChange={updateShowScientific}
+                  labelOn=""
+                  labelOff=""
+                  size="medium"
+                />
+              </View>
+            </>
+          )}
 
           {/* 4. Font (only for Hebrew) */}
           {isHebrewKeyboard && (

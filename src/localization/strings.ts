@@ -144,6 +144,7 @@ export interface Strings {
     keysBackground: string;
     keysText: string;
     calcDisplayColor: string;
+    showScientific: string;
     font: string;
     keyGap: string;
     keyGapRegular: string;
@@ -484,6 +485,7 @@ const en: Strings = {
     keysBackground: 'Keys Background',
     keysText: 'Keys Text',
     calcDisplayColor: 'Display Text',
+    showScientific: 'Show Scientific',
     font: 'Font',
     keyGap: 'Key Gap',
     keyGapRegular: 'Regular',
@@ -826,6 +828,7 @@ const he: Strings = {
     keysBackground: 'רקע מקשים',
     keysText: 'טקסט מקשים',
     calcDisplayColor: 'טקסט תצוגה',
+    showScientific: 'הצג מדעי',
     font: 'גופן',
     keyGap: 'רווח בין מקשים',
     keyGapRegular: 'רגיל',
@@ -1168,6 +1171,7 @@ const ar: Strings = {
     keysBackground: 'خلفية المفاتيح',
     keysText: 'نص المفاتيح',
     calcDisplayColor: 'نص الشاشة',
+    showScientific: 'إظهار العلمي',
     font: 'الخط',
     keyGap: 'المسافة بين المفاتيح',
     keyGapRegular: 'عادي',

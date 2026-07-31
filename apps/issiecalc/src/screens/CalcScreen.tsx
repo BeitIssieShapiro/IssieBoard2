@@ -111,7 +111,14 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
   useFocusEffect(useCallback(() => {
     KeyboardPreferences.getString('keyboardConfig_issiecalc_calc').then(saved => {
       if (saved) {
-        try { setLiveConfig(JSON.parse(saved)); } catch {}
+        try {
+          const parsed = JSON.parse(saved);
+          setLiveConfig(parsed);
+          // If scientific was disabled and we're on a scientific keyset, switch back to basic
+          if (parsed.showScientific === false && (keyset === 'scientific' || keyset === 'scientific_2nd' || keyset === 'scientific_landscape_2nd')) {
+            setKeyset('basic');
+          }
+        } catch {}
       } else {
         setLiveConfig(builtConfig);
       }
@@ -126,6 +133,7 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
     return () => sub?.remove();
   }, []);
 
+  const showScientific = liveConfig?.showScientific !== false;
   const isScientific = keyset === 'scientific' || keyset === 'scientific_2nd' || keyset === 'scientific_landscape_2nd';
   const effectiveKbHeight = landscape
     ? keyboardHeight
@@ -210,18 +218,20 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
     <SafeAreaView style={[styles.container, { backgroundColor: screenBg }]} edges={['top', 'left', 'right']}>
       {/* Top bar */}
       <View style={[styles.topBar, { backgroundColor: screenBg }]}>
-        <View style={styles.segmented}>
-          <TouchableOpacity
-            style={[styles.segment, keyset === 'basic' && styles.segmentActive]}
-            onPress={() => setKeyset('basic')}>
-          <Text style={[styles.segmentText, keyset === 'basic' && styles.segmentTextActive, { color: dimTextColor }, keyset === 'basic' && { color: displayTextColor }]}>Basic</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.segment, (keyset === 'scientific' || keyset === 'scientific_landscape_2nd' || keyset === 'scientific_2nd') && styles.segmentActive]}
-            onPress={() => setKeyset('scientific')}>
-            <Text style={[styles.segmentText, (keyset === 'scientific' || keyset === 'scientific_landscape_2nd' || keyset === 'scientific_2nd') && styles.segmentTextActive, { color: dimTextColor }, (keyset === 'scientific' || keyset === 'scientific_landscape_2nd' || keyset === 'scientific_2nd') && { color: displayTextColor }]}>Scientific</Text>
-          </TouchableOpacity>
-        </View>
+        {showScientific && (
+          <View style={styles.segmented}>
+            <TouchableOpacity
+              style={[styles.segment, keyset === 'basic' && styles.segmentActive]}
+              onPress={() => setKeyset('basic')}>
+              <Text style={[styles.segmentText, keyset === 'basic' && styles.segmentTextActive, { color: dimTextColor }, keyset === 'basic' && { color: displayTextColor }]}>Basic</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.segment, (keyset === 'scientific' || keyset === 'scientific_landscape_2nd' || keyset === 'scientific_2nd') && styles.segmentActive]}
+              onPress={() => setKeyset('scientific')}>
+              <Text style={[styles.segmentText, (keyset === 'scientific' || keyset === 'scientific_landscape_2nd' || keyset === 'scientific_2nd') && styles.segmentTextActive, { color: dimTextColor }, (keyset === 'scientific' || keyset === 'scientific_landscape_2nd' || keyset === 'scientific_2nd') && { color: displayTextColor }]}>Scientific</Text>
+            </TouchableOpacity>
+          </View>
+        )}
         <TouchableOpacity style={styles.gearButton} onPress={() => navigation?.navigate('Settings')}>
           <Text style={[styles.gearIcon, { color: dimTextColor }]}>⚙</Text>
         </TouchableOpacity>
@@ -274,7 +284,7 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: KB_BG },
   topBar: {
-    flexDirection: 'row', alignItems: 'center',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4,
   },
   segmented: {
@@ -285,8 +295,8 @@ const styles = StyleSheet.create({
   segmentActive: { backgroundColor: '#636366' },
   segmentText: { color: '#8E8E93', fontSize: 14, fontWeight: '500' },
   segmentTextActive: { color: '#FFFFFF' },
-  gearButton: { marginLeft: 12, width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  gearIcon: { fontSize: 22, color: '#8E8E93' },
+  gearButton: { marginLeft: 'auto' as any, width: 54, height: 54, alignItems: 'center', justifyContent: 'center' },
+  gearIcon: { fontSize: 33, color: '#8E8E93' },
   display: {
     flex: 1, justifyContent: 'flex-end', alignItems: 'flex-end',
     paddingHorizontal: 24, paddingBottom: 16,

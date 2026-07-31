@@ -430,8 +430,11 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const isPortrait = windowHeight > windowWidth;
 
-  // Modal preview height - 1.5x taller in portrait for better visibility
-  const modalPreviewHeight = isPortrait ? 280 : 200;
+  // Modal preview height - 1.5x taller in portrait for better visibility; 50% more for scientific calc
+  const baseModalPreviewHeight = isPortrait ? 280 : 200;
+  const modalPreviewHeight = (appContext === 'issiecalc' && calcKeyset === 'scientific')
+    ? Math.round(baseModalPreviewHeight * 1.5)
+    : baseModalPreviewHeight;
 
   // Build selected keys JSON for highlighting in the preview
   const selectedKeysJson = useMemo(() => {
@@ -540,7 +543,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
                   ? strings.styleRuleModal.presetKeysLocked
                   : strings.styleRuleModal.tapKeysToSelect}
               </Text>
-              {appContext === 'issiecalc' && (
+              {appContext === 'issiecalc' && (state.config as any).showScientific !== false && (
                 <View style={styles.calcToggle}>
                   <TouchableOpacity
                     style={[styles.calcToggleBtn, calcKeyset === 'basic' && styles.calcToggleBtnActive]}
