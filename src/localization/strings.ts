@@ -29,6 +29,8 @@ export interface Strings {
   editor: {
     keyboardConfiguration: string;
     myKeyboards: string;
+    myCalculators: string;
+    newCalculator: string;
     builtIn: string;
     settings: string;
     backToNewsettings: string;
@@ -145,6 +147,8 @@ export interface Strings {
     keysText: string;
     calcDisplayColor: string;
     showScientific: string;
+    calcBasic: string;
+    calcScientific: string;
     font: string;
     keyGap: string;
     keyGapRegular: string;
@@ -266,6 +270,7 @@ export interface Strings {
     saveAs: string;
     enterName: string;
     nameInUse: string;
+    defaultName: string;
   };
   profiles: {
     saveProfile: string;
@@ -330,6 +335,7 @@ export interface Strings {
   importExport: {
     exportProfile: string;
     backupAll: string;
+    backupAllCalculators: string;
     importSuccessTitle: string;
     importedProfiles: string;
     skippedProfiles: string;
@@ -370,6 +376,8 @@ const en: Strings = {
   editor: {
     keyboardConfiguration: 'Keyboard Configuration',
     myKeyboards: 'My Keyboards',
+    myCalculators: 'My Calculators',
+    newCalculator: 'New Calculator',
     builtIn: 'Built-in',
     settings: 'Settings',
     backToNewsettings: 'New View',
@@ -486,6 +494,8 @@ const en: Strings = {
     keysText: 'Keys Text',
     calcDisplayColor: 'Display Text',
     showScientific: 'Show Scientific',
+    calcBasic: 'Basic',
+    calcScientific: 'Scientific',
     font: 'Font',
     keyGap: 'Key Gap',
     keyGapRegular: 'Regular',
@@ -609,6 +619,7 @@ const en: Strings = {
     saveAs: 'Save As',
     enterName: 'Please enter a name',
     nameInUse: 'This name is already in use.',
+    defaultName: 'My {{name}}',
   },
   profiles: {
     saveProfile: 'Save Keyboard',
@@ -673,6 +684,7 @@ const en: Strings = {
   importExport: {
     exportProfile: 'Share Keyboard',
     backupAll: 'Backup All Keyboards',
+    backupAllCalculators: 'Backup All Calculators',
     importSuccessTitle: 'Import Complete',
     importedProfiles: 'Imported Keyboards',
     skippedProfiles: 'Skipped (already exist)',
@@ -713,6 +725,8 @@ const he: Strings = {
   editor: {
     keyboardConfiguration: 'הגדרות מקלדת',
     myKeyboards: 'המקלדות שלי',
+    myCalculators: 'המחשבונים שלי',
+    newCalculator: 'מחשבון חדש',
     builtIn: 'מובנה',
     settings: 'הגדרות',
     backToNewsettings: 'תצוגה חדשה',
@@ -829,6 +843,8 @@ const he: Strings = {
     keysText: 'טקסט מקשים',
     calcDisplayColor: 'טקסט תצוגה',
     showScientific: 'הצג מדעי',
+    calcBasic: 'בסיסי',
+    calcScientific: 'מדעי',
     font: 'גופן',
     keyGap: 'רווח בין מקשים',
     keyGapRegular: 'רגיל',
@@ -952,6 +968,7 @@ const he: Strings = {
     saveAs: 'שמור בשם',
     enterName: 'אנא הזן שם',
     nameInUse: 'שם זה כבר בשימוש.',
+    defaultName: '{{name}} שלי',
   },
   profiles: {
     saveProfile: 'שמירת מקלדת',
@@ -1016,6 +1033,7 @@ const he: Strings = {
   importExport: {
     exportProfile: 'שתף מקלדת',
     backupAll: 'גיבוי כל המקלדות',
+    backupAllCalculators: 'גיבוי כל המחשבונים',
     importSuccessTitle: 'ייבוא הושלם',
     importedProfiles: 'מקלדות שיובאו',
     skippedProfiles: 'דולגו (כבר קיימות)',
@@ -1056,6 +1074,8 @@ const ar: Strings = {
   editor: {
     keyboardConfiguration: 'إعدادات لوحة المفاتيح',
     myKeyboards: 'لوحات المفاتيح',
+    myCalculators: 'الآلات الحاسبة',
+    newCalculator: 'آلة حاسبة جديدة',
     builtIn: 'مدمج',
     settings: 'إعدادات',
     backToNewsettings: 'New View',
@@ -1172,6 +1192,8 @@ const ar: Strings = {
     keysText: 'نص المفاتيح',
     calcDisplayColor: 'نص الشاشة',
     showScientific: 'إظهار العلمي',
+    calcBasic: 'أساسي',
+    calcScientific: 'علمي',
     font: 'الخط',
     keyGap: 'المسافة بين المفاتيح',
     keyGapRegular: 'عادي',
@@ -1295,6 +1317,7 @@ const ar: Strings = {
     saveAs: 'حفظ باسم',
     enterName: 'يرجى إدخال اسم',
     nameInUse: 'هذا الاسم مستخدم بالفعل.',
+    defaultName: '{{name}} الخاص بي',
   },
   profiles: {
     saveProfile: 'حفظ لوحة المفاتيح',
@@ -1359,6 +1382,7 @@ const ar: Strings = {
   importExport: {
     exportProfile: 'مشاركة لوحة مفاتيح',
     backupAll: 'نسخ احتياطي لجميع لوحات المفاتيح',
+    backupAllCalculators: 'نسخ احتياطي لجميع الآلات الحاسبة',
     importSuccessTitle: 'اكتمل الاستيراد',
     importedProfiles: 'لوحات المفاتيح المستوردة',
     skippedProfiles: 'تم تخطيها (موجودة بالفعل)',

@@ -72,6 +72,7 @@ import {
 import {
   CALC_BUILT_IN_PROFILES,
   getCalcBuiltInProfile,
+  getCalcBuiltInProfileLocalizedName,
   getCalcBuiltInProfileId,
   extractCalcTemplateId,
   isCalcBuiltInProfileId,
@@ -664,7 +665,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         const profileId = getCalcBuiltInProfileId(template.id);
         profileList.push({
           id: profileId,
-          name: template.name,
+          name: getCalcBuiltInProfileLocalizedName(template, uiLanguage),
           language: currentLanguage,
           keyboardId: 'calc',
           isBuiltIn: true,
@@ -1936,7 +1937,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
               <View style={styles.profilePickerHeader}>
                 <TouchableOpacity onPress={handleTitleTap} activeOpacity={1}>
                   <Text allowFontScaling={false} style={styles.profilePickerTitle}>
-                    {`${strings.editor.myKeyboards} - ${currentLanguageDef.name}`}
+                    {appContext === 'issiecalc' ? strings.editor.myCalculators : `${strings.editor.myKeyboards} - ${currentLanguageDef.name}`}
                   </Text>
                 </TouchableOpacity>
                 <View style={styles.profilePickerHeaderActions}>
@@ -1948,7 +1949,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
                     }}
                     activeOpacity={0.7}>
                     <MyIcon info={{ name: 'add', type: 'Ionicons', color: '#3B82F6', size: 24 }} />
-                    <Text allowFontScaling={false} style={styles.profilePickerNewButtonText}>{strings.editor.newProfile}</Text>
+                    <Text allowFontScaling={false} style={styles.profilePickerNewButtonText}>{appContext === 'issiecalc' ? strings.editor.newCalculator : strings.editor.newProfile}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.profilePickerCloseButton}
@@ -2037,7 +2038,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
                 activeOpacity={0.7}
               >
                 <MyIcon info={{ name: 'cloud-download-outline', type: 'Ionicons', color: '#3B82F6', size: 20 }} />
-                <Text allowFontScaling={false} style={styles.backupAllText}>{strings.importExport.backupAll}</Text>
+                <Text allowFontScaling={false} style={styles.backupAllText}>{appContext === 'issiecalc' ? strings.importExport.backupAllCalculators : strings.importExport.backupAll}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -2240,8 +2241,8 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
           <View style={[styles.profilePickerContainer, windowWidth < 700 && styles.profilePickerContainerSmall]}>
             <View style={styles.profilePickerHeader}>
               <Text allowFontScaling={false} style={styles.profilePickerTitle}>
-                {appContext === 'issievoice'
-                  ? `${strings.editor.myKeyboards} - ${currentLanguageDef.name}`
+                {appContext === 'issiecalc'
+                  ? strings.editor.myCalculators
                   : `${strings.editor.myKeyboards} - ${currentLanguageDef.name}`}
               </Text>
               <View style={styles.profilePickerHeaderActions}>
@@ -2586,7 +2587,8 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
           setCurrentProfileId(activeId);
           setActiveKeyboardProfileId(activeId);
           if (activeTemplate) {
-            setProfileName(getCalcBuiltInProfile(activeTemplate)?.name || 'Calculator');
+            const builtIn = getCalcBuiltInProfile(activeTemplate);
+            setProfileName(builtIn ? getCalcBuiltInProfileLocalizedName(builtIn, uiLanguage) : 'Calculator');
           } else {
             // Custom saved profile — look up name from saved_list
             try {

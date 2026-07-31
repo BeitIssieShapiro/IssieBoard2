@@ -3,6 +3,7 @@ import { StyleGroup } from '../../types';
 export interface CalcBuiltInProfile {
   id: string;
   name: string;
+  localizedName?: Record<string, string>;
   config: {
     backgroundColor?: string;
     fontSizePreset?: string;
@@ -31,6 +32,7 @@ export const CALC_BUILT_IN_PROFILES: CalcBuiltInProfile[] = [
   {
     id: 'default',
     name: 'Default',
+    localizedName: { en: 'Default', he: 'ברירת מחדל', ar: 'افتراضي' },
     config: {
       backgroundColor: 'default',
       fontSizePreset: 'normal',
@@ -47,6 +49,7 @@ export const CALC_BUILT_IN_PROFILES: CalcBuiltInProfile[] = [
   {
     id: 'classic',
     name: 'IssieCalc Classic',
+    localizedName: { en: 'IssieCalc Classic', he: 'IssieCalc קלאסי', ar: 'IssieCalc كلاسيك' },
     config: {
       backgroundColor: '#A0A0A0',
       fontSizePreset: 'normal',
@@ -78,6 +81,7 @@ export const CALC_BUILT_IN_PROFILES: CalcBuiltInProfile[] = [
   {
     id: 'high-contrast',
     name: 'High Contrast',
+    localizedName: { en: 'High Contrast', he: 'ניגודיות גבוהה', ar: 'تباين عالٍ' },
     config: {
       backgroundColor: '#000000',
       fontSizePreset: 'large',
@@ -107,6 +111,9 @@ export const CALC_BUILT_IN_PROFILES: CalcBuiltInProfile[] = [
     ],
   },
 ];
+
+export const getCalcBuiltInProfileLocalizedName = (profile: CalcBuiltInProfile, uiLanguage: string): string =>
+  profile.localizedName?.[uiLanguage] || profile.name;
 
 export const getCalcBuiltInProfile = (id: string): CalcBuiltInProfile | undefined =>
   CALC_BUILT_IN_PROFILES.find(p => p.id === id);

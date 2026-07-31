@@ -74,6 +74,8 @@ export interface Strings {
     speakButtonInKeyboard: string;
     speakButtonInKeyboardDesc: string;
     calcReadout: string;
+    calcBasic: string;
+    calcScientific: string;
     calcReadoutOff: string;
     calcReadoutEveryDigit: string;
     calcReadoutEveryNumber: string;
@@ -203,6 +205,8 @@ const en: Strings = {
     speakButtonInKeyboard: 'Speak Button in Keyboard',
     speakButtonInKeyboardDesc: 'Show the speak button as part of the keyboard instead of above it',
     calcReadout: 'Readout',
+    calcBasic: 'Basic',
+    calcScientific: 'Scientific',
     calcReadoutOff: 'Off',
     calcReadoutEveryDigit: 'Every digit',
     calcReadoutEveryNumber: 'Every number',
@@ -332,6 +336,8 @@ const he: Strings = {
     speakButtonInKeyboard: 'כפתור הקראה במקלדת',
     speakButtonInKeyboardDesc: 'הצג את כפתור ההקראה כחלק מהמקלדת במקום מעליה',
     calcReadout: 'הקראה',
+    calcBasic: 'בסיסי',
+    calcScientific: 'מדעי',
     calcReadoutOff: 'כבוי',
     calcReadoutEveryDigit: 'כל ספרה',
     calcReadoutEveryNumber: 'כל מספר',
@@ -461,6 +467,8 @@ const ar: Strings = {
     speakButtonInKeyboard: 'زر التحدث في لوحة المفاتيح',
     speakButtonInKeyboardDesc: 'عرض زر التحدث كجزء من لوحة المفاتيح بدلاً من فوقها',
     calcReadout: 'قراءة',
+    calcBasic: 'أساسي',
+    calcScientific: 'علمي',
     calcReadoutOff: 'إيقاف',
     calcReadoutEveryDigit: 'كل رقم',
     calcReadoutEveryNumber: 'كل عدد',

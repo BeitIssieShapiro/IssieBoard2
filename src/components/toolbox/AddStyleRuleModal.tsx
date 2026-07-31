@@ -548,12 +548,12 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
                   <TouchableOpacity
                     style={[styles.calcToggleBtn, calcKeyset === 'basic' && styles.calcToggleBtnActive]}
                     onPress={() => setCalcKeyset('basic')}>
-                    <Text allowFontScaling={false} style={[styles.calcToggleText, calcKeyset === 'basic' && styles.calcToggleTextActive]}>Basic</Text>
+                    <Text allowFontScaling={false} style={[styles.calcToggleText, calcKeyset === 'basic' && styles.calcToggleTextActive]}>{strings.globalSettings.calcBasic}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.calcToggleBtn, calcKeyset === 'scientific' && styles.calcToggleBtnActive]}
                     onPress={() => setCalcKeyset('scientific')}>
-                    <Text allowFontScaling={false} style={[styles.calcToggleText, calcKeyset === 'scientific' && styles.calcToggleTextActive]}>Scientific</Text>
+                    <Text allowFontScaling={false} style={[styles.calcToggleText, calcKeyset === 'scientific' && styles.calcToggleTextActive]}>{strings.globalSettings.calcScientific}</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -795,32 +795,28 @@ const styles = StyleSheet.create({
   },
   calcToggle: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 6,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#1C1C1E',
     borderRadius: 8,
+    padding: 2,
     marginBottom: 6,
   },
   calcToggleBtn: {
-    paddingHorizontal: 20,
-    paddingVertical: 5,
-    borderRadius: 7,
+    flex: 1,
+    paddingVertical: 6,
+    alignItems: 'center',
+    borderRadius: 6,
   },
   calcToggleBtnActive: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 2,
+    backgroundColor: '#636366',
   },
   calcToggleText: {
-    fontSize: 13,
-    color: '#666',
+    fontSize: 14,
+    color: '#8E8E93',
+    fontWeight: '500',
   },
   calcToggleTextActive: {
-    color: '#000',
-    fontWeight: '600',
+    color: '#FFFFFF',
+    fontWeight: '500',
   },
   previewContainer: {
     backgroundColor: '#CBCFD8',

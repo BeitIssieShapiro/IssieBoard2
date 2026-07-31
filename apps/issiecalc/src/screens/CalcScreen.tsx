@@ -6,6 +6,7 @@ import { KeyboardPreview, KeyPressEvent } from '../../../../src/components/Keybo
 import { useCalc } from '../context/CalcContext';
 import { useCalcTTS } from '../context/CalcTTSContext';
 import { evaluate } from '../services/Calculator';
+import { useLocalization } from '../../../issievoice/src/context/LocalizationContext';
 import KeyboardPreferences from '../../../../src/native/KeyboardPreferences';
 
 const builtConfig = require('../../../../ios/IssieCalc/default_config.json');
@@ -102,6 +103,7 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
     replaceExpression,
   } = useCalc();
   const { readout } = useCalcTTS();
+  const { strings } = useLocalization();
   const insets = useSafeAreaInsets();
   const [keyboardHeight, setKeyboardHeight] = useState(500);
   const [screenHeight, setScreenHeight] = useState(Dimensions.get('window').height);
@@ -223,12 +225,12 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
             <TouchableOpacity
               style={[styles.segment, keyset === 'basic' && styles.segmentActive]}
               onPress={() => setKeyset('basic')}>
-              <Text style={[styles.segmentText, keyset === 'basic' && styles.segmentTextActive, { color: dimTextColor }, keyset === 'basic' && { color: displayTextColor }]}>Basic</Text>
+              <Text style={[styles.segmentText, keyset === 'basic' && styles.segmentTextActive, { color: dimTextColor }, keyset === 'basic' && { color: displayTextColor }]}>{strings.settings.calcBasic}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.segment, (keyset === 'scientific' || keyset === 'scientific_landscape_2nd' || keyset === 'scientific_2nd') && styles.segmentActive]}
               onPress={() => setKeyset('scientific')}>
-              <Text style={[styles.segmentText, (keyset === 'scientific' || keyset === 'scientific_landscape_2nd' || keyset === 'scientific_2nd') && styles.segmentTextActive, { color: dimTextColor }, (keyset === 'scientific' || keyset === 'scientific_landscape_2nd' || keyset === 'scientific_2nd') && { color: displayTextColor }]}>Scientific</Text>
+              <Text style={[styles.segmentText, (keyset === 'scientific' || keyset === 'scientific_landscape_2nd' || keyset === 'scientific_2nd') && styles.segmentTextActive, { color: dimTextColor }, (keyset === 'scientific' || keyset === 'scientific_landscape_2nd' || keyset === 'scientific_2nd') && { color: displayTextColor }]}>{strings.settings.calcScientific}</Text>
             </TouchableOpacity>
           </View>
         )}

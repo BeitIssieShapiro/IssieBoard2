@@ -324,12 +324,12 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
           <TouchableOpacity
             style={[styles.calcToggleBtn, calcPreviewKeyset === 'basic' && styles.calcToggleBtnActive]}
             onPress={() => { setCalcPreviewKeyset('basic'); dispatch({ type: 'SET_ACTIVE_KEYSET', payload: 'basic' }); }}>
-            <Text allowFontScaling={false} style={[styles.calcToggleText, calcPreviewKeyset === 'basic' && styles.calcToggleTextActive]}>Basic</Text>
+            <Text allowFontScaling={false} style={[styles.calcToggleText, calcPreviewKeyset === 'basic' && styles.calcToggleTextActive]}>{strings.globalSettings.calcBasic}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.calcToggleBtn, calcPreviewKeyset === 'scientific' && styles.calcToggleBtnActive]}
             onPress={() => { setCalcPreviewKeyset('scientific'); dispatch({ type: 'SET_ACTIVE_KEYSET', payload: 'scientific' }); }}>
-            <Text allowFontScaling={false} style={[styles.calcToggleText, calcPreviewKeyset === 'scientific' && styles.calcToggleTextActive]}>Scientific</Text>
+            <Text allowFontScaling={false} style={[styles.calcToggleText, calcPreviewKeyset === 'scientific' && styles.calcToggleTextActive]}>{strings.globalSettings.calcScientific}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -365,23 +365,24 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
 const styles = StyleSheet.create({
   calcToggle: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 6,
-    backgroundColor: '#F2F2F7',
+    marginHorizontal: 16,
+    marginVertical: 6,
+    backgroundColor: '#1C1C1E',
+    borderRadius: 8,
+    padding: 2,
   },
   calcToggleBtn: {
-    paddingHorizontal: 20,
-    paddingVertical: 5,
-    borderRadius: 7,
-    backgroundColor: '#E0E0E6',
+    flex: 1,
+    paddingVertical: 6,
+    alignItems: 'center',
+    borderRadius: 6,
   },
   calcToggleBtnActive: {
-    backgroundColor: '#2962FF',
+    backgroundColor: '#636366',
   },
   calcToggleText: {
-    fontSize: 13,
-    color: '#555',
+    fontSize: 14,
+    color: '#8E8E93',
     fontWeight: '500',
   },
   calcToggleTextActive: {

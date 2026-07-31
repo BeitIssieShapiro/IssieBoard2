@@ -19,7 +19,7 @@ const SaveAsModal = ({ visible, onClose, onSaveAs, originalName, existingNames }
   useEffect(() => {
     if (visible) {
       // Generate default name: "My {Original Name}"
-      const defaultName = `My ${originalName}`;
+      const defaultName = strings.saveAsModal.defaultName.replace('{{name}}', originalName);
       setProfileName(defaultName);
       setError('');
     } else {
