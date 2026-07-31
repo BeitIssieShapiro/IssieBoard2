@@ -9,6 +9,9 @@ export interface Strings {
     no: string;
     error: string;
     back: string;
+    discard: string;
+    unsavedChanges: string;
+    unsavedChangesMessage: string;
   };
   app: {
     title: string;
@@ -140,6 +143,9 @@ const en: Strings = {
     no: 'No',
     error: 'Error',
     back: '← Back',
+    discard: 'Discard',
+    unsavedChanges: 'Unsaved Changes',
+    unsavedChangesMessage: 'You have unsaved changes. Save or discard?',
   },
   app: {
     title: 'IssieVoice',
@@ -271,6 +277,9 @@ const he: Strings = {
     no: 'לא',
     error: 'שגיאה',
     back: '→ חזור',
+    discard: 'בטל שינויים',
+    unsavedChanges: 'שינויים לא שמורים',
+    unsavedChangesMessage: 'יש שינויים לא שמורים. לשמור או לבטל?',
   },
   app: {
     title: 'IssieVoice',
@@ -402,6 +411,9 @@ const ar: Strings = {
     no: 'لا',
     error: 'خطأ',
     back: '← رجوع',
+    discard: 'تجاهل التغييرات',
+    unsavedChanges: 'تغييرات غير محفوظة',
+    unsavedChangesMessage: 'لديك تغييرات غير محفوظة. حفظ أم تجاهل؟',
   },
   app: {
     title: 'IssieVoice',

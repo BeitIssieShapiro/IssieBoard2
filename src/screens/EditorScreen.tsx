@@ -959,6 +959,10 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       showToast('✓ ' + strings.alerts.profileSaved);
       // Mark as saved (not dirty) since we just saved
       dispatch({ type: 'MARK_SAVED' });
+      // For IssieCalc, navigate back immediately after save
+      if (appContext === 'issiecalc' && onClose) {
+        onClose();
+      }
     } catch (error) {
       console.error('Save failed:', error);
       showToast('✗ ' + strings.alerts.failedToSaveProfile);
@@ -1004,14 +1008,14 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
 
   useEffect(() => {
     if (discardRef) {
-      discardRef.current = handleDiscard;
+      discardRef.current = performDiscard;
     }
     return () => {
       if (discardRef) {
         discardRef.current = null;
       }
     };
-  }, [discardRef, handleDiscard]);
+  }, [discardRef, performDiscard]);
 
   // Expose language change to parent via ref (inner handleLanguageChange loads profiles)
   useEffect(() => {
@@ -1123,11 +1127,15 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         pendingAction();
       }
 
-      // For IssieVoice, close the settings screen after saving
-      if (appContext === 'issievoice' && onClose) {
-        setTimeout(() => {
-          onClose();
-        }, 1000); // Give user time to see the success message
+      // For IssieVoice and IssieCalc, close the settings screen after saving
+      if ((appContext === 'issievoice' || appContext === 'issiecalc') && onClose) {
+        if (appContext === 'issiecalc') {
+          onClose(); // Navigate immediately for issiecalc — no delay needed
+        } else {
+          setTimeout(() => {
+            onClose();
+          }, 1000);
+        }
       }
 
       return true;
@@ -1367,16 +1375,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     }
   }, [onSetActive, showToast, strings.alerts.profileUpdated, strings.alerts.failedToSwitchProfile]);
 
-  const handleDiscard = useCallback(async () => {
-    Alert.alert(
-      strings.alerts.discardChanges,
-      strings.alerts.discardChangesMessage,
-      [
-        { text: strings.common.cancel, style: 'cancel' },
-        {
-          text: strings.alerts.discard,
-          style: 'destructive',
-          onPress: async () => {
+  const performDiscard = useCallback(async () => {
             // Reload the current profile from saved state
             if (appContext === 'issiecalc') {
               // issiecalc bypasses buildConfiguration — reload from saved JSON directly
@@ -1442,11 +1441,18 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
               }
               showToast('✓ ' + strings.alerts.editCancelled);
             }
-          }
-        },
+  }, [appContext, currentProfileId, currentLanguage, currentProfileName, setConfig, setCurrentKeyboardId, showToast, LANGUAGES, uiLanguage, strings.alerts.editCancelled]);
+
+  const handleDiscard = useCallback(() => {
+    Alert.alert(
+      strings.alerts.discardChanges,
+      strings.alerts.discardChangesMessage,
+      [
+        { text: strings.common.cancel, style: 'cancel' },
+        { text: strings.alerts.discard, style: 'destructive', onPress: performDiscard },
       ]
     );
-  }, [currentProfileId, currentLanguage, currentProfileName, setConfig, setCurrentKeyboardId, showToast, LANGUAGES, uiLanguage, strings.alerts.discard, strings.alerts.discardChanges, strings.alerts.discardChangesMessage, strings.alerts.editCancelled, strings.common.cancel]);
+  }, [performDiscard, strings.alerts.discard, strings.alerts.discardChanges, strings.alerts.discardChangesMessage, strings.common.cancel]);
 
   const handleClearConfig = useCallback(async () => {
     Alert.alert(

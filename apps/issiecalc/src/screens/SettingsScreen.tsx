@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { View, useWindowDimensions, StyleSheet } from 'react-native';
+import { Alert, View, useWindowDimensions, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EditorScreen } from '../../../../src/screens/EditorScreen';
 import SettingsSidebar from '../../../issievoice/src/components/Settings/SettingsSidebar';
@@ -15,7 +15,6 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [isDirty, setIsDirty] = useState(false);
   const [configBg, setConfigBg] = useState<string | undefined>(undefined);
   const saveRef = useRef<(() => void) | null>(null);
-  const autoSaveRef = useRef<(() => void) | null>(null);
   const discardRef = useRef<(() => void) | null>(null);
   const showProfilePickerRef = useRef<(() => void) | null>(null);
   const { width, height } = useWindowDimensions();
@@ -30,12 +29,35 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     iconColor: '#D97706',
   };
 
-  const handleClose = useCallback(async () => {
-    if (autoSaveRef.current) {
-      await autoSaveRef.current();
+  const navigateBack = useCallback(() => navigation.goBack(), [navigation]);
+
+  const handleClose = useCallback(() => {
+    if (!isDirty) {
+      navigateBack();
+      return;
     }
-    navigation.goBack();
-  }, [navigation]);
+    Alert.alert(
+      strings.common.unsavedChanges,
+      strings.common.unsavedChangesMessage,
+      [
+        { text: strings.common.cancel, style: 'cancel' },
+        {
+          text: strings.common.discard,
+          style: 'destructive',
+          onPress: () => {
+            if (discardRef.current) discardRef.current();
+            navigateBack();
+          },
+        },
+        {
+          text: strings.common.save,
+          onPress: () => {
+            if (saveRef.current) saveRef.current();
+          },
+        },
+      ]
+    );
+  }, [isDirty, navigateBack, strings]);
 
   const handleTabChange = useCallback((tabId: string) => {
     setActiveTab(tabId);
@@ -49,7 +71,7 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       <EditorScreen
         appContext="issiecalc"
         initialLanguage="calc"
-        onClose={handleClose}
+        onClose={navigateBack}
         onStateChange={({ profileName: name, isDirty: dirty, backgroundColor }) => {
           setProfileName(name);
           setIsDirty(dirty);
@@ -58,18 +80,15 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         headless
         activeTab={activeTab}
         saveRef={saveRef}
-        autoSaveRef={autoSaveRef}
         discardRef={discardRef}
         showProfilePickerRef={showProfilePickerRef}
-        profileName={profileName}
       />
     );
   };
 
-  const screenBg = configBg ?? '#D4E4F7';
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: screenBg }]}>
+    <SafeAreaView style={styles.container}>
       <KeyboardHeader
         currentLanguage="he"
         onLanguageChange={() => {}}
