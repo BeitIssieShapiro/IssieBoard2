@@ -149,12 +149,20 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
     // Only include active groups
     console.log(`🎨 [InteractiveCanvas] Converting ${state.styleGroups.length} styleGroups to groups`);
 
-    const groupConfigs = state.styleGroups
-      .filter(group => {
+    const activeGroups = state.styleGroups.filter(group => {
         const isActive = group.active !== false;
         console.log(`🎨 Group "${group.name}": active=${isActive}, members=${group.members?.length || 0}, bgColor=${group.style.bgColor}`);
         return isActive;
-      })
+      });
+
+    // showOnly groups with no colors must come before color groups so that
+    // color groups (last-writer-wins in native buildGroupsMap) are not overwritten.
+    const sortedGroups = [
+      ...activeGroups.filter(g => g.style.visibilityMode === 'showOnly' && !g.style.bgColor && !g.style.color),
+      ...activeGroups.filter(g => !(g.style.visibilityMode === 'showOnly' && !g.style.bgColor && !g.style.color)),
+    ];
+
+    const groupConfigs = sortedGroups
       .map(group => ({
         name: group.name,
         items: group.members, // Already key values, no conversion needed

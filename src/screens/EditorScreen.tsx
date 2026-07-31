@@ -449,19 +449,22 @@ interface EditorScreenInnerProps {
 const convertStyleGroupsToGroupConfig = (
   styleGroups: { name: string; members: string[]; style: { hidden?: boolean; visibilityMode?: VisibilityMode; bgColor?: string; color?: string; label?: string }; active?: boolean }[]
 ): { name: string; items: string[]; template: { color: string; bgColor: string; hidden?: boolean; visibilityMode?: VisibilityMode } }[] => {
-  return styleGroups
-    .filter(group => group.active !== false) // Only include active groups
-    .map(group => ({
-      name: group.name,
-      items: group.members, // Already key values, no conversion needed
-      template: {
-        color: group.style.color || '',
-        bgColor: group.style.bgColor || '',
-        // Support both legacy hidden boolean and new visibilityMode
-        hidden: group.style.hidden || group.style.visibilityMode === 'hide',
-        visibilityMode: group.style.visibilityMode,
-      },
-    }));
+  const active = styleGroups.filter(group => group.active !== false);
+  // showOnly groups with no colors must come first so color groups (last-writer-wins in native) are not overwritten.
+  const sorted = [
+    ...active.filter(g => g.style.visibilityMode === 'showOnly' && !g.style.bgColor && !g.style.color),
+    ...active.filter(g => !(g.style.visibilityMode === 'showOnly' && !g.style.bgColor && !g.style.color)),
+  ];
+  return sorted.map(group => ({
+    name: group.name,
+    items: group.members,
+    template: {
+      color: group.style.color || '',
+      bgColor: group.style.bgColor || '',
+      hidden: group.style.hidden || group.style.visibilityMode === 'hide',
+      visibilityMode: group.style.visibilityMode,
+    },
+  }));
 };
 
 interface ProfileOption {
