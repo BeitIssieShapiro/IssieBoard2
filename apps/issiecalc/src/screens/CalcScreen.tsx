@@ -137,9 +137,18 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
 
   const showScientific = liveConfig?.showScientific !== false;
   const isScientific = keyset === 'scientific' || keyset === 'scientific_2nd' || keyset === 'scientific_landscape_2nd';
+
+  const heightRatio = (() => {
+    const preset = liveConfig?.heightPreset ?? 'normal';
+    if (isScientific) {
+      return preset === 'compact' ? 0.65 : preset === 'normal' ? 0.80 : preset === 'tall' ? 0.80 : 0.80;
+    }
+    return preset === 'compact' ? 0.40 : preset === 'normal' ? 0.50 : preset === 'tall' ? 0.60 : 0.70;
+  })();
+
   const effectiveKbHeight = landscape
     ? keyboardHeight
-    : screenHeight * (isScientific ? 0.75 : 0.50);
+    : screenHeight * heightRatio;
 
   const configJson = useMemo(() => {
     let defaultKeyset: string;
@@ -155,7 +164,7 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
 
     const angleCaption = angleMode === 'rad' ? 'Rad' : 'Deg';
     const patched = patchAngleToggleCaption(liveConfig, angleCaption);
-    return JSON.stringify({ ...patched, defaultKeyset, heightPreset: 'x-tall', heightPreset_large: 'x-tall' });
+    return JSON.stringify({ ...patched, defaultKeyset });
   }, [keyset, landscape, liveConfig, angleMode]);
 
   const handleKeyPress = (event: KeyPressEvent) => {
@@ -241,30 +250,19 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
 
       {/* Display */}
       <View style={[styles.display, { backgroundColor: screenBg }]}>
-        {resultMode ? (
-          <>
-            <View style={styles.expressionRow}>
-              {(keyset === 'scientific' || keyset === 'scientific_landscape_2nd' || keyset === 'scientific_2nd') && (
-                <Text style={[styles.angleIndicator, fadedTextStyle]}>{angleMode === 'rad' ? 'Rad' : 'Deg'}</Text>
-              )}
-              <Text style={[styles.expression, fadedTextStyle]} numberOfLines={1} adjustsFontSizeToFit>
-                {formatExpression(expression)}
-              </Text>
-            </View>
-            <Text style={[styles.result, { color: displayTextColor }]} numberOfLines={1} adjustsFontSizeToFit>
-              {result}
-            </Text>
-          </>
-        ) : (
-          <View style={styles.expressionRow}>
-            {(keyset === 'scientific' || keyset === 'scientific_landscape_2nd') && (
+        <View style={styles.displayInner}>
+          <View style={[styles.expressionRow, !resultMode && { opacity: 0 }]}>
+            {(keyset === 'scientific' || keyset === 'scientific_landscape_2nd' || keyset === 'scientific_2nd') && (
               <Text style={[styles.angleIndicator, fadedTextStyle]}>{angleMode === 'rad' ? 'Rad' : 'Deg'}</Text>
             )}
-            <Text style={[styles.result, { color: displayTextColor }]} numberOfLines={1} adjustsFontSizeToFit>
-              {formatExpression(expression) || '0'}
+            <Text style={[styles.expression, fadedTextStyle]} numberOfLines={1} adjustsFontSizeToFit>
+              {formatExpression(expression)}
             </Text>
           </View>
-        )}
+          <Text style={[styles.result, { color: displayTextColor }]} numberOfLines={1} adjustsFontSizeToFit>
+            {resultMode ? result : (formatExpression(expression) || '0')}
+          </Text>
+        </View>
       </View>
 
       {/* Keyboard */}
@@ -303,8 +301,14 @@ const styles = StyleSheet.create({
     flex: 1, justifyContent: 'flex-end', alignItems: 'flex-end',
     paddingHorizontal: 24, paddingBottom: 16,
   },
+  displayInner: {
+    alignSelf: 'stretch',
+    flexDirection: 'column',
+    justifyContent: 'flex-end',
+    alignItems: 'flex-end',
+  },
   expression: { fontSize: 28, color: '#8E8E93', marginBottom: 8, textAlign: 'left', alignSelf: 'stretch' },
-  result: { fontSize: 64, fontWeight: '300', color: '#FFFFFF', flex: 1, textAlign: 'right' },
+  result: { fontSize: 64, fontWeight: '300', color: '#FFFFFF', textAlign: 'right', alignSelf: 'stretch' },
   expressionRow: { flexDirection: 'row', alignItems: 'flex-end', alignSelf: 'stretch' },
   angleIndicator: { fontSize: 16, color: '#8E8E93', marginRight: 8, paddingBottom: 4 },
   keyboardContainer: { backgroundColor: KB_BG },
