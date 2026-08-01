@@ -246,6 +246,24 @@ export interface Strings {
     textColor: string;
     keysLocked: string;
   };
+  styleRuleModal: {
+    newKeysGroup: string;
+    groupNamePrefix: string;
+    nameLabel: string;
+    namePlaceholder: string;
+    presetKeysLocked: string;
+    tapKeysToSelect: string;
+    visibility: string;
+    visibilityDefault: string;
+    visibilityHide: string;
+    visibilityShowOnly: string;
+    showOnlyHint: string;
+    hiddenHint: string;
+    bgColor: string;
+    textColor: string;
+    keysLocked: string;
+    previewNote: string;
+  };
   colorPicker: {
     modalTitle: string;
     selectedColor: string;
@@ -594,6 +612,7 @@ const en: Strings = {
     bgColor: 'Background Color',
     textColor: 'Text Color',
     keysLocked: 'Keys are locked for this preset group.',
+    previewNote: 'Preview shows the impact of this key group and all active preceding ones.',
   },
   colorPicker: {
     modalTitle: 'Choose Color',
@@ -943,6 +962,7 @@ const he: Strings = {
     bgColor: 'צבע רקע',
     textColor: 'צבע טקסט',
     keysLocked: 'המקשים נעולים עבור קבוצת תבנית זו.',
+    previewNote: 'התצוגה מראה את ההשפעה של קבוצה זו וכל הקבוצות הפעילות שלפניה.',
   },
   colorPicker: {
     modalTitle: 'בחר צבע',
@@ -1292,6 +1312,7 @@ const ar: Strings = {
     bgColor: 'لون الخلفية',
     textColor: 'لون النص',
     keysLocked: 'المفاتيح مقفلة لمجموعة القالب هذه.',
+    previewNote: 'تعرض المعاينة تأثير هذه المجموعة وجميع المجموعات النشطة السابقة.',
   },
   colorPicker: {
     modalTitle: 'اختر لونًا',

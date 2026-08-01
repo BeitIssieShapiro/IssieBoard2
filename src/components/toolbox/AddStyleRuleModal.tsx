@@ -227,13 +227,31 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
     onClose();
   };
 
-  // Build config with:
-  // ONLY the current rule being edited/created
-  // DO NOT include other style groups - only show general settings + current group
+  // Build config with the current rule AND all active groups that precede it in the list.
   // IMPORTANT: In the modal preview, we show opacity effect (0.3) to preview semi-hidden keys,
   // but we don't fully hide keys (visibility modes) because we need all keys visible for selection.
   const previewConfig = useMemo((): KeyboardConfig => {
-    const groups: any[] = [];
+    // Collect preceding active groups (groups before this one in the ordered list)
+    const currentIndex = editingGroup
+      ? state.styleGroups.findIndex(g => g.id === editingGroup.id)
+      : state.styleGroups.length; // new rule goes at the end
+    const precedingGroups = state.styleGroups
+      .slice(0, currentIndex)
+      .filter(g => g.active !== false)
+      .map(g => ({
+        name: g.id,
+        items: g.members,
+        template: {
+          color: g.style.color || '',
+          bgColor: g.style.bgColor || '',
+          // Keep color styling but never dim/hide keys — all keys must stay tappable
+          opacity: 1.0,
+          hidden: false,
+          visibilityMode: 'default' as VisibilityMode,
+        },
+      }));
+
+    const groups: any[] = [...precedingGroups];
 
     if (selectedKeyValues.length > 0) {
       if (visibilityMode === 'hide') {
@@ -416,7 +434,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
       groups, // Only the current group being edited, not other groups
       wordSuggestionsEnabled: state.config.wordSuggestionsEnabled ?? true,
     };
-  }, [state.config, state.styleGroups, selectedKeyValues, bgColor, textColor, visibilityMode, hideCloseKey, hideGlobeButton, selectedLanguages, speakButtonInKeyboard]);
+  }, [state.config, state.styleGroups, editingGroup, selectedKeyValues, bgColor, textColor, visibilityMode, hideCloseKey, hideGlobeButton, selectedLanguages, speakButtonInKeyboard]);
 
   const previewConfigJson = useMemo(() => {
     const base = transformConfigForPreview(previewConfig);
@@ -480,7 +498,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
     <Modal
       visible={visible}
       transparent
-      animationType="fade"
+      //animationType="fade"
       supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']}
       onRequestClose={handleCancel}
     >
@@ -557,7 +575,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
                   </TouchableOpacity>
                 </View>
               )}
-              <View style={styles.previewContainer}>
+              <View style={[styles.previewContainer, { height: modalPreviewHeight }]}>
                 <KeyboardPreview
                   key="modal-preview"
                   style={{ height: modalPreviewHeight }}
@@ -568,6 +586,9 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
                   onKeyPress={handleKeyPress}
                 />
               </View>
+              <Text allowFontScaling={false} style={styles.previewNote}>
+                {strings.styleRuleModal.previewNote}
+              </Text>
             </View>
 
             {/* Visibility Mode */}
@@ -869,6 +890,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     marginLeft: 0,
     fontStyle: 'italic',
+  },
+  previewNote: {
+    fontSize: 13,
+    color: '#4B5563',
+    marginTop: 6,
+    marginBottom: 4,
+    fontStyle: 'italic',
+    textAlign: 'center',
   },
   // Predefined rules styles
   browsePredefinedButton: {
