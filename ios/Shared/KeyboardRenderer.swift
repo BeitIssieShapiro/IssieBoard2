@@ -310,7 +310,8 @@ class KeyboardRenderer {
     private static let specialKeyTypes: Set<String> = ["space", "backspace", "shift", "keyset", "nikkud", "enter", "next-keyboard", "settings", "close", "language"]
     private var keyCornerRadius: CGFloat {
         guard config?.roundedKeys == true else { return 5 }
-        return rowHeight * 0.5
+        let visualKeyHeight = rowHeight - keyVerticalPadding * 2
+        return visualKeyHeight * 0.5
     }
     private let fontSize: CGFloat = 24
     private let largeFontSize: CGFloat = 28
