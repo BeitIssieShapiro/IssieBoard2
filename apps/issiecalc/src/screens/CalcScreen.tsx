@@ -8,6 +8,7 @@ import { useCalcTTS } from '../context/CalcTTSContext';
 import { evaluate } from '../services/Calculator';
 import { useLocalization } from '../../../issievoice/src/context/LocalizationContext';
 import KeyboardPreferences from '../../../../src/native/KeyboardPreferences';
+import { transformConfigForPreview } from '../../../../src/utils/keyboardConfigMerger';
 
 const builtConfig = require('../../../../ios/IssieCalc/default_config.json');
 
@@ -164,7 +165,8 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
 
     const angleCaption = angleMode === 'rad' ? 'Rad' : 'Deg';
     const patched = patchAngleToggleCaption(liveConfig, angleCaption);
-    return JSON.stringify({ ...patched, defaultKeyset });
+    const transformed = transformConfigForPreview({ ...patched, defaultKeyset });
+    return JSON.stringify(transformed);
   }, [keyset, landscape, liveConfig, angleMode]);
 
   const handleKeyPress = (event: KeyPressEvent) => {
