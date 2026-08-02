@@ -4,6 +4,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useFocusEffect } from '@react-navigation/native';
 import { KeyboardPreview, KeyPressEvent } from '../../../../src/components/KeyboardPreview';
 import { useCalc } from '../context/CalcContext';
+import { dispatch, CalcState } from '../services/calcDispatch';
 import { useCalcTTS } from '../context/CalcTTSContext';
 import { evaluate } from '../services/Calculator';
 import { useLocalization } from '../../../issievoice/src/context/LocalizationContext';
@@ -26,53 +27,6 @@ function formatExpression(expr: string): string {
 function isLandscape() {
   const { width, height } = Dimensions.get('window');
   return width > height;
-}
-
-const FUNCTION_KEYS = new Set([
-  'sin(', 'cos(', 'tan(', 'asin(', 'acos(', 'atan(',
-  'sinh(', 'cosh(', 'tanh(', 'asinh(', 'acosh(', 'atanh(',
-  'ln(', 'log(', 'log2(', 'logy(', '2root(', '3root(', 'yroot(',
-  'factorial(', 'sqrt(',
-]);
-
-const OPERATORS_RE = /^[+\-*/^%]$/;
-const FUNCTIONS_RE = /^(sin\(|cos\(|tan\(|asin\(|acos\(|atan\(|sinh\(|cosh\(|tanh\(|asinh\(|acosh\(|atanh\(|sqrt\(|ln\(|log\(|log2\(|logy\(|2root\(|3root\(|yroot\(|factorial\(|x\^2|x\^3|x\^\(|\^\(|2\^\(|1\/\(|\(|\)|pi|e)$/;
-
-function isOpOrFn(val: string): boolean {
-  return OPERATORS_RE.test(val) || FUNCTIONS_RE.test(val);
-}
-
-// Extract trailing operand: last balanced (...) group or last number/constant.
-// Returns [before, operand] or null if nothing to wrap.
-function extractTrailingOperand(expr: string): [string, string] | null {
-  if (!expr) return null;
-  // Try trailing balanced paren group: ...(...) at end
-  if (expr.endsWith(')')) {
-    let depth = 0;
-    for (let i = expr.length - 1; i >= 0; i--) {
-      if (expr[i] === ')') depth++;
-      else if (expr[i] === '(') {
-        depth--;
-        if (depth === 0) {
-          return [expr.slice(0, i), expr.slice(i)];
-        }
-      }
-    }
-    return null;
-  }
-  // Try trailing number (digits, dot, E notation, leading minus only if whole expr is negative)
-  const numMatch = expr.match(/(-?\d+\.?\d*(?:[eE][+-]?\d+)?)$/);
-  if (numMatch) {
-    const num = numMatch[1];
-    const before = expr.slice(0, expr.length - num.length);
-    // Only allow leading minus if it's truly a negative number (before is empty or ends with operator)
-    if (num.startsWith('-') && before.length > 0 && !/[+\-*/(^]$/.test(before)) {
-      // The minus belongs to the operator, not the number
-      return [expr.slice(0, expr.length - num.length + 1), num.slice(1)];
-    }
-    return [before, num];
-  }
-  return null;
 }
 
 function patchAngleToggleCaption(config: any, caption: string): any {
@@ -100,9 +54,18 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
     appendToExpression, clearAll, backspace, computeResult, toggleSign,
     keyset, setKeyset,
     angleMode, toggleAngleMode,
-    memoryStore, memoryRecall,
+    memory, memoryStore, memoryRecall,
     replaceExpression,
   } = useCalc();
+  const currentState: CalcState = {
+    expression,
+    result,
+    resultMode,
+    angleMode,
+    keyset,
+    memory,
+  };
+
   const { readout } = useCalcTTS();
   const { strings } = useLocalization();
   const insets = useSafeAreaInsets();
@@ -171,41 +134,57 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
 
   const handleKeyPress = (event: KeyPressEvent) => {
     const { value } = event.nativeEvent;
-    if (value === '⌫') { backspace(); readout(value, expression, result); return; }
-    if (value === 'AC') { clearAll(); readout(value, expression, result); return; }
+
+    // rand is non-deterministic — handle before dispatch
+    if (value === 'rand') {
+      appendToExpression(String(parseFloat(Math.random().toFixed(9))));
+      readout(value, expression, result);
+      return;
+    }
+
+    // [2ND] in landscape maps to landscape_2nd variant — override keyset after dispatch
+    const newState = dispatch(currentState, value);
+
+    // Apply expression/result state
     if (value === '=') {
       computeResult();
-      const res = evaluate(expression, angleMode, keyset === 'basic' ? 'basic' : 'scientific');
-      const finalRes = res === '' ? 'Error' : res;
-      readout('=', expression, finalRes);
+    } else if (value === 'AC') {
+      clearAll();
+    } else if (!newState.resultMode && currentState.resultMode) {
+      // Exited result mode (backspace, +/-, function key, digit, operator)
+      replaceExpression(newState.expression);
+    } else if (newState.expression !== currentState.expression) {
+      replaceExpression(newState.expression);
+    }
+
+    // Keyset — [2ND] in landscape uses landscape variant
+    if (value === '[2ND]') {
+      setKeyset(landscape ? 'scientific_landscape_2nd' : 'scientific_2nd');
+    } else if (newState.keyset !== currentState.keyset) {
+      setKeyset(newState.keyset);
+    }
+
+    // Angle mode
+    if (newState.angleMode !== currentState.angleMode) {
+      toggleAngleMode();
+    }
+
+    // Memory
+    if (value === 'mr') {
+      memoryRecall();
+      readout(value, newState.expression, newState.result);
       return;
     }
-    if (value === '+/-') { toggleSign(); readout(value, expression, result); return; }
-    if (value === '[2ND]') { setKeyset(landscape ? 'scientific_landscape_2nd' : 'scientific_2nd'); readout(value, expression, result); return; }
-    if (value === '[2ND_OFF]') { setKeyset('scientific'); readout(value, expression, result); return; }
-    if (value === '[ANGLE_TOGGLE]') { toggleAngleMode(); readout(value, expression, result); return; }
-    if (value === 'ms') { memoryStore(); readout(value, expression, result); return; }
-    if (value === 'mr') { memoryRecall(); readout(value, expression, result); return; }
-    if (value === 'rand') { appendToExpression(String(parseFloat(Math.random().toFixed(9)))); readout(value, expression, result); return; }
-    if (value && FUNCTION_KEYS.has(value)) {
-      const parts = extractTrailingOperand(expression);
-      let newExpr: string;
-      if (parts) {
-        const [before, operand] = parts;
-        newExpr = `${before}${value}${operand})`;
-        replaceExpression(newExpr);
-      } else {
-        newExpr = expression + value;
-        appendToExpression(value);
-      }
-      readout(value, newExpr, result, angleMode);
-      return;
+    if (newState.memory !== currentState.memory) {
+      memoryStore();
     }
-    if (value) {
-      const newExpr = resultMode ? (isOpOrFn(value) ? result + value : value) : expression + value;
-      appendToExpression(value);
-      readout(value, newExpr, result);
-    }
+
+    // Readout
+    const readoutExpr = value === '=' ? expression : newState.expression;
+    const readoutRes = value === '='
+      ? (evaluate(expression, angleMode, keyset === 'basic' ? 'basic' : 'scientific') || 'Error')
+      : newState.result;
+    readout(value, readoutExpr, readoutRes, newState.angleMode);
   };
 
   const screenBg = (liveConfig?.backgroundColor && liveConfig.backgroundColor !== 'default')
