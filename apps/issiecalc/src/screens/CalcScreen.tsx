@@ -175,7 +175,7 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
     if (value === 'AC') { clearAll(); readout(value, expression, result); return; }
     if (value === '=') {
       computeResult();
-      const res = evaluate(expression, angleMode);
+      const res = evaluate(expression, angleMode, keyset === 'basic' ? 'basic' : 'scientific');
       const finalRes = res === '' ? 'Error' : res;
       readout('=', expression, finalRes);
       return;
@@ -261,8 +261,10 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
               {formatExpression(expression)}
             </Text>
           </View>
-          <Text style={[styles.result, { color: displayTextColor }]} numberOfLines={1} adjustsFontSizeToFit>
-            {resultMode ? result : (formatExpression(expression) || '0')}
+          <Text style={[styles.result, { color: displayTextColor }]} numberOfLines={1}>
+            {resultMode
+              ? (result === 'NUMBER_TOO_BIG' ? strings.settings.numberTooBig : result)
+              : (formatExpression(expression) || '0')}
           </Text>
         </View>
       </View>
@@ -310,7 +312,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   expression: { fontSize: 28, color: '#8E8E93', marginBottom: 8, textAlign: 'left', alignSelf: 'stretch' },
-  result: { fontSize: 64, fontWeight: '300', color: '#FFFFFF', textAlign: 'right', alignSelf: 'stretch' },
+  result: { fontSize: 48, fontWeight: '300', color: '#FFFFFF', textAlign: 'right', alignSelf: 'stretch' },
   expressionRow: { flexDirection: 'row', alignItems: 'flex-end', alignSelf: 'stretch' },
   angleIndicator: { fontSize: 16, color: '#8E8E93', marginRight: 8, paddingBottom: 4 },
   keyboardContainer: { backgroundColor: KB_BG },

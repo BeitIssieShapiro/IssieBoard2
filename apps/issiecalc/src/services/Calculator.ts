@@ -37,6 +37,13 @@ function normalize(expression: string, angleMode: 'rad' | 'deg'): string {
   // Postfix shorthands
   e = e.replace(/x\^2/g, '^2').replace(/x\^3/g, '^3');
 
+  // Convert E-notation results back to numeric literals before \be substitution
+  // e.g. 8.8888E+18 → 8888800000000000000, -2.5E+9 → -2500000000
+  e = e.replace(/(-?\d+\.?\d*)E([+-]\d+)/g, (_, mantissa, exp) => {
+    const val = Number(mantissa) * Math.pow(10, Number(exp));
+    return String(val);
+  });
+
   // Constants — replace bare `e` (not followed by ^) before other substitutions
   e = e.replace(/\bpi\b/g, String(Math.PI));
   e = e.replace(/\be(?!\^)/g, String(Math.E));
@@ -86,7 +93,11 @@ function isIncomplete(expression: string): boolean {
   return /[+\-*/^(]$/.test(trimmed);
 }
 
-export function evaluate(expression: string, angleMode: 'rad' | 'deg' = 'rad'): string {
+export function evaluate(
+  expression: string,
+  angleMode: 'rad' | 'deg' = 'rad',
+  mode: 'basic' | 'scientific' = 'scientific'
+): string {
   if (!expression || expression.trim() === '') return '0';
   if (isIncomplete(expression)) return '';
   try {
@@ -97,6 +108,16 @@ export function evaluate(expression: string, angleMode: 'rad' | 'deg' = 'rad'): 
     if (result === Infinity || result === -Infinity) return 'Error';
     if (typeof result === 'number' && isNaN(result)) return 'Error';
     const rounded = parseFloat(Number(result).toPrecision(12));
+    const abs = Math.abs(rounded);
+    if (mode === 'basic' && abs >= 1e12) return 'NUMBER_TOO_BIG';
+    if (mode === 'scientific' && abs >= 1e9) {
+      const exp = rounded.toExponential(6);
+      const [mantissa, exponent] = exp.split('e');
+      const trimmed = mantissa.replace(/\.?0+$/, '');
+      const sign = exponent.startsWith('-') ? '-' : '+';
+      const expNum = Math.abs(parseInt(exponent, 10));
+      return `${trimmed}E${sign}${expNum}`;
+    }
     return String(rounded);
   } catch {
     return 'Error';
@@ -104,6 +125,11 @@ export function evaluate(expression: string, angleMode: 'rad' | 'deg' = 'rad'): 
 }
 
 export function negateLastNumber(expression: string): string {
+  // Handle E-notation results (e.g. 8.8888E+18 → -8.8888E+18)
+  const eMatch = expression.match(/^(-?)(\d+\.?\d*E[+-]\d+)$/);
+  if (eMatch) {
+    return eMatch[1] ? eMatch[2] : '-' + eMatch[2];
+  }
   const match = expression.match(/(-?\d+\.?\d*)$/);
   if (!match) return expression;
   const num = match[1];

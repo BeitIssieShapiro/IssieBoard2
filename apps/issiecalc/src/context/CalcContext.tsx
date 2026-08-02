@@ -36,6 +36,12 @@ function isOperatorOrFunction(val: string): boolean {
   return OPERATORS.test(val) || FUNCTIONS.test(val);
 }
 
+function countTrailingDigits(expr: string): number {
+  const match = expr.match(/\d*\.?\d+$/);
+  if (!match) return 0;
+  return (match[0].match(/\d/g) || []).length;
+}
+
 export const CalcProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [expression, setExpression] = useState('');
   const [result, setResult] = useState('');
@@ -49,6 +55,7 @@ export const CalcProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const resultModeRef = useRef(false);
   const angleModeRef = useRef<AngleMode>('rad');
   const memoryRef = useRef('0');
+  const keysetRef = useRef<Keyset>('basic');
 
   useEffect(() => {
     Promise.all([
@@ -60,6 +67,7 @@ export const CalcProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setAngleMode(savedAngle);
       }
       if (savedKeyset === 'basic' || savedKeyset === 'scientific') {
+        keysetRef.current = savedKeyset;
         setKeysetState(savedKeyset);
       }
     });
@@ -86,6 +94,9 @@ export const CalcProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setResult('');
       resultRef.current = '';
     } else {
+      if (keysetRef.current === 'basic' && /^\d$/.test(val)) {
+        if (countTrailingDigits(expressionRef.current) >= 12) return;
+      }
       expressionRef.current = expressionRef.current + val;
     }
     setExpression(expressionRef.current);
@@ -115,7 +126,8 @@ export const CalcProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const computeResult = useCallback(() => {
-    const res = evaluate(expressionRef.current, angleModeRef.current);
+    const mode = keysetRef.current === 'basic' ? 'basic' : 'scientific';
+    const res = evaluate(expressionRef.current, angleModeRef.current, mode);
     const finalRes = res === '' ? 'Error' : res;
     resultRef.current = finalRes;
     resultModeRef.current = true;
@@ -139,8 +151,8 @@ export const CalcProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const setKeyset = useCallback((k: Keyset) => {
+    keysetRef.current = k;
     setKeysetState(k);
-    // Persist only the canonical mode (not the transient 2nd state)
     if (k === 'basic' || k === 'scientific') {
       KeyboardPreferences.setString(KEYSET_KEY, k);
     }
