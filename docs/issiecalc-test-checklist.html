@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IssieCalc Test Checklist</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1a1a; color: #e0e0e0; padding: 16px; }
+  h1 { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+  .subtitle { font-size: 12px; color: #888; margin-bottom: 16px; }
+
+  .filter-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .filter-bar button { padding: 4px 12px; border-radius: 20px; border: 1px solid #444; background: #2a2a2a; color: #ccc; font-size: 12px; cursor: pointer; }
+  .filter-bar button.active { background: #0a84ff; border-color: #0a84ff; color: #fff; }
+  .progress { margin-left: auto; font-size: 12px; color: #888; }
+  .progress span { color: #30d158; font-weight: 600; }
+
+  .group { margin-bottom: 20px; }
+  .group-title { font-size: 13px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.08em; padding: 6px 0; border-bottom: 1px solid #2a2a2a; margin-bottom: 8px; }
+
+  .test { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 10px; background: #222; margin-bottom: 6px; cursor: pointer; transition: background 0.15s; border: 1.5px solid transparent; }
+  .test:hover { background: #2a2a2a; }
+  .test.pass { border-color: #30d158; }
+  .test.fail { border-color: #ff453a; }
+
+  .check { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #555; flex-shrink: 0; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+  .test.pass .check { background: #30d158; border-color: #30d158; }
+  .test.pass .check::after { content: '✓'; color: #000; font-size: 13px; font-weight: 700; }
+  .test.fail .check { background: #ff453a; border-color: #ff453a; }
+  .test.fail .check::after { content: '✗'; color: #fff; font-size: 13px; font-weight: 700; }
+
+  .test-body { flex: 1; min-width: 0; }
+  .test-name { font-size: 13px; font-weight: 500; color: #e0e0e0; margin-bottom: 6px; }
+
+  .keys { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+  .key { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 28px; padding: 0 7px; border-radius: 6px; font-size: 13px; font-weight: 600; background: #3a3a3c; color: #fff; border-bottom: 2px solid #555; }
+  .key.special { background: #2c2c2e; color: #0a84ff; }
+  .key.equals { background: #0a84ff; color: #fff; border-bottom-color: #005fc4; }
+  .key.op { background: #ff9f0a; color: #000; border-bottom-color: #c77700; }
+  .key.fn { background: #5e5ce6; color: #fff; border-bottom-color: #3a38b0; }
+  .key.clear { background: #636366; color: #fff; border-bottom-color: #444; }
+
+  .expects { display: flex; flex-wrap: wrap; gap: 6px; }
+  .expect { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: #2a2a2a; border: 1px solid #3a3a3a; }
+  .expect .label { color: #888; margin-right: 4px; }
+  .expect .value { color: #ffd60a; font-family: 'SF Mono', 'Menlo', monospace; font-weight: 600; }
+  .expect.approx .value { color: #64d2ff; }
+  .expect.pattern .value { color: #bf5af2; }
+
+  .setup-badge { font-size: 10px; padding: 1px 6px; border-radius: 4px; background: #3a3a3c; color: #adadad; margin-left: 6px; vertical-align: middle; }
+
+  .hide-pass .test.pass { display: none; }
+  .hide-fail .test.fail { display: none; }
+</style>
+</head>
+<body>
+
+<h1>IssieCalc Test Checklist</h1>
+<p class="subtitle">Tap a test to mark pass/fail. Compare key sequences against iOS Calculator and IssieCalc side-by-side.</p>
+
+<div class="filter-bar">
+  <button onclick="filterAll()" class="active" id="btn-all">All</button>
+  <button onclick="filterPending()" id="btn-pending">Pending</button>
+  <button onclick="filterPass()" id="btn-pass">Pass ✓</button>
+  <button onclick="filterFail()" id="btn-fail">Fail ✗</button>
+  <div class="progress">Done: <span id="count">0</span> / <span id="total">0</span></div>
+</div>
+
+<div id="tests"></div>
+
+<script>
+const TESTS = [
+  // ── smoke tests ──
+  { group: "Smoke Tests", name: "1 + 2 = gives 3", keys: ["1","+","2","="], expects: [{label:"result", value:"3"}, {label:"resultMode", value:"true"}] },
+  { group: "Smoke Tests", name: "AC clears everything", keys: ["5","+","3","AC"], expects: [{label:"expression", value:'""'}, {label:"result", value:'""'}, {label:"resultMode", value:"false"}] },
+  { group: "Smoke Tests", name: "backspace removes last char", keys: ["1","2","3","⌫"], expects: [{label:"expression", value:'"12"'}] },
+  { group: "Smoke Tests", name: "backspace after result clears all", keys: ["5","=","⌫"], expects: [{label:"expression", value:'""'}, {label:"resultMode", value:"false"}] },
+  { group: "Smoke Tests", name: "√ wraps trailing number", keys: ["4","sqrt("], setup:"basic: sqrt(4) | scientific: 2root(4)", expects: [{label:"basic expression", value:'"sqrt(4)"'}, {label:"sci expression", value:'"2root(4)"'}] },
+
+  // ── basic arithmetic ──
+  { group: "Basic Arithmetic", name: "9 / 3 = 3", keys: ["9","/","3","="], expects: [{label:"result", value:'"3"'}] },
+  { group: "Basic Arithmetic", name: "5 * 5 = 25", keys: ["5","*","5","="], expects: [{label:"result", value:'"25"'}] },
+  { group: "Basic Arithmetic", name: "7 - 4 = 3", keys: ["7","-","4","="], expects: [{label:"result", value:'"3"'}] },
+  { group: "Basic Arithmetic", name: "0 + 0 = 0", keys: ["0","+","0","="], expects: [{label:"result", value:'"0"'}] },
+  { group: "Basic Arithmetic", name: "decimal: 1.5 + 1.5 = 3", keys: ["1",".","5","+","1",".","5","="], expects: [{label:"result", value:'"3"'}] },
+  { group: "Basic Arithmetic", name: "negative result: 2 - 5 = -3", keys: ["2","-","5","="], expects: [{label:"result", value:'"-3"'}] },
+  { group: "Basic Arithmetic", name: "chained: 1 + 2 + 3 = 6", keys: ["1","+","2","+","3","="], expects: [{label:"result", value:'"6"'}] },
+  { group: "Basic Arithmetic", name: "chained: 10 - 3 - 2 = 5", keys: ["1","0","-","3","-","2","="], expects: [{label:"result", value:'"5"'}] },
+  { group: "Basic Arithmetic", name: "mixed: 2 × 3 + 4 = 10", keys: ["2","*","3","+","4","="], expects: [{label:"result", value:'"10"'}] },
+  { group: "Basic Arithmetic", name: "1 / 4 = 0.25", keys: ["1","/","4","="], expects: [{label:"result", value:'"0.25"'}] },
+
+  // ── expression building ──
+  { group: "Expression Building", name: "expression updates on each digit tap", keys: ["1","2","3"], expects: [{label:"after 1", value:'"1"'}, {label:"after 12", value:'"12"'}, {label:"after 123", value:'"123"'}] },
+  { group: "Expression Building", name: "operator appended", keys: ["5","+"], expects: [{label:"expression", value:'"5+"'}] },
+  { group: "Expression Building", name: "expression before = preserved", keys: ["3","+","4","="], expects: [{label:"before =", value:'"3+4"'}] },
+  { group: "Expression Building", name: "result shown after =", keys: ["3","+","4","="], expects: [{label:"result", value:'"7"'}, {label:"resultMode", value:"true"}] },
+
+  // ── result mode ──
+  { group: "Result Mode Continuations", name: "digit after result resets expression", keys: ["5","=","6"], expects: [{label:"expression", value:'"6"'}, {label:"resultMode", value:"false"}] },
+  { group: "Result Mode Continuations", name: "operator after result continues from result", keys: ["5","=","+","3","="], expects: [{label:"expr after +", value:'"5+"'}, {label:"final result", value:'"8"'}] },
+  { group: "Result Mode Continuations", name: "√ after result wraps result", keys: ["4","=","sqrt("], setup:"basic: sqrt( | sci: 2root(", expects: [{label:"basic", value:'"sqrt(4)"'}, {label:"sci", value:'"2root(4)"'}] },
+  { group: "Result Mode Continuations", name: "AC after result clears", keys: ["9","=","AC"], expects: [{label:"expression", value:'""'}, {label:"result", value:'""'}, {label:"resultMode", value:"false"}] },
+
+  // ── sqrt & functions ──
+  { group: "sqrt & Function Wrapping", name: "√ on empty appends function", keys: ["sqrt("], setup:"basic: sqrt( | sci: 2root(", expects: [{label:"basic", value:'"sqrt("'}, {label:"sci", value:'"2root("'}] },
+  { group: "sqrt & Function Wrapping", name: "√ on 9 wraps", keys: ["9","sqrt("], setup:"basic: sqrt( | sci: 2root(", expects: [{label:"basic", value:'"sqrt(9)"'}, {label:"sci", value:'"2root(9)"'}] },
+  { group: "sqrt & Function Wrapping", name: "√(9) = 3", keys: ["9","sqrt(","="], setup:"basic: sqrt( | sci: 2root(", expects: [{label:"result", value:'"3"'}] },
+  { group: "sqrt & Function Wrapping", name: "√(2) ≈ 1.41421", keys: ["2","sqrt(","="], setup:"basic: sqrt( | sci: 2root(", expects: [{label:"result", value:"≈ 1.41421", approx:true}] },
+  { group: "sqrt & Function Wrapping", name: "1 + √(4) builds expression", keys: ["1","+","4","sqrt("], setup:"basic: sqrt( | sci: 2root(", expects: [{label:"basic", value:'"1+sqrt(4)"'}, {label:"sci", value:'"1+2root(4)"'}] },
+  { group: "sqrt & Function Wrapping", name: "1 + √(4) = 3", keys: ["1","+","4","sqrt(","="], setup:"basic: sqrt( | sci: 2root(", expects: [{label:"result", value:'"3"'}] },
+  { group: "sqrt & Function Wrapping", name: "factorial( on 5 wraps to factorial(5)", keys: ["5","factorial("], expects: [{label:"expression", value:'"factorial(5)"'}] },
+  { group: "sqrt & Function Wrapping", name: "factorial(5) = 120", keys: ["5","factorial(","="], expects: [{label:"result", value:'"120"'}] },
+  { group: "sqrt & Function Wrapping", name: "e evaluates to ≈ 2.71828", keys: ["e","="], expects: [{label:"result", value:"≈ 2.71828", approx:true}] },
+  { group: "sqrt & Function Wrapping", name: "log(1000) = 3", keys: ["1","0","0","0","log(","="], expects: [{label:"result", value:"≈ 3", approx:true}] },
+
+  // ── trig rad ──
+  { group: "Trig — Rad Mode", name: "sin(0) = 0", keys: ["0","sin(","="], setup:"angleMode: rad", expects: [{label:"result", value:"≈ 0", approx:true}] },
+  { group: "Trig — Rad Mode", name: "cos(0) = 1", keys: ["0","cos(","="], setup:"angleMode: rad", expects: [{label:"result", value:"≈ 1", approx:true}] },
+  { group: "Trig — Rad Mode", name: "tan(0) = 0", keys: ["0","tan(","="], setup:"angleMode: rad", expects: [{label:"result", value:"≈ 0", approx:true}] },
+  { group: "Trig — Rad Mode", name: "sin(3.14159265…) ≈ 0", keys: ["3",".","1","4","1","5","9","2","6","5","4","sin(","="], setup:"angleMode: rad", expects: [{label:"result", value:"< 0.0001", approx:true}] },
+
+  // ── trig deg ──
+  { group: "Trig — Deg Mode", name: "sin(90) = 1", keys: ["9","0","sin(","="], setup:"angleMode: deg", expects: [{label:"result", value:"≈ 1", approx:true}] },
+  { group: "Trig — Deg Mode", name: "cos(180) = -1", keys: ["1","8","0","cos(","="], setup:"angleMode: deg", expects: [{label:"result", value:"≈ -1", approx:true}] },
+  { group: "Trig — Deg Mode", name: "tan(45) = 1", keys: ["4","5","tan(","="], setup:"angleMode: deg", expects: [{label:"result", value:"≈ 1", approx:true}] },
+  { group: "Trig — Deg Mode", name: "sin(0) = 0", keys: ["0","sin(","="], setup:"angleMode: deg", expects: [{label:"result", value:"≈ 0", approx:true}] },
+
+  // ── angle toggle ──
+  { group: "Angle Mode Toggle", name: "toggle switches rad → deg", keys: ["[ANGLE_TOGGLE]"], setup:"angleMode: rad", expects: [{label:"angleMode", value:'"deg"'}] },
+  { group: "Angle Mode Toggle", name: "toggle switches deg → rad", keys: ["[ANGLE_TOGGLE]"], setup:"angleMode: deg", expects: [{label:"angleMode", value:'"rad"'}] },
+
+  // ── +/- ──
+  { group: "+/- Toggle Sign", name: "+/- on 5 gives -5", keys: ["5","+/-"], expects: [{label:"expression", value:'"-5"'}] },
+  { group: "+/- Toggle Sign", name: "+/- on -5 gives 5", keys: ["5","+/-","+/-"], expects: [{label:"expression", value:'"5"'}] },
+  { group: "+/- Toggle Sign", name: "+/- after result negates into expression", keys: ["4","=","+/-"], expects: [{label:"expression", value:'"-4"'}, {label:"resultMode", value:"false"}] },
+  { group: "+/- Toggle Sign", name: "+/- in 3+4 negates last number", keys: ["3","+","4","+/-"], expects: [{label:"expression contains", value:'"-4"'}] },
+
+  // ── backspace ──
+  { group: "Backspace", name: "removes last character", keys: ["1","2","+","⌫"], expects: [{label:"expression", value:'"12"'}] },
+  { group: "Backspace", name: "backspace on single char → empty", keys: ["5","⌫"], expects: [{label:"expression", value:'""'}] },
+  { group: "Backspace", name: "backspace on empty stays empty", keys: ["⌫"], expects: [{label:"expression", value:'""'}] },
+  { group: "Backspace", name: "backspace after result clears resultMode", keys: ["5","+","3","=","⌫"], expects: [{label:"resultMode", value:"false"}, {label:"expression", value:'""'}] },
+
+  // ── memory ──
+  { group: "Memory", name: "ms stores, mr recalls", keys: ["5","ms","AC","mr"], expects: [{label:"expression", value:'"5"'}] },
+  { group: "Memory", name: "ms stores result value", keys: ["3","+","2","=","ms","AC","mr"], expects: [{label:"expression", value:'"5"'}] },
+  { group: "Memory", name: "3 + mr(5) = 8", keys: ["5","ms","AC","3","+","mr","="], expects: [{label:"result", value:'"8"'}] },
+  { group: "Memory", name: "ms does not store Error", keys: ["1","/","0","=","ms"], setup:"memory: '7'", expects: [{label:"memory unchanged", value:'"7"'}] },
+
+  // ── errors ──
+  { group: "Error States", name: "1 / 0 = Error", keys: ["1","/","0","="], expects: [{label:"result", value:'"Error"'}] },
+  { group: "Error States", name: "incomplete expression (1 +) = Error", keys: ["1","+","="], expects: [{label:"result", value:'"Error"'}] },
+  { group: "Error States", name: "empty expression = gives 0", keys: ["="], expects: [{label:"result", value:'"0"'}] },
+  { group: "Error States", name: "√ of negative = Error", keys: ["-","4","sqrt(","="], setup:"basic: sqrt( | sci: 2root(", expects: [{label:"result", value:'"Error"'}] },
+
+  // ── constants ──
+  { group: "Constants", name: "pi * 2 ≈ 6.28318", keys: ["pi","*","2","="], expects: [{label:"result", value:"≈ 6.28318", approx:true}] },
+  { group: "Constants", name: "e ≈ 2.71828", keys: ["e","="], expects: [{label:"result", value:"≈ 2.71828", approx:true}] },
+
+  // ── percent ──
+  { group: "Percent", name: "50% = 0.5", keys: ["5","0","%","="], expects: [{label:"result", value:'"0.5"'}] },
+  { group: "Percent", name: "100% = 1", keys: ["1","0","0","%","="], expects: [{label:"result", value:'"1"'}] },
+
+  // ── large numbers ──
+  { group: "Large Numbers", name: "999999999999 * 999 → NUMBER_TOO_BIG (basic)", keys: ["9","9","9","9","9","9","9","9","9","9","9","9","*","9","9","9","="], setup:"keyset: basic", expects: [{label:"result", value:'"NUMBER_TOO_BIG"'}] },
+
+  // ── E-notation ──
+  { group: "E-Notation (Scientific)", name: "1000000000 * 10 → E-notation", keys: ["1","0","0","0","0","0","0","0","0","0","*","1","0","="], setup:"keyset: scientific", expects: [{label:"result matches", value:"/E[+-]\\d+/", pattern:true}] },
+
+  // ── keyset ──
+  { group: "Keyset Switching", name: "[2ND] → scientific_2nd", keys: ["[2ND]"], setup:"keyset: scientific", expects: [{label:"keyset", value:'"scientific_2nd"'}] },
+  { group: "Keyset Switching", name: "[2ND_OFF] → scientific", keys: ["[2ND_OFF]"], setup:"keyset: scientific_2nd", expects: [{label:"keyset", value:'"scientific"'}] },
+
+  // ── power ──
+  { group: "Power", name: "2 ^ 10 = 1024", keys: ["2","^","1","0","="], expects: [{label:"result", value:'"1024"'}] },
+  { group: "Power", name: "3 ^ 2 = 9", keys: ["3","^","2","="], expects: [{label:"result", value:'"9"'}] },
+
+  // ── edge cases ──
+  { group: "Sequence Edge Cases", name: "= = re-evaluates same expression", keys: ["2","+","3","=","="], expects: [{label:"result", value:'"5"'}, {label:"again", value:'"5"'}] },
+  { group: "Sequence Edge Cases", name: "digit limit in basic (12 max)", keys: ["1","2","3","4","5","6","7","8","9","0","1","2","3"], setup:"keyset: basic", expects: [{label:"expression", value:'"123456789012"'}, {label:"13th digit rejected", value:"✓"}] },
+  { group: "Sequence Edge Cases", name: "no digit limit in scientific", keys: ["1","2","3","4","5","6","7","8","9","0","1","2","3"], setup:"keyset: scientific", expects: [{label:"expression", value:'"1234567890123"'}] },
+  { group: "Sequence Edge Cases", name: "5 + - 3 = 2", keys: ["5","+","-","3","="], expects: [{label:"result", value:'"2"'}] },
+  { group: "Sequence Edge Cases", name: "(2+3)*4 = 20", keys: ["(","2","+","3",")","*","4","="], expects: [{label:"result", value:'"20"'}] },
+];
+
+const KEY_CLASS = {
+  "=": "equals",
+  "+": "op", "-": "op", "*": "op", "/": "op", "^": "op", "%": "op",
+  "AC": "clear", "⌫": "clear",
+  "sqrt(": "fn", "sin(": "fn", "cos(": "fn", "tan(": "fn",
+  "asin(": "fn", "acos(": "fn", "atan(": "fn",
+  "ln(": "fn", "log(": "fn", "log2(": "fn",
+  "factorial(": "fn",
+  "+/-": "special", "[ANGLE_TOGGLE]": "special",
+  "[2ND]": "special", "[2ND_OFF]": "special",
+  "ms": "special", "mr": "special",
+  "pi": "special", "e": "special",
+};
+
+function keyClass(k) {
+  return KEY_CLASS[k] || "";
+}
+
+function keyLabel(k) {
+  const map = { "sqrt(": "√", "factorial(": "n!", "[ANGLE_TOGGLE]": "Rad/Deg", "[2ND]": "2nd", "[2ND_OFF]": "2nd off" };
+  return map[k] || k;
+}
+
+const state = {};
+TESTS.forEach((t, i) => state[i] = null); // null=pending, true=pass, false=fail
+
+function render() {
+  const container = document.getElementById('tests');
+  const groups = {};
+  TESTS.forEach((t, i) => {
+    if (!groups[t.group]) groups[t.group] = [];
+    groups[t.group].push({ ...t, i });
+  });
+
+  container.innerHTML = Object.entries(groups).map(([g, tests]) => `
+    <div class="group">
+      <div class="group-title">${g}</div>
+      ${tests.map(t => `
+        <div class="test ${state[t.i] === true ? 'pass' : state[t.i] === false ? 'fail' : ''}" onclick="cycle(${t.i})" id="test-${t.i}">
+          <div class="check"></div>
+          <div class="test-body">
+            <div class="test-name">
+              ${t.name}
+              ${t.setup ? `<span class="setup-badge">${t.setup}</span>` : ''}
+            </div>
+            <div class="keys">
+              ${t.keys.map(k => `<span class="key ${keyClass(k)}">${keyLabel(k)}</span>`).join('')}
+            </div>
+            <div class="expects">
+              ${t.expects.map(e => `
+                <span class="expect ${e.approx ? 'approx' : ''} ${e.pattern ? 'pattern' : ''}">
+                  <span class="label">${e.label}:</span>
+                  <span class="value">${e.value}</span>
+                </span>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+
+  updateProgress();
+}
+
+function cycle(i) {
+  if (state[i] === null) state[i] = true;
+  else if (state[i] === true) state[i] = false;
+  else state[i] = null;
+  render();
+  saveState();
+}
+
+function updateProgress() {
+  const done = Object.values(state).filter(v => v !== null).length;
+  document.getElementById('count').textContent = done;
+  document.getElementById('total').textContent = TESTS.length;
+}
+
+function filterAll() { document.getElementById('tests').className = ''; setActive('btn-all'); }
+function filterPending() { document.getElementById('tests').className = ''; setActive('btn-pending'); highlightPending(); }
+function filterPass() { document.getElementById('tests').className = 'hide-fail'; setActive('btn-pass'); }
+function filterFail() { document.getElementById('tests').className = 'hide-pass'; setActive('btn-fail'); }
+
+function highlightPending() {
+  // pending = null state, just show all (pass/fail still visible but pending stands out by no color)
+  document.getElementById('tests').className = '';
+}
+
+function setActive(id) {
+  ['btn-all','btn-pending','btn-pass','btn-fail'].forEach(b => document.getElementById(b).classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function saveState() {
+  localStorage.setItem('issiecalc-test-state', JSON.stringify(state));
+}
+
+function loadState() {
+  const saved = localStorage.getItem('issiecalc-test-state');
+  if (saved) {
+    const s = JSON.parse(saved);
+    Object.keys(s).forEach(k => { state[k] = s[k]; });
+  }
+}
+
+loadState();
+render();
+</script>
+</body>
+</html>
