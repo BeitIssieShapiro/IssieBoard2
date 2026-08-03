@@ -394,12 +394,12 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
             <TouchableOpacity
               style={[styles.segment, keyset === 'basic' && styles.segmentActive]}
               onPress={() => setKeyset('basic')}>
-              <Text style={[styles.segmentText, keyset === 'basic' && styles.segmentTextActive, { color: dimTextColor }, keyset === 'basic' && { color: displayTextColor }]}>{strings.settings.calcBasic}</Text>
+              <Text style={[styles.segmentText, keyset === 'basic' && styles.segmentTextActive, { color: dimTextColor }, keyset === 'basic' && { color: displayTextColor }]}>{'÷≡  '}{strings.settings.calcBasic}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.segment, (keyset === 'scientific' || keyset === 'scientific_landscape_2nd' || keyset === 'scientific_2nd') && styles.segmentActive]}
               onPress={() => setKeyset('scientific')}>
-              <Text style={[styles.segmentText, (keyset === 'scientific' || keyset === 'scientific_landscape_2nd' || keyset === 'scientific_2nd') && styles.segmentTextActive, { color: dimTextColor }, (keyset === 'scientific' || keyset === 'scientific_landscape_2nd' || keyset === 'scientific_2nd') && { color: displayTextColor }]}>{strings.settings.calcScientific}</Text>
+              <Text style={[styles.segmentText, (keyset === 'scientific' || keyset === 'scientific_landscape_2nd' || keyset === 'scientific_2nd') && styles.segmentTextActive, { color: dimTextColor }, (keyset === 'scientific' || keyset === 'scientific_landscape_2nd' || keyset === 'scientific_2nd') && { color: displayTextColor }]}>{'f(x)  '}{strings.settings.calcScientific}</Text>
             </TouchableOpacity>
           </View>
         )}

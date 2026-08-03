@@ -1,16 +1,16 @@
 IssieCalc:
 V- both voices
 V- voice per calculator
-- remove "functions" key group
+V- remove "functions" key group
 V- add = in expression, also align to right
-- display text fontSize - proportional
-- settings should take preview from ladscape/portrait
-- layout:
-  - . -/+, a bit brighter and less-wide
-  - gap between nums and the rest and make the rest narrower
+V- display text fontSize - proportional
+V- settings should take preview from ladscape/portrait
+V- layout:
+V- . -/+, a bit brighter 
+V- gap between nums and the rest and make the rest narrower
 - find another term for "Advanced"
-- remove preset for issiecalc only
-- add icons to sci/basic selector
+V- remove preset for issiecalc only
+V- add icons to sci/basic selector
 - user feedback
 
 

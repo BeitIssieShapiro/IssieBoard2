@@ -54,25 +54,6 @@
       }
     },
     {
-      "id": "function",
-      "name": "function",
-      "items": [
-        "sin(",
-        "cos(",
-        "tan(",
-        "x^2",
-        "sqrt(",
-        "log(",
-        "(",
-        ")",
-        "pi"
-      ],
-      "template": {
-        "bgColor": "#2C2C2E",
-        "color": "#FFFFFF"
-      }
-    },
-    {
       "id": "backspace",
       "name": "backspace",
       "items": [
@@ -191,23 +172,13 @@
         {
           "keys": [
             {
-              "value": "+/-",
-              "width": 0.75
-            },
-            {
-              "hidden": true,
-              "width": 0.25
+              "value": "+/-"
             },
             {
               "value": "0"
             },
             {
-              "hidden": true,
-              "width": 0.25
-            },
-            {
-              "value": ".",
-              "width": 0.75
+              "value": "."
             },
             {
               "hidden": true,
@@ -316,23 +287,13 @@
         {
           "keys": [
             {
-              "value": "+/-",
-              "width": 0.75
-            },
-            {
-              "hidden": true,
-              "width": 0.25
+              "value": "+/-"
             },
             {
               "value": "0"
             },
             {
-              "hidden": true,
-              "width": 0.25
-            },
-            {
-              "value": ".",
-              "width": 0.75
+              "value": "."
             },
             {
               "hidden": true,
@@ -432,23 +393,13 @@
         {
           "keys": [
             {
-              "value": "+/-",
-              "width": 0.75
-            },
-            {
-              "hidden": true,
-              "width": 0.25
+              "value": "+/-"
             },
             {
               "value": "0"
             },
             {
-              "hidden": true,
-              "width": 0.25
-            },
-            {
-              "value": ".",
-              "width": 0.75
+              "value": "."
             },
             {
               "hidden": true,
@@ -552,23 +503,13 @@
         {
           "keys": [
             {
-              "value": "+/-",
-              "width": 0.75
-            },
-            {
-              "hidden": true,
-              "width": 0.25
+              "value": "+/-"
             },
             {
               "value": "0"
             },
             {
-              "hidden": true,
-              "width": 0.25
-            },
-            {
-              "value": ".",
-              "width": 0.75
+              "value": "."
             },
             {
               "hidden": true,

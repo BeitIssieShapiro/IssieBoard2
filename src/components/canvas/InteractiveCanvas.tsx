@@ -286,17 +286,19 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
     return previewConfig;
   }, [state.config, state.styleGroups, hideCloseKey, hideGlobeButton, speakButtonInKeyboard, selectedLanguages]);
 
+  const isLandscape = windowWidth > windowHeight;
+
   const configJson = useMemo(() => {
     const base = transformConfigForPreview(configWithGroups);
     if (appContext === 'issiecalc') {
-      return JSON.stringify({ ...base, defaultKeyset: calcPreviewKeyset });
+      const keyset = isLandscape ? `${calcPreviewKeyset}_landscape` : calcPreviewKeyset;
+      return JSON.stringify({ ...base, defaultKeyset: keyset });
     }
     return JSON.stringify(base);
-  }, [configWithGroups, appContext, calcPreviewKeyset]);
+  }, [configWithGroups, appContext, calcPreviewKeyset, isLandscape]);
 
   console.log("📐 [InteractiveCanvas] Render - keyboardHeight:", keyboardHeight, "containerHeight:", height, "windowWidth:", windowWidth);
 
-  const isLandscape = windowWidth > windowHeight;
   const windowAvailableWidth = windowWidth - insets.left - insets.right
   // IssieCalc: always use native height (scale=1, no maxHeight cap).
   // Advanced tab: same. Other tabs: fixed height container, native scales KB to fit via maxHeight.
@@ -332,12 +334,12 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
           <TouchableOpacity
             style={[styles.calcToggleBtn, calcPreviewKeyset === 'basic' && styles.calcToggleBtnActive]}
             onPress={() => { setCalcPreviewKeyset('basic'); dispatch({ type: 'SET_ACTIVE_KEYSET', payload: 'basic' }); }}>
-            <Text allowFontScaling={false} style={[styles.calcToggleText, calcPreviewKeyset === 'basic' && styles.calcToggleTextActive]}>{strings.globalSettings.calcBasic}</Text>
+            <Text allowFontScaling={false} style={[styles.calcToggleText, calcPreviewKeyset === 'basic' && styles.calcToggleTextActive]}>{'÷≡  '}{strings.globalSettings.calcBasic}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.calcToggleBtn, calcPreviewKeyset === 'scientific' && styles.calcToggleBtnActive]}
             onPress={() => { setCalcPreviewKeyset('scientific'); dispatch({ type: 'SET_ACTIVE_KEYSET', payload: 'scientific' }); }}>
-            <Text allowFontScaling={false} style={[styles.calcToggleText, calcPreviewKeyset === 'scientific' && styles.calcToggleTextActive]}>{strings.globalSettings.calcScientific}</Text>
+            <Text allowFontScaling={false} style={[styles.calcToggleText, calcPreviewKeyset === 'scientific' && styles.calcToggleTextActive]}>{'f(x)  '}{strings.globalSettings.calcScientific}</Text>
           </TouchableOpacity>
         </View>
       )}

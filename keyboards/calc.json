@@ -55,22 +55,6 @@
       ]
     },
     {
-      "id": "function",
-      "bgColor": "#2C2C2E",
-      "textColor": "#FFFFFF",
-      "items": [
-        "sin(",
-        "cos(",
-        "tan(",
-        "x^2",
-        "sqrt(",
-        "log(",
-        "(",
-        ")",
-        "pi"
-      ]
-    },
-    {
       "id": "backspace",
       "bgColor": "#636366",
       "textColor": "#FFFFFF",
@@ -174,23 +158,13 @@
         {
           "keys": [
             {
-              "value": "+/-",
-              "width": 0.75
-            },
-            {
-              "hidden": true,
-              "width": 0.25
+              "value": "+/-"
             },
             {
               "value": "0"
             },
             {
-              "hidden": true,
-              "width": 0.25
-            },
-            {
-              "value": ".",
-              "width": 0.75
+              "value": "."
             },
             {
               "hidden": true,
@@ -290,23 +264,13 @@
         {
           "keys": [
             {
-              "value": "+/-",
-              "width": 0.75
-            },
-            {
-              "hidden": true,
-              "width": 0.25
+              "value": "+/-"
             },
             {
               "value": "0"
             },
             {
-              "hidden": true,
-              "width": 0.25
-            },
-            {
-              "value": ".",
-              "width": 0.75
+              "value": "."
             },
             {
               "hidden": true,
