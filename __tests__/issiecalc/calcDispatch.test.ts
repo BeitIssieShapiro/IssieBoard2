@@ -531,4 +531,20 @@ describe('implicit multiplication', () => {
     const s = runSequence(['(', '2', ')', '*', '3', '=']);
     expect(s[5].result).toBe('6');
   });
+  test('digit after pi inserts *', () => {
+    const s = runSequence(['pi', '9']);
+    expect(s[1].expression).toBe('pi*9');
+  });
+  test('pi then = gives π value', () => {
+    const s = runSequence(['pi', '=']);
+    expect(parseFloat(s[1].result)).toBeCloseTo(3.14159265, 7);
+  });
+  test('pi * 2 = after result does not replace pi', () => {
+    const s = runSequence(['pi', '*', '2', '=']);
+    expect(parseFloat(s[3].result)).toBeCloseTo(6.28318, 4);
+  });
+  test('digit after e inserts *', () => {
+    const s = runSequence(['e', '2']);
+    expect(s[1].expression).toBe('e*2');
+  });
 });

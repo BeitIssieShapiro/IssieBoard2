@@ -19,7 +19,7 @@ export const initialCalcState: CalcState = {
 };
 
 const OPERATORS = /^[+\-*/^%]$/;
-const FUNCTIONS_RE = /^(sin\(|cos\(|tan\(|asin\(|acos\(|atan\(|sinh\(|cosh\(|tanh\(|asinh\(|acosh\(|atanh\(|sqrt\(|ln\(|log\(|log2\(|logy\(|2root\(|3root\(|yroot\(|factorial\(|x\^2|x\^3|x\^\(|\^\(|2\^\(|1\/\(|\(|\)|pi|e)$/;
+const FUNCTIONS_RE = /^(sin\(|cos\(|tan\(|asin\(|acos\(|atan\(|sinh\(|cosh\(|tanh\(|asinh\(|acosh\(|atanh\(|sqrt\(|ln\(|log\(|log2\(|logy\(|2root\(|3root\(|yroot\(|factorial\(|x\^2|x\^3|x\^\(|2\^\(|1\/\()$/;
 const FUNCTION_KEYS = new Set([
   'sin(', 'cos(', 'tan(', 'asin(', 'acos(', 'atan(',
   'sinh(', 'cosh(', 'tanh(', 'asinh(', 'acosh(', 'atanh(',
@@ -58,7 +58,7 @@ function extractTrailingOperand(expr: string): [string, string] | null {
     }
     return null;
   }
-  const numMatch = expr.match(/(-?\d+\.?\d*(?:[eE][+-]?\d+)?)$/);
+  const numMatch = expr.match(/(-?\d+\.?\d*(?:[eE][+-]?\d+)?|pi|e)$/);
   if (numMatch) {
     const num = numMatch[1];
     const before = expr.slice(0, expr.length - num.length);
@@ -85,8 +85,9 @@ function appendToExpression(state: CalcState, val: string): CalcState {
     if (state.keyset === 'basic' && /^\d$/.test(val)) {
       if (countTrailingDigits(state.expression) >= 12) return state;
     }
-    // Implicit multiplication: digit or constant after ) → insert *
-    const needsMul = /[)]$/.test(state.expression) && /^[\d(]$/.test(val);
+    // Implicit multiplication: digit or ( after ) or constant → insert *
+    const needsMul = (/[)]$/.test(state.expression) || /\b(pi|e)$/.test(state.expression))
+      && /^[\d(]$/.test(val);
     expression = state.expression + (needsMul ? '*' : '') + val;
     resultMode = state.resultMode;
     result = state.result;

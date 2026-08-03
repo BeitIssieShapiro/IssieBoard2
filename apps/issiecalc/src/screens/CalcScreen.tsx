@@ -33,6 +33,7 @@ function formatExpression(expr: string): string {
     .replace(/10\^\(([^)]*)\)/g, (_, exp) => exp ? `10${toSuperscript(exp)}` : '10^(')
     .replace(/2\^\(([^)]*)\)/g, (_, exp) => exp ? `2${toSuperscript(exp)}` : '2^(')
     .replace(/1\/\(([^)]*)\)/g, (_, x) => x ? `(1/${x})` : '1/(')
+    .replace(/\bpi\b/g, 'π')
     .replace(/\*/g, '×')
     .replace(/\//g, '÷');
 }

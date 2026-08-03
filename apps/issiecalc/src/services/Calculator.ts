@@ -118,17 +118,23 @@ export function evaluate(
     if (result === 'Invalid input' || result === undefined || result === null) return 'Error';
     if (result === Infinity || result === -Infinity) return 'Error';
     if (typeof result === 'number' && isNaN(result)) return 'Error';
-    const rounded = parseFloat(Number(result).toPrecision(8));
-    const abs = Math.abs(rounded);
+    const raw = Number(result);
+    // Round floating point noise to 0 (e.g. sin(π) = 1.2e-16 → 0)
+    const rounded = parseFloat(raw.toPrecision(9));
+    const snapped = Math.abs(rounded) < 1e-9 && raw !== 0 ? 0 : rounded;
+    const abs = Math.abs(snapped);
     if (mode === 'basic' && abs >= 1e12) return 'NUMBER_TOO_BIG';
     if (mode === 'scientific' && abs >= 1e9) {
-      const exp = rounded.toExponential(6);
+      const exp = snapped.toExponential(6);
       const [mantissa, exponent] = exp.split('e');
       const trimmed = mantissa.replace(/\.?0+$/, '');
       const sign = exponent.startsWith('-') ? '-' : '+';
       const expNum = Math.abs(parseInt(exponent, 10));
       return `${trimmed}E${sign}${expNum}`;
     }
+    // Guard: prevent large integers reaching React Native Text (locale comma rendering)
+    if (abs >= 1e12) return 'NUMBER_TOO_BIG';
+    return String(snapped);
     return String(rounded);
   } catch {
     return 'Error';
