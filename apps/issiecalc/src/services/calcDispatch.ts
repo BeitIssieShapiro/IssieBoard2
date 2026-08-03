@@ -85,7 +85,9 @@ function appendToExpression(state: CalcState, val: string): CalcState {
     if (state.keyset === 'basic' && /^\d$/.test(val)) {
       if (countTrailingDigits(state.expression) >= 12) return state;
     }
-    expression = state.expression + val;
+    // Implicit multiplication: digit or constant after ) → insert *
+    const needsMul = /[)]$/.test(state.expression) && /^[\d(]$/.test(val);
+    expression = state.expression + (needsMul ? '*' : '') + val;
     resultMode = state.resultMode;
     result = state.result;
   }

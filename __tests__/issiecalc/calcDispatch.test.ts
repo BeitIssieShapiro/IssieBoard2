@@ -517,3 +517,18 @@ describe('auto-close unclosed parens on =', () => {
     expect(parseFloat(s[5].result)).toBeCloseTo(1.5, 5);
   });
 });
+
+describe('implicit multiplication', () => {
+  test('(1+3) then 8 inserts * → (1+3)*8 = 32', () => {
+    const s = runSequence(['(', '1', '+', '3', ')', '8', '=']);
+    expect(s[6].result).toBe('32');
+  });
+  test('(2+3) then ( inserts * → (2+3)*(', () => {
+    const s = runSequence(['(', '2', '+', '3', ')', '(']);
+    expect(s[5].expression).toBe('(2+3)*(');
+  });
+  test('digit after ) does not double-insert * when already has *', () => {
+    const s = runSequence(['(', '2', ')', '*', '3', '=']);
+    expect(s[5].result).toBe('6');
+  });
+});

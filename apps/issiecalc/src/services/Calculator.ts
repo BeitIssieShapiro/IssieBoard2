@@ -118,7 +118,7 @@ export function evaluate(
     if (result === 'Invalid input' || result === undefined || result === null) return 'Error';
     if (result === Infinity || result === -Infinity) return 'Error';
     if (typeof result === 'number' && isNaN(result)) return 'Error';
-    const rounded = parseFloat(Number(result).toPrecision(12));
+    const rounded = parseFloat(Number(result).toPrecision(8));
     const abs = Math.abs(rounded);
     if (mode === 'basic' && abs >= 1e12) return 'NUMBER_TOO_BIG';
     if (mode === 'scientific' && abs >= 1e9) {
