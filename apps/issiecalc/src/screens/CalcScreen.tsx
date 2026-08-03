@@ -147,9 +147,11 @@ function patchAngleToggleCaption(config: any, caption: string): any {
       ...ks,
       rows: ks.rows.map((row: any) => ({
         ...row,
-        keys: row.keys.map((key: any) =>
-          key.value === '[ANGLE_TOGGLE]' ? { ...key, caption } : key
-        ),
+        keys: row.keys.map((key: any) => {
+          if (key.value === '[ANGLE_TOGGLE]') return { ...key, caption };
+          if (key.value === '[2ND_OFF]') return { ...key, caption: '1st' };
+          return key;
+        }),
       })),
     })),
   };
@@ -307,7 +309,7 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
 
     // Memory
     if (value === 'mr') {
-      memoryRecall();
+      replaceExpression(newState.expression);
       readout(value, newState.expression, newState.result);
       return;
     }

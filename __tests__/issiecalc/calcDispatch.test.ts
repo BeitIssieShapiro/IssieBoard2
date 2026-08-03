@@ -283,6 +283,28 @@ describe('memory', () => {
     const s = runSequence(['1', '/', '0', '=', 'ms'], { memory: '7' });
     expect(s[4].memory).toBe('7');
   });
+  test('ms overwrites previous memory', () => {
+    const s = runSequence(['5', 'ms', 'AC', '9', 'ms', 'AC', 'mr']);
+    expect(s[6].expression).toBe('9');
+  });
+  test('ms does not store empty expression', () => {
+    const s = runSequence(['ms'], { memory: '7' });
+    expect(s[0].memory).toBe('7');
+  });
+  test('mr into empty expression sets expression to memory', () => {
+    const s = runSequence(['mr'], { memory: '42' });
+    expect(s[0].expression).toBe('42');
+  });
+  test('mr with default memory 0 into non-empty expression does nothing', () => {
+    const s = runSequence(['5', '+', 'mr']);
+    expect(s[2].expression).toBe('5+');
+  });
+  test('mr after result (resultMode) resets expression to memory value', () => {
+    // In resultMode, mr with a non-operator value resets expression (like a digit)
+    const s = runSequence(['3', '=', 'mr'], { memory: '7' });
+    expect(s[2].expression).toBe('7');
+    expect(s[2].resultMode).toBe(false);
+  });
 });
 
 describe('error states', () => {
