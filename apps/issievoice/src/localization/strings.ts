@@ -84,6 +84,7 @@ export interface Strings {
     calcReadoutOff: string;
     calcReadoutEveryDigit: string;
     calcReadoutEveryNumber: string;
+    calcReadoutBoth: string;
     calcTerminology: string;
     calcTerminologyYoung: string;
     calcTerminologyStandard: string;
@@ -220,6 +221,7 @@ const en: Strings = {
     calcReadoutOff: 'Off',
     calcReadoutEveryDigit: 'Every digit',
     calcReadoutEveryNumber: 'Every number',
+    calcReadoutBoth: 'Both',
     calcTerminology: 'Terminology',
     calcTerminologyYoung: 'Young',
     calcTerminologyStandard: 'Standard',
@@ -356,6 +358,7 @@ const he: Strings = {
     calcReadoutOff: 'כבוי',
     calcReadoutEveryDigit: 'כל ספרה',
     calcReadoutEveryNumber: 'כל מספר',
+    calcReadoutBoth: 'שניהם',
     calcTerminology: 'מינוח',
     calcTerminologyYoung: 'צעיר',
     calcTerminologyStandard: 'סטנדרטי',
@@ -492,6 +495,7 @@ const ar: Strings = {
     calcReadoutOff: 'إيقاف',
     calcReadoutEveryDigit: 'كل رقم',
     calcReadoutEveryNumber: 'كل عدد',
+    calcReadoutBoth: 'كلاهما',
     calcTerminology: 'المصطلحات',
     calcTerminologyYoung: 'مبتدئ',
     calcTerminologyStandard: 'قياسي',

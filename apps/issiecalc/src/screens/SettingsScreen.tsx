@@ -6,6 +6,8 @@ import SettingsSidebar from '../../../issievoice/src/components/Settings/Setting
 import KeyboardHeader from '../../../issievoice/src/components/Settings/KeyboardHeader';
 import CalcVoiceSettingsPanel from '../components/CalcVoiceSettingsPanel';
 import { useLocalization } from '../../../issievoice/src/context/LocalizationContext';
+import { AboutScreen } from '../../../../src/components/AboutScreen';
+import { ISSIECCALC_ABOUT } from '../../../../src/components/about-content';
 
 const builtConfig = require('../../../../ios/IssieCalc/default_config.json');
 
@@ -13,6 +15,7 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState('general');
   const [profileName, setProfileName] = useState('');
   const [isDirty, setIsDirty] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
   const [configBg, setConfigBg] = useState<string | undefined>(undefined);
   const saveRef = useRef<(() => void) | null>(null);
   const discardRef = useRef<(() => void) | null>(null);
@@ -113,6 +116,7 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               mode="keyboard"
               kbLanguage="en"
               extraTabs={[VOICE_EXTRA_TAB]}
+              onAbout={() => setShowAbout(true)}
             />
             <View style={styles.detailArea}>{renderContent()}</View>
           </View>
@@ -126,11 +130,18 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               mode="keyboard"
               kbLanguage="en"
               extraTabs={[VOICE_EXTRA_TAB]}
+              onAbout={() => setShowAbout(true)}
             />
             <View style={styles.detailArea}>{renderContent()}</View>
           </View>
         )}
       </View>
+      <AboutScreen
+        appName="IssieCalc"
+        visible={showAbout}
+        onClose={() => setShowAbout(false)}
+        paragraphs={ISSIECCALC_ABOUT}
+      />
     </SafeAreaView>
   );
 };

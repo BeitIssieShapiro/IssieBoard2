@@ -5,7 +5,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { KeyboardPreview, KeyPressEvent } from '../../../../src/components/KeyboardPreview';
 import { useCalc } from '../context/CalcContext';
 import { dispatch, CalcState, finalizeTemplate } from '../services/calcDispatch';
-import { useCalcTTS } from '../context/CalcTTSContext';
+import { useCalcTTS, getSubMap, speakableNumber, formatResult } from '../context/CalcTTSContext';
+import TTS from '../../../issievoice/src/services/TextToSpeech';
 import { evaluate, countUnclosedParens } from '../services/Calculator';
 import { useLocalization } from '../../../issievoice/src/context/LocalizationContext';
 import KeyboardPreferences from '../../../../src/native/KeyboardPreferences';
@@ -191,7 +192,34 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
     setToastMessage(msg);
     showToast(msg);
   }, [showToast]);
-  const { readout } = useCalcTTS();
+  const { readout, readoutMode, language, decimalDigits, mathLevel } = useCalcTTS();
+  const speakExpression = useCallback((expr: string): string => {
+    const lang = language;
+    const ml = mathLevel ?? 'standard';
+    const map = getSubMap(lang, ml);
+    // Tokenize: match known multi-char tokens first, then single chars
+    const tokens = Object.keys(map).sort((a, b) => b.length - a.length);
+    let result = '';
+    let i = 0;
+    while (i < expr.length) {
+      let matched = false;
+      for (const token of tokens) {
+        if (expr.startsWith(token, i)) {
+          result += ' ' + map[token];
+          i += token.length;
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) {
+        result += expr[i];
+        i++;
+      }
+    }
+    return result.trim();
+  }, [language, mathLevel]);
+
+  const speakDirect = useCallback((text: string) => { TTS.speak(text).catch(() => {}); }, []);
   const { strings } = useLocalization();
   const insets = useSafeAreaInsets();
   const [keyboardHeight, setKeyboardHeight] = useState(500);
@@ -369,6 +397,26 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
 
       {/* Display */}
       <View style={[styles.display, { backgroundColor: screenBg }]}>
+        {readoutMode !== 'off' && (
+          <TouchableOpacity
+            style={styles.speakButton}
+            onPress={() => {
+              const lang = language;
+              const ml = mathLevel ?? 'standard';
+              const eq = getSubMap(lang, ml)['='] ?? 'equals';
+              if (resultMode && expression) {
+                const res = result === 'NUMBER_TOO_BIG' ? strings.settings.numberTooBig : result;
+                const spokenResult = speakableNumber(formatResult(res, decimalDigits, lang), lang);
+                speakDirect(`${speakExpression(expression)} ${eq} ${spokenResult}`);
+              } else {
+                const display = expression || '0';
+                speakDirect(speakExpression(display) || speakableNumber(formatExpression(display) || '0', lang));
+              }
+            }}
+            activeOpacity={0.6}>
+            <Text style={[styles.speakButtonIcon, { color: dimTextColor }]}>🔊</Text>
+          </TouchableOpacity>
+        )}
         <View style={styles.displayInner}>
           <View style={[styles.expressionRow, !resultMode && { opacity: 0 }]}>
             {(keyset === 'scientific' || keyset === 'scientific_landscape_2nd' || keyset === 'scientific_2nd') && (
@@ -382,6 +430,7 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
                 false
               )}
             </Text>
+            <Text style={[styles.expression, fadedTextStyle, { alignSelf: 'center' }]}> =</Text>
           </View>
           {templateMode && !resultMode
             ? (
@@ -412,8 +461,6 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
             )}
         </View>
       </View>
-
-      {/* Keyboard */}
       <View style={styles.keyboardContainer}>
         <Animated.View style={[styles.toast, { opacity: toastOpacity }]} pointerEvents="none">
           <Text style={styles.toastText}>{toastMessage}</Text>
@@ -449,15 +496,23 @@ const styles = StyleSheet.create({
   gearButton: { marginLeft: 'auto' as any, width: 54, height: 54, alignItems: 'center', justifyContent: 'center' },
   gearIcon: { fontSize: 33, color: '#8E8E93' },
   display: {
-    flex: 1, justifyContent: 'flex-end', alignItems: 'flex-end',
+    flex: 1, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'flex-end',
     paddingHorizontal: 24, paddingBottom: 16,
   },
   displayInner: {
-    alignSelf: 'stretch',
+    flex: 1,
     flexDirection: 'column',
     justifyContent: 'flex-end',
     alignItems: 'flex-end',
   },
+  speakButton: {
+    alignSelf: 'flex-end',
+    paddingBottom: 12,
+    paddingRight: 8,
+    width: 44,
+    alignItems: 'center',
+  },
+  speakButtonIcon: { fontSize: 24 },
   expression: { fontSize: 28, color: '#8E8E93', marginBottom: 8, textAlign: 'left', alignSelf: 'stretch' },
   result: { fontSize: 48, fontWeight: '300', color: '#FFFFFF', textAlign: 'right', alignSelf: 'stretch' },
   expressionRow: { flexDirection: 'row', alignItems: 'flex-end', alignSelf: 'stretch' },

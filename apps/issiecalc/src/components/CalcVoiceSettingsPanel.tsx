@@ -103,6 +103,7 @@ const CalcVoiceSettingsPanel: React.FC = () => {
     { id: 'off', label: s.calcReadoutOff },
     { id: 'every-digit', label: s.calcReadoutEveryDigit },
     { id: 'every-number', label: s.calcReadoutEveryNumber },
+    { id: 'both', label: s.calcReadoutBoth },
   ];
 
   const mathLevelOptions = [

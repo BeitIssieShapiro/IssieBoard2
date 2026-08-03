@@ -1,9 +1,20 @@
 IssieCalc:
-- is voice settings per keyboard?
-V- in keys group edit, the other groups are not shown
+V- both voices
+- voice per calculator
+- remove "functions" key group
+- add = in expression, also align to right
+- signs (+/x)
+- display text fontSize - proportional
+- settings should take preview from ladscape/portrait
+- layout:
+  - . -/+, a bit brighter and less-wide
+  - gap between nums and the rest and make the rest narrower
+- find another term for "Advanced"
+- remove preset for issiecalc only
+- add icons to sci/basic selector
 - user feedback
 
-- 1/X
+
 
 bugs:
 

@@ -10,7 +10,7 @@ const LANGUAGE_KEY = 'issiecalc_tts_language';
 const DECIMAL_DIGITS_KEY = 'issiecalc_tts_decimal_digits';
 const MATH_LEVEL_KEY = 'issiecalc_tts_math_level';
 
-export type ReadoutMode = 'off' | 'every-digit' | 'every-number';
+export type ReadoutMode = 'off' | 'every-digit' | 'every-number' | 'both';
 export type MathLevel = 'young' | 'standard';
 
 interface CalcTTSContextValue {
@@ -214,7 +214,7 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
         KeyboardPreferences.getString(DECIMAL_DIGITS_KEY),
         KeyboardPreferences.getString(MATH_LEVEL_KEY),
       ]).then(([mode, rateStr, pitchStr, vid, lang, decStr, levelStr]) => {
-        if (mode === 'off' || mode === 'every-digit' || mode === 'every-number') {
+        if (mode === 'off' || mode === 'every-digit' || mode === 'every-number' || mode === 'both') {
           readoutModeRef.current = mode;
           setReadoutModeState(mode);
         }
@@ -300,18 +300,22 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const lang = languageRef.current;
     const ml = mathLevelRef.current;
 
-    if (mode === 'every-digit') {
+    if (mode === 'every-digit' || mode === 'both') {
       if (keyValue === '=') {
-        const eq = getSubMap(lang, ml)['='] ?? 'equals';
-        const res = result === 'Error' ? 'error' : speakableNumber(formatResult(result, decimalDigitsRef.current, lang), lang);
-        speakWithPause(eq, res);
-        return;
+        // for 'both', fall through to every-number block which handles '='
+        if (mode === 'every-digit') {
+          const eq = getSubMap(lang, ml)['='] ?? 'equals';
+          const res = result === 'Error' ? 'error' : speakableNumber(formatResult(result, decimalDigitsRef.current, lang), lang);
+          speakWithPause(eq, res);
+          return;
+        }
+      } else {
+        speak(getSubMap(lang, ml)[keyValue] ?? keyValue);
+        if (mode === 'every-digit') return;
       }
-      speak(getSubMap(lang, ml)[keyValue] ?? keyValue);
-      return;
     }
 
-    if (mode === 'every-number') {
+    if (mode === 'every-number' || mode === 'both') {
       if (keyValue === '=') {
         const eq = getSubMap(lang, ml)['='] ?? 'equals';
         const endsWithFunction = /[a-zA-Z]+\([^)]*\)$/.test(expression.trim()) ||
@@ -368,6 +372,8 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
     </CalcTTSContext.Provider>
   );
 };
+
+export { getSubMap, speakableNumber, formatResult };
 
 export function useCalcTTS(): CalcTTSContextValue {
   const ctx = useContext(CalcTTSContext);

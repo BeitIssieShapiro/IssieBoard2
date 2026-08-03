@@ -19,6 +19,27 @@ export const ISSIEBOARD_ABOUT: Record<string, string[]> = {
   ],
 };
 
+export const ISSIECCALC_ABOUT: Record<string, string[]> = {
+  en: [
+    'IssieCalc is an accessible calculator app designed for people with developmental or motor skill disabilities. It provides a customizable keyboard-based calculator that adapts to each user\'s needs.',
+    'The app features both a basic mode for everyday arithmetic and a scientific mode for advanced calculations, including trigonometry, logarithms, and more.',
+    'IssieCalc includes text-to-speech readout so users can hear calculations spoken aloud, with adjustable terminology suited to different learning levels.',
+    'Developed by Beit Issie Shapiro Technology Center in collaboration with SAP Labs Israel.',
+  ],
+  he: [
+    'IssieCalc היא אפליקציית מחשבון נגישה, שתוכננה עבור אנשים עם מוגבלויות התפתחותיות או מוטוריות. האפליקציה מספקת מחשבון מבוסס מקלדת הניתן להתאמה אישית ומתאים לצרכי כל משתמש.',
+    'האפליקציה כוללת מצב בסיסי לחישובים יומיומיים ומצב מדעי לחישובים מתקדמים, כולל טריגונומטריה, לוגריתמים ועוד.',
+    'IssieCalc כוללת קריאה קולית כדי שמשתמשים יוכלו לשמוע את החישובים בקול רם, עם מינוח מתכוונן המתאים לרמות לימוד שונות.',
+    'פותחה על ידי מרכז הטכנולוגיה של בית איזי שפירא בשיתוף פעולה עם SAP Labs Israel.',
+  ],
+  ar: [
+    'IssieCalc هو تطبيق آلة حاسبة سهل الوصول مصمم للأشخاص ذوي الإعاقات التطورية أو الحركية. يوفر التطبيق آلة حاسبة قابلة للتخصيص تعتمد على لوحة المفاتيح وتتكيف مع احتياجات كل مستخدم.',
+    'يتميز التطبيق بوضع أساسي للعمليات الحسابية اليومية ووضع علمي للحسابات المتقدمة، بما في ذلك المثلثات والتحليل اللوغاريتمي وغيرها.',
+    'يتضمن IssieCalc قراءة صوتية حتى يتمكن المستخدمون من سماع الحسابات بصوت عالٍ، مع مصطلحات قابلة للتعديل تناسب مستويات التعلم المختلفة.',
+    'تم تطويره بواسطة مركز التكنولوجيا في بيت إيزي شابيرو بالتعاون مع SAP Labs Israel.',
+  ],
+};
+
 export const ISSIEVOICE_ABOUT: Record<string, string[]> = {
   en: [
     'IssieVoice is an assistive communication app for people who need help speaking. It turns typed text into speech, giving users a voice of their own.',
