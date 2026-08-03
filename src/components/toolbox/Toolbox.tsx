@@ -280,6 +280,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
         {/* Keys-groups action buttons — fixed above scroll */}
         {section === 'keys-groups' && (
           <View style={[styles.keysGroupsActions, isRTL && { flexDirection: 'row-reverse' }]}>
+            {appContext !== 'issiecalc' && (
             <TouchableOpacity
               style={styles.subtleButton}
               onPress={() => setShowTemplatesModal(true)}
@@ -287,6 +288,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
               <MyIcon info={{ name: 'list', type: 'Ionicons', color: '#3B82F6', size: 18 }} />
               <Text allowFontScaling={false} style={styles.subtleButtonText}>{strings.toolbox.presets}</Text>
             </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={styles.subtleButton}
               onPress={handleCreatePressed}
@@ -396,6 +398,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
         badge={state.styleGroups.length > 0 ? `${state.styleGroups.length}` : undefined}
         actionButton={
           <View onStartShouldSetResponder={() => true} style={{ flexDirection: 'row', gap: 8 }}>
+            {appContext !== 'issiecalc' && (
             <TouchableOpacity
               style={styles.subtleButton}
               onPress={() => setShowTemplatesModal(true)}
@@ -403,6 +406,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
               <MyIcon info={{ name: 'list', type: 'Ionicons', color: '#3B82F6', size: 18 }} />
               <Text allowFontScaling={false} style={styles.subtleButtonText}>{strings.toolbox.presets}</Text>
             </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={styles.subtleButton}
               onPress={handleCreatePressed}

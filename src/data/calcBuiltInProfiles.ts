@@ -18,9 +18,9 @@ export interface CalcBuiltInProfile {
   styleGroups: Omit<StyleGroup, 'id' | 'createdAt'>[];
 }
 
-const NUMBER_KEYS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '+/-', 'pi'];
+const NUMBER_KEYS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'pi'];
 const OPERATOR_KEYS = [
-  '⌫', 'AC', '%', '/', '*', '-', '+', '=', '(', ')',
+  '⌫', 'AC', '%', '.', '+/-', '/', '*', '-', '+', '=', '(', ')',
   'x^2', 'x^3', 'x^(', '^(', '2^(', '1/(',
   'sin(', 'cos(', 'tan(', 'asin(', 'acos(', 'atan(',
   'sinh(', 'cosh(', 'tanh(', 'asinh(', 'acosh(', 'atanh(',

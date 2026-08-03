@@ -24,7 +24,9 @@
       "name": "utility",
       "items": [
         "AC",
-        "%"
+        "%",
+        ".",
+        "+/-"
       ],
       "template": {
         "bgColor": "#636366",
@@ -44,9 +46,7 @@
         "6",
         "7",
         "8",
-        "9",
-        ".",
-        "+/-"
+        "9"
       ],
       "template": {
         "bgColor": "#333333",
@@ -113,8 +113,13 @@
               "value": "%"
             },
             {
+              "hidden": true,
+              "width": 0.25
+            },
+            {
               "value": "/",
-              "caption": "÷"
+              "caption": "÷",
+              "width": 0.75
             }
           ]
         },
@@ -130,9 +135,14 @@
               "value": "9"
             },
             {
+              "hidden": true,
+              "width": 0.25
+            },
+            {
               "value": "*",
               "caption": "×",
-              "fontSizePreset": "small"
+              "fontSizePreset": "small",
+              "width": 0.75
             }
           ]
         },
@@ -148,7 +158,12 @@
               "value": "6"
             },
             {
-              "value": "-"
+              "hidden": true,
+              "width": 0.25
+            },
+            {
+              "value": "-",
+              "width": 0.75
             }
           ]
         },
@@ -164,24 +179,44 @@
               "value": "3"
             },
             {
-              "value": "+"
+              "hidden": true,
+              "width": 0.25
+            },
+            {
+              "value": "+",
+              "width": 0.75
             }
           ]
         },
         {
           "keys": [
             {
-              "value": "+/-"
+              "value": "+/-",
+              "width": 0.75
+            },
+            {
+              "hidden": true,
+              "width": 0.25
             },
             {
               "value": "0"
             },
             {
-              "value": "."
+              "hidden": true,
+              "width": 0.25
+            },
+            {
+              "value": ".",
+              "width": 0.75
+            },
+            {
+              "hidden": true,
+              "width": 0.25
             },
             {
               "value": "=",
-              "caption": "="
+              "caption": "=",
+              "width": 0.75
             }
           ]
         }
@@ -203,8 +238,13 @@
               "value": "%"
             },
             {
+              "hidden": true,
+              "width": 0.25
+            },
+            {
               "value": "/",
-              "caption": "÷"
+              "caption": "÷",
+              "width": 0.75
             }
           ]
         },
@@ -220,9 +260,14 @@
               "value": "9"
             },
             {
+              "hidden": true,
+              "width": 0.25
+            },
+            {
               "value": "*",
               "caption": "×",
-              "fontSizePreset": "small"
+              "fontSizePreset": "small",
+              "width": 0.75
             }
           ]
         },
@@ -238,7 +283,12 @@
               "value": "6"
             },
             {
-              "value": "-"
+              "hidden": true,
+              "width": 0.25
+            },
+            {
+              "value": "-",
+              "width": 0.75
             }
           ]
         },
@@ -254,24 +304,44 @@
               "value": "3"
             },
             {
-              "value": "+"
+              "hidden": true,
+              "width": 0.25
+            },
+            {
+              "value": "+",
+              "width": 0.75
             }
           ]
         },
         {
           "keys": [
             {
-              "value": "+/-"
+              "value": "+/-",
+              "width": 0.75
+            },
+            {
+              "hidden": true,
+              "width": 0.25
             },
             {
               "value": "0"
             },
             {
-              "value": "."
+              "hidden": true,
+              "width": 0.25
+            },
+            {
+              "value": ".",
+              "width": 0.75
+            },
+            {
+              "hidden": true,
+              "width": 0.25
             },
             {
               "value": "=",
-              "caption": "="
+              "caption": "=",
+              "width": 0.75
             }
           ]
         }
@@ -292,12 +362,18 @@
               "value": "9"
             },
             {
+              "hidden": true,
+              "width": 0.25
+            },
+            {
               "value": "⌫",
-              "caption": "⌫"
+              "caption": "⌫",
+              "width": 0.875
             },
             {
               "value": "/",
-              "caption": "÷"
+              "caption": "÷",
+              "width": 0.875
             }
           ]
         },
@@ -313,12 +389,18 @@
               "value": "6"
             },
             {
-              "value": "AC"
+              "hidden": true,
+              "width": 0.25
+            },
+            {
+              "value": "AC",
+              "width": 0.875
             },
             {
               "value": "*",
               "caption": "×",
-              "fontSizePreset": "small"
+              "fontSizePreset": "small",
+              "width": 0.875
             }
           ]
         },
@@ -334,30 +416,52 @@
               "value": "3"
             },
             {
-              "value": "%"
+              "hidden": true,
+              "width": 0.25
             },
             {
-              "value": "-"
+              "value": "%",
+              "width": 0.875
+            },
+            {
+              "value": "-",
+              "width": 0.875
             }
           ]
         },
         {
           "keys": [
             {
-              "value": "+/-"
+              "value": "+/-",
+              "width": 0.75
+            },
+            {
+              "hidden": true,
+              "width": 0.25
             },
             {
               "value": "0"
             },
             {
-              "value": "."
+              "hidden": true,
+              "width": 0.25
+            },
+            {
+              "value": ".",
+              "width": 0.75
+            },
+            {
+              "hidden": true,
+              "width": 0.25
             },
             {
               "value": "=",
-              "caption": "="
+              "caption": "=",
+              "width": 0.875
             },
             {
-              "value": "+"
+              "value": "+",
+              "width": 0.875
             }
           ]
         }
@@ -378,12 +482,18 @@
               "value": "9"
             },
             {
+              "hidden": true,
+              "width": 0.25
+            },
+            {
               "value": "⌫",
-              "caption": "⌫"
+              "caption": "⌫",
+              "width": 0.875
             },
             {
               "value": "/",
-              "caption": "÷"
+              "caption": "÷",
+              "width": 0.875
             }
           ]
         },
@@ -399,12 +509,18 @@
               "value": "6"
             },
             {
-              "value": "AC"
+              "hidden": true,
+              "width": 0.25
+            },
+            {
+              "value": "AC",
+              "width": 0.875
             },
             {
               "value": "*",
               "caption": "×",
-              "fontSizePreset": "small"
+              "fontSizePreset": "small",
+              "width": 0.875
             }
           ]
         },
@@ -420,30 +536,52 @@
               "value": "3"
             },
             {
-              "value": "%"
+              "hidden": true,
+              "width": 0.25
             },
             {
-              "value": "-"
+              "value": "%",
+              "width": 0.875
+            },
+            {
+              "value": "-",
+              "width": 0.875
             }
           ]
         },
         {
           "keys": [
             {
-              "value": "+/-"
+              "value": "+/-",
+              "width": 0.75
+            },
+            {
+              "hidden": true,
+              "width": 0.25
             },
             {
               "value": "0"
             },
             {
-              "value": "."
+              "hidden": true,
+              "width": 0.25
+            },
+            {
+              "value": ".",
+              "width": 0.75
+            },
+            {
+              "hidden": true,
+              "width": 0.25
             },
             {
               "value": "=",
-              "caption": "="
+              "caption": "=",
+              "width": 0.875
             },
             {
-              "value": "+"
+              "value": "+",
+              "width": 0.875
             }
           ]
         }
