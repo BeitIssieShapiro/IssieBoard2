@@ -147,6 +147,7 @@ export interface Strings {
     keysText: string;
     calcDisplayColor: string;
     showScientific: string;
+    calcModeBoth: string;
     calcBasic: string;
     calcScientific: string;
     font: string;
@@ -511,7 +512,8 @@ const en: Strings = {
     keysBackground: 'Keys Background',
     keysText: 'Keys Text',
     calcDisplayColor: 'Display Text',
-    showScientific: 'Show Scientific',
+    showScientific: 'Show Calculators',
+    calcModeBoth: 'Both',
     calcBasic: 'Basic',
     calcScientific: 'Scientific',
     font: 'Font',
@@ -861,7 +863,8 @@ const he: Strings = {
     keysBackground: 'רקע מקשים',
     keysText: 'טקסט מקשים',
     calcDisplayColor: 'טקסט תצוגה',
-    showScientific: 'הצג מדעי',
+    showScientific: 'הצג מחשבונים',
+    calcModeBoth: 'שניהם',
     calcBasic: 'בסיסי',
     calcScientific: 'מדעי',
     font: 'גופן',
@@ -1211,7 +1214,8 @@ const ar: Strings = {
     keysBackground: 'خلفية المفاتيح',
     keysText: 'نص المفاتيح',
     calcDisplayColor: 'نص الشاشة',
-    showScientific: 'إظهار العلمي',
+    showScientific: 'إظهار الآلات الحاسبة',
+    calcModeBoth: 'كلاهما',
     calcBasic: 'أساسي',
     calcScientific: 'علمي',
     font: 'الخط',

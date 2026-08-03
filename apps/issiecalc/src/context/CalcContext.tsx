@@ -62,14 +62,31 @@ export const CalcProvider: React.FC<{ children: React.ReactNode }> = ({ children
     Promise.all([
       KeyboardPreferences.getString(ANGLE_MODE_KEY),
       KeyboardPreferences.getString(KEYSET_KEY),
-    ]).then(([savedAngle, savedKeyset]) => {
+      KeyboardPreferences.getString('keyboardConfig_issiecalc_calc'),
+    ]).then(([savedAngle, savedKeyset, configJson]) => {
       if (savedAngle === 'deg' || savedAngle === 'rad') {
         angleModeRef.current = savedAngle;
         setAngleMode(savedAngle);
       }
-      if (savedKeyset === 'basic' || savedKeyset === 'scientific') {
-        keysetRef.current = savedKeyset;
-        setKeysetState(savedKeyset);
+      // Determine calcMode from saved config
+      let calcMode = 'both';
+      if (configJson) {
+        try {
+          const cfg = JSON.parse(configJson);
+          if (cfg.calcMode === 'basic' || cfg.calcMode === 'scientific' || cfg.calcMode === 'both') {
+            calcMode = cfg.calcMode;
+          } else if (cfg.showScientific === false) {
+            calcMode = 'basic';
+          }
+        } catch {}
+      }
+      // Apply keyset pref only if calcMode allows it
+      if (calcMode === 'basic') {
+        keysetRef.current = 'basic'; setKeysetState('basic');
+      } else if (calcMode === 'scientific') {
+        keysetRef.current = 'scientific'; setKeysetState('scientific');
+      } else if (savedKeyset === 'basic' || savedKeyset === 'scientific') {
+        keysetRef.current = savedKeyset; setKeysetState(savedKeyset);
       }
     });
   }, []);

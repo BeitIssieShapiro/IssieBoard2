@@ -270,6 +270,20 @@ export const Toolbox: React.FC<ToolboxProps> = ({
               section="advanced"
             />
           );
+        case 'general-and-advanced':
+          return (
+            <GlobalSettingsPanel
+              keyboardVariants={keyboardVariants}
+              currentKeyboardId={currentKeyboardId}
+              onKeyboardVariantChange={onKeyboardVariantChange}
+              advancedExpanded={true}
+              setAdvancedExpanded={() => { }}
+              appContext={appContext}
+              featuresExpanded={false}
+              setFeaturesExpanded={() => { }}
+              section="general-and-advanced"
+            />
+          );
         default:
           return null;
       }

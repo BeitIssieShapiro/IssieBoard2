@@ -233,14 +233,14 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          // Merge with builtConfig to ensure keysets and other structural fields are always present
           const merged = { ...builtConfig, ...parsed, keysets: builtConfig.keysets };
           setLiveConfig(merged);
           loadFromConfig(parsed.voiceSettings);
-          // If scientific was disabled and we're on a scientific keyset, switch back to basic
-          if (parsed.showScientific === false && (keyset === 'scientific' || keyset === 'scientific_2nd' || keyset === 'scientific_landscape_2nd')) {
-            setKeyset('basic');
-          }
+          // Enforce calcMode — always overrides persisted keyset pref
+          const mode = parsed.calcMode || (parsed.showScientific !== false ? 'both' : 'basic');
+          if (mode === 'basic') setKeyset('basic');
+          else if (mode === 'scientific') setKeyset('scientific');
+          // mode === 'both': keep persisted keyset (already loaded by CalcContext)
         } catch {}
       } else {
         setLiveConfig(builtConfig);
@@ -256,7 +256,12 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
     return () => sub?.remove();
   }, []);
 
-  const showScientific = liveConfig?.showScientific !== false;
+  const calcMode: 'basic' | 'scientific' | 'both' = (() => {
+    const v = liveConfig?.calcMode;
+    if (v === 'basic' || v === 'scientific' || v === 'both') return v;
+    return liveConfig?.showScientific !== false ? 'both' : 'basic';
+  })();
+  const showScientific = calcMode !== 'basic';
   const isScientific = keyset === 'scientific' || keyset === 'scientific_2nd' || keyset === 'scientific_landscape_2nd';
 
   // Scale display font sizes with fontSizePreset: xs=base, xl=1.8x
@@ -389,7 +394,7 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
     <SafeAreaView style={[styles.container, { backgroundColor: screenBg }]} edges={['top', 'left', 'right']}>
       {/* Top bar */}
       <View style={[styles.topBar, { backgroundColor: screenBg }]}>
-        {showScientific && (
+        {calcMode === 'both' && (
           <View style={styles.segmented}>
             <TouchableOpacity
               style={[styles.segment, keyset === 'basic' && styles.segmentActive]}

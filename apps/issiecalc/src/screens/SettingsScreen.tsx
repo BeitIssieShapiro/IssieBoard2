@@ -124,7 +124,7 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           onProfileChange={handleProfileChange}
           onSave={handleSave}
           headless
-          activeTab={activeTab === 'voice' ? 'general' : activeTab}
+          activeTab={activeTab === 'voice' ? 'general' : activeTab === 'general' ? 'general-and-advanced' : activeTab}
           saveRef={saveRef}
           discardRef={discardRef}
           configPatchRef={configPatchRef}
@@ -158,7 +158,7 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               activeTab={activeTab}
               onTabChange={handleTabChange}
               isLandscape
-              hiddenTabs={['nikkud', 'features']}
+              hiddenTabs={['nikkud', 'features', 'advanced']}
               mode="keyboard"
               kbLanguage="en"
               extraTabs={[VOICE_EXTRA_TAB]}
@@ -172,7 +172,7 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               activeTab={activeTab}
               onTabChange={handleTabChange}
               isLandscape={false}
-              hiddenTabs={['nikkud', 'features']}
+              hiddenTabs={['nikkud', 'features', 'advanced']}
               mode="keyboard"
               kbLanguage="en"
               extraTabs={[VOICE_EXTRA_TAB]}
