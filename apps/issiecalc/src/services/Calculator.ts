@@ -87,6 +87,15 @@ function normalize(expression: string, angleMode: 'rad' | 'deg'): string {
   return e;
 }
 
+export function countUnclosedParens(expression: string): number {
+  let depth = 0;
+  for (const c of expression) {
+    if (c === '(') depth++;
+    else if (c === ')') depth--;
+  }
+  return Math.max(0, depth);
+}
+
 function isIncomplete(expression: string): boolean {
   const trimmed = expression.trim();
   if (!trimmed) return true;
@@ -101,7 +110,9 @@ export function evaluate(
   if (!expression || expression.trim() === '') return '0';
   if (isIncomplete(expression)) return '';
   try {
-    const normalized = normalize(expression, angleMode);
+    const unclosed = countUnclosedParens(expression);
+    const closed = unclosed > 0 ? expression + ')'.repeat(unclosed) : expression;
+    const normalized = normalize(closed, angleMode);
     if (normalized.includes('NaN')) return 'Error';
     const result = acEvaluate(normalized);
     if (result === 'Invalid input' || result === undefined || result === null) return 'Error';

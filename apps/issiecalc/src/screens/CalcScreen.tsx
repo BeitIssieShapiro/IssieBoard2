@@ -6,7 +6,7 @@ import { KeyboardPreview, KeyPressEvent } from '../../../../src/components/Keybo
 import { useCalc } from '../context/CalcContext';
 import { dispatch, CalcState } from '../services/calcDispatch';
 import { useCalcTTS } from '../context/CalcTTSContext';
-import { evaluate } from '../services/Calculator';
+import { evaluate, countUnclosedParens } from '../services/Calculator';
 import { useLocalization } from '../../../issievoice/src/context/LocalizationContext';
 import KeyboardPreferences from '../../../../src/native/KeyboardPreferences';
 import { transformConfigForPreview } from '../../../../src/utils/keyboardConfigMerger';
@@ -250,13 +250,23 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
               <Text style={[styles.angleIndicator, fadedTextStyle]}>{angleMode === 'rad' ? 'Rad' : 'Deg'}</Text>
             )}
             <Text style={[styles.expression, fadedTextStyle]} numberOfLines={1} adjustsFontSizeToFit>
-              {formatExpression(expression)}
+              {formatExpression(expression + ')'.repeat(countUnclosedParens(expression)))}
             </Text>
           </View>
           <Text style={[styles.result, { color: displayTextColor }]} numberOfLines={1}>
             {resultMode
               ? (result === 'NUMBER_TOO_BIG' ? strings.settings.numberTooBig : result)
-              : (formatExpression(expression) || '0')}
+              : (() => {
+                  const formatted = formatExpression(expression) || '0';
+                  const ghostCount = !resultMode ? countUnclosedParens(expression) : 0;
+                  if (ghostCount === 0) return formatted;
+                  return (
+                    <>
+                      {formatted}
+                      <Text style={{ opacity: 0.3 }}>{')'.repeat(ghostCount)}</Text>
+                    </>
+                  );
+                })()}
           </Text>
         </View>
       </View>

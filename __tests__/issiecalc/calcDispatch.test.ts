@@ -493,3 +493,27 @@ describe('1/( wrapping', () => {
     expect(s[1].result).toBe('Error');
   });
 });
+
+describe('auto-close unclosed parens on =', () => {
+  test('sin( then 30 typed manually = auto-closes', () => {
+    // sin( on empty → sin(, then digits typed inside manually
+    const s = runSequence(['sin(', '3', '0', '='], { angleMode: 'deg' });
+    expect(parseFloat(s[3].result)).toBeCloseTo(0.5, 5);
+  });
+  test('cos( then 60 typed manually = auto-closes', () => {
+    const s = runSequence(['cos(', '6', '0', '='], { angleMode: 'deg' });
+    expect(parseFloat(s[3].result)).toBeCloseTo(0.5, 5);
+  });
+  test('sqrt( then 9 typed manually = auto-closes', () => {
+    const s = runSequence(['sqrt(', '9', '=']);
+    expect(s[2].result).toBe('3');
+  });
+  test('already-wrapped sqrt(9) = unaffected', () => {
+    const s = runSequence(['9', 'sqrt(', '=']);
+    expect(s[2].result).toBe('3');
+  });
+  test('1 + sin( then 30 = auto-closes', () => {
+    const s = runSequence(['1', '+', 'sin(', '3', '0', '='], { angleMode: 'deg' });
+    expect(parseFloat(s[5].result)).toBeCloseTo(1.5, 5);
+  });
+});

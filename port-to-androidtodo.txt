@@ -1,0 +1,41 @@
+## Android: IssieCalc feature parity (port from iOS)
+
+### 1. KeyboardModels.kt — add `roundedKeys`
+- Add `val roundedKeys: Boolean? = null` to `KeyboardConfig` data class
+- Mirror ios/Shared/KeyboardModels.swift:31
+
+### 2. KeyboardRenderer.kt — dynamic corner radius
+- `keyCornerRadius` is currently a hardcoded `val` (L254)
+- Make it a computed property: if `roundedKeys == true`, return `rowHeight * 0.5f * effectiveDimensionScale`; else return `dpToPx(5).toFloat()`
+- Mirror ios/Shared/KeyboardRenderer.swift:311-314
+
+### 3. KeyboardRenderer.kt — scaledKeyVerticalPadding tracks keyGap
+- `scaledKeyVerticalPadding` currently hardcodes `dpToPx(5)` (L304-305)
+- Should read `(getKeyGap() + dpToPx(2)) * effectiveDimensionScale` to match iOS behavior
+- Mirror ios/Shared/KeyboardRenderer.swift:372-378
+
+### 4. KeyboardRenderer.kt — `fixedRenderHeight` + `setFixedRenderHeight()`
+- Add `private var fixedRenderHeight: Int? = null`
+- Add `fun setFixedRenderHeight(height: Int?)` setter
+- In `calculateKeyboardHeight()`: if fixedRenderHeight set and > 0, return it directly
+- In `rowHeight` (or wherever row height derived): if fixedRenderHeight set, return `(fixedRenderHeight - dpToPx(4)) / currentRowCount`
+- Mirror ios/Shared/KeyboardRenderer.swift:336, 553-556, 246-249, 644
+
+### 5. KeyboardPreviewView.kt — wire `targetHeight` prop
+- Add `private var targetRenderHeight: Int? = null`
+- Add `fun setTargetHeight(height: Double?)` — set `targetRenderHeight`, call `renderer?.setFixedRenderHeight()`, re-render
+- In `initializeInputMode` / config-mode render path, call `renderer.setFixedRenderHeight(targetRenderHeight)` before render
+- Mirror ios/IssieBoardNG/KeyboardPreviewView.swift:58, 191-200, 461, 540
+
+### 6. KeyboardPreviewViewManager.kt — export `targetHeight` to RN
+- Add `@ReactProp(name = "targetHeight")` handler that calls `view.setTargetHeight(value)`
+- Mirror ios/IssieBoardNG/KeyboardPreviewViewManager.m:18-19
+
+### 7. KeyboardPreviewView.kt — reset keyset on config change
+- When loading a new config, reset `renderer?.currentKeysetId = ""`
+  so `defaultKeyset` from the new config takes effect
+- Mirror ios/IssieBoardNG/KeyboardPreviewView.swift:416
+
+### 8. KeyboardRenderer.kt — `setPreviewMode` reset scale
+- When `maxHeight == null`, reset `currentScale = 1.0f`
+- Mirror ios/Shared/KeyboardRenderer.swift:634-636
