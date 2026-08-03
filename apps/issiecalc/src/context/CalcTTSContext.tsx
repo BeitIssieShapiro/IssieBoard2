@@ -1,17 +1,18 @@
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 import TTS from '../../../issievoice/src/services/TextToSpeech';
-import KeyboardPreferences from '../../../../src/native/KeyboardPreferences';
-
-const READOUT_MODE_KEY = 'issiecalc_readout_mode';
-const RATE_KEY = 'issiecalc_tts_rate';
-const PITCH_KEY = 'issiecalc_tts_pitch';
-const VOICE_ID_KEY = 'issiecalc_tts_voice_id';
-const LANGUAGE_KEY = 'issiecalc_tts_language';
-const DECIMAL_DIGITS_KEY = 'issiecalc_tts_decimal_digits';
-const MATH_LEVEL_KEY = 'issiecalc_tts_math_level';
 
 export type ReadoutMode = 'off' | 'every-digit' | 'every-number' | 'both';
 export type MathLevel = 'young' | 'standard';
+
+export interface VoiceSettings {
+  readoutMode: ReadoutMode;
+  rate: number;
+  pitch: number;
+  voiceId: string | null;
+  language: string | null;
+  decimalDigits: number;
+  mathLevel: MathLevel;
+}
 
 interface CalcTTSContextValue {
   readoutMode: ReadoutMode;
@@ -28,6 +29,8 @@ interface CalcTTSContextValue {
   setDecimalDigits: (n: number) => void;
   setMathLevel: (level: MathLevel) => void;
   readout: (keyValue: string, expression: string, result: string, angleMode?: 'deg' | 'rad') => void;
+  loadFromConfig: (settings: Partial<VoiceSettings> | undefined) => void;
+  getVoiceSettings: () => VoiceSettings;
 }
 
 const CalcTTSContext = createContext<CalcTTSContextValue | null>(null);
@@ -203,84 +206,70 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const decimalDigitsRef = useRef(2);
   const mathLevelRef = useRef<MathLevel>('standard');
 
+  const initializedRef = useRef(false);
+
   useEffect(() => {
     TTS.initialize().then(() => {
-      Promise.all([
-        KeyboardPreferences.getString(READOUT_MODE_KEY),
-        KeyboardPreferences.getString(RATE_KEY),
-        KeyboardPreferences.getString(PITCH_KEY),
-        KeyboardPreferences.getString(VOICE_ID_KEY),
-        KeyboardPreferences.getString(LANGUAGE_KEY),
-        KeyboardPreferences.getString(DECIMAL_DIGITS_KEY),
-        KeyboardPreferences.getString(MATH_LEVEL_KEY),
-      ]).then(([mode, rateStr, pitchStr, vid, lang, decStr, levelStr]) => {
-        if (mode === 'off' || mode === 'every-digit' || mode === 'every-number' || mode === 'both') {
-          readoutModeRef.current = mode;
-          setReadoutModeState(mode);
-        }
-        if (rateStr) {
-          const r = parseFloat(rateStr);
-          if (!isNaN(r)) { rateRef.current = r; setRateState(r); TTS.setRate(r); }
-        }
-        if (pitchStr) {
-          const p = parseFloat(pitchStr);
-          if (!isNaN(p)) { pitchRef.current = p; setPitchState(p); TTS.setPitch(p); }
-        }
-        if (lang) { languageRef.current = lang; setLanguageState(lang); TTS.setLanguage(lang); }
-        if (vid) { voiceIdRef.current = vid; setVoiceIdState(vid); TTS.setVoice(vid); }
-        if (decStr) {
-          const d = parseInt(decStr, 10);
-          if (!isNaN(d)) { decimalDigitsRef.current = d; setDecimalDigitsState(d); }
-        }
-        if (levelStr === 'young' || levelStr === 'standard') {
-          mathLevelRef.current = levelStr;
-          setMathLevelState(levelStr);
-        }
-      });
-    });
+      initializedRef.current = true;
+      // Only apply language and voice after init — rate/pitch are not re-applied on startup
+      // (setDefaultRate has a known iOS TurboModule signature issue when called outside user action)
+      if (languageRef.current) TTS.setLanguage(languageRef.current).catch(() => {});
+      if (voiceIdRef.current) TTS.setVoice(voiceIdRef.current).catch(() => {});
+    }).catch(() => {});
   }, []);
 
+  const loadFromConfig = useCallback((settings: Partial<VoiceSettings> | undefined) => {
+    const s = settings ?? {};
+    const mode = (['off','every-digit','every-number','both'] as ReadoutMode[]).includes(s.readoutMode as ReadoutMode) ? s.readoutMode! : 'off';
+    readoutModeRef.current = mode; setReadoutModeState(mode);
+    const r = s.rate ?? 0.5; rateRef.current = r; setRateState(r);
+    const p = s.pitch ?? 1.0; pitchRef.current = p; setPitchState(p);
+    const lang = s.language ?? null; languageRef.current = lang; setLanguageState(lang);
+    const vid = s.voiceId ?? null; voiceIdRef.current = vid; setVoiceIdState(vid);
+    const dec = s.decimalDigits ?? 2; decimalDigitsRef.current = dec; setDecimalDigitsState(dec);
+    const ml = (s.mathLevel === 'young' || s.mathLevel === 'standard') ? s.mathLevel : 'standard';
+    mathLevelRef.current = ml; setMathLevelState(ml);
+    // Apply TTS settings only after TTS is initialized
+    if (initializedRef.current) {
+      if (lang) TTS.setLanguage(lang).catch(() => {});
+      if (vid) TTS.setVoice(vid).catch(() => {});
+    }
+  }, []);
+
+  const getVoiceSettings = useCallback((): VoiceSettings => ({
+    readoutMode: readoutModeRef.current,
+    rate: rateRef.current,
+    pitch: pitchRef.current,
+    voiceId: voiceIdRef.current,
+    language: languageRef.current,
+    decimalDigits: decimalDigitsRef.current,
+    mathLevel: mathLevelRef.current,
+  }), []);
+
   const setReadoutMode = useCallback((mode: ReadoutMode) => {
-    readoutModeRef.current = mode;
-    setReadoutModeState(mode);
-    KeyboardPreferences.setString(READOUT_MODE_KEY, mode);
+    readoutModeRef.current = mode; setReadoutModeState(mode);
   }, []);
 
   const setRate = useCallback((r: number) => {
-    rateRef.current = r;
-    setRateState(r);
-    KeyboardPreferences.setString(RATE_KEY, String(r));
-    TTS.setRate(r);
+    rateRef.current = r; setRateState(r); TTS.setRate(r);
   }, []);
 
   const setPitch = useCallback((p: number) => {
-    pitchRef.current = p;
-    setPitchState(p);
-    KeyboardPreferences.setString(PITCH_KEY, String(p));
-    TTS.setPitch(p);
+    pitchRef.current = p; setPitchState(p); TTS.setPitch(p);
   }, []);
 
   const setVoice = useCallback((vid: string, lang: string) => {
-    voiceIdRef.current = vid;
-    languageRef.current = lang;
-    setVoiceIdState(vid);
-    setLanguageState(lang);
-    KeyboardPreferences.setString(VOICE_ID_KEY, vid);
-    KeyboardPreferences.setString(LANGUAGE_KEY, lang);
-    TTS.setLanguage(lang);
-    TTS.setVoice(vid);
+    voiceIdRef.current = vid; languageRef.current = lang;
+    setVoiceIdState(vid); setLanguageState(lang);
+    TTS.setLanguage(lang); TTS.setVoice(vid);
   }, []);
 
   const setDecimalDigits = useCallback((n: number) => {
-    decimalDigitsRef.current = n;
-    setDecimalDigitsState(n);
-    KeyboardPreferences.setString(DECIMAL_DIGITS_KEY, String(n));
+    decimalDigitsRef.current = n; setDecimalDigitsState(n);
   }, []);
 
   const setMathLevel = useCallback((level: MathLevel) => {
-    mathLevelRef.current = level;
-    setMathLevelState(level);
-    KeyboardPreferences.setString(MATH_LEVEL_KEY, level);
+    mathLevelRef.current = level; setMathLevelState(level);
   }, []);
 
   const speak = useCallback((text: string) => {
@@ -366,7 +355,8 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
   return (
     <CalcTTSContext.Provider value={{
       readoutMode, rate, pitch, voiceId, language, decimalDigits, mathLevel,
-      setReadoutMode, setRate, setPitch, setVoice, setDecimalDigits, setMathLevel, readout,
+      setReadoutMode, setRate, setPitch, setVoice, setDecimalDigits, setMathLevel,
+      readout, loadFromConfig, getVoiceSettings,
     }}>
       {children}
     </CalcTTSContext.Provider>

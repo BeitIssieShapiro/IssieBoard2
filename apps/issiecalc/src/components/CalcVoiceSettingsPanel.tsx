@@ -61,7 +61,7 @@ interface Voice {
   language: string;
 }
 
-const CalcVoiceSettingsPanel: React.FC = () => {
+const CalcVoiceSettingsPanel: React.FC<{ onSettingsChange?: () => void }> = ({ onSettingsChange }) => {
   const { readoutMode, rate, pitch, voiceId, decimalDigits, mathLevel, setReadoutMode, setRate, setPitch, setVoice, setDecimalDigits, setMathLevel } = useCalcTTS();
   const { strings, isRTL, language: uiLang } = useLocalization();
   const s = strings.settings;
@@ -78,18 +78,19 @@ const CalcVoiceSettingsPanel: React.FC = () => {
 
   const handleRateChange = useCallback((id: string) => {
     const map: Record<string, number> = { slow: 0.3, normal: 0.5, fast: 0.7 };
-    setRate(map[id]);
-  }, [setRate]);
+    setRate(map[id]); onSettingsChange?.();
+  }, [setRate, onSettingsChange]);
 
   const handlePitchChange = useCallback((id: string) => {
     const map: Record<string, number> = { low: 0.8, normal: 1.0, high: 1.2 };
-    setPitch(map[id]);
-  }, [setPitch]);
+    setPitch(map[id]); onSettingsChange?.();
+  }, [setPitch, onSettingsChange]);
 
   const handleVoiceSelect = useCallback((voice: Voice) => {
     setVoice(voice.id, voice.language);
     setExpanded(false);
-  }, [setVoice]);
+    onSettingsChange?.();
+  }, [setVoice, onSettingsChange]);
 
   const handleTest = useCallback(async (voice: Voice) => {
     try {
@@ -150,7 +151,7 @@ const CalcVoiceSettingsPanel: React.FC = () => {
         title={s.calcReadout}
         options={readoutOptions}
         selectedId={readoutMode}
-        onSelect={id => setReadoutMode(id as any)}
+        onSelect={id => { setReadoutMode(id as any); onSettingsChange?.(); }}
         isRTL={isRTL}
       />
 
@@ -161,7 +162,7 @@ const CalcVoiceSettingsPanel: React.FC = () => {
             title={s.calcTerminology}
             options={mathLevelOptions}
             selectedId={mathLevel}
-            onSelect={id => setMathLevel(id as MathLevel)}
+            onSelect={id => { setMathLevel(id as MathLevel); onSettingsChange?.(); }}
             isRTL={isRTL}
           />
           <View style={styles.separator} />
@@ -185,7 +186,7 @@ const CalcVoiceSettingsPanel: React.FC = () => {
             title={s.calcDecimalDigits}
             options={decimalOptions}
             selectedId={String(decimalDigits)}
-            onSelect={id => setDecimalDigits(parseInt(id, 10))}
+            onSelect={id => { setDecimalDigits(parseInt(id, 10)); onSettingsChange?.(); }}
             isRTL={isRTL}
           />
           <View style={styles.separator} />

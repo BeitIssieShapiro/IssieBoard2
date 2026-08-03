@@ -437,6 +437,8 @@ interface EditorScreenInnerProps {
   /** Ref to expose silent auto-save (background/quit) — handles built-in by saving as a copy */
   autoSaveRef?: React.MutableRefObject<(() => void) | null>;
   /** Ref to expose discard (restore to last saved state) to parent */
+  /** Ref to a function that patches config just before saving (e.g. to merge voice settings) */
+  configPatchRef?: React.MutableRefObject<((config: any) => any) | null>;
   discardRef?: React.MutableRefObject<(() => void) | null>;
   /** Ref to expose language change to parent */
   changeLanguageRef?: React.MutableRefObject<((lang: LanguageId) => void) | null>;
@@ -503,6 +505,8 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   saveRef,
   autoSaveRef,
   discardRef,
+  configPatchRef,
+  profileActivatedRef,
   changeLanguageRef,
   onStateChange,
   selectedLanguages,
@@ -1101,8 +1105,8 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       onProfileChange(newProfileId, newName, currentLanguage, currentKeyboardId);
 
       // Save as the active profile for this language and app context
-      // Use app-specific keyboard config key
-      await saveKeyboardConfig(configToSave, currentLanguage, appContext);
+      let configToSaveWithVoice = configPatchRef?.current ? configPatchRef.current(configToSave) : configToSave;
+      await saveKeyboardConfig(configToSaveWithVoice, currentLanguage, appContext);
 
       const activeProfileKey = getActiveProfileKey(currentLanguage, appContext);
       await KeyboardPreferences.setProfile(newProfileId, activeProfileKey);
@@ -1257,6 +1261,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         setCurrentProfileName(profile.name);
         setCurrentProfileId(profile.id);
         onProfileChange(profile.id, profile.name, profile.language, 'calc');
+        // Built-in profiles have no voiceSettings — save without them (resets to defaults)
         await saveKeyboardConfig(newConfig, 'calc' as LanguageId, appContext);
         const activeProfileKey = getActiveProfileKey('calc' as LanguageId, appContext);
         await KeyboardPreferences.setProfile(profile.id, activeProfileKey);
@@ -1295,7 +1300,9 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         setCurrentProfileName(profile.name);
         setCurrentProfileId(profile.id);
         onProfileChange(profile.id, profile.name, profile.language, 'calc');
-        await saveKeyboardConfig(merged, 'calc' as LanguageId, appContext);
+        // Use voiceSettings from the profile def (per-profile), fallback to none
+        const profileVoice2 = (loaded.profileDef as any).voiceSettings;
+        await saveKeyboardConfig(profileVoice2 ? { ...merged, voiceSettings: profileVoice2 } : merged, 'calc' as LanguageId, appContext);
         const activeProfileKey = getActiveProfileKey('calc' as LanguageId, appContext);
         await KeyboardPreferences.setProfile(profile.id, activeProfileKey);
         return;
@@ -2552,6 +2559,10 @@ interface EditorScreenProps {
   autoSaveRef?: React.MutableRefObject<(() => void) | null>;
   /** Ref to expose discard (restore to last saved state) to parent */
   discardRef?: React.MutableRefObject<(() => void) | null>;
+  /** Ref to a function that patches config just before saving */
+  configPatchRef?: React.MutableRefObject<((config: any) => any) | null>;
+  /** Ref called when a profile is activated (issiecalc only) */
+  profileActivatedRef?: React.MutableRefObject<((profileId: string) => void) | null>;
   /** Description text shown at the top of the headless panel for the active tab */
   tabDescription?: string;
   /** Selected languages for IssieVoice language key injection */
@@ -2576,6 +2587,8 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
   saveRef,
   autoSaveRef,
   discardRef,
+  configPatchRef,
+  profileActivatedRef,
   selectedLanguages,
 }) => {
   const { strings, isRTL, language: uiLanguage } = useLocalization();
@@ -2849,9 +2862,10 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
       keyboardId: profileDef.keyboardId,
     });
 
-    // Save profile definition
+    // Save profile definition (with configPatch applied for extra fields like voiceSettings)
+    const profileDefToSave = configPatchRef?.current ? configPatchRef.current(profileDef) : profileDef;
     await KeyboardPreferences.setProfile(
-      JSON.stringify(profileDef),
+      JSON.stringify(profileDefToSave),
       `profile_def_${saveProfileId}`
     );
     console.log(`📱 ✅ Saved profile_def_${saveProfileId}`);
@@ -2894,8 +2908,20 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
 
     // When saving a profile, automatically make it active
     // Save the keyboard config and mark this profile as active
+    // Apply configPatch if provided (e.g. to merge voiceSettings)
+    let configToWrite = configWithGroups;
+    console.log(`📱 configPatchRef available: ${!!configPatchRef?.current}`);
+    if (configPatchRef?.current) {
+      configToWrite = configPatchRef.current(configWithGroups);
+      console.log(`📱 configPatch applied, voiceSettings: ${JSON.stringify((configToWrite as any).voiceSettings)}`);
+    }
+    else if (appContext === 'issiecalc') {
+      const existingJson = await KeyboardPreferences.getString('keyboardConfig_issiecalc_calc');
+      const existingVoice = existingJson ? (() => { try { return JSON.parse(existingJson).voiceSettings; } catch { return undefined; } })() : undefined;
+      if (existingVoice) configToWrite = { ...configWithGroups, voiceSettings: existingVoice };
+    }
     console.log(`📱 Saving keyboard config with ${groupConfigs.length} groups...`);
-    await saveKeyboardConfig(configWithGroups, currentLanguage, appContext);
+    await saveKeyboardConfig(configToWrite, currentLanguage, appContext);
     console.log(`📱 ✅ Saved keyboard config for ${currentLanguage} (${appContext})`);
 
     const activeProfileKey = getActiveProfileKey(currentLanguage, appContext);
@@ -3085,6 +3111,8 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
       const activeProfileKey = getActiveProfileKey('calc' as LanguageId, 'issiecalc');
       await KeyboardPreferences.setProfile(profileIdToActivate, activeProfileKey);
       setActiveKeyboardProfileId(profileIdToActivate);
+      // Notify parent so it can reload voice settings for this profile
+      profileActivatedRef?.current?.(profileIdToActivate);
       return;
     }
 
@@ -3258,6 +3286,8 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
         saveRef={saveRef}
         autoSaveRef={autoSaveRef}
         discardRef={discardRef}
+        configPatchRef={configPatchRef}
+        profileActivatedRef={profileActivatedRef}
         changeLanguageRef={changeLanguageRef}
         onStateChange={onStateChange}
         selectedLanguages={selectedLanguages}

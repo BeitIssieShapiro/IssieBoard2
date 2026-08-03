@@ -8,11 +8,16 @@ import CalcVoiceSettingsPanel from '../components/CalcVoiceSettingsPanel';
 import { useLocalization } from '../../../issievoice/src/context/LocalizationContext';
 import { AboutScreen } from '../../../../src/components/AboutScreen';
 import { ISSIECCALC_ABOUT } from '../../../../src/components/about-content';
-
-const builtConfig = require('../../../../ios/IssieCalc/default_config.json');
+import { useCalcTTS } from '../context/CalcTTSContext';
+import KeyboardPreferences from '../../../../src/native/KeyboardPreferences';
 
 const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState('general');
+  const activeTabRef = useRef('general');
+  const setActiveTabAndRef = useCallback((tab: string) => {
+    activeTabRef.current = tab;
+    setActiveTab(tab);
+  }, []);
   const [profileName, setProfileName] = useState('');
   const [isDirty, setIsDirty] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
@@ -20,9 +25,25 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const saveRef = useRef<(() => void) | null>(null);
   const discardRef = useRef<(() => void) | null>(null);
   const showProfilePickerRef = useRef<(() => void) | null>(null);
+  const configPatchRef = useRef<((config: any) => any) | null>(null);
+  const profileActivatedRef = useRef<((profileId: string) => void) | null>(null);
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
   const { strings } = useLocalization();
+  const { getVoiceSettings, loadFromConfig } = useCalcTTS();
+
+  // Keep configPatchRef current so EditorScreen always injects latest voiceSettings on save
+  configPatchRef.current = (config: any) => ({ ...config, voiceSettings: getVoiceSettings() });
+  profileActivatedRef.current = (profileId: string) => {
+    setIsDirty(false);
+    KeyboardPreferences.getProfile(`profile_def_${profileId}`).then(defJson => {
+      if (defJson) {
+        try { loadFromConfig(JSON.parse(defJson).voiceSettings); } catch {}
+      } else {
+        loadFromConfig(undefined);
+      }
+    });
+  };
 
   const VOICE_EXTRA_TAB = {
     id: 'voice',
@@ -35,10 +56,7 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const navigateBack = useCallback(() => navigation.goBack(), [navigation]);
 
   const handleClose = useCallback(() => {
-    if (!isDirty) {
-      navigateBack();
-      return;
-    }
+    if (!isDirty) { navigateBack(); return; }
     Alert.alert(
       strings.common.unsavedChanges,
       strings.common.unsavedChangesMessage,
@@ -47,48 +65,76 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         {
           text: strings.common.discard,
           style: 'destructive',
-          onPress: () => {
-            if (discardRef.current) discardRef.current();
-            navigateBack();
-          },
+          onPress: () => { discardRef.current?.(); navigateBack(); },
         },
         {
           text: strings.common.save,
-          onPress: () => {
-            if (saveRef.current) saveRef.current();
-          },
+          onPress: () => saveRef.current?.(),
         },
       ]
     );
   }, [isDirty, navigateBack, strings]);
 
-  const handleTabChange = useCallback((tabId: string) => {
-    setActiveTab(tabId);
+  const handleTabChange = useCallback((tabId: string) => setActiveTabAndRef(tabId), [setActiveTabAndRef]);
+
+  const handleVoiceSettingsChange = useCallback(() => setIsDirty(true), []);
+
+  // When profile switches, reload voice settings from the new saved config and leave voice tab
+  const handleProfileChange = useCallback((profileId: string, _profileName: string, _language: any, _keyboardId: string) => {
+    setIsDirty(false);
+    KeyboardPreferences.getProfile(`profile_def_${profileId}`).then(defJson => {
+      console.log('🔄 handleProfileChange profileId:', profileId, 'defJson:', defJson ? defJson.slice(0, 200) : 'null');
+      if (defJson) {
+        try {
+          const parsed = JSON.parse(defJson);
+          console.log('🔄 voiceSettings from def:', JSON.stringify(parsed.voiceSettings));
+          loadFromConfig(parsed.voiceSettings);
+        } catch {}
+      } else {
+        loadFromConfig(undefined);
+      }
+      // Switch tab after loading voice settings so panel re-renders with fresh state
+      setActiveTabAndRef('general');
+    });
+  }, [loadFromConfig, setActiveTabAndRef]);
+
+  const handleSave = useCallback(async (config: any, _styleGroups: any[]) => {
+    const voiceSettings = getVoiceSettings();
+    const configWithVoice = { ...config, voiceSettings };
+    await KeyboardPreferences.setKeyboardConfigForLanguage(JSON.stringify(configWithVoice), 'issiecalc_calc');
+    setIsDirty(false);
+  }, [getVoiceSettings]);
+
+  const handleHeaderSave = useCallback(() => {
+    saveRef.current?.();
   }, []);
 
-  const renderContent = () => {
-    if (activeTab === 'voice') {
-      return <CalcVoiceSettingsPanel />;
-    }
-    return (
-      <EditorScreen
-        appContext="issiecalc"
-        initialLanguage="calc"
-        onClose={navigateBack}
-        onStateChange={({ profileName: name, isDirty: dirty, backgroundColor }) => {
-          setProfileName(name);
-          setIsDirty(dirty);
-          setConfigBg(backgroundColor);
-        }}
-        headless
-        activeTab={activeTab}
-        saveRef={saveRef}
-        discardRef={discardRef}
-        showProfilePickerRef={showProfilePickerRef}
-      />
-    );
-  };
-
+  const renderContent = () => (
+    <>
+      <View style={activeTab === 'voice' ? styles.hidden : { flex: 1 }} pointerEvents={activeTab === 'voice' ? 'none' : 'auto'}>
+        <EditorScreen
+          appContext="issiecalc"
+          initialLanguage="calc"
+          onClose={navigateBack}
+          onStateChange={({ profileName: name, isDirty: dirty, backgroundColor }) => {
+            setProfileName(name);
+            if (activeTabRef.current !== 'voice') setIsDirty(dirty);
+            setConfigBg(backgroundColor);
+          }}
+          onProfileChange={handleProfileChange}
+          onSave={handleSave}
+          headless
+          activeTab={activeTab === 'voice' ? 'general' : activeTab}
+          saveRef={saveRef}
+          discardRef={discardRef}
+          configPatchRef={configPatchRef}
+          profileActivatedRef={profileActivatedRef}
+          showProfilePickerRef={showProfilePickerRef}
+        />
+      </View>
+      {activeTab === 'voice' && <CalcVoiceSettingsPanel onSettingsChange={handleVoiceSettingsChange} />}
+    </>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -97,7 +143,7 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         onLanguageChange={() => {}}
         profileName={profileName}
         onProfilePress={() => showProfilePickerRef.current?.()}
-        onSave={() => saveRef.current?.()}
+        onSave={handleHeaderSave}
         onDiscard={() => discardRef.current?.()}
         isDirty={isDirty}
         activeTab={activeTab}
@@ -152,6 +198,7 @@ const styles = StyleSheet.create({
   landscapeLayout: { flex: 1, flexDirection: 'row' },
   portraitLayout: { flex: 1 },
   detailArea: { flex: 1 },
+  hidden: { position: 'absolute', opacity: 0, width: '100%' as any, height: '100%' as any },
 });
 
 export default SettingsScreen;

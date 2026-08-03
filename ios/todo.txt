@@ -1,9 +1,8 @@
 IssieCalc:
 V- both voices
-- voice per calculator
+V- voice per calculator
 - remove "functions" key group
-- add = in expression, also align to right
-- signs (+/x)
+V- add = in expression, also align to right
 - display text fontSize - proportional
 - settings should take preview from ladscape/portrait
 - layout:

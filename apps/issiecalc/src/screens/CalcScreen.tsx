@@ -142,6 +142,7 @@ function renderTemplateExpression(
 }
 
 function patchAngleToggleCaption(config: any, caption: string): any {
+  if (!config?.keysets) return config;
   return {
     ...config,
     keysets: config.keysets.map((ks: any) => ({
@@ -192,7 +193,7 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
     setToastMessage(msg);
     showToast(msg);
   }, [showToast]);
-  const { readout, readoutMode, language, decimalDigits, mathLevel } = useCalcTTS();
+  const { readout, readoutMode, language, decimalDigits, mathLevel, loadFromConfig } = useCalcTTS();
   const speakExpression = useCallback((expr: string): string => {
     const lang = language;
     const ml = mathLevel ?? 'standard';
@@ -232,7 +233,10 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          setLiveConfig(parsed);
+          // Merge with builtConfig to ensure keysets and other structural fields are always present
+          const merged = { ...builtConfig, ...parsed, keysets: builtConfig.keysets };
+          setLiveConfig(merged);
+          loadFromConfig(parsed.voiceSettings);
           // If scientific was disabled and we're on a scientific keyset, switch back to basic
           if (parsed.showScientific === false && (keyset === 'scientific' || keyset === 'scientific_2nd' || keyset === 'scientific_landscape_2nd')) {
             setKeyset('basic');
@@ -254,6 +258,15 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
 
   const showScientific = liveConfig?.showScientific !== false;
   const isScientific = keyset === 'scientific' || keyset === 'scientific_2nd' || keyset === 'scientific_landscape_2nd';
+
+  // Scale display font sizes with fontSizePreset: xs=base, xl=1.8x
+  const displayFontScale = (() => {
+    const preset = liveConfig?.fontSizePreset ?? 'normal';
+    const scales: Record<string, number> = { xs: 1.0, small: 1.2, normal: 1.35, large: 1.55, xl: 1.8 };
+    return scales[preset] ?? 1.35;
+  })();
+  const resultFontSize = Math.round(48 * displayFontScale);
+  const expressionFontSize = Math.round(28 * displayFontScale);
 
   const heightRatio = (() => {
     const preset = liveConfig?.heightPreset ?? 'normal';
@@ -422,28 +435,29 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
             {(keyset === 'scientific' || keyset === 'scientific_landscape_2nd' || keyset === 'scientific_2nd') && (
               <Text style={[styles.angleIndicator, fadedTextStyle]}>{angleMode === 'rad' ? 'Rad' : 'Deg'}</Text>
             )}
-            <Text style={[styles.expression, fadedTextStyle]} numberOfLines={1} adjustsFontSizeToFit>
+            <Text style={[styles.expression, fadedTextStyle, { fontSize: expressionFontSize }]} numberOfLines={1} adjustsFontSizeToFit>
               {renderTemplateExpression(
                 finalizeTemplate(expression),
                 fadedTextStyle.color as string,
                 dimTextColor,
-                false
+                false,
+                expressionFontSize
               )}
             </Text>
-            <Text style={[styles.expression, fadedTextStyle, { alignSelf: 'center' }]}> =</Text>
+            <Text style={[styles.expression, fadedTextStyle, { alignSelf: 'center', fontSize: expressionFontSize }]}> =</Text>
           </View>
           {templateMode && !resultMode
             ? (
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'flex-start', alignSelf: 'stretch' }}>
-                {renderTemplateExpression(expression, displayTextColor, dimTextColor) as any}
+                {renderTemplateExpression(expression, displayTextColor, dimTextColor, true, resultFontSize) as any}
               </View>
             ) : HAS_TEMPLATE_FN.test(expression) && !resultMode
             ? (
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'flex-start', alignSelf: 'stretch' }}>
-                {renderTemplateExpression(expression, displayTextColor, dimTextColor, false) as any}
+                {renderTemplateExpression(expression, displayTextColor, dimTextColor, false, resultFontSize) as any}
               </View>
             ) : (
-          <Text style={[styles.result, { color: displayTextColor }]} numberOfLines={1}>
+          <Text style={[styles.result, { color: displayTextColor, fontSize: resultFontSize }]} numberOfLines={1}>
             {resultMode
               ? (result === 'NUMBER_TOO_BIG' ? strings.settings.numberTooBig : result)
               : (() => {
