@@ -1,10 +1,10 @@
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
+import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Animated } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { KeyboardPreview, KeyPressEvent } from '../../../../src/components/KeyboardPreview';
 import { useCalc } from '../context/CalcContext';
-import { dispatch, CalcState } from '../services/calcDispatch';
+import { dispatch, CalcState, finalizeTemplate } from '../services/calcDispatch';
 import { useCalcTTS } from '../context/CalcTTSContext';
 import { evaluate, countUnclosedParens } from '../services/Calculator';
 import { useLocalization } from '../../../issievoice/src/context/LocalizationContext';
@@ -43,6 +43,103 @@ function isLandscape() {
   return width > height;
 }
 
+const HAS_TEMPLATE_FN = /yroot\(|logy\(|xpow\(/;
+
+type TemplateConfig = {
+  activeRe: RegExp;
+  finalRe: RegExp;
+  render: (x: string, y: string, cursor: React.ReactNode, fontSize: number, color: string) => React.ReactNode;
+};
+
+const TEMPLATE_CONFIGS: TemplateConfig[] = [
+  {
+    activeRe: /^(.*)yroot\(([^,]+),([^\x00]*)\x00\)(.*)$/,
+    finalRe:  /^(.*)yroot\(([^,]+),([^)]+)\)(.*)$/,
+    render: (x, y, cursor, fontSize, color) => {
+      const sf = Math.floor(fontSize * 0.6);
+      return (
+        <>
+          <Text style={{ fontSize: sf, lineHeight: sf * 1.1, color, textAlignVertical: 'top' }}>{y}</Text>
+          {cursor}
+          <Text style={{ fontSize, color, textAlignVertical: 'bottom' }}>{'√'}{formatExpression(x)}</Text>
+        </>
+      );
+    },
+  },
+  {
+    activeRe: /^(.*)logy\(([^,]+),([^\x00]*)\x00\)(.*)$/,
+    finalRe:  /^(.*)logy\(([^,]+),([^)]+)\)(.*)$/,
+    render: (x, y, cursor, fontSize, color) => {
+      const sf = Math.floor(fontSize * 0.6);
+      return (
+        <>
+          <Text style={{ fontSize, color, textAlignVertical: 'bottom' }}>{'log'}</Text>
+          <Text style={{ fontSize: sf, lineHeight: sf * 1.1, color, textAlignVertical: 'bottom' }}>{y}</Text>
+          {cursor}
+          <Text style={{ fontSize, color, textAlignVertical: 'bottom' }}>{'('}{formatExpression(x)}{')'}</Text>
+        </>
+      );
+    },
+  },
+  {
+    activeRe: /^(.*)xpow\(([^,]+),([^\x00]*)\x00\)(.*)$/,
+    finalRe:  /^(.*)xpow\(([^,]+),([^)]+)\)(.*)$/,
+    render: (x, y, cursor, fontSize, color) => {
+      const sf = Math.floor(fontSize * 0.6);
+      return (
+        <>
+          <Text style={{ fontSize, color, textAlignVertical: 'bottom' }}>{formatExpression(x)}</Text>
+          <Text style={{ fontSize: sf, lineHeight: sf * 1.1, color, textAlignVertical: 'top' }}>{y}</Text>
+          {cursor}
+        </>
+      );
+    },
+  },
+];
+
+function renderTemplateExpression(
+  expression: string,
+  displayTextColor: string,
+  dimColor: string,
+  showCursor: boolean = true,
+  fontSize: number = 48
+): React.ReactNode {
+  for (const cfg of TEMPLATE_CONFIGS) {
+    const re = showCursor ? cfg.activeRe : cfg.finalRe;
+    const m = expression.match(re);
+    if (m) {
+      const [, before, x, y, after] = m;
+      const yOpenParens = y.split('').reduce((d, c) => c === '(' ? d+1 : c === ')' ? d-1 : d, 0);
+      const yHasParens = y.includes('(');
+      // Hide cursor only when Y has parens and they are all closed
+      const cursor = showCursor && !(yHasParens && yOpenParens === 0)
+        ? <Text style={{ fontSize: Math.floor(fontSize * 0.6), color: dimColor, textAlignVertical: 'top' }}>_</Text>
+        : null;
+      return (
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', alignSelf: 'flex-end' }}>
+          {before ? <Text style={{ color: displayTextColor, fontSize, textAlignVertical: 'bottom' }}>{formatExpression(before)}</Text> : null}
+          {cfg.render(x, y, cursor, fontSize, displayTextColor)}
+          {after ? <Text style={{ color: displayTextColor, fontSize, textAlignVertical: 'bottom' }}>{formatExpression(after)}</Text> : null}
+        </View>
+      );
+    }
+    // Also try finalized form when showCursor=true (expression row after =)
+    if (!showCursor) continue;
+    const mf = expression.match(cfg.finalRe);
+    if (mf) {
+      const [, before, x, y, after] = mf;
+      return (
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', alignSelf: 'flex-end' }}>
+          {before ? <Text style={{ color: displayTextColor, fontSize, textAlignVertical: 'bottom' }}>{formatExpression(before)}</Text> : null}
+          {cfg.render(x, y, null, fontSize, displayTextColor)}
+          {after ? <Text style={{ color: displayTextColor, fontSize, textAlignVertical: 'bottom' }}>{formatExpression(after)}</Text> : null}
+        </View>
+      );
+    }
+  }
+  return <Text style={{ color: displayTextColor, fontSize }}>{formatExpression(expression) || '0'}</Text>;
+}
+
 function patchAngleToggleCaption(config: any, caption: string): any {
   return {
     ...config,
@@ -70,16 +167,28 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
     angleMode, toggleAngleMode,
     memory, memoryStore, memoryRecall,
     replaceExpression,
+    templateMode,
   } = useCalc();
   const currentState: CalcState = {
-    expression,
-    result,
-    resultMode,
-    angleMode,
-    keyset,
-    memory,
+    expression, result, resultMode, angleMode, keyset, memory, templateMode,
   };
 
+  const toastOpacity = useRef(new Animated.Value(0)).current;
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showToast = useCallback((msg: string) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastOpacity.setValue(1);
+    toastTimer.current = setTimeout(() => {
+      Animated.timing(toastOpacity, { toValue: 0, duration: 600, useNativeDriver: true }).start();
+    }, 1800);
+  }, [toastOpacity]);
+
+  const [toastMessage, setToastMessage] = useState('');
+  const showToastMsg = useCallback((msg: string) => {
+    setToastMessage(msg);
+    showToast(msg);
+  }, [showToast]);
   const { readout } = useCalcTTS();
   const { strings } = useLocalization();
   const insets = useSafeAreaInsets();
@@ -156,11 +265,24 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
       return;
     }
 
+    // Template keys require an X operand — show toast if none present
+    if ((value === 'yroot(' || value === 'logy(' || value === 'x^(') && !currentState.resultMode) {
+      const expr = currentState.expression;
+      if (!expr || /[+\-*/^%,(]$/.test(expr)) {
+        showToastMsg(strings.settings.calcNeedsXFirst);
+        return;
+      }
+    }
+
     // [2ND] in landscape maps to landscape_2nd variant — override keyset after dispatch
     const newState = dispatch(currentState, value);
 
     // Apply expression/result state
     if (value === '=') {
+      // If in template mode, finalize the expression before computing
+      if (currentState.templateMode) {
+        replaceExpression(newState.expression);
+      }
       computeResult();
     } else if (value === 'AC') {
       clearAll();
@@ -251,29 +373,49 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
               <Text style={[styles.angleIndicator, fadedTextStyle]}>{angleMode === 'rad' ? 'Rad' : 'Deg'}</Text>
             )}
             <Text style={[styles.expression, fadedTextStyle]} numberOfLines={1} adjustsFontSizeToFit>
-              {formatExpression(expression + ')'.repeat(countUnclosedParens(expression)))}
+              {renderTemplateExpression(
+                finalizeTemplate(expression),
+                fadedTextStyle.color as string,
+                dimTextColor,
+                false
+              )}
             </Text>
           </View>
+          {templateMode && !resultMode
+            ? (
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'flex-start', alignSelf: 'stretch' }}>
+                {renderTemplateExpression(expression, displayTextColor, dimTextColor) as any}
+              </View>
+            ) : HAS_TEMPLATE_FN.test(expression) && !resultMode
+            ? (
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'flex-start', alignSelf: 'stretch' }}>
+                {renderTemplateExpression(expression, displayTextColor, dimTextColor, false) as any}
+              </View>
+            ) : (
           <Text style={[styles.result, { color: displayTextColor }]} numberOfLines={1}>
             {resultMode
               ? (result === 'NUMBER_TOO_BIG' ? strings.settings.numberTooBig : result)
               : (() => {
-                  const formatted = formatExpression(expression) || '0';
-                  const ghostCount = !resultMode ? countUnclosedParens(expression) : 0;
-                  if (ghostCount === 0) return formatted;
-                  return (
-                    <>
-                      {formatted}
-                      <Text style={{ opacity: 0.3 }}>{')'.repeat(ghostCount)}</Text>
-                    </>
-                  );
-                })()}
+                    const formatted = formatExpression(expression) || '0';
+                    const ghostCount = countUnclosedParens(expression);
+                    if (ghostCount === 0) return formatted;
+                    return (
+                      <>
+                        {formatted}
+                        <Text style={{ opacity: 0.3 }}>{')'.repeat(ghostCount)}</Text>
+                      </>
+                    );
+                  })()}
           </Text>
+            )}
         </View>
       </View>
 
       {/* Keyboard */}
       <View style={styles.keyboardContainer}>
+        <Animated.View style={[styles.toast, { opacity: toastOpacity }]} pointerEvents="none">
+          <Text style={styles.toastText}>{toastMessage}</Text>
+        </Animated.View>
         <KeyboardPreview
           style={{ height: effectiveKbHeight, backgroundColor: screenBg }}
           configJson={configJson}
@@ -319,6 +461,12 @@ const styles = StyleSheet.create({
   expressionRow: { flexDirection: 'row', alignItems: 'flex-end', alignSelf: 'stretch' },
   angleIndicator: { fontSize: 16, color: '#8E8E93', marginRight: 8, paddingBottom: 4 },
   keyboardContainer: { backgroundColor: KB_BG },
+  toast: {
+    position: 'absolute', top: 8, alignSelf: 'center',
+    backgroundColor: 'rgba(60,60,67,0.9)', borderRadius: 14,
+    paddingHorizontal: 24, paddingVertical: 12, zIndex: 99,
+  },
+  toastText: { color: '#FFFFFF', fontSize: 22, fontWeight: '500' },
 });
 
 export default CalcScreen;

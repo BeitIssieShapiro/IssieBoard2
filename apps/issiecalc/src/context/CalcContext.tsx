@@ -15,6 +15,7 @@ interface CalcContextValue {
   keyset: Keyset;
   angleMode: AngleMode;
   memory: string;
+  templateMode: boolean;
   appendToExpression: (val: string) => void;
   replaceExpression: (val: string) => void;
   clearAll: () => void;
@@ -182,6 +183,7 @@ export const CalcProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <CalcContext.Provider value={{
       expression, result, resultMode, keyset, angleMode, memory,
+      templateMode: expression.includes('\x00'),
       appendToExpression, replaceExpression, clearAll, backspace, computeResult, toggleSign,
       setKeyset, toggleAngleMode, memoryStore, memoryRecall,
     }}>

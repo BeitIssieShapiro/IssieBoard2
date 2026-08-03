@@ -548,3 +548,105 @@ describe('implicit multiplication', () => {
     expect(s[1].expression).toBe('e*2');
   });
 });
+
+describe('template mode — yroot', () => {
+  test('yroot( on 8 enters template mode', () => {
+    const s = runSequence(['8', 'yroot(']);
+    expect(s[1].templateMode).toBe(true);
+    expect(s[1].expression).toContain('yroot(8,');
+  });
+  test('typing 3 in Y slot builds expression with marker', () => {
+    const s = runSequence(['8', 'yroot(', '3']);
+    expect(s[2].expression).toContain('3\x00');
+  });
+  test('8 yroot( 3 = gives cube root of 8 = 2', () => {
+    const s = runSequence(['8', 'yroot(', '3', '=']);
+    expect(s[3].result).toBe('2');
+  });
+  test('27 yroot( 3 = gives 3', () => {
+    const s = runSequence(['2', '7', 'yroot(', '3', '=']);
+    expect(s[4].result).toBe('3');
+  });
+  test('backspace with empty Y removes template, restores X', () => {
+    const s = runSequence(['8', 'yroot(', '⌫']);
+    expect(s[2].templateMode).toBe(false);
+    expect(s[2].expression).toBe('8');
+  });
+  test('backspace removes last Y digit', () => {
+    const s = runSequence(['8', 'yroot(', '3', '2', '⌫']);
+    const yContent = s[4].expression.match(/,([^\x00]*)\x00\)/)?.[1];
+    expect(yContent).toBe('3');
+  });
+  test('AC in template mode clears all', () => {
+    const s = runSequence(['8', 'yroot(', '3', 'AC']);
+    expect(s[3].expression).toBe('');
+    expect(s[3].templateMode).toBe(false);
+  });
+});
+
+describe('template mode — logy', () => {
+  test('logy( on 100 enters template mode', () => {
+    const s = runSequence(['1', '0', '0', 'logy(']);
+    expect(s[3].templateMode).toBe(true);
+  });
+  test('1000 logy( 10 = gives 3', () => {
+    const s = runSequence(['1', '0', '0', '0', 'logy(', '1', '0', '=']);
+    expect(s[7].result).toBe('3');
+  });
+  test('8 logy( 2 = gives 3', () => {
+    const s = runSequence(['8', 'logy(', '2', '=']);
+    expect(s[3].result).toBe('3');
+  });
+});
+
+describe('template mode — x^y (xpow)', () => {
+  test('5 x^( enters template mode', () => {
+    const s = runSequence(['5', 'x^(']);
+    expect(s[1].templateMode).toBe(true);
+    expect(s[1].expression).toContain('xpow(5,');
+  });
+  test('5 x^( 3 = gives 125', () => {
+    const s = runSequence(['5', 'x^(', '3', '=']);
+    expect(s[3].result).toBe('125');
+  });
+  test('2 x^( 10 = gives 1024', () => {
+    const s = runSequence(['2', 'x^(', '1', '0', '=']);
+    expect(s[4].result).toBe('1024');
+  });
+  test('operator exits template and is re-dispatched: 8 x^( 1 + 2 = 10', () => {
+    const s = runSequence(['8', 'x^(', '1', '+', '2', '=']);
+    // After +: template exits with xpow(8,1), then +2 appended
+    expect(s[3].templateMode).toBe(false);
+    expect(s[5].result).toBe('10');
+  });
+  test('stays in template while typing digits', () => {
+    const s = runSequence(['8', 'x^(', '1', '2']);
+    expect(s[3].templateMode).toBe(true);
+    expect(s[3].expression).toContain('12\x00');
+  });
+  test('( in Y enters paren mode, operators accepted inside', () => {
+    const s = runSequence(['8', 'x^(', '(', '1', '+', '2', ')']);
+    expect(s[6].templateMode).toBe(true);
+    const y = s[6].expression.match(/,([^\x00]*)\x00\)/)?.[1];
+    expect(y).toBe('(1+2)');
+  });
+  test('8 x^( (1+2) = gives 512', () => {
+    const s = runSequence(['8', 'x^(', '(', '1', '+', '2', ')', '=']);
+    expect(s[7].result).toBe('512');
+  });
+  test('x^( with no X enters template with empty X slot', () => {
+    // Toast is shown in CalcScreen; dispatch still enters template mode
+    const s = runSequence(['x^(']);
+    expect(s[0].templateMode).toBe(true);
+  });
+  test('backspace with empty Y removes template and restores X', () => {
+    const s = runSequence(['5', 'x^(', '⌫']);
+    expect(s[2].templateMode).toBe(false);
+    expect(s[2].expression).toBe('5');
+  });
+  test('AC in template clears all', () => {
+    const s = runSequence(['5', 'x^(', '3', 'AC']);
+    expect(s[3].expression).toBe('');
+    expect(s[3].templateMode).toBe(false);
+  });
+});

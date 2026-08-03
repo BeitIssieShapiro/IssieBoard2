@@ -74,6 +74,11 @@ function normalize(expression: string, angleMode: 'rad' | 'deg'): string {
     if (e === prev) break;
   }
 
+  // Two-arg functions: yroot(x,y) → x^(1/y), logy(x,y) → log(x)/log(y)
+  e = e.replace(/yroot\(([^,]+),([^)]+)\)/g, (_, x, y) => `(${x})^(1/(${y}))`);
+  e = e.replace(/logy\(([^,]+),([^)]+)\)/g, (_, x, y) => `log(${x})/log(${y})`);
+  e = e.replace(/xpow\(([^,]+),([^)]+)\)/g, (_, x, y) => `(${x})^(${y})`);
+
   // Deg mode: wrap sin/cos/tan args with deg→rad conversion
   if (angleMode === 'deg') {
     e = e.replace(/\bsin\(([^()]+)\)/g, (_, x) => `sin(${x}*${DEG_TO_RAD})`);

@@ -7,6 +7,7 @@ export interface CalcState {
   angleMode: 'rad' | 'deg';
   keyset: 'basic' | 'scientific' | 'scientific_2nd' | 'scientific_landscape_2nd';
   memory: string;
+  templateMode: boolean;
 }
 
 export const initialCalcState: CalcState = {
@@ -16,19 +17,33 @@ export const initialCalcState: CalcState = {
   angleMode: 'rad',
   keyset: 'basic',
   memory: '0',
+  templateMode: false,
 };
 
+export const TEMPLATE_MARKER = '\x00';
+
+export function isInTemplateMode(expression: string): boolean {
+  return expression.includes(TEMPLATE_MARKER);
+}
+
+export function finalizeTemplate(expression: string): string {
+  return expression.replace(TEMPLATE_MARKER, '');
+}
+
 const OPERATORS = /^[+\-*/^%]$/;
-const FUNCTIONS_RE = /^(sin\(|cos\(|tan\(|asin\(|acos\(|atan\(|sinh\(|cosh\(|tanh\(|asinh\(|acosh\(|atanh\(|sqrt\(|ln\(|log\(|log2\(|logy\(|2root\(|3root\(|yroot\(|factorial\(|x\^2|x\^3|x\^\(|2\^\(|1\/\()$/;
+const FUNCTIONS_RE = /^(sin\(|cos\(|tan\(|asin\(|acos\(|atan\(|sinh\(|cosh\(|tanh\(|asinh\(|acosh\(|atanh\(|sqrt\(|ln\(|log\(|log2\(|2root\(|3root\(|factorial\(|x\^2|x\^3|x\^\(|2\^\(|1\/\()$/;
 const FUNCTION_KEYS = new Set([
   'sin(', 'cos(', 'tan(', 'asin(', 'acos(', 'atan(',
   'sinh(', 'cosh(', 'tanh(', 'asinh(', 'acosh(', 'atanh(',
-  'ln(', 'log(', 'log2(', 'logy(', '2root(', '3root(', 'yroot(',
+  'ln(', 'log(', 'log2(', '2root(', '3root(',
   'factorial(', 'sqrt(', 'e^(', '2^(', '10^(', '1/(',
 ]);
 
+const TEMPLATE_KEYS = new Set(['yroot(', 'logy(', 'x^(']);
+const TEMPLATE_KEY_TO_FN: Record<string, string> = { 'x^(': 'xpow(' };
+
 // Suffix keys require a numeric operand already present — ignored otherwise
-const SUFFIX_KEYS = new Set(['x^2', 'x^3', 'x^(', 'factorial(', '1/(']);
+const SUFFIX_KEYS = new Set(['x^2', 'x^3', 'factorial(', '1/(']);
 
 function endsWithValidOperand(expr: string): boolean {
   if (expr === '' || expr === '0') return true;
@@ -70,6 +85,29 @@ function extractTrailingOperand(expr: string): [string, string] | null {
   return null;
 }
 
+function insertIntoYSlot(expression: string, char: string): string {
+  return expression.replace(TEMPLATE_MARKER, char + TEMPLATE_MARKER);
+}
+
+function ySlotContent(expression: string): string {
+  // Use index-based extraction to handle ) chars in Y slot
+  const markerIdx = expression.indexOf(TEMPLATE_MARKER);
+  if (markerIdx === -1) return '';
+  const commaIdx = expression.lastIndexOf(',', markerIdx);
+  if (commaIdx === -1) return '';
+  return expression.slice(commaIdx + 1, markerIdx);
+}
+
+function ySlotOpenParens(expression: string): number {
+  const content = ySlotContent(expression);
+  let depth = 0;
+  for (const c of content) {
+    if (c === '(') depth++;
+    else if (c === ')') depth--;
+  }
+  return Math.max(0, depth);
+}
+
 function appendToExpression(state: CalcState, val: string): CalcState {
   let expression: string;
   let resultMode = false;
@@ -98,6 +136,67 @@ function appendToExpression(state: CalcState, val: string): CalcState {
 
 export function dispatch(inState: CalcState, key: string): CalcState {
   let state = inState;
+
+  // Template mode: route all input into the Y slot
+  if (state.templateMode && isInTemplateMode(state.expression)) {
+    if (key === 'AC') {
+      return { ...state, expression: '', result: '', resultMode: false, templateMode: false };
+    }
+    if (key === '⌫') {
+      const yContent = ySlotContent(state.expression);
+      if (yContent === '') {
+        // Restore X operand by extracting it from the template
+        const templateMatch = state.expression.match(/^(.*?)\w+\(([^,]*),\x00\)(.*)$/);
+        if (templateMatch) {
+          const [, before, xOperand, after] = templateMatch;
+          return { ...state, expression: before + xOperand + after, templateMode: false };
+        }
+        const withoutTemplate = state.expression.replace(/\w+\([^,]*,\x00\)/, '');
+        return { ...state, expression: withoutTemplate, templateMode: false };
+      }
+      // Remove last char of Y slot
+      const newExpr = state.expression.replace(
+        new RegExp('(.)\\x00\\)$'),
+        TEMPLATE_MARKER + ')'
+      );
+      return { ...state, expression: newExpr };
+    }
+    if (key === '=') {
+      const finalized = finalizeTemplate(state.expression);
+      const mode = state.keyset === 'basic' ? 'basic' : 'scientific';
+      const res = evaluate(finalized, state.angleMode, mode);
+      const finalRes = res === '' ? 'Error' : res;
+      return { ...state, expression: finalized, result: finalRes, resultMode: true, templateMode: false };
+    }
+    const openParens = ySlotOpenParens(state.expression);
+    if (openParens > 0) {
+      // Inside parens: accept digits, operators, nested parens, decimal
+      if (/^[\d.+\-*/^%()]$/.test(key)) {
+        const newOpenParens = key === ')' ? openParens - 1 : (key === '(' ? openParens + 1 : openParens);
+        const newExpr = insertIntoYSlot(state.expression, key);
+        // Stay in template mode even after parens close — exit happens via operator or =
+        return { ...state, expression: newExpr };
+      }
+    } else {
+      // No open parens: only digits and decimal allowed; ( opens paren mode
+      if (/^[\d.]$/.test(key)) {
+        const newExpr = insertIntoYSlot(state.expression, key);
+        return { ...state, expression: newExpr };
+      }
+      if (key === '(') {
+        const newExpr = insertIntoYSlot(state.expression, key);
+        return { ...state, expression: newExpr };
+      }
+      if (key === ')') {
+        // ) with no open parens → exit template
+        return { ...state, expression: finalizeTemplate(state.expression), templateMode: false };
+      }
+    }
+    // Any other key — exit template mode, then re-dispatch
+    const finalized = finalizeTemplate(state.expression);
+    return dispatch({ ...state, expression: finalized, templateMode: false }, key);
+  }
+
   if (key === 'AC') {
     return { ...state, expression: '', result: '', resultMode: false };
   }
@@ -163,8 +262,25 @@ export function dispatch(inState: CalcState, key: string): CalcState {
       state = state.resultMode
         ? { ...state, expression: '0', result: '', resultMode: false }
         : { ...state, expression: '0' };
-      // fall through to FUNCTION_KEYS or appendToExpression below
     }
+  }
+
+  // Template keys — enter two-arg input mode
+  if (TEMPLATE_KEYS.has(key)) {
+    const fn = TEMPLATE_KEY_TO_FN[key] ?? key;
+    const baseExpr = state.resultMode ? state.result : state.expression;
+    const baseState = state.resultMode
+      ? { ...state, expression: '', result: '', resultMode: false }
+      : state;
+    const parts = extractTrailingOperand(baseExpr);
+    let newExpr: string;
+    if (parts) {
+      const [before, operand] = parts;
+      newExpr = `${before}${fn}${operand},${TEMPLATE_MARKER})`;
+    } else {
+      newExpr = `${baseExpr}${fn},${TEMPLATE_MARKER})`;
+    }
+    return { ...baseState, expression: newExpr, templateMode: true };
   }
 
   if (FUNCTION_KEYS.has(key)) {
