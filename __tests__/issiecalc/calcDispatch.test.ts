@@ -390,3 +390,106 @@ describe('sequence edge cases', () => {
     expect(s[7].result).toBe('20');
   });
 });
+
+describe('suffix key guard', () => {
+  test('x^2 ignored when expression ends with operator', () => {
+    const s = runSequence(['5', '+', 'x^2']);
+    expect(s[2].expression).toBe('5+');
+  });
+  test('x^3 ignored when expression ends with (', () => {
+    const s = runSequence(['(', 'x^3']);
+    expect(s[1].expression).toBe('(');
+  });
+  test('factorial( ignored when expression ends with operator', () => {
+    const s = runSequence(['+', 'factorial(']);
+    expect(s[1].expression).toBe('+');
+  });
+  test('x^2 after AC uses implicit 0: gives 0x^2', () => {
+    const s = runSequence(['x^2']);
+    expect(s[0].expression).toBe('0x^2');
+  });
+  test('x^3 after AC uses implicit 0', () => {
+    const s = runSequence(['x^3']);
+    expect(s[0].expression).toBe('0x^3');
+  });
+  test('factorial( after AC wraps implicit 0: factorial(0)', () => {
+    const s = runSequence(['factorial(']);
+    expect(s[0].expression).toBe('factorial(0)');
+  });
+  test('x^2 works normally on digit', () => {
+    const s = runSequence(['5', 'x^2']);
+    expect(s[1].expression).toBe('5x^2');
+  });
+  test('x^2 works after )', () => {
+    const s = runSequence(['(', '3', ')', 'x^2']);
+    expect(s[3].expression).toBe('(3)x^2');
+  });
+});
+
+describe('x^( normalization', () => {
+  test('2 x^( 3 ) = 8', () => {
+    const s = runSequence(['2', 'x^(', '3', ')', '=']);
+    expect(s[4].result).toBe('8');
+  });
+  test('3 x^( 3 ) = 27', () => {
+    const s = runSequence(['3', 'x^(', '3', ')', '=']);
+    expect(s[4].result).toBe('27');
+  });
+});
+
+describe('e^( wrapping', () => {
+  test('e^( on empty appends e^(', () => {
+    const s = runSequence(['e^(']);
+    expect(s[0].expression).toBe('e^(');
+  });
+  test('e^( on 5 wraps to e^(5)', () => {
+    const s = runSequence(['5', 'e^(']);
+    expect(s[1].expression).toBe('e^(5)');
+  });
+  test('e^(1) ≈ 2.71828', () => {
+    const s = runSequence(['1', 'e^(', '=']);
+    expect(parseFloat(s[2].result)).toBeCloseTo(2.71828, 4);
+  });
+  test('e^(0) = 1', () => {
+    const s = runSequence(['0', 'e^(', '=']);
+    expect(s[2].result).toBe('1');
+  });
+});
+
+describe('10^( wrapping', () => {
+  test('10^( on 3 wraps to 10^(3)', () => {
+    const s = runSequence(['3', '10^(']);
+    expect(s[1].expression).toBe('10^(3)');
+  });
+  test('10^(3) = 1000', () => {
+    const s = runSequence(['3', '10^(', '=']);
+    expect(s[2].result).toBe('1000');
+  });
+  test('10^(0) = 1', () => {
+    const s = runSequence(['0', '10^(', '=']);
+    expect(s[2].result).toBe('1');
+  });
+});
+
+describe('1/( wrapping', () => {
+  test('1/( on 7 wraps to 1/(7)', () => {
+    const s = runSequence(['7', '1/(']);
+    expect(s[1].expression).toBe('1/(7)');
+  });
+  test('1/(4) = 0.25', () => {
+    const s = runSequence(['4', '1/(', '=']);
+    expect(s[2].result).toBe('0.25');
+  });
+  test('1/(2) = 0.5', () => {
+    const s = runSequence(['2', '1/(', '=']);
+    expect(s[2].result).toBe('0.5');
+  });
+  test('1/( ignored when expression ends with operator', () => {
+    const s = runSequence(['5', '+', '1/(']);
+    expect(s[2].expression).toBe('5+');
+  });
+  test('1/( after AC uses implicit 0: 1/(0) = Error', () => {
+    const s = runSequence(['1/(', '=']);
+    expect(s[1].result).toBe('Error');
+  });
+});

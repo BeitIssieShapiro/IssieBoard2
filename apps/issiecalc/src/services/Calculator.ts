@@ -35,7 +35,7 @@ function normalize(expression: string, angleMode: 'rad' | 'deg'): string {
   e = e.replace(/×/g, '*').replace(/÷/g, '/');
 
   // Postfix shorthands
-  e = e.replace(/x\^2/g, '^2').replace(/x\^3/g, '^3');
+  e = e.replace(/x\^2/g, '^2').replace(/x\^3/g, '^3').replace(/x\^\(/g, '^(');
 
   // Convert E-notation results back to numeric literals before \be substitution
   // e.g. 8.8888E+18 → 8888800000000000000, -2.5E+9 → -2500000000

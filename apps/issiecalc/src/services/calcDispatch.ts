@@ -24,8 +24,16 @@ const FUNCTION_KEYS = new Set([
   'sin(', 'cos(', 'tan(', 'asin(', 'acos(', 'atan(',
   'sinh(', 'cosh(', 'tanh(', 'asinh(', 'acosh(', 'atanh(',
   'ln(', 'log(', 'log2(', 'logy(', '2root(', '3root(', 'yroot(',
-  'factorial(', 'sqrt(',
+  'factorial(', 'sqrt(', 'e^(', '2^(', '10^(', '1/(',
 ]);
+
+// Suffix keys require a numeric operand already present — ignored otherwise
+const SUFFIX_KEYS = new Set(['x^2', 'x^3', 'x^(', 'factorial(', '1/(']);
+
+function endsWithValidOperand(expr: string): boolean {
+  if (expr === '' || expr === '0') return true;
+  return /[\d)]$/.test(expr);
+}
 
 function isOpOrFn(val: string): boolean {
   return OPERATORS.test(val) || FUNCTIONS_RE.test(val);
@@ -85,7 +93,8 @@ function appendToExpression(state: CalcState, val: string): CalcState {
   return { ...state, expression, result, resultMode };
 }
 
-export function dispatch(state: CalcState, key: string): CalcState {
+export function dispatch(inState: CalcState, key: string): CalcState {
+  let state = inState;
   if (key === 'AC') {
     return { ...state, expression: '', result: '', resultMode: false };
   }
@@ -141,6 +150,19 @@ export function dispatch(state: CalcState, key: string): CalcState {
 
   // rand — non-deterministic; caller must inject value, dispatch is a no-op
   if (key === 'rand') return state;
+
+  // Suffix keys (x², x³, n!, x^() require expression ending with digit or )
+  // When expression is empty (after AC), implicitly use 0 as the operand
+  if (SUFFIX_KEYS.has(key)) {
+    const base = state.resultMode ? state.result : state.expression;
+    if (!endsWithValidOperand(base)) return state;
+    if (base === '' || base === '0') {
+      state = state.resultMode
+        ? { ...state, expression: '0', result: '', resultMode: false }
+        : { ...state, expression: '0' };
+      // fall through to FUNCTION_KEYS or appendToExpression below
+    }
+  }
 
   if (FUNCTION_KEYS.has(key)) {
     const baseExpr = state.resultMode ? state.result : state.expression;

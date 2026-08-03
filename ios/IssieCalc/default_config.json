@@ -502,8 +502,8 @@
               "width": 0.8
             },
             {
-              "value": "^(",
-              "caption": "yˣ",
+              "value": "10^(",
+              "caption": "10ˣ",
               "width": 0.8
             }
           ]
@@ -763,8 +763,8 @@
               "width": 0.8
             },
             {
-              "value": "^(",
-              "caption": "yˣ",
+              "value": "10^(",
+              "caption": "10ˣ",
               "width": 0.8
             }
           ]
@@ -1024,8 +1024,8 @@
               "width": 0.8
             },
             {
-              "value": "^(",
-              "caption": "yˣ",
+              "value": "10^(",
+              "caption": "10ˣ",
               "width": 0.8
             }
           ]
@@ -1285,8 +1285,8 @@
               "width": 0.8
             },
             {
-              "value": "^(",
-              "caption": "yˣ",
+              "value": "10^(",
+              "caption": "10ˣ",
               "width": 0.8
             }
           ]
@@ -1551,8 +1551,8 @@
               "caption": "xʸ"
             },
             {
-              "value": "^(",
-              "caption": "yˣ"
+              "value": "10^(",
+              "caption": "10ˣ"
             },
             {
               "value": "2^(",
@@ -1754,8 +1754,8 @@
               "caption": "xʸ"
             },
             {
-              "value": "^(",
-              "caption": "yˣ"
+              "value": "10^(",
+              "caption": "10ˣ"
             },
             {
               "value": "2^(",
@@ -1957,8 +1957,8 @@
               "caption": "xʸ"
             },
             {
-              "value": "^(",
-              "caption": "yˣ"
+              "value": "10^(",
+              "caption": "10ˣ"
             },
             {
               "value": "2^(",
@@ -2161,8 +2161,8 @@
               "caption": "xʸ"
             },
             {
-              "value": "^(",
-              "caption": "yˣ"
+              "value": "10^(",
+              "caption": "10ˣ"
             },
             {
               "value": "2^(",

@@ -15,11 +15,24 @@ const builtConfig = require('../../../../ios/IssieCalc/default_config.json');
 
 const KB_BG = builtConfig.backgroundColor && builtConfig.backgroundColor !== 'default' ? builtConfig.backgroundColor : '#000000';
 
+const SUPERSCRIPT: Record<string, string> = {
+  '0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹',
+  '-':'⁻','.':'·','+':'⁺',
+};
+function toSuperscript(s: string): string {
+  return s.split('').map(c => SUPERSCRIPT[c] ?? c).join('');
+}
+
 function formatExpression(expr: string): string {
   return expr
     .replace(/factorial\(([^)]*)\)/g, '$1!')
     .replace(/x\^2/g, '²')
     .replace(/x\^3/g, '³')
+    .replace(/x\^\(([^)]*)\)/g, (_, exp) => exp ? `^${exp}` : '^(')
+    .replace(/e\^\(([^)]*)\)/g, (_, exp) => exp ? `e${toSuperscript(exp)}` : 'e^(')
+    .replace(/10\^\(([^)]*)\)/g, (_, exp) => exp ? `10${toSuperscript(exp)}` : '10^(')
+    .replace(/2\^\(([^)]*)\)/g, (_, exp) => exp ? `2${toSuperscript(exp)}` : '2^(')
+    .replace(/1\/\(([^)]*)\)/g, (_, x) => x ? `(1/${x})` : '1/(')
     .replace(/\*/g, '×')
     .replace(/\//g, '÷');
 }
