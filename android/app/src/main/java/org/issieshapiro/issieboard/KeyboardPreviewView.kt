@@ -43,6 +43,9 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
     // Preview max height (for scaling)
     private var previewMaxHeight: Int? = null
 
+    // Fixed render height — overrides heightPreset, rows expand to fill exactly
+    private var targetRenderHeight: Int? = null
+
     // Track if we're in input mode (IssieVoice) vs config mode (IssieBoard)
     // Input mode is detected when setText() is called
     private var isInputMode: Boolean = false
@@ -184,6 +187,10 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
         try {
             debugLog("🔧 Parsing new config...")
             parsedConfig = KeyboardConfigParser.parse(json)
+
+            // Reset keyset so defaultKeyset from the new config takes effect
+            renderer?.currentKeysetId = ""
+
             renderKeyboard()
         } catch (e: Exception) {
             errorLog("Failed to parse config: ${e.message}")
@@ -271,6 +278,25 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
     }
 
     /**
+     * Set a fixed render height (bypasses heightPreset)
+     * @param height Height in density-independent pixels (dp), or null to clear
+     */
+    fun setTargetHeight(height: Double?) {
+        if (height != null && height > 0) {
+            val heightPx = (height * resources.displayMetrics.density).toInt()
+            targetRenderHeight = heightPx
+            renderer?.setFixedRenderHeight(heightPx)
+        } else {
+            targetRenderHeight = null
+            renderer?.setFixedRenderHeight(null)
+        }
+        // Re-render with new fixed height if we have a config
+        if (parsedConfig != null) {
+            renderKeyboard()
+        }
+    }
+
+    /**
      * Set the current text for input mode (IssieVoice)
      * @param text Current text content
      */
@@ -314,7 +340,7 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
 
         // Reset renderer's keyset to default when language changes
         // so it doesn't try to use a stale keyset ID from the old config
-        renderer?.currentKeysetId = "abc"
+        renderer?.currentKeysetId = ""
 
         // Update suggestion controller language
         suggestionController?.setLanguage(lang)
@@ -338,11 +364,11 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
         val availableKeysets = config.keysets.map { it.id }
         val defaultKeyset = config.defaultKeyset
             ?: availableKeysets.firstOrNull()
-            ?: "abc"
+            ?: ""
 
         // Use renderer's current keyset if it's valid in this config
         val rendererKeyset = renderer?.currentKeysetId
-        val currentKeyset = if (rendererKeyset != null && availableKeysets.contains(rendererKeyset)) {
+        val currentKeyset = if (!rendererKeyset.isNullOrEmpty() && availableKeysets.contains(rendererKeyset)) {
             rendererKeyset
         } else {
             defaultKeyset
@@ -387,6 +413,9 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
         } else {
             renderer?.setPreviewMode(maxHeight = null)
         }
+
+        // Apply fixed render height if set
+        renderer?.setFixedRenderHeight(targetRenderHeight)
 
         // Configure suggestion controller based on config
         suggestionController?.setEnabled(config.isWordSuggestionsEnabled)

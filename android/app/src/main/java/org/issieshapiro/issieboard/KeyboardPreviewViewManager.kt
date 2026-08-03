@@ -53,6 +53,15 @@ class KeyboardPreviewViewManager(
     }
 
     /**
+     * Set a fixed render height (bypasses heightPreset, rows expand to fill exactly)
+     * @param targetHeight Height in density-independent pixels (dp)
+     */
+    @ReactProp(name = "targetHeight")
+    fun setTargetHeight(view: KeyboardPreviewView, targetHeight: Double) {
+        view.setTargetHeight(if (targetHeight > 0) targetHeight else null)
+    }
+
+    /**
      * Set the current text for input mode (IssieVoice)
      */
     @ReactProp(name = "text")

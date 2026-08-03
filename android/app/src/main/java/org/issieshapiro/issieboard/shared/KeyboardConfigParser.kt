@@ -47,7 +47,8 @@ object KeyboardConfigParser {
             heightPresetLarge = json.optString("heightPreset_large", null),
             keyGapLarge = if (json.has("keyGap_large")) json.optInt("keyGap_large") else null,
             fontWeightLarge = json.optString("fontWeight_large", null),
-            fontSizePresetLarge = json.optString("fontSizePreset_large", null)
+            fontSizePresetLarge = json.optString("fontSizePreset_large", null),
+            roundedKeys = if (json.has("roundedKeys")) json.optBoolean("roundedKeys") else null
         )
     }
     

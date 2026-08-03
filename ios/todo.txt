@@ -1,13 +1,7 @@
 IssieCalc:
 - is voice settings per keyboard?
 V- in keys group edit, the other groups are not shown
-- Now the x^y behavior you want: press x^y → button toggles on → digits typed go into the exponent rendered
-  superscript → = or non-digit finalizes. This is a display/input mode change, not just expression building.
-
-  This is non-trivial — it needs:
-  1. A new exponentMode state in CalcContext
-  2. Digit taps in that mode accumulate into an exponent buffer rendered superscript
-  3. Any non-digit (operator, =, function) exits the mode and commits
+- user feedback
 
 - 1/X
 

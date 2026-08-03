@@ -35,7 +35,8 @@ data class KeyboardConfig(
     val heightPresetLarge: String? = null,
     val keyGapLarge: Int? = null,
     val fontWeightLarge: String? = null,
-    val fontSizePresetLarge: String? = null
+    val fontSizePresetLarge: String? = null,
+    val roundedKeys: Boolean? = null
 ) {
     /** Check if word suggestions are enabled (defaults to true if not specified) */
     val isWordSuggestionsEnabled: Boolean

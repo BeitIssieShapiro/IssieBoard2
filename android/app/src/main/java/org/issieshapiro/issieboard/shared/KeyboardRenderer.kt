@@ -92,7 +92,7 @@ class KeyboardRenderer(private val context: Context) {
     private var nikkudActive: Boolean = false
     private var cursorMoveMode: Boolean = false
     private var config: KeyboardConfig? = null
-    var currentKeysetId: String = "abc"  // Public so container can read it
+    var currentKeysetId: String = ""  // Public so container can read it
     private var editorContext: EditorContext? = null
     
     // Cursor movement tracking
@@ -211,6 +211,16 @@ class KeyboardRenderer(private val context: Context) {
     // Dynamic row height: uses adaptive calculation based on screen size and preset
     private val rowHeight: Int
         get() {
+            // Calculate row count based on actual keyset row count (default 4 for standard keyboards)
+            val currentRowCount = config?.keysets?.firstOrNull { it.id == currentKeysetId }?.rows?.size ?: 4
+
+            // If a fixed render height is set, derive row height from it directly
+            val fixed = fixedRenderHeight
+            if (fixed != null && fixed > 0 && currentRowCount > 0) {
+                val bottomPadding = dpToPx(4)
+                return (fixed - bottomPadding) / currentRowCount
+            }
+
             // Get height preset from config (defaults to .normal)
             val presetString = if (isLargeScreen) config?.heightPresetLarge ?: config?.heightPreset else config?.heightPreset
             val preset = KeyboardHeightPreset.from(presetString)
@@ -251,7 +261,17 @@ class KeyboardRenderer(private val context: Context) {
     private val keySpacing: Int = 0
     private val rowSpacing: Int
         get() = dpToPx(KeyboardHeightConstants.ROW_SPACING.toInt())
-    private val keyCornerRadius: Float = dpToPx(5).toFloat()
+    private val keyCornerRadius: Float
+        get() {
+            if (config?.roundedKeys == true) {
+                // Mirror iOS: visualKeyHeight = rowHeight - keyVerticalPadding * 2
+                // keyVerticalPadding on iOS is a constant 5pt
+                val keyVerticalPadding = dpToPx(5)
+                val visualKeyHeight = rowHeight - keyVerticalPadding * 2
+                return visualKeyHeight * 0.5f
+            }
+            return dpToPx(5).toFloat()
+        }
     private val fontSize: Float = 34f
     private val largeFontSize: Float = 38f
     private val suggestionsBarHeight: Int
@@ -270,6 +290,9 @@ class KeyboardRenderer(private val context: Context) {
 
     /** Maximum height for preview mode (if set, keyboard will scale to fit) */
     private var previewMaxHeight: Int? = null
+
+    /** Fixed render height — overrides calculateKeyboardHeight() when set */
+    private var fixedRenderHeight: Int? = null
 
     /** Current scale factor (1.0 = full size, 0.8 = 80%, etc.) */
     private var currentScale: Float = 1.0f
@@ -300,9 +323,9 @@ class KeyboardRenderer(private val context: Context) {
     private val scaledSuggestionsBarHeight: Int
         get() = (suggestionsBarHeight * effectiveDimensionScale).toInt()
 
-    /** Scaled key vertical padding (visual gap between rows) */
+    /** Scaled key vertical padding — tracks keyGap + 2 to maintain proportional row spacing */
     private val scaledKeyVerticalPadding: Int
-        get() = (dpToPx(5) * effectiveDimensionScale).toInt()
+        get() = ((getKeyGap() + dpToPx(2)) * effectiveDimensionScale).toInt()
 
     /** Computed base font size following the same preset logic as key rendering */
     private val baseFontSize: Float
@@ -491,6 +514,12 @@ class KeyboardRenderer(private val context: Context) {
     fun calculateKeyboardHeight(config: KeyboardConfig, keysetId: String, suggestionsEnabled: Boolean, nikkudTopRowActive: Boolean = false): Int {
         val keyset = config.keysets.find { it.id == keysetId } ?: return dpToPx(216)
 
+        // If a fixed render height is set, use it directly
+        val fixed = fixedRenderHeight
+        if (fixed != null && fixed > 0) {
+            return fixed
+        }
+
         // Calculate row height using the dimension system
         val presetString = if (isLargeScreen) config.heightPresetLarge ?: config.heightPreset else config.heightPreset
         val preset = KeyboardHeightPreset.from(presetString)
@@ -596,6 +625,15 @@ class KeyboardRenderer(private val context: Context) {
     fun setPreviewMode(maxHeight: Int?) {
         isPreviewMode = true
         previewMaxHeight = maxHeight
+        if (maxHeight == null) {
+            currentScale = 1.0f
+        }
+    }
+
+    /** Set a fixed render height, bypassing heightPreset calculation.
+     * The renderer will divide this height equally among rows. */
+    fun setFixedRenderHeight(height: Int?) {
+        fixedRenderHeight = height
     }
 
     /** Calculate preview scale based on keyboard height and maxHeight
@@ -694,8 +732,8 @@ class KeyboardRenderer(private val context: Context) {
         this.config = config
         this.editorContext = editorContext
         
-        // Only set currentKeysetId from parameter if renderer hasn't been initialized yet
-        if (this.currentKeysetId == "abc" && currentKeysetId != "abc") {
+        // Set currentKeysetId from parameter when internal state is unset/default
+        if ((this.currentKeysetId == "abc" || this.currentKeysetId.isEmpty()) && currentKeysetId.isNotEmpty()) {
             this.currentKeysetId = currentKeysetId
         }
 
