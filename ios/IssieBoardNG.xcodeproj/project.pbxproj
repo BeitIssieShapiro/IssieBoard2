@@ -49,22 +49,18 @@
 		6A372CBD300F9C98008F5A33 /* KeyboardDisabler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A0CBD00002F500100035455 /* KeyboardDisabler.swift */; };
 		6A372CBE300F9C98008F5A33 /* KeyboardDisabler.m in Sources */ = {isa = PBXBuildFile; fileRef = 6A0CBD05002F500100035456 /* KeyboardDisabler.m */; };
 		6A372CC0300F9C98008F5A33 /* Pods_IssieVoice.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 25E92BCD1CBA83A2720D9C21 /* Pods_IssieVoice.framework */; };
-		6A372CC2300F9C98008F5A33 /* he_50k.bin in Resources */ = {isa = PBXBuildFile; fileRef = 6ADAC3642F3DDC6F00C85EBD /* he_50k.bin */; };
-		6A372CC3300F9C98008F5A33 /* he_predictions.bin in Resources */ = {isa = PBXBuildFile; fileRef = 6ADAC3662F3DDC9400C85EBD /* he_predictions.bin */; };
-		6A372CC4300F9C98008F5A33 /* en_50k.bin in Resources */ = {isa = PBXBuildFile; fileRef = 6AFD743D2F3DB18B00EDBDAA /* en_50k.bin */; };
 		6A372CC5300F9C98008F5A33 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6A40D1D82F6A0DE7006F97AC /* Assets.xcassets */; };
-		6A372CC6300F9C98008F5A33 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6A265B012F6F0F7700C08AE6 /* GoogleService-Info.plist */; };
 		6A372CC7300F9C98008F5A33 /* IssieVoiceSplash.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6A265A892F6F002900C08AE6 /* IssieVoiceSplash.storyboard */; };
 		6A372CC8300F9C98008F5A33 /* SharedAssets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6ASHARED0001000000035455 /* SharedAssets.xcassets */; };
-		6A372CC9300F9C98008F5A33 /* en_predictions.bin in Resources */ = {isa = PBXBuildFile; fileRef = 6ADAC3682F3DDD2900C85EBD /* en_predictions.bin */; };
 		6A372CCA300F9C98008F5A33 /* Gveret Levin AlefAlefAlef-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 6A877C1D2F34DAB900888533 /* Gveret Levin AlefAlefAlef-Regular.ttf */; };
 		6A372CCB300F9C98008F5A33 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
-		6A372CD8300F9E14008F5A33 /* IssieCalc-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6A372CD6300F9E14008F5A33 /* IssieCalc-Info.plist */; };
 		6A40D2A02F6A1176006F97AC /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6A40D29F2F6A1176006F97AC /* LaunchScreen.storyboard */; };
 		6A73B6892F24E985003898A5 /* KeyboardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A73B6882F24E985003898A5 /* KeyboardRenderer.swift */; };
 		6A73B68E2F24E9B1003898A5 /* KeyboardPreviewViewManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A73B68D2F24E9B1003898A5 /* KeyboardPreviewViewManager.swift */; };
 		6A73B68F2F24E9B1003898A5 /* KeyboardPreviewViewManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 6A73B68C2F24E9B1003898A5 /* KeyboardPreviewViewManager.m */; };
 		6A73B6902F24E9B1003898A5 /* KeyboardPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A73B68B2F24E9B1003898A5 /* KeyboardPreviewView.swift */; };
+		6A873DEF3031DEA20031C3E8 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6A873DED3031DD720031C3E8 /* GoogleService-Info.plist */; };
+		6A873DF03031DEB30031C3E8 /* IssieCalc-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6A372CD6300F9E14008F5A33 /* IssieCalc-Info.plist */; };
 		6A877C1E2F34DAB900888533 /* Gveret Levin AlefAlefAlef-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 6A877C1D2F34DAB900888533 /* Gveret Levin AlefAlefAlef-Regular.ttf */; };
 		6A877C1F2F34DAB900888533 /* Gveret Levin AlefAlefAlef-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 6A877C1D2F34DAB900888533 /* Gveret Levin AlefAlefAlef-Regular.ttf */; };
 		6AA1FCB32F3CB103002BD212 /* WordPredictionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AA1FCB22F3CB103002BD212 /* WordPredictionEngine.swift */; };
@@ -270,6 +266,7 @@
 		6A73B68B2F24E9B1003898A5 /* KeyboardPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KeyboardPreviewView.swift; path = IssieBoardNG/KeyboardPreviewView.swift; sourceTree = "<group>"; };
 		6A73B68C2F24E9B1003898A5 /* KeyboardPreviewViewManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = KeyboardPreviewViewManager.m; path = IssieBoardNG/KeyboardPreviewViewManager.m; sourceTree = "<group>"; };
 		6A73B68D2F24E9B1003898A5 /* KeyboardPreviewViewManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KeyboardPreviewViewManager.swift; path = IssieBoardNG/KeyboardPreviewViewManager.swift; sourceTree = "<group>"; };
+		6A873DED3031DD720031C3E8 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		6A877C1D2F34DAB900888533 /* Gveret Levin AlefAlefAlef-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Gveret Levin AlefAlefAlef-Regular.ttf"; path = "../assets/fonts/Gveret Levin AlefAlefAlef-Regular.ttf"; sourceTree = SOURCE_ROOT; };
 		6AA1FCB22F3CB103002BD212 /* WordPredictionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordPredictionEngine.swift; sourceTree = "<group>"; };
 		6AA1FD162F3D26FA002BD212 /* IssieVoice.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = IssieVoice.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -489,6 +486,7 @@
 		6A372CD7300F9E14008F5A33 /* IssieCalc */ = {
 			isa = PBXGroup;
 			children = (
+				6A873DED3031DD720031C3E8 /* GoogleService-Info.plist */,
 				6A372CD6300F9E14008F5A33 /* IssieCalc-Info.plist */,
 			);
 			path = IssieCalc;
@@ -795,15 +793,11 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				6A372CC2300F9C98008F5A33 /* he_50k.bin in Resources */,
-				6A372CD8300F9E14008F5A33 /* IssieCalc-Info.plist in Resources */,
-				6A372CC3300F9C98008F5A33 /* he_predictions.bin in Resources */,
-				6A372CC4300F9C98008F5A33 /* en_50k.bin in Resources */,
+				6A873DF03031DEB30031C3E8 /* IssieCalc-Info.plist in Resources */,
+				6A873DEF3031DEA20031C3E8 /* GoogleService-Info.plist in Resources */,
 				6A372CC5300F9C98008F5A33 /* Assets.xcassets in Resources */,
-				6A372CC6300F9C98008F5A33 /* GoogleService-Info.plist in Resources */,
 				6A372CC7300F9C98008F5A33 /* IssieVoiceSplash.storyboard in Resources */,
 				6A372CC8300F9C98008F5A33 /* SharedAssets.xcassets in Resources */,
-				6A372CC9300F9C98008F5A33 /* en_predictions.bin in Resources */,
 				6A372CCA300F9C98008F5A33 /* Gveret Levin AlefAlefAlef-Regular.ttf in Resources */,
 				6A372CCB300F9C98008F5A33 /* PrivacyInfo.xcprivacy in Resources */,
 			);

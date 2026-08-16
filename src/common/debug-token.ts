@@ -5,4 +5,4 @@
 // 3. Copy that token and paste it below
 // 4. Add the same token to Firebase Console → App Check → Manage debug tokens
 // 5. Debug tokens are per-device/simulator
-export const debugToken = __DEV__ ? '08FE3C9A-909F-4396-8EA5-FB0674BFCDCC' : '';
+export const debugToken = __DEV__ ? '96C74AA0-2D30-4008-B193-F44A9272B006' : '';

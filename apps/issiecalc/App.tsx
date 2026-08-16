@@ -9,29 +9,36 @@ import { LocalizationProvider } from '../../src/localization';
 import { LocalizationProvider as VoiceLocalizationProvider } from '../issievoice/src/context/LocalizationContext';
 import CalcScreen from './src/screens/CalcScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import { initializeFirebase } from '../../src/firebase-config';
 
 (Text as any).defaultProps = { ...((Text as any).defaultProps || {}), allowFontScaling: false };
 (TextInput as any).defaultProps = { ...((TextInput as any).defaultProps || {}), allowFontScaling: false };
 
 const Stack = createStackNavigator();
 
-const App = () => (
-  <SafeAreaProvider>
-    <LocalizationProvider>
-      <VoiceLocalizationProvider>
-        <CalcProvider>
-          <CalcTTSProvider>
-            <NavigationContainer>
-              <Stack.Navigator screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="Calc" component={CalcScreen} />
-                <Stack.Screen name="Settings" component={SettingsScreen} />
-              </Stack.Navigator>
-            </NavigationContainer>
-          </CalcTTSProvider>
-        </CalcProvider>
-      </VoiceLocalizationProvider>
-    </LocalizationProvider>
-  </SafeAreaProvider>
-);
+const App = () => {
+  React.useEffect(() => {
+    initializeFirebase();
+  }, []);
+
+  return (
+    <SafeAreaProvider>
+      <LocalizationProvider>
+        <VoiceLocalizationProvider>
+          <CalcProvider>
+            <CalcTTSProvider>
+              <NavigationContainer>
+                <Stack.Navigator screenOptions={{ headerShown: false }}>
+                  <Stack.Screen name="Calc" component={CalcScreen} />
+                  <Stack.Screen name="Settings" component={SettingsScreen} />
+                </Stack.Navigator>
+              </NavigationContainer>
+            </CalcTTSProvider>
+          </CalcProvider>
+        </VoiceLocalizationProvider>
+      </LocalizationProvider>
+    </SafeAreaProvider>
+  );
+};
 
 export default App;
