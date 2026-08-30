@@ -41,6 +41,7 @@ const getNextKeysetId = (
 import { KeyboardConfig } from '../../../types';
 import { filterSettingsButton, transformConfigForPreview } from '../../utils/keyboardConfigMerger';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { resolvePreviewBackground } from '../../utils/previewBackground';
 
 interface InteractiveCanvasProps {
   onTestInput?: (text: string) => void;
@@ -288,6 +289,16 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
 
   const isLandscape = windowWidth > windowHeight;
 
+  // Background shown *behind* the keyboard preview. A "default" background makes
+  // the native container transparent, so the preview stands in for the host app's
+  // background (see utils/previewBackground).
+  const previewBackgroundColor = useMemo(() => {
+    const calcHostBackground = appContext === 'issiecalc'
+      ? require('../../../ios/IssieCalc/default_config.json').backgroundColor
+      : undefined;
+    return resolvePreviewBackground(state.config.backgroundColor, appContext, calcHostBackground);
+  }, [state.config.backgroundColor, appContext]);
+
   const configJson = useMemo(() => {
     const base = transformConfigForPreview(configWithGroups);
     if (appContext === 'issiecalc') {
@@ -322,15 +333,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
 
       {/* Calc Basic/Scientific toggle */}
       {appContext === 'issiecalc' && (state.config as any).showScientific !== false && (
-        <View style={[styles.calcToggle, { backgroundColor: (() => {
-          const bg = state.config.backgroundColor;
-          if (bg && bg !== 'default') return bg;
-          if (appContext === 'issiecalc') {
-            const bc = require('../../../ios/IssieCalc/default_config.json');
-            return (bc.backgroundColor && bc.backgroundColor !== 'default') ? bc.backgroundColor : '#1C1C1E';
-          }
-          return undefined;
-        })() }]}>
+        <View style={[styles.calcToggle, { backgroundColor: previewBackgroundColor }]}>
           <TouchableOpacity
             style={[styles.calcToggleBtn, calcPreviewKeyset === 'basic' && styles.calcToggleBtnActive]}
             onPress={() => { setCalcPreviewKeyset('basic'); dispatch({ type: 'SET_ACTIVE_KEYSET', payload: 'basic' }); }}>
@@ -357,6 +360,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
           style={[
             styles.preview,
             {
+              backgroundColor: previewBackgroundColor,
               height: hideHeader ? effectiveHeight : (useRealisticHeight ? Math.max(height - 40, keyboardHeight) : height - 40),
               width: isLandscape && !hideHeader ? windowAvailableWidth * 0.78 : '100%',
             }
@@ -447,7 +451,6 @@ const styles = StyleSheet.create({
   },
   preview: {
     overflow: 'hidden',
-    backgroundColor: "#CBCFD8"
   },
 });
 
