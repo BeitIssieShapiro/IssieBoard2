@@ -1,59 +1,13 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, TextInput,
 } from 'react-native';
 import { useCalcTTS, MathLevel } from '../context/CalcTTSContext';
 import { ButtonGroupRow } from '../../../../src/components/shared/ButtonGroupRow';
 import TTS from '../../../issievoice/src/services/TextToSpeech';
 import { subtleShadow } from '../../../../src/styles/shadows';
 import { useLocalization } from '../../../issievoice/src/context/LocalizationContext';
-
-function getLanguageDisplayName(langCode: string, uiLang: string): string {
-  // langCode can be full locale (he-IL) or just prefix (he)
-  const prefix = langCode.split('-')[0].toLowerCase();
-  const region = langCode.split('-')[1]?.toUpperCase();
-
-  const NAMES: Record<string, Record<string, string>> = {
-    en: {
-      af: 'Afrikaans', ar: 'Arabic', bg: 'Bulgarian', ca: 'Catalan',
-      cs: 'Czech', da: 'Danish', de: 'German', el: 'Greek',
-      en: 'English', es: 'Spanish', fi: 'Finnish', fr: 'French',
-      he: 'Hebrew', hi: 'Hindi', hr: 'Croatian', hu: 'Hungarian',
-      id: 'Indonesian', it: 'Italian', ja: 'Japanese', ko: 'Korean',
-      ms: 'Malay', nl: 'Dutch', no: 'Norwegian', pl: 'Polish',
-      pt: 'Portuguese', ro: 'Romanian', ru: 'Russian', sk: 'Slovak',
-      sv: 'Swedish', th: 'Thai', tr: 'Turkish', uk: 'Ukrainian',
-      vi: 'Vietnamese', zh: 'Chinese',
-    },
-    he: {
-      af: 'אפריקאנס', ar: 'ערבית', bg: 'בולגרית', ca: 'קטלאנית',
-      cs: 'צ׳כית', da: 'דנית', de: 'גרמנית', el: 'יוונית',
-      en: 'אנגלית', es: 'ספרדית', fi: 'פינית', fr: 'צרפתית',
-      he: 'עברית', hi: 'הינדי', hr: 'קרואטית', hu: 'הונגרית',
-      id: 'אינדונזית', it: 'איטלקית', ja: 'יפנית', ko: 'קוראנית',
-      ms: 'מלאית', nl: 'הולנדית', no: 'נורווגית', pl: 'פולנית',
-      pt: 'פורטוגזית', ro: 'רומנית', ru: 'רוסית', sk: 'סלובקית',
-      sv: 'שוודית', th: 'תאית', tr: 'טורקית', uk: 'אוקראינית',
-      vi: 'וייטנאמית', zh: 'סינית',
-    },
-    ar: {
-      af: 'الأفريكانية', ar: 'العربية', bg: 'البلغارية', ca: 'الكتالانية',
-      cs: 'التشيكية', da: 'الدنماركية', de: 'الألمانية', el: 'اليونانية',
-      en: 'الإنجليزية', es: 'الإسبانية', fi: 'الفنلندية', fr: 'الفرنسية',
-      he: 'العبرية', hi: 'الهندية', hr: 'الكرواتية', hu: 'الهنغارية',
-      id: 'الإندونيسية', it: 'الإيطالية', ja: 'اليابانية', ko: 'الكورية',
-      ms: 'الملايوية', nl: 'الهولندية', no: 'النرويجية', pl: 'البولندية',
-      pt: 'البرتغالية', ro: 'الرومانية', ru: 'الروسية', sk: 'السلوفاكية',
-      sv: 'السويدية', th: 'التايلاندية', tr: 'التركية', uk: 'الأوكرانية',
-      vi: 'الفيتنامية', zh: 'الصينية',
-    },
-  };
-
-  const uiPrefix = uiLang.split('-')[0].toLowerCase();
-  const map = NAMES[uiPrefix] ?? NAMES.en;
-  const langName = map[prefix] ?? prefix;
-  return region ? `${langName} (${region})` : langName;
-}
+import { getLanguageDisplayName, languageMatchesQuery } from '../utils/languageNames';
 
 interface Voice {
   id: string;
@@ -68,6 +22,7 @@ const CalcVoiceSettingsPanel: React.FC<{ onSettingsChange?: () => void }> = ({ o
   const [voices, setVoices] = useState<Voice[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
+  const [langQuery, setLangQuery] = useState('');
 
   useEffect(() => {
     TTS.getAvailableVoices().then(v => {
@@ -89,8 +44,16 @@ const CalcVoiceSettingsPanel: React.FC<{ onSettingsChange?: () => void }> = ({ o
   const handleVoiceSelect = useCallback((voice: Voice) => {
     setVoice(voice.id, voice.language);
     setExpanded(false);
+    setLangQuery('');
     onSettingsChange?.();
   }, [setVoice, onSettingsChange]);
+
+  const toggleExpanded = useCallback(() => {
+    setExpanded(e => {
+      if (e) setLangQuery(''); // reset filter when collapsing
+      return !e;
+    });
+  }, []);
 
   const handleTest = useCallback(async (voice: Voice) => {
     try {
@@ -137,13 +100,16 @@ const CalcVoiceSettingsPanel: React.FC<{ onSettingsChange?: () => void }> = ({ o
   const currentPitchId = pitch <= 0.8 ? 'low' : pitch >= 1.2 ? 'high' : 'normal';
   const selectedVoice = voices.find(v => v.id === voiceId);
 
-  const groupedVoices: { lang: string; voices: Voice[] }[] = [];
-  voices.forEach(v => {
-    const lang = v.language.split('-')[0];
-    const group = groupedVoices.find(g => g.lang === lang);
-    if (group) group.voices.push(v);
-    else groupedVoices.push({ lang, voices: [v] });
-  });
+  const groupedVoices = useMemo(() => {
+    const groups: { lang: string; voices: Voice[] }[] = [];
+    voices.forEach(v => {
+      const lang = v.language.split('-')[0];
+      const group = groups.find(g => g.lang === lang);
+      if (group) group.voices.push(v);
+      else groups.push({ lang, voices: [v] });
+    });
+    return groups.filter(g => languageMatchesQuery(g.lang, langQuery));
+  }, [voices, langQuery]);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -194,7 +160,7 @@ const CalcVoiceSettingsPanel: React.FC<{ onSettingsChange?: () => void }> = ({ o
           <View style={[styles.pickerControl, isRTL && { flexDirection: 'row-reverse' }]}>
             <TouchableOpacity
               style={[styles.pickerDropdown, isRTL && { flexDirection: 'row-reverse' }]}
-              onPress={() => setExpanded(e => !e)}
+              onPress={toggleExpanded}
               activeOpacity={0.7}>
               <Text style={[styles.pickerValue, isRTL && { textAlign: 'right' }]} numberOfLines={1}>
                 {selectedVoice ? `${selectedVoice.name} (${getLanguageDisplayName(selectedVoice.language, uiLang)})` : strings.settingsModal.none}
@@ -216,6 +182,34 @@ const CalcVoiceSettingsPanel: React.FC<{ onSettingsChange?: () => void }> = ({ o
               <ActivityIndicator size="small" color="#3B82F6" style={{ marginTop: 8 }} />
             ) : (
               <View style={styles.dropdownList}>
+                {/* Language search */}
+                <View style={[styles.searchRow, isRTL && { flexDirection: 'row-reverse' }]}>
+                  <Text style={styles.searchIcon}>🔍</Text>
+                  <TextInput
+                    style={[styles.searchInput, isRTL && { textAlign: 'right' }]}
+                    value={langQuery}
+                    onChangeText={setLangQuery}
+                    placeholder={s.searchLanguage}
+                    placeholderTextColor="#9CA3AF"
+                    autoCorrect={false}
+                    autoCapitalize="none"
+                    clearButtonMode="never"
+                    returnKeyType="search"
+                  />
+                  {langQuery.length > 0 && (
+                    <TouchableOpacity
+                      style={styles.searchClear}
+                      onPress={() => setLangQuery('')}
+                      activeOpacity={0.7}>
+                      <Text style={styles.searchClearText}>✕</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                {groupedVoices.length === 0 && (
+                  <Text style={styles.noResults}>{s.noLanguageMatches}</Text>
+                )}
+
                 {groupedVoices.map(group => (
                   <View key={group.lang}>
                     <Text style={styles.langHeader}>{getLanguageDisplayName(group.lang, uiLang).toUpperCase()}</Text>
@@ -267,6 +261,20 @@ const styles = StyleSheet.create({
   testButton: { backgroundColor: '#3B82F6', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 10 },
   testButtonText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
   dropdownList: { marginTop: 8, borderRadius: 10, backgroundColor: '#F9FAFB', overflow: 'hidden', ...subtleShadow },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E5E7EB',
+    backgroundColor: '#F3F4F6',
+  },
+  searchIcon: { fontSize: 13, marginHorizontal: 6, color: '#9CA3AF' },
+  searchInput: { flex: 1, fontSize: 14, color: '#1F2937', padding: 0 },
+  searchClear: { paddingHorizontal: 8, paddingVertical: 4 },
+  searchClearText: { fontSize: 13, color: '#9CA3AF', fontWeight: '600' },
+  noResults: { fontSize: 13, color: '#9CA3AF', textAlign: 'center', paddingVertical: 16 },
   langHeader: { fontSize: 11, fontWeight: '700', color: '#9CA3AF', paddingHorizontal: 12, paddingTop: 8, paddingBottom: 4 },
   voiceRow: { flexDirection: 'row', alignItems: 'center', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E5E7EB' },
   voiceRowSelected: { backgroundColor: '#3B82F615' },

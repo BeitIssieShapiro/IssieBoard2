@@ -90,6 +90,8 @@ export interface Strings {
     calcTerminologyStandard: string;
     calcDecimalDigits: string;
     calcDecimalAll: string;
+    searchLanguage: string;
+    noLanguageMatches: string;
     tabs: {
       keyboard: string;
       general: string;
@@ -227,6 +229,8 @@ const en: Strings = {
     calcTerminologyStandard: 'Standard',
     calcDecimalDigits: 'Decimal digits to read',
     calcDecimalAll: 'All',
+    searchLanguage: 'Search language',
+    noLanguageMatches: 'No languages found',
     tabs: {
       keyboard: 'Keyboard',
       general: 'General',
@@ -364,6 +368,8 @@ const he: Strings = {
     calcTerminologyStandard: 'סטנדרטי',
     calcDecimalDigits: 'ספרות אחרי הנקודה',
     calcDecimalAll: 'הכל',
+    searchLanguage: 'חיפוש שפה',
+    noLanguageMatches: 'לא נמצאו שפות',
     tabs: {
       keyboard: 'מקלדת',
       general: 'כללי',
@@ -501,6 +507,8 @@ const ar: Strings = {
     calcTerminologyStandard: 'قياسي',
     calcDecimalDigits: 'أرقام عشرية للقراءة',
     calcDecimalAll: 'الكل',
+    searchLanguage: 'البحث عن لغة',
+    noLanguageMatches: 'لم يتم العثور على لغات',
     tabs: {
       keyboard: 'لوحة مفاتيح',
       general: 'عام',
