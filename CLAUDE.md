@@ -2,9 +2,13 @@
 
 IssieBoard is a configurable extension keyboard application for iOS and Android that helps users with developmental or motor skill disabilities to acquire typing skills. The project uses a **Hybrid Architecture** that decouples the React Native configurator from the native keyboard engines.
 
-This project is used to generate two apps - IssieBoard and IssieVoice. 
+This project is used to generate three apps - IssieBoard, IssieVoice and IssieCalc.
 IssieBoard is only the keyboard (native) and its config (react-native).
 IssieVoice is only react native app, embedding the native kb (using the preview wrapper) and is a companion app for people who cannot speak, providing text-to-speech communication.
+IssieCalc is a react native calculator app (`apps/issiecalc/`), also embedding the native kb, with spoken readout of expressions and results.
+
+Code shared by the apps lives in `src/` (editor, canvas, config merging) and is
+selected at runtime via an `appContext` of `'issieboard' | 'issievoice' | 'issiecalc'`.
 
 ### Key Architecture
 
@@ -15,7 +19,7 @@ IssieVoice is only react native app, embedding the native kb (using the preview 
 - **Live Synchronization**: Hot-reload configuration changes without restart
 
 ## React Native general info
-- The developer works iOS first. so porting an enhancement, is only after iOS is perfectly working. see PORTING_INSTRUCTION.ms when needed, - **Never write Android logic from scratch** - always port from the iOS implementation
+- The developer works iOS first. so porting an enhancement, is only after iOS is perfectly working. see `android/PORTING_INSTRUCTIONS.md` when needed, - **Never write Android logic from scratch** - always port from the iOS implementation
 - Git: developer prefers to commit on his own - so do not create commits w/o being asked
 - Do not use npm xcoderun to build and deploy. and don't run metro yourself.
   Developer prefers to use XCode and deploy from there, and run Metro on his own
@@ -49,9 +53,9 @@ IssieVoice is only react native app, embedding the native kb (using the preview 
 - **language** key type: Emits events to switch keyboard language without inserting text
 - Preview mode shows all keys from config and allows custom keys to emit events
 
-### React Native Configurator (`src/`, `components/`, `App.tsx`)
+### React Native Configurator (`src/`, `components/`, `apps/*/App.tsx`)
 
-- **App.tsx**: Main entry point, loads keyboard configurations from `keyboards/*.json`
+- **apps/issievoice/App.tsx**, **apps/issiecalc/App.tsx**: Per-app entry points (there is no root `App.tsx`; `index.js` selects one)
 - **src/screens/EditorScreen.tsx**: Main editor UI
 - **src/components/canvas/InteractiveCanvas.tsx**: Visual keyboard preview
 - **src/components/toolbox/**: Configuration panels (styling, groups, diacritics)
@@ -77,7 +81,8 @@ Each keyboard defines keysets (abc, ABC, symbols) with rows of keys.
 - **ios/Shared/**: Code shared across all keyboard extensions
   - **BaseKeyboardViewController.swift**: Base class for all keyboard extensions
   - **KeyboardRenderer.swift**: Dynamic UI rendering from JSON config
-  - **KeyboardConfigParser.swift**: Parses JSON configuration
+  - **KeyboardModels.swift**: Config data model + JSON decoding
+  - **KeyboardEngine.swift**: Config loading and keyboard state
   - **WordSuggestionController.swift**: Manages word completion/prediction UI
   - **WordCompletionManager.swift**: Orchestrates trie and prediction engines
   - **TrieEngine.swift**: Dictionary trie for word completion
@@ -93,7 +98,7 @@ Each extension inherits from `BaseKeyboardViewController` and specifies its lang
 
 #### Android (`android/`)
 
-- **android/app/src/main/java/com/issieboardng/shared/**: Code shared across all keyboard services
+- **android/app/src/main/java/org/issieshapiro/issieboard/shared/**: Code shared across all keyboard services
   - **BaseKeyboardService.kt**: Base class for all keyboard services (Android port of BaseKeyboardViewController.swift)
   - **KeyboardRenderer.kt**: Dynamic UI rendering from JSON config
   - **KeyboardConfigParser.kt**: Parses JSON configuration
@@ -104,7 +109,7 @@ Each extension inherits from `BaseKeyboardViewController` and specifies its lang
   - **NikkudPickerController.kt**: Hebrew diacritics popup
   - **BackspaceHandler.kt**: Smart backspace with long-press delete
   - **KeyboardNeighbors.kt**: Neighbor map for fuzzy matching
-- **android/app/src/main/java/com/issieboardng/keyboards/**:
+- **android/app/src/main/java/org/issieshapiro/issieboard/keyboards/**:
   - **IssieBoardEnService.kt**: English keyboard service
   - **IssieBoardHeService.kt**: Hebrew keyboard service
   - **IssieBoardArService.kt**: Arabic keyboard service
@@ -137,7 +142,7 @@ Keyboards are separated from profiles for reusability:
 
 - **Keyboards** (`keyboards/*.json`): Pure key layouts, no styling
 - **Profiles**: Styling, global properties, and keyboard combinations
-- **Merging**: `App.tsx` merges keyboards with profile styling at runtime
+- **Merging**: `src/utils/keyboardConfigMerger.ts` merges keyboards with profile styling at runtime
 
 ### 3. Native Engine Independence
 
@@ -178,9 +183,9 @@ Keys are styled at runtime using group templates:
 ### Adding a New Keyboard Language
 
 1. Create `keyboards/<lang>.json` with keyboard layout
-2. Add to `KEYBOARDS` object in `App.tsx`
+2. Add to the `KEYBOARDS` object in `src/screens/EditorScreen.tsx` (and `src/screens/ClassicEditorScreen.tsx`)
 3. Create iOS extension: `ios/IssieBoard<Lang>/KeyboardViewController.swift`
-4. Create Android service: `android/.../IssiBoard<Lang>Service.kt`
+4. Create Android service: `android/.../IssieBoard<Lang>Service.kt`
 5. Add dictionary: `dict/<lang>_50k.txt`
 6. Run `npm run build:dictionaries` and `npm run build:keyboards`
 7. Add generated binaries to iOS/Android projects
@@ -202,7 +207,7 @@ When changing keyboard logic (e.g., backspace, word completion):
 When changing the JSON config structure:
 
 1. Update `types.ts` with new config types
-2. Update `KeyboardConfigParser` in both iOS and Android
+2. Update config parsing on both platforms (`KeyboardModels.swift` on iOS, `KeyboardConfigParser.kt` on Android)
 3. Update `KeyboardRenderer` in both platforms if UI changes
 4. Update `build_keyboard_configs.js` if generation logic changes
 5. Run `npm run build:keyboards` to regenerate configs
