@@ -1818,6 +1818,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       await loadProfilesList();
       return true;
     } catch (error) {
+      console.error('❌ Failed to create new profile:', error);
       showToast('✗ ' + strings.alerts.failedToSaveProfile);
       return false;
     }
@@ -3207,6 +3208,69 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
 
   const handleCreateNew = useCallback(async (name: string, language: LanguageId, keyboardId: string) => {
     const newProfileId = `custom_${Date.now()}`;
+
+    // IssieCalc: there is no entry for 'calc' in KEYBOARDS, so buildConfiguration
+    // cannot be used. Build from the base calc config instead, matching how calc
+    // profiles are loaded elsewhere.
+    if (appContext === 'issiecalc') {
+      const baseConfig = require('../../ios/IssieCalc/default_config.json');
+
+      const styleGroups = (baseConfig.groups || [])
+        .filter((g: any) => g.name && !g.name.startsWith('_'))
+        .map((g: any, i: number) => ({
+          id: `calc_group_${i}_${g.name}`,
+          name: g.name,
+          members: g.items || [],
+          style: { color: g.template?.color || '', bgColor: g.template?.bgColor || '' },
+          active: true,
+          createdAt: new Date().toISOString(),
+        }));
+
+      const calcProfileDef: any = {
+        id: newProfileId,
+        name,
+        version: '1.0.0',
+        language,
+        keyboardId: 'calc',
+        groups: baseConfig.groups || [],
+      };
+
+      await KeyboardPreferences.setProfile(
+        JSON.stringify(calcProfileDef),
+        `profile_def_${newProfileId}`
+      );
+      await KeyboardPreferences.setProfile(
+        JSON.stringify(styleGroups),
+        `${newProfileId}_styleGroups`
+      );
+
+      let calcSavedList: { name: string; key: string; language: string; keyboardId: string }[] = [];
+      try {
+        const savedListJson = await KeyboardPreferences.getProfile('saved_list');
+        if (savedListJson) {
+          calcSavedList = JSON.parse(savedListJson);
+        }
+      } catch { /* ignore */ }
+
+      calcSavedList.push({ name, key: newProfileId, language, keyboardId: 'calc' });
+      await KeyboardPreferences.setProfile(JSON.stringify(calcSavedList), 'saved_list');
+
+      const calcConfig = { ...baseConfig, ...calcProfileDef };
+      await saveKeyboardConfig(calcConfig, 'calc' as LanguageId, appContext);
+
+      const calcActiveKey = getActiveProfileKey('calc' as LanguageId, appContext);
+      await KeyboardPreferences.setProfile(newProfileId, calcActiveKey);
+      console.log(`✅ Set ${newProfileId} as active calc profile`);
+
+      setCurrentProfileId(newProfileId);
+      setProfileName(name);
+      setCurrentLanguage(language);
+      setCurrentKeyboardId('calc');
+      setInitialConfig(calcConfig);
+      setInitialStyleGroups(styleGroups);
+      setActiveKeyboardProfileId(newProfileId);
+      return;
+    }
 
     const profileDef = createFactoryDefaultProfile(
       newProfileId,
