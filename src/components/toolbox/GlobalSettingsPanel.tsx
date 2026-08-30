@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import { CompactColorPicker } from '../shared/CompactColorPicker';
 import { ButtonGroupRow } from '../shared/ButtonGroupRow';
 import { ToggleSwitch } from '../shared/ToggleSwitch';
 import KeyboardPreferences from '../../native/KeyboardPreferences';
+import { analyzeGroupOverrides, OverridableColor, OverrideReport } from '../../utils/groupColorOverrides';
 
 export interface KeyboardVariantOption {
   id: string;
@@ -154,6 +155,83 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
     { id: 'heavy', label: strings.globalSettings.weightHeavy, value: 'heavy' as const },
   ];
 
+  // Which groups mask the General-tab colors, for the keyset currently shown.
+  // Mirrors InteractiveCanvas: styleGroups drives the preview, falling back to
+  // config.groups only when there are no style rules at all (issiecalc case).
+  const overrideReports = useMemo(() => {
+    const groups = state.styleGroups.length > 0
+      ? state.styleGroups
+      : (state.config.groups || []);
+    const keyset = state.config.keysets?.find(ks => ks.id === state.activeKeyset)
+      ?? state.config.keysets?.[0];
+    return {
+      keysBgColor: analyzeGroupOverrides(groups as any, keyset as any, 'keysBgColor'),
+      textColor: analyzeGroupOverrides(groups as any, keyset as any, 'textColor'),
+    } as Record<OverridableColor, OverrideReport>;
+  }, [state.styleGroups, state.config.groups, state.config.keysets, state.activeKeyset]);
+
+  const warningTextFor = (report: OverrideReport): string | null => {
+    if (report.maskedCount === 0) return null;
+    const g = strings.globalSettings;
+    return report.allMasked
+      ? (g.groupOverrideAll || '').replace('{{total}}', String(report.totalCount))
+      : (g.groupOverrideSome || '')
+          .replace('{{masked}}', String(report.maskedCount))
+          .replace('{{total}}', String(report.totalCount));
+  };
+
+  /**
+   * Small ⚠ badge pinned to a swatch that is (partly) overridden by keys-groups.
+   * Only "Keys Background" and "Keys Text" can ever be overridden — the keyboard
+   * Background and the calc Display Text are never affected by groups.
+   */
+  const renderOverrideBadge = (which: OverridableColor) => {
+    if (overrideReports[which].maskedCount === 0) return null;
+    return (
+      <View style={[styles.overrideBadge, isRTL ? styles.overrideBadgeRTL : styles.overrideBadgeLTR]}>
+        <Text allowFontScaling={false} style={styles.overrideBadgeText}>⚠</Text>
+      </View>
+    );
+  };
+
+  /**
+   * One warning under the colors row. Always names the affected control(s), so
+   * it is clear which of the four swatches the message is about — and the two
+   * can genuinely differ (a group that sets only bgColor leaves text color free).
+   */
+  const renderOverrideWarning = () => {
+    const bg = warningTextFor(overrideReports.keysBgColor);
+    const text = warningTextFor(overrideReports.textColor);
+    if (!bg && !text) return null;
+
+    const g = strings.globalSettings;
+    const lines: string[] = bg && text && bg === text
+      // Identical message for both -> combine the labels into one line.
+      ? [`${g.keysBackground} + ${g.keysText}: ${bg}`]
+      : ([
+          bg ? `${g.keysBackground}: ${bg}` : null,
+          text ? `${g.keysText}: ${text}` : null,
+        ].filter(Boolean) as string[]);
+
+    return (
+      <View style={styles.overrideWarning}>
+        {lines.map((line, i) => (
+          <Text
+            key={i}
+            allowFontScaling={false}
+            style={[
+              styles.overrideWarningText,
+              i > 0 && styles.overrideWarningTextSpaced,
+              isRTL && { textAlign: 'right', writingDirection: 'rtl' },
+            ]}
+          >
+            {'⚠ '}{line}
+          </Text>
+        ))}
+      </View>
+    );
+  };
+
   const updateTextColor = (color: string) => {
     const updatedConfig = { ...state.config, textColor: color } as any;
     dispatch({
@@ -261,23 +339,33 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
                 </View>
 
                 <View style={styles.colorColumn}>
-                  <CompactColorPicker
-                    title=""
-                    value={keysBgColor}
-                    onChange={updateKeysBgColor}
-                    showSystemDefault
-                    systemDefaultLabel={strings.common.default}
-                  />
+                  <View style={styles.colorPickerWrapper}>
+                    <View style={overrideReports.keysBgColor.allMasked && styles.colorPickerMuted}>
+                      <CompactColorPicker
+                        title=""
+                        value={keysBgColor}
+                        onChange={updateKeysBgColor}
+                        showSystemDefault
+                        systemDefaultLabel={strings.common.default}
+                      />
+                    </View>
+                    {renderOverrideBadge('keysBgColor')}
+                  </View>
                 </View>
 
                 <View style={styles.colorColumn}>
-                  <CompactColorPicker
-                    title=""
-                    value={textColor}
-                    onChange={updateTextColor}
-                    showSystemDefault
-                    systemDefaultLabel={strings.common.default}
-                  />
+                  <View style={styles.colorPickerWrapper}>
+                    <View style={overrideReports.textColor.allMasked && styles.colorPickerMuted}>
+                      <CompactColorPicker
+                        title=""
+                        value={textColor}
+                        onChange={updateTextColor}
+                        showSystemDefault
+                        systemDefaultLabel={strings.common.default}
+                      />
+                    </View>
+                    {renderOverrideBadge('textColor')}
+                  </View>
                 </View>
 
                 {appContext === 'issiecalc' && (
@@ -292,6 +380,9 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
                   </View>
                 )}
               </View>
+
+              {/* Warning that keys-groups override the colors set above */}
+              {renderOverrideWarning()}
             </View>
           </View>
 
@@ -614,6 +705,54 @@ const styles = StyleSheet.create({
   colorColumn: {
     flex: 1,
     alignItems: 'center',
+  },
+  // Shown when key groups override this color; the picker still works, it just
+  // has no visible effect while every key is covered by a group.
+  colorPickerMuted: {
+    opacity: 0.45,
+  },
+  // Wrapper so the ⚠ badge can be absolutely positioned over the 50px swatch
+  // without affecting layout (the swatches must stay aligned across columns).
+  colorPickerWrapper: {
+    position: 'relative',
+  },
+  overrideBadge: {
+    position: 'absolute',
+    top: -4,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#FDE047',
+    borderWidth: 1,
+    borderColor: '#CA8A04',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  overrideBadgeLTR: {
+    left: -4,
+  },
+  overrideBadgeRTL: {
+    right: -4,
+  },
+  overrideBadgeText: {
+    fontSize: 10,
+    lineHeight: 13,
+    color: '#713F12',
+  },
+  overrideWarning: {
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    backgroundColor: '#FEF3C7',
+    borderRadius: 8,
+  },
+  overrideWarningText: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#92400E',
+  },
+  overrideWarningTextSpaced: {
+    marginTop: 4,
   },
   settingSection: {
     marginBottom: 16,
