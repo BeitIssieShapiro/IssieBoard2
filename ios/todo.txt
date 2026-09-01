@@ -1,3 +1,24 @@
+todo:
+V- selected - don't loose the design of keys
+V- seperate visibility and desig groups
+V- new kb -> fresh new
+V- preview true to end result in group
+V- delete all groups -> does not save it
+V- customize visibility/colors
+V- add text bg
+V- move expression to the right - same font fontSize
+V- remove general keys colors, add select all.
+V- change the icon of voice (in the tab) - standout and maybe different icon. (green, larger)
+
+Board
+-----
+V- cancel changes in issieboard - removes group!
+- if show topRow/always and in nikkud toggle on - remove/ignore the toggle
+
+
+
+
+
 IssieCalc:
 V- both voices
 V- voice per calculator
