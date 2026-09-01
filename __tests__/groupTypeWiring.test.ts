@@ -14,6 +14,7 @@ const TOOLBOX = read('src/components/toolbox/Toolbox.tsx');
 const CONTEXT = read('src/context/EditorContext.tsx');
 const PANEL = read('src/components/toolbox/StyleRulesPanel.tsx');
 const TYPES = read('types.ts');
+const CANVAS = read('src/components/canvas/InteractiveCanvas.tsx');
 
 describe('the group type is part of the persisted model', () => {
   test('StyleGroup declares an optional groupType', () => {
@@ -118,16 +119,38 @@ describe('the modal preview reflects preceding groups', () => {
     expect(MODAL).toContain('resolveHiddenKeys(precedingGroupsList, allSelectableKeyValues)');
   });
 
-  test('hidden keys are removed from the keysets, not just styled away', () => {
-    // They must not be tappable or reachable via "select all", so filtering the
-    // keysets is what guarantees it — a group template would leave them present.
-    expect(MODAL).toContain('hiddenByPrecedingValues.has(keyValue)');
-    const start = MODAL.indexOf('const filteredConfig');
-    const body = MODAL.slice(start, start + 400);
-    expect(body).toContain('dropKey');
-    expect(body).toMatch(/hiddenByPrecedingValues\.size > 0/);
-    // The old style-away group is gone.
-    expect(MODAL).not.toContain('_preceding_hidden_');
+  test('hidden keys keep their slot in the row', () => {
+    // Removing them from the rows re-flows the row and the remaining keys lose
+    // their positions. The native renderer keeps hidden keys in the layout
+    // ("hidden keys still take up space and preserve the layout"), so the
+    // preview hides them with opacity 0 instead of deleting them.
+    expect(MODAL).toContain("name: '_hidden_by_preceding_'");
+    const start = MODAL.indexOf("name: '_hidden_by_preceding_'");
+    expect(MODAL.slice(start, start + 300)).toMatch(/opacity: 0\b/);
+    // The row filter must no longer consider preceding-hidden keys — only the
+    // IssieVoice close/globe keys, which genuinely should not exist at all.
+    const filterStart = MODAL.indexOf('const filteredConfig');
+    const filterBody = MODAL.slice(filterStart, filterStart + 400);
+    expect(filterBody).not.toContain('dropKey');
+    expect(filterBody).not.toContain('hiddenByPrecedingValues');
+  });
+
+  test('hidden keys are still unselectable', () => {
+    // They are present in the preview now, so absence no longer protects them:
+    // tapping and "select all" must both reject them explicitly.
+    const tapStart = MODAL.indexOf('const handleKeyPress');
+    const tapBody = MODAL.slice(tapStart, MODAL.indexOf('const handleCancel'));
+    expect(tapBody).toMatch(/hiddenByPrecedingValues\.has\(/);
+    const viewStart = MODAL.indexOf('const selectableKeysInView');
+    const viewBody = MODAL.slice(viewStart, viewStart + 900);
+    expect(viewBody).toMatch(/!hiddenByPrecedingValues\.has\(keyValue\)/);
+  });
+
+  test('hiddenByPrecedingValues is declared before handleKeyPress uses it', () => {
+    // It is a const in the component body: referencing it in handleKeyPress's
+    // dependency array before its declaration throws at render (TDZ).
+    expect(MODAL.indexOf('const hiddenByPrecedingValues'))
+      .toBeLessThan(MODAL.indexOf('const handleKeyPress'));
   });
 
   test('a selected key that becomes hidden is dropped from the selection', () => {
@@ -139,6 +162,61 @@ describe('the modal preview reflects preceding groups', () => {
     // It was duplicated between the preceding-group and showOnly paths.
     const occurrences = MODAL.split('const essentialTypes').length - 1;
     expect(occurrences).toBe(1);
+  });
+
+  test("the modal's essential values match the merger's", () => {
+    // transformConfigForPreview is what the real app renders. The modal used to
+    // also treat '.' and ',' as essential, so a "show only" group hid them in
+    // the app but left them visible in the preview.
+    expect(MODAL).toContain("const essentialValues = new Set([' ']);");
+    expect(MODAL).not.toMatch(/essentialValues = new Set\(\[' ', ',', '\.'\]\)/);
+  });
+});
+
+describe('the modal preview follows the device orientation', () => {
+  test('the calc keyset gets the _landscape suffix, as the main preview does', () => {
+    // The modal used to render the bare keyset id, so editing a group in
+    // landscape always showed the portrait layout.
+    expect(CANVAS).toMatch(/`\$\{calcPreviewKeyset\}_landscape`/);
+    expect(MODAL).toMatch(/`\$\{calcKeyset\}_landscape`/);
+    // The rendered config uses the orientation-aware id, not the raw toggle value.
+    const start = MODAL.indexOf('const previewConfigJson');
+    const body = MODAL.slice(start, start + 300);
+    expect(body).toContain('defaultKeyset: calcKeysetId');
+  });
+
+  test('key selection targets the keyset actually on screen', () => {
+    // visibleKeysetId drives "select all" and tap resolution. If it kept the
+    // portrait id while landscape rendered, select-all would act on the wrong
+    // keyset — the two layouts have different keys per row.
+    const start = MODAL.indexOf('const visibleKeysetId');
+    const body = MODAL.slice(start, start + 300);
+    expect(body).toContain('calcKeysetId');
+  });
+
+  test('orientation is read before the keyset id is derived', () => {
+    // calcKeysetId is a const derived from isPortrait; using it earlier throws (TDZ).
+    expect(MODAL.indexOf('useWindowDimensions()'))
+      .toBeLessThan(MODAL.indexOf('const calcKeysetId'));
+    expect(MODAL.indexOf('const calcKeysetId'))
+      .toBeLessThan(MODAL.indexOf('const previewConfigJson'));
+  });
+
+  test('the landscape keysets the suffix points at exist', () => {
+    // `${calcKeyset}_landscape` must resolve for both toggle values, or the
+    // preview renders nothing in landscape.
+    const calc = JSON.parse(read('keyboards/calc.json'));
+    const ids = new Set(calc.keysets.map((k: any) => k.id));
+    expect(ids.has('basic_landscape')).toBe(true);
+    expect(ids.has('scientific_landscape')).toBe(true);
+  });
+
+  test('the scientific height bump applies only in portrait', () => {
+    // Portrait scientific is 11 rows and needs the extra height; the landscape
+    // variant is 5 rows, so the bump would oversize it.
+    const start = MODAL.indexOf('const modalPreviewHeight');
+    const body = MODAL.slice(start, start + 200);
+    expect(body).toContain('isPortrait');
   });
 });
 

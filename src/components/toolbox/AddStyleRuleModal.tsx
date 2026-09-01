@@ -156,6 +156,53 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
+  /**
+   * Every key a visibility rule may affect: all non-essential keys in the keyboard.
+   * Essential (functional) keys are excluded — they must never be hidden, or the
+   * keyboard becomes unusable.
+   */
+  const allSelectableKeyValues = useMemo(() => {
+    // Must match transformConfigForPreview's essential list, which is what the
+    // real app renders: the space bar plus the functional key types. Punctuation
+    // ('.', ',') is NOT essential — on the calculator '.' is an ordinary key a
+    // "show only" group is expected to hide, and excluding it here would leave it
+    // visible in the preview while the app hides it.
+    const essentialTypes = new Set(['space', 'backspace', 'enter', 'next-keyboard', 'settings', 'shift', 'keyset', 'nikkud', 'close', 'language']);
+    const essentialValues = new Set([' ']);
+    const values = new Set<string>();
+    for (const keyset of state.config.keysets) {
+      for (const row of keyset.rows) {
+        for (const key of row.keys) {
+          const keyType = (key.type || '').toLowerCase();
+          if (essentialTypes.has(keyType)) continue;
+          const keyValue = key.value || key.caption || key.label || key.type;
+          if (keyValue && !essentialValues.has(keyValue)) values.add(keyValue);
+        }
+      }
+    }
+    return values;
+  }, [state.config.keysets]);
+
+  /** The active groups that come before the one being edited, in list order. */
+  const precedingGroupsList = useMemo(() => {
+    const currentIndex = editingGroup
+      ? state.styleGroups.findIndex(g => g.id === editingGroup.id)
+      : state.styleGroups.length; // new rule goes at the end
+    return state.styleGroups.slice(0, currentIndex).filter(g => g.active !== false);
+  }, [state.styleGroups, editingGroup]);
+
+  /**
+   * Keys hidden by those groups. A key an earlier group hides is not available
+   * to this group, so it is rendered invisible and excluded from tapping and
+   * "select all" — but it keeps its slot in the row (see previewConfig).
+   *
+   * Declared above handleKeyPress because that callback depends on it.
+   */
+  const hiddenByPrecedingValues = useMemo(
+    () => resolveHiddenKeys(precedingGroupsList, allSelectableKeyValues),
+    [precedingGroupsList, allSelectableKeyValues],
+  );
+
   // Handle key tap - toggle selection
   const handleKeyPress = useCallback((event: KeyPressEvent) => {
     // If in preset mode, keys are locked - show toast in modal
@@ -176,6 +223,8 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
     if (type === 'longpress') {
       const keyType = value; // value is the key type (e.g., "keyset", "nikkud")
       if (!keyType) return;
+      // A key an earlier group hides is invisible here and not available to this group.
+      if (hiddenByPrecedingValues.has(keyType)) return;
 
       setSelectedKeyValues(prev => {
         if (prev.includes(keyType)) {
@@ -197,6 +246,8 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
     const keyValue = SPECIAL_KEY_TYPES.includes(type) ? type : (value || type);
 
     if (!keyValue) return;
+    // A key an earlier group hides is invisible here and not available to this group.
+    if (hiddenByPrecedingValues.has(keyValue)) return;
 
     setSelectedKeyValues(prev => {
       if (prev.includes(keyValue)) {
@@ -205,7 +256,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
         return [...prev, keyValue];
       }
     });
-  }, [isPreset, editingGroup, showLocalToast]);
+  }, [isPreset, editingGroup, showLocalToast, hiddenByPrecedingValues]);
 
   const handleCancel = () => {
     onClose();
@@ -250,51 +301,14 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
     onClose();
   };
 
-  /**
-   * Every key a visibility rule may dim: all non-essential keys in the keyboard.
-   * Essential (functional) keys are excluded — they must never be dimmed, or the
-   * keyboard becomes unusable.
-   */
-  const allSelectableKeyValues = useMemo(() => {
-    const essentialTypes = new Set(['space', 'backspace', 'enter', 'next-keyboard', 'settings', 'shift', 'keyset', 'nikkud', 'close', 'language']);
-    const essentialValues = new Set([' ', ',', '.']);
-    const values = new Set<string>();
-    for (const keyset of state.config.keysets) {
-      for (const row of keyset.rows) {
-        for (const key of row.keys) {
-          const keyType = (key.type || '').toLowerCase();
-          if (essentialTypes.has(keyType)) continue;
-          const keyValue = key.value || key.caption || key.label || key.type;
-          if (keyValue && !essentialValues.has(keyValue)) values.add(keyValue);
-        }
-      }
-    }
-    return values;
-  }, [state.config.keysets]);
-
-  /** The active groups that come before the one being edited, in list order. */
-  const precedingGroupsList = useMemo(() => {
-    const currentIndex = editingGroup
-      ? state.styleGroups.findIndex(g => g.id === editingGroup.id)
-      : state.styleGroups.length; // new rule goes at the end
-    return state.styleGroups.slice(0, currentIndex).filter(g => g.active !== false);
-  }, [state.styleGroups, editingGroup]);
-
-  /**
-   * Keys hidden by those groups. They are removed from the preview entirely: a
-   * key an earlier group hides is not available to this group, so it must not be
-   * selectable here.
-   */
-  const hiddenByPrecedingValues = useMemo(
-    () => resolveHiddenKeys(precedingGroupsList, allSelectableKeyValues),
-    [precedingGroupsList, allSelectableKeyValues],
-  );
-
   // Build config with the current rule AND all active groups that precede it in the list.
-  // IMPORTANT: keys hidden by *preceding* groups are removed from the preview —
-  // they are not available to this group, so they must not be selectable. The
-  // rule being edited still previews its own effect as opacity 0.3, so its keys
-  // stay tappable while the user is choosing them.
+  // IMPORTANT: keys hidden by *preceding* groups are rendered invisible (opacity
+  // 0) rather than removed from the rows. Removing them re-flows the row and the
+  // remaining keys lose their positions; the native renderer keeps hidden keys in
+  // the layout for exactly this reason. They are kept unselectable by
+  // handleKeyPress and selectableKeysInView instead. The rule being edited still
+  // previews its own effect as opacity 0.3, so its keys stay tappable while the
+  // user is choosing them.
   const previewConfig = useMemo((): KeyboardConfig => {
     const precedingGroups = precedingGroupsList.map(g => ({
       name: g.id,
@@ -310,8 +324,6 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
       },
     }));
 
-    // Keys hidden by preceding groups are removed from the keysets below, so no
-    // group is needed to style them away here.
     const groups: any[] = [...precedingGroups];
 
     if (selectedKeyValues.length > 0) {
@@ -381,21 +393,31 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
     if (hideCloseKey) hideKeys.add('close');
     if (hideGlobeButton) { hideKeys.add('settings'); hideKeys.add('next-keyboard'); }
 
-    // Keys hidden by a preceding group are removed outright rather than styled
-    // away, so they cannot be tapped or picked up by "select all".
-    const dropKey = (key: any): boolean => {
-      if (hideKeys.has(key.type)) return true;
-      const keyValue = key.value || key.caption || key.label || key.type;
-      return !!keyValue && hiddenByPrecedingValues.has(keyValue);
-    };
+    // Keys hidden by a preceding group are made invisible but keep their slot, so
+    // the surrounding keys stay where the real keyboard puts them. Appended last
+    // so a colour group cannot override the opacity — the same ordering rule
+    // transformConfigForPreview uses for its inverse groups.
+    if (hiddenByPrecedingValues.size > 0) {
+      groups.push({
+        name: '_hidden_by_preceding_',
+        items: [...hiddenByPrecedingValues],
+        template: {
+          color: '',
+          bgColor: '',
+          opacity: 0,
+          hidden: false,
+          visibilityMode: 'default' as VisibilityMode,
+        },
+      });
+    }
 
-    const filteredConfig = (hideKeys.size > 0 || hiddenByPrecedingValues.size > 0) ? {
+    const filteredConfig = hideKeys.size > 0 ? {
       ...state.config,
       keysets: state.config.keysets.map((keyset: any) => ({
         ...keyset,
         rows: keyset.rows.map((row: any) => ({
           ...row,
-          keys: row.keys.filter((key: any) => !dropKey(key)),
+          keys: row.keys.filter((key: any) => !hideKeys.has(key.type)),
         })),
       })),
     } : state.config;
@@ -488,21 +510,32 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
     };
   }, [state.config, precedingGroupsList, hiddenByPrecedingValues, selectedKeyValues, bgColor, textColor, visibilityMode, allSelectableKeyValues, hideCloseKey, hideGlobeButton, selectedLanguages, speakButtonInKeyboard]);
 
-  const previewConfigJson = useMemo(() => {
-    const base = transformConfigForPreview(previewConfig);
-    if (appContext === 'issiecalc') {
-      return JSON.stringify({ ...base, defaultKeyset: calcKeyset });
-    }
-    return JSON.stringify(base);
-  }, [previewConfig, appContext, calcKeyset]);
-
-  // Get window dimensions to detect orientation
+  // Get window dimensions to detect orientation. Declared before the memos that
+  // depend on it — the calc keyset is orientation-specific.
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const isPortrait = windowHeight > windowWidth;
 
-  // Modal preview height - 1.5x taller in portrait for better visibility; 50% more for scientific calc
+  /**
+   * The calc keyset actually rendered. The calculator ships a separate landscape
+   * layout per keyset, so the modal must follow the device orientation the same
+   * way the main preview does (see InteractiveCanvas) — otherwise editing a group
+   * in landscape shows the portrait layout, which is not what the user sees.
+   */
+  const calcKeysetId = isPortrait ? calcKeyset : `${calcKeyset}_landscape`;
+
+  const previewConfigJson = useMemo(() => {
+    const base = transformConfigForPreview(previewConfig);
+    if (appContext === 'issiecalc') {
+      return JSON.stringify({ ...base, defaultKeyset: calcKeysetId });
+    }
+    return JSON.stringify(base);
+  }, [previewConfig, appContext, calcKeysetId]);
+
+  // Modal preview height - 1.5x taller in portrait for better visibility; 50% more
+  // for scientific calc, which stacks 11 rows in portrait. The landscape
+  // scientific layout is only 5 rows deep, so it does not need the extra height.
   const baseModalPreviewHeight = isPortrait ? 280 : 200;
-  const modalPreviewHeight = (appContext === 'issiecalc' && calcKeyset === 'scientific')
+  const modalPreviewHeight = (appContext === 'issiecalc' && calcKeyset === 'scientific' && isPortrait)
     ? Math.round(baseModalPreviewHeight * 1.5)
     : baseModalPreviewHeight;
 
@@ -511,9 +544,9 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
    * and scientific; everything else shows the config's default keyset.
    */
   const visibleKeysetId = useMemo(() => {
-    if (appContext === 'issiecalc') return calcKeyset;
+    if (appContext === 'issiecalc') return calcKeysetId;
     return (state.config as any).defaultKeyset || previewConfig.keysets?.[0]?.id;
-  }, [appContext, calcKeyset, state.config, previewConfig.keysets]);
+  }, [appContext, calcKeysetId, state.config, previewConfig.keysets]);
 
   /**
    * Every key the user could tap in the visible keyset, using the same value
@@ -534,11 +567,13 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
         const keyValue = SPECIAL_KEY_TYPES.includes(type)
           ? type
           : (key.value || key.caption || key.label || key.type);
-        if (keyValue) values.push(keyValue);
+        // Keys a preceding group hides are still in the preview (invisible, to
+        // hold their slot) but are not available to this group.
+        if (keyValue && !hiddenByPrecedingValues.has(keyValue)) values.push(keyValue);
       }
     }
     return [...new Set(values)];
-  }, [previewConfig.keysets, visibleKeysetId]);
+  }, [previewConfig.keysets, visibleKeysetId, hiddenByPrecedingValues]);
 
   /**
    * Drop any selected key that a preceding group hides. Those keys are no longer

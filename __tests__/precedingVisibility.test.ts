@@ -73,4 +73,20 @@ describe('resolveHiddenKeys', () => {
     expect([...hidden]).toEqual(['b']);
     expect(hidden.has('space')).toBe(false);
   });
+
+  test("'.' is hidden by a showOnly group that does not list it", () => {
+    // Reported on the calculator: a "show only AC 4 1 2 3 - + =" group left '.'
+    // visible in the modal preview while the real app hid it. The modal had '.'
+    // and ',' in its essential list (copied from the native renderer's
+    // never-hide whitelist), which kept them out of allValues — and a key that
+    // is not in allValues can never be hidden by showOnly. The list that governs
+    // the real app (transformConfigForPreview) excludes only ' ' plus key types.
+    const calcKeys = ['AC', '%', '+/-', '.', '0', '1', '2', '3', '4', '-', '+', '='];
+    const hidden = resolveHiddenKeys(
+      [showOnly('AC', '4', '1', '2', '3', '-', '+', '=')],
+      calcKeys,
+    );
+    expect(hidden.has('.')).toBe(true);
+    expect([...hidden].sort()).toEqual(['%', '+/-', '.', '0']);
+  });
 });
