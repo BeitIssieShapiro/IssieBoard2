@@ -74,16 +74,29 @@ describe('the toolbox offers the two typed create buttons', () => {
 });
 
 describe('the group list shows the type', () => {
-  test('the panel renders a type badge', () => {
+  test('each row renders an icon for its type', () => {
     expect(PANEL).toContain('getGroupType(group)');
-    expect(PANEL).toContain('indicatorType');
+    expect(PANEL).toContain('typeIcons');
   });
 
-  test('the "no styles" fallback accounts for the always-present badge', () => {
-    // The badge is pushed unconditionally, so a length check against 0 would
-    // never fire and the hint would be lost.
-    expect(PANEL).not.toMatch(/indicators\.length === 0/);
-    expect(PANEL).toMatch(/indicators\.length === 1/);
+  test('the icons match the buttons that create the groups', () => {
+    // Palette for colours, eye-off for visibility — same names the Toolbox uses,
+    // so the list and the create buttons read as the same vocabulary.
+    const start = PANEL.indexOf('const type = getGroupType(group)');
+    const body = PANEL.slice(start, start + 700);
+    expect(body).toMatch(/showsColors\(type\)[\s\S]*?'color-palette'/);
+    expect(body).toMatch(/showsVisibility\(type\)[\s\S]*?'eye-off'/);
+
+    expect(TOOLBOX).toContain("'color-palette'");
+    expect(TOOLBOX).toContain("'eye-off'");
+  });
+
+  test('the icons are rendered in the row that is actually displayed', () => {
+    // getStylePreview is dead code in this panel — the row markup is what
+    // renders, so the icons must live there.
+    const rowStart = PANEL.indexOf('state.styleGroups.map');
+    expect(rowStart).toBeGreaterThan(-1);
+    expect(PANEL.indexOf('typeIcons')).toBeGreaterThan(rowStart);
   });
 });
 

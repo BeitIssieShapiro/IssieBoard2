@@ -78,21 +78,6 @@ export const StyleRulesPanel: React.FC<StyleRulesPanelProps> = ({
   const getStylePreview = (group: StyleGroup): React.ReactNode => {
     const indicators: React.ReactNode[] = [];
 
-    // What kind of group this is. Shown first so the type is visible even for a
-    // group that has no styling set yet.
-    const type = getGroupType(group);
-    indicators.push(
-      <View key="type" style={[styles.indicator, styles.indicatorType]}>
-        <Text allowFontScaling={false} style={styles.indicatorTextType}>
-          {showsColors(type) && showsVisibility(type)
-            ? `${strings.styleRuleModal.groupTypeColors} + ${strings.styleRuleModal.groupTypeVisibility}`
-            : showsVisibility(type)
-              ? strings.styleRuleModal.groupTypeVisibility
-              : strings.styleRuleModal.groupTypeColors}
-        </Text>
-      </View>
-    );
-
     // Visibility indicator - check for new visibilityMode first, then legacy hidden
     const visMode = group.style.visibilityMode || (group.style.hidden ? 'hide' : 'default');
     
@@ -134,9 +119,7 @@ export const StyleRulesPanel: React.FC<StyleRulesPanelProps> = ({
       );
     }
     
-    // The type badge above is always present, so "no styles" is about the
-    // settings themselves: nothing beyond the badge means nothing is applied.
-    if (indicators.length === 1) {
+    if (indicators.length === 0) {
       indicators.push(
         <Text key="none" style={styles.noStyleText}>{strings.styleRules.noStyles}</Text>
       );
@@ -176,6 +159,23 @@ export const StyleRulesPanel: React.FC<StyleRulesPanelProps> = ({
                   style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
                 />
                 
+                {/* Group type — palette for colours, eye for visibility.
+                    Matches the icons on the buttons that create these groups. */}
+                {(() => {
+                  const type = getGroupType(group);
+                  const tint = isGroupActive ? '#3B82F6' : '#9CA3AF';
+                  return (
+                    <View style={styles.typeIcons}>
+                      {showsColors(type) && (
+                        <MyIcon info={{ name: 'color-palette', type: 'Ionicons', color: tint, size: 16 }} />
+                      )}
+                      {showsVisibility(type) && (
+                        <MyIcon info={{ name: 'eye-off', type: 'Ionicons', color: tint, size: 16 }} />
+                      )}
+                    </View>
+                  );
+                })()}
+
                 {/* Group Name */}
                 <Text allowFontScaling={false} style={[styles.groupName, !isGroupActive && styles.groupNameInactive]} numberOfLines={1}>
                   {group.name}
@@ -243,6 +243,13 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 8,
     gap: 10,
+  },
+  // Type markers sit between the switch and the name. A 'both' group shows two,
+  // so they are grouped in a tight row of their own.
+  typeIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
   },
   groupName: {
     fontSize: 16,
@@ -323,16 +330,6 @@ const styles = StyleSheet.create({
   },
   indicatorShowOnly: {
     backgroundColor: '#E3F2FD',
-  },
-  indicatorType: {
-    backgroundColor: '#EFF6FF',
-    borderWidth: 0.5,
-    borderColor: '#BFDBFE',
-  },
-  indicatorTextType: {
-    fontSize: 10,
-    color: '#3B82F6',
-    fontWeight: '600',
   },
   indicatorTextShowOnly: {
     fontSize: 10,
