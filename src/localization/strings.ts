@@ -137,6 +137,8 @@ export interface Strings {
     presets: string;
     new: string;
     createNew: string;
+    customizeColors: string;
+    customizeVisibility: string;
     presetsModalTitle: string;
     keysLabel: string;
   };
@@ -249,6 +251,10 @@ export interface Strings {
     bgColor: string;
     textColor: string;
     keysLocked: string;
+    selectAllInView: string;
+    deselectAllInView: string;
+    groupTypeColors: string;
+    groupTypeVisibility: string;
   };
   styleRuleModal: {
     newKeysGroup: string;
@@ -266,6 +272,10 @@ export interface Strings {
     bgColor: string;
     textColor: string;
     keysLocked: string;
+    selectAllInView: string;
+    deselectAllInView: string;
+    groupTypeColors: string;
+    groupTypeVisibility: string;
     previewNote: string;
   };
   colorPicker: {
@@ -506,6 +516,8 @@ const en: Strings = {
     presets: 'Presets',
     new: 'New',
     createNew: 'Create New',
+    customizeColors: 'Customize Colors',
+    customizeVisibility: 'Customize Visibility',
     presetsModalTitle: 'Choose a Preset',
     keysLabel: 'Keys',
   },
@@ -620,6 +632,10 @@ const en: Strings = {
     bgColor: 'Background Color',
     textColor: 'Text Color',
     keysLocked: 'Keys are locked for this preset group.',
+    selectAllInView: 'Select All',
+    deselectAllInView: 'Deselect All',
+    groupTypeColors: 'Colors',
+    groupTypeVisibility: 'Visibility',
     previewNote: 'Preview shows the impact of this key group and all active preceding ones.',
   },
   colorPicker: {
@@ -860,6 +876,8 @@ const he: Strings = {
     presets: 'תבניות',
     new: 'חדש',
     createNew: 'צור חדש',
+    customizeColors: 'התאמת צבעים',
+    customizeVisibility: 'התאמת הצגה',
     presetsModalTitle: 'בחר תבנית',
     keysLabel: 'מקשים',
   },
@@ -974,6 +992,10 @@ const he: Strings = {
     bgColor: 'צבע רקע',
     textColor: 'צבע טקסט',
     keysLocked: 'המקשים נעולים עבור קבוצת תבנית זו.',
+    selectAllInView: 'בחר הכל',
+    deselectAllInView: 'בטל בחירת הכל',
+    groupTypeColors: 'צבעים',
+    groupTypeVisibility: 'הצגה',
     previewNote: 'התצוגה מראה את ההשפעה של קבוצה זו וכל הקבוצות הפעילות שלפניה.',
   },
   colorPicker: {
@@ -1214,6 +1236,8 @@ const ar: Strings = {
     presets: 'قوالب',
     new: 'جديد',
     createNew: 'إنشاء جديد',
+    customizeColors: 'تخصيص الألوان',
+    customizeVisibility: 'تخصيص الإظهار',
     presetsModalTitle: 'اختر قالبًا',
     keysLabel: 'مفاتيح',
   },
@@ -1328,6 +1352,10 @@ const ar: Strings = {
     bgColor: 'لون الخلفية',
     textColor: 'لون النص',
     keysLocked: 'المفاتيح مقفلة لمجموعة القالب هذه.',
+    selectAllInView: 'تحديد الكل',
+    deselectAllInView: 'إلغاء تحديد الكل',
+    groupTypeColors: 'الألوان',
+    groupTypeVisibility: 'الإظهار',
     previewNote: 'تعرض المعاينة تأثير هذه المجموعة وجميع المجموعات النشطة السابقة.',
   },
   colorPicker: {

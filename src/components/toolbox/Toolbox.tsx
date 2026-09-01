@@ -7,7 +7,7 @@ import { StyleRulesPanel } from './StyleRulesPanel';
 import { DiacriticsPanel } from './DiacriticsPanel';
 import { ActionButton } from '../shared/ActionButton';
 import { AddStyleRuleModal } from './AddStyleRuleModal';
-import { StyleGroup } from '../../../types';
+import { StyleGroup, StyleGroupType } from '../../../types';
 import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 
 // Import predefined rules
@@ -100,6 +100,8 @@ export const Toolbox: React.FC<ToolboxProps> = ({
   const [showTemplatesModal, setShowTemplatesModal] = useState(false);
   const [editingGroup, setEditingGroup] = useState<StyleGroup | null>(null);
   const [templateData, setTemplateData] = useState<GroupTemplate | null>(null);
+  // Which kind of group the "customize colors" / "customize visibility" buttons create
+  const [newGroupType, setNewGroupType] = useState<StyleGroupType>('colors');
 
   // All accordions open by default except diacritics
   const [openSections, setOpenSections] = useState<Set<SectionId>>(
@@ -121,8 +123,9 @@ export const Toolbox: React.FC<ToolboxProps> = ({
     return [...new Set(keyValues)]; // Remove duplicates
   }, [state.selectedKeys, state.config.keysets]);
 
-  const handleCreatePressed = useCallback(() => {
+  const handleCreatePressed = useCallback((groupType: StyleGroupType = 'colors') => {
     setEditingGroup(null);
+    setNewGroupType(groupType);
     setShowStyleRuleModal(true);
   }, []);
 
@@ -305,10 +308,17 @@ export const Toolbox: React.FC<ToolboxProps> = ({
             )}
             <TouchableOpacity
               style={styles.subtleButton}
-              onPress={handleCreatePressed}
+              onPress={() => handleCreatePressed('colors')}
               activeOpacity={0.7}>
-              <MyIcon info={{ name: 'add', type: 'Ionicons', color: '#3B82F6', size: 18 }} />
-              <Text allowFontScaling={false} style={styles.subtleButtonText}>{strings.toolbox.createNew}</Text>
+              <MyIcon info={{ name: 'color-palette', type: 'Ionicons', color: '#3B82F6', size: 18 }} />
+              <Text allowFontScaling={false} style={styles.subtleButtonText}>{strings.toolbox.customizeColors}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.subtleButton}
+              onPress={() => handleCreatePressed('visibility')}
+              activeOpacity={0.7}>
+              <MyIcon info={{ name: 'eye-off', type: 'Ionicons', color: '#3B82F6', size: 18 }} />
+              <Text allowFontScaling={false} style={styles.subtleButtonText}>{strings.toolbox.customizeVisibility}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -375,6 +385,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
             initialBgColor={templateData?.style.bgColor}
             initialTextColor={templateData?.style.color}
             initialVisibilityMode={templateData?.style.visibilityMode}
+            initialGroupType={newGroupType}
             isPreset={!!(templateData && !editingGroup) || !!(editingGroup?.presetId)}
             presetId={templateData && !editingGroup ? templateData.id : editingGroup?.presetId}
             profileName={profileName}
@@ -423,10 +434,17 @@ export const Toolbox: React.FC<ToolboxProps> = ({
             )}
             <TouchableOpacity
               style={styles.subtleButton}
-              onPress={handleCreatePressed}
+              onPress={() => handleCreatePressed('colors')}
               activeOpacity={0.7}>
-              <MyIcon info={{ name: 'add', type: 'Ionicons', color: '#3B82F6', size: 18 }} />
-              <Text allowFontScaling={false} style={styles.subtleButtonText}>{strings.toolbox.createNew}</Text>
+              <MyIcon info={{ name: 'color-palette', type: 'Ionicons', color: '#3B82F6', size: 18 }} />
+              <Text allowFontScaling={false} style={styles.subtleButtonText}>{strings.toolbox.customizeColors}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.subtleButton}
+              onPress={() => handleCreatePressed('visibility')}
+              activeOpacity={0.7}>
+              <MyIcon info={{ name: 'eye-off', type: 'Ionicons', color: '#3B82F6', size: 18 }} />
+              <Text allowFontScaling={false} style={styles.subtleButtonText}>{strings.toolbox.customizeVisibility}</Text>
             </TouchableOpacity>
           </View>
         }

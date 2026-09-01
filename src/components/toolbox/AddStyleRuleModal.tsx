@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { useEditor } from '../../context/EditorContext';
 import { useLocalization } from '../../localization';
-import { StyleGroup, KeyStyleOverride, KeyboardConfig, VisibilityMode } from '../../../types';
+import { StyleGroup, KeyStyleOverride, KeyboardConfig, VisibilityMode, StyleGroupType } from '../../../types';
+import { getGroupType, showsColors, showsVisibility } from '../../utils/groupType';
 import { CompactColorPicker } from '../shared/CompactColorPicker';
 import { ButtonGroupRow } from '../shared/ButtonGroupRow';
 import { KeyboardPreview, KeyPressEvent } from '../KeyboardPreview';
@@ -27,6 +28,7 @@ interface AddStyleRuleModalProps {
   initialBgColor?: string; // Pre-filled background color when creating from preset
   initialTextColor?: string; // Pre-filled text color when creating from preset
   initialVisibilityMode?: VisibilityMode; // Pre-filled visibility mode when creating from preset
+  initialGroupType?: StyleGroupType; // Which sections to offer when creating ('colors' | 'visibility')
   isPreset?: boolean; // If true, keys are locked (only colors can be edited)
   presetId?: string; // The predefined rule ID (e.g., "top-row") — stored on the group for auto-update on variant switch
   profileName?: string; // Current profile name for breadcrumb
@@ -46,6 +48,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
   initialBgColor,
   initialTextColor,
   initialVisibilityMode,
+  initialGroupType,
   isPreset = false,
   presetId,
   profileName,
@@ -70,6 +73,8 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
   const [bgColor, setBgColor] = useState('');
   const [textColor, setTextColor] = useState('');
   const [visibilityMode, setVisibilityMode] = useState<VisibilityMode>('default');
+  // What this group is for. Presets keep 'both' so they never lose settings.
+  const [groupType, setGroupType] = useState<StyleGroupType>('colors');
 
   // Local toast display for this modal
   const [localToastMessage, setLocalToastMessage] = useState<string | null>(null);
@@ -124,6 +129,9 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
         } else {
           setVisibilityMode('default');
         }
+        // Stored type wins; legacy groups are inferred from what they set, so a
+        // group that already has colours AND visibility keeps showing both.
+        setGroupType(getGroupType(editingGroup));
       } else {
         // New rule - use initial values if provided (from template)
         setRuleName(initialName || generateRuleName());
@@ -131,6 +139,9 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
         setBgColor(initialBgColor || '');
         setTextColor(initialTextColor || '');
         setVisibilityMode(initialVisibilityMode || 'default');
+        // Presets are authored with both colours and visibility, so they are
+        // not restricted to one type.
+        setGroupType(isPreset ? 'both' : (initialGroupType || 'colors'));
       }
     }
     // Only run when modal visibility changes, not when editingGroup changes
@@ -199,11 +210,15 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
       return;
     }
 
+    // Only write the settings that belong to this group's type, so a colours
+    // group cannot carry a stale visibility mode (or vice versa).
     const style: KeyStyleOverride = {};
-    if (bgColor) style.bgColor = bgColor;
-    if (textColor) style.color = textColor;
+    if (showsColors(groupType)) {
+      if (bgColor) style.bgColor = bgColor;
+      if (textColor) style.color = textColor;
+    }
     // Set visibility mode (only if not default)
-    if (visibilityMode !== 'default') {
+    if (showsVisibility(groupType) && visibilityMode !== 'default') {
       style.visibilityMode = visibilityMode;
       // For "hide" mode: apply opacity 0.3 to selected keys (they will be hidden)
       // For "showOnly" mode: don't set opacity on selected keys (they will be shown)
@@ -218,10 +233,11 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
         name: ruleName.trim() || editingGroup.name,
         members: selectedKeyValues,
         style,
+        groupType,
       });
     } else {
       const name = ruleName.trim() || generateRuleName();
-      createGroupFromValues(name, selectedKeyValues, style, true, presetId);
+      createGroupFromValues(name, selectedKeyValues, style, true, presetId, groupType);
     }
 
     onClose();
@@ -454,6 +470,59 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
     ? Math.round(baseModalPreviewHeight * 1.5)
     : baseModalPreviewHeight;
 
+  /**
+   * Which keyset the preview is currently showing. Calc switches between basic
+   * and scientific; everything else shows the config's default keyset.
+   */
+  const visibleKeysetId = useMemo(() => {
+    if (appContext === 'issiecalc') return calcKeyset;
+    return (state.config as any).defaultKeyset || previewConfig.keysets?.[0]?.id;
+  }, [appContext, calcKeyset, state.config, previewConfig.keysets]);
+
+  /**
+   * Every key the user could tap in the visible keyset, using the same value
+   * convention as handleKeyPress so the two agree. Keyset-switch keys are left
+   * out — they are selectable only by long-press, so selecting them here would
+   * add keys the user cannot untap the same way.
+   */
+  const selectableKeysInView = useMemo(() => {
+    const keyset = previewConfig.keysets?.find((ks: any) => ks.id === visibleKeysetId)
+      ?? previewConfig.keysets?.[0];
+    if (!keyset) return [] as string[];
+
+    const specialKeyTypes = ['enter', 'shift', 'backspace', 'space', 'settings', 'close', 'nikkud', 'next-keyboard', 'language', 'suggestion'];
+    const values: string[] = [];
+    for (const row of keyset.rows) {
+      for (const key of row.keys as any[]) {
+        const type = (key.type || '').toLowerCase();
+        if (type === 'keyset') continue;
+        const keyValue = specialKeyTypes.includes(type)
+          ? type
+          : (key.value || key.caption || key.label || key.type);
+        if (keyValue) values.push(keyValue);
+      }
+    }
+    return [...new Set(values)];
+  }, [previewConfig.keysets, visibleKeysetId]);
+
+  /** True once every selectable key in view is already selected. */
+  const allInViewSelected = selectableKeysInView.length > 0
+    && selectableKeysInView.every(k => selectedKeyValues.includes(k));
+
+  const handleSelectAllToggle = useCallback(() => {
+    if (isPreset) {
+      showLocalToast(`🔒 ${strings.styleRuleModal.keysLocked}`, 2000);
+      return;
+    }
+    setSelectedKeyValues(prev => {
+      if (allInViewSelected) {
+        // Deselect only what is in view; keys from other keysets stay selected.
+        return prev.filter(k => !selectableKeysInView.includes(k));
+      }
+      return [...new Set([...prev, ...selectableKeysInView])];
+    });
+  }, [isPreset, allInViewSelected, selectableKeysInView, showLocalToast, strings.styleRuleModal.keysLocked]);
+
   // Build selected keys JSON for highlighting in the preview
   const selectedKeysJson = useMemo(() => {
     if (selectedKeyValues.length === 0) return undefined;
@@ -556,11 +625,25 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
           <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
             {/* Keyboard Preview */}
             <View style={styles.section}>
-              <Text allowFontScaling={false} style={styles.sectionTitle}>
-                {isPreset
-                  ? strings.styleRuleModal.presetKeysLocked
-                  : strings.styleRuleModal.tapKeysToSelect}
-              </Text>
+              <View style={styles.selectAllRow}>
+                <Text allowFontScaling={false} style={[styles.sectionTitle, styles.selectAllTitle]}>
+                  {isPreset
+                    ? strings.styleRuleModal.presetKeysLocked
+                    : strings.styleRuleModal.tapKeysToSelect}
+                </Text>
+                {!isPreset && selectableKeysInView.length > 0 && (
+                  <TouchableOpacity
+                    style={styles.selectAllButton}
+                    onPress={handleSelectAllToggle}
+                    activeOpacity={0.7}>
+                    <Text allowFontScaling={false} style={styles.selectAllButtonText}>
+                      {allInViewSelected
+                        ? strings.styleRuleModal.deselectAllInView
+                        : strings.styleRuleModal.selectAllInView}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
               {appContext === 'issiecalc' && (state.config as any).showScientific !== false && (
                 <View style={styles.calcToggle}>
                   <TouchableOpacity
@@ -591,7 +674,8 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
               </Text>
             </View>
 
-            {/* Visibility Mode */}
+            {/* Visibility Mode — only for visibility (or legacy 'both') groups */}
+            {showsVisibility(groupType) && (
             <View>
               <ButtonGroupRow
                 isRTL={isRTL}
@@ -615,9 +699,10 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
                 </Text>
               )}
             </View>
+            )}
 
             {/* Background Color - only show if not in "hide" mode */}
-            {visibilityMode !== 'hide' && (
+            {showsColors(groupType) && visibilityMode !== 'hide' && (
               <CompactColorPicker
                 title={strings.styleRuleModal.bgColor}
                 value={bgColor}
@@ -628,7 +713,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
             )}
 
             {/* Text Color - only show if not in "hide" mode */}
-            {visibilityMode !== 'hide' && (
+            {showsColors(groupType) && visibilityMode !== 'hide' && (
               <CompactColorPicker
                 title={strings.styleRuleModal.textColor}
                 value={textColor}
@@ -802,6 +887,35 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
     borderBottomWidth: 0.5,
     borderBottomColor: '#DDD',
+  },
+  // The title keeps its underline across the full width, so the rule moves to
+  // the row and the title inside it drops its own border.
+  selectAllRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+    paddingBottom: 4,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#DDD',
+  },
+  selectAllTitle: {
+    flexShrink: 1,
+    marginBottom: 0,
+    paddingBottom: 0,
+    borderBottomWidth: 0,
+  },
+  selectAllButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginLeft: 8,
+    borderRadius: 6,
+    backgroundColor: '#EFF6FF',
+  },
+  selectAllButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#3B82F6',
   },
   nameInput: {
     flex: 1,

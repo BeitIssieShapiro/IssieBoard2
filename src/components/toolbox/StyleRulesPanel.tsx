@@ -10,6 +10,7 @@ import {
 import { useEditor } from '../../context/EditorContext';
 import { useLocalization } from '../../localization';
 import { StyleGroup } from '../../../types';
+import { getGroupType, showsColors, showsVisibility } from '../../utils/groupType';
 import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 
 export interface StyleRulesPanelProps {
@@ -76,7 +77,22 @@ export const StyleRulesPanel: React.FC<StyleRulesPanelProps> = ({
 
   const getStylePreview = (group: StyleGroup): React.ReactNode => {
     const indicators: React.ReactNode[] = [];
-    
+
+    // What kind of group this is. Shown first so the type is visible even for a
+    // group that has no styling set yet.
+    const type = getGroupType(group);
+    indicators.push(
+      <View key="type" style={[styles.indicator, styles.indicatorType]}>
+        <Text allowFontScaling={false} style={styles.indicatorTextType}>
+          {showsColors(type) && showsVisibility(type)
+            ? `${strings.styleRuleModal.groupTypeColors} + ${strings.styleRuleModal.groupTypeVisibility}`
+            : showsVisibility(type)
+              ? strings.styleRuleModal.groupTypeVisibility
+              : strings.styleRuleModal.groupTypeColors}
+        </Text>
+      </View>
+    );
+
     // Visibility indicator - check for new visibilityMode first, then legacy hidden
     const visMode = group.style.visibilityMode || (group.style.hidden ? 'hide' : 'default');
     
@@ -118,7 +134,9 @@ export const StyleRulesPanel: React.FC<StyleRulesPanelProps> = ({
       );
     }
     
-    if (indicators.length === 0) {
+    // The type badge above is always present, so "no styles" is about the
+    // settings themselves: nothing beyond the badge means nothing is applied.
+    if (indicators.length === 1) {
       indicators.push(
         <Text key="none" style={styles.noStyleText}>{strings.styleRules.noStyles}</Text>
       );
@@ -305,6 +323,16 @@ const styles = StyleSheet.create({
   },
   indicatorShowOnly: {
     backgroundColor: '#E3F2FD',
+  },
+  indicatorType: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 0.5,
+    borderColor: '#BFDBFE',
+  },
+  indicatorTextType: {
+    fontSize: 10,
+    color: '#3B82F6',
+    fontWeight: '600',
   },
   indicatorTextShowOnly: {
     fontSize: 10,

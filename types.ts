@@ -18,6 +18,14 @@ export interface KeyStyleOverride {
     borderColor?: string;
 }
 
+/**
+ * What a group is for. Chosen when the group is created and persisted with it,
+ * so the editor only offers the settings that belong to that type.
+ * 'both' is the backward-compatible case: groups created before types existed
+ * (and presets) may set colours and visibility at once, and keep showing both.
+ */
+export type StyleGroupType = 'colors' | 'visibility' | 'both';
+
 // Style Group - all styling is done through groups
 export interface StyleGroup {
     id: string;                      // Unique ID: "group_1706270400000"
@@ -28,6 +36,7 @@ export interface StyleGroup {
     isBuiltIn?: boolean;             // System groups can't be deleted
     active?: boolean;                // If false, group is saved but not applied to preview (defaults to true)
     presetId?: string;               // If set, this group was created from a predefined rule (e.g., "top-row") — members auto-update on keyboard variant switch
+    groupType?: StyleGroupType;      // Absent on groups saved before types existed — infer with getGroupType()
 }
 
 // Predefined Style Rule (from JSON files)

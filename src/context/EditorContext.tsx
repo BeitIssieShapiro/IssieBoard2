@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useCallback, ReactNode } from 'react';
-import { KeyboardConfig, StyleGroup, KeyStyleOverride, DiacriticsSettings } from '../../types';
+import { KeyboardConfig, StyleGroup, KeyStyleOverride, DiacriticsSettings, StyleGroupType } from '../../types';
 
 // Key identifier for selection (position-based, used for UI highlighting)
 export interface KeyIdentifier {
@@ -70,7 +70,7 @@ type EditorAction =
   | { type: 'SET_ACTIVE_KEYSET'; payload: string }
   | { type: 'SET_ACTIVE_GROUP'; payload: string | null }
   | { type: 'CREATE_GROUP'; payload: { name: string; style: KeyStyleOverride } }
-  | { type: 'CREATE_GROUP_FROM_VALUES'; payload: { name: string; members: string[]; style: KeyStyleOverride; active?: boolean; presetId?: string } }
+  | { type: 'CREATE_GROUP_FROM_VALUES'; payload: { name: string; members: string[]; style: KeyStyleOverride; active?: boolean; presetId?: string; groupType?: StyleGroupType } }
   | { type: 'UPDATE_GROUP'; payload: { groupId: string; updates: Partial<StyleGroup> } }
   | { type: 'DELETE_GROUP'; payload: string }
   | { type: 'ADD_TO_GROUP'; payload: { groupId: string; keyIds: string[] } }
@@ -244,6 +244,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         createdAt: new Date().toISOString(),
         active: action.payload.active !== false,
         ...(action.payload.presetId ? { presetId: action.payload.presetId } : {}),
+        ...(action.payload.groupType ? { groupType: action.payload.groupType } : {}),
       };
       
       return {
@@ -547,7 +548,7 @@ interface EditorContextValue {
   
   // Group operations
   createGroup: (name: string, style: KeyStyleOverride) => void;
-  createGroupFromValues: (name: string, members: string[], style: KeyStyleOverride, active?: boolean, presetId?: string) => void;
+  createGroupFromValues: (name: string, members: string[], style: KeyStyleOverride, active?: boolean, presetId?: string, groupType?: StyleGroupType) => void;
   updateGroup: (groupId: string, updates: Partial<StyleGroup>) => void;
   deleteGroup: (groupId: string) => void;
   addToGroup: (groupId: string, keyIds?: string[]) => void;
@@ -620,8 +621,8 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
     dispatch({ type: 'CREATE_GROUP', payload: { name, style } });
   }, []);
 
-  const createGroupFromValues = useCallback((name: string, members: string[], style: KeyStyleOverride, active: boolean = true, presetId?: string) => {
-    dispatch({ type: 'CREATE_GROUP_FROM_VALUES', payload: { name, members, style, active, presetId } });
+  const createGroupFromValues = useCallback((name: string, members: string[], style: KeyStyleOverride, active: boolean = true, presetId?: string, groupType?: StyleGroupType) => {
+    dispatch({ type: 'CREATE_GROUP_FROM_VALUES', payload: { name, members, style, active, presetId, groupType } });
   }, []);
 
   const updateGroup = useCallback((groupId: string, updates: Partial<StyleGroup>) => {
