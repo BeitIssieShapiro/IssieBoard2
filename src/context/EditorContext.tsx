@@ -50,6 +50,15 @@ export interface EditorState {
   config: KeyboardConfig;
   styleGroups: StyleGroup[];
   isDirty: boolean;
+  /**
+   * True once the user has emptied the style-group list in this session.
+   *
+   * An empty styleGroups array is ambiguous on its own: it means either "this
+   * profile keeps its groups in config.groups" (issiecalc, which must fall back)
+   * or "the user deleted them all" (which must NOT fall back, or the deleted
+   * groups come straight back in the preview and on save).
+   */
+  styleGroupsCleared: boolean;
 
   // UI state
   mode: 'edit' | 'test';
@@ -106,6 +115,8 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         isDirty: false,
         selectedKeys: [],
         activeGroupId: null,
+        // A freshly loaded profile starts clean: whatever it has is what it has.
+        styleGroupsCleared: false,
       };
 
     case 'SET_MODE':
@@ -271,12 +282,15 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
 
     case 'DELETE_GROUP': {
       const newGroups = state.styleGroups.filter(g => g.id !== action.payload);
-      
+
       return {
         ...state,
         styleGroups: newGroups,
         activeGroupId: state.activeGroupId === action.payload ? null : state.activeGroupId,
         isDirty: true,
+        // Deleting the last group must not look like "this profile never had
+        // any", or the fallback to config.groups would restore them.
+        styleGroupsCleared: state.styleGroupsCleared || newGroups.length === 0,
       };
     }
 
@@ -509,6 +523,7 @@ const createInitialState = (
   },
   styleGroups: styleGroups || [],
   isDirty: false,
+  styleGroupsCleared: false,
   mode: 'edit',
   selectedKeys: [],
   activeKeyset: config?.defaultKeyset || 'abc',

@@ -418,7 +418,7 @@ interface EditorScreenInnerProps {
   appContext?: AppContext;  // Which app is using the settings
   onClose?: () => void;      // Close callback for IssieVoice
   isActiveProfile: boolean;
-  onSave: (config: KeyboardConfig, styleGroups: any[]) => Promise<void>;
+  onSave: (config: KeyboardConfig, styleGroups: any[], styleGroupsCleared?: boolean) => Promise<void>;
   onSetActive: () => Promise<void>;
   onDuplicate: (newName: string) => Promise<{ newProfileId: string; newConfig: KeyboardConfig; styleGroups: any[] }>;
   onDelete: (profileId: string, profileName: string) => Promise<void>;
@@ -963,7 +963,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     // For custom profiles, save directly
     setSaving(true);
     try {
-      await onSave(state.config, state.styleGroups);
+      await onSave(state.config, state.styleGroups, state.styleGroupsCleared);
       showToast('✓ ' + strings.alerts.profileSaved);
       // Mark as saved (not dirty) since we just saved
       dispatch({ type: 'MARK_SAVED' });
@@ -2847,7 +2847,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
     loadInitial();
   }, [propProfileId, propInitialLanguage, appContext, strings.common.default]);
 
-  const handleSave = useCallback(async (config: KeyboardConfig, styleGroups: any[]) => {
+  const handleSave = useCallback(async (config: KeyboardConfig, styleGroups: any[], styleGroupsCleared: boolean = false) => {
     // Always use the current profile ID (which should always be set)
     const saveProfileId = currentProfileId;
     const saveProfileName = profileName;
@@ -2863,8 +2863,9 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
     console.log(`📱 groupConfigs count after conversion: ${groupConfigs.length}`);
 
     // For issiecalc, groups live in config.groups (not styleGroups) — fall back only
-    // when no styleGroups rules exist at all, not when they're all disabled.
-    const resolvedGroups = (groupConfigs.length > 0 || styleGroups.length > 0)
+    // when no styleGroups rules exist at all, not when they're all disabled and
+    // not when the user deleted them all (which must persist as "no groups").
+    const resolvedGroups = (groupConfigs.length > 0 || styleGroups.length > 0 || styleGroupsCleared)
       ? groupConfigs
       : (config.groups || []);
 

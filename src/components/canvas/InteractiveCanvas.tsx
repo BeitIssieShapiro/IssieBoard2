@@ -273,8 +273,9 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
       : langKeysets;
 
     // For issiecalc: groups come from config.groups (not styleGroups), so fall back only
-    // when styleGroups has no rules at all — not when rules exist but are all disabled.
-    const resolvedGroups = (groupConfigs.length > 0 || state.styleGroups.length > 0)
+    // when styleGroups has no rules at all — not when rules exist but are all disabled,
+    // and not when the user deleted them all (styleGroupsCleared).
+    const resolvedGroups = (groupConfigs.length > 0 || state.styleGroups.length > 0 || state.styleGroupsCleared)
       ? groupConfigs
       : (state.config.groups || []);
     const previewConfig: KeyboardConfig = {
@@ -285,7 +286,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
     };
 
     return previewConfig;
-  }, [state.config, state.styleGroups, hideCloseKey, hideGlobeButton, speakButtonInKeyboard, selectedLanguages]);
+  }, [state.config, state.styleGroups, state.styleGroupsCleared, hideCloseKey, hideGlobeButton, speakButtonInKeyboard, selectedLanguages]);
 
   const isLandscape = windowWidth > windowHeight;
 

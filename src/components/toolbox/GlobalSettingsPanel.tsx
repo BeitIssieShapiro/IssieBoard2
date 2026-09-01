@@ -170,7 +170,10 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
     if (!showKeyColors) {
       return { keysBgColor: empty, textColor: empty } as Record<OverridableColor, OverrideReport>;
     }
-    const groups = state.styleGroups.length > 0
+    // Same fallback rule as the preview and save: once the user has deleted all
+    // groups, don't fall back to config.groups or the warning would name groups
+    // that no longer exist.
+    const groups = (state.styleGroups.length > 0 || state.styleGroupsCleared)
       ? state.styleGroups
       : (state.config.groups || []);
     const keyset = state.config.keysets?.find(ks => ks.id === state.activeKeyset)
@@ -179,7 +182,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
       keysBgColor: analyzeGroupOverrides(groups as any, keyset as any, 'keysBgColor'),
       textColor: analyzeGroupOverrides(groups as any, keyset as any, 'textColor'),
     } as Record<OverridableColor, OverrideReport>;
-  }, [showKeyColors, state.styleGroups, state.config.groups, state.config.keysets, state.activeKeyset]);
+  }, [showKeyColors, state.styleGroups, state.styleGroupsCleared, state.config.groups, state.config.keysets, state.activeKeyset]);
 
   const warningTextFor = (report: OverrideReport): string | null => {
     if (report.maskedCount === 0) return null;
