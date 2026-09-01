@@ -274,8 +274,8 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
     const scales: Record<string, number> = { xs: 1.0, small: 1.2, normal: 1.35, large: 1.55, xl: 1.8 };
     return scales[preset] ?? 1.35;
   })();
+  // The expression row uses the same size as the result.
   const resultFontSize = Math.round(48 * displayFontScale);
-  const expressionFontSize = Math.round(28 * displayFontScale);
 
   const heightRatio = (() => {
     const preset = liveConfig?.heightPreset ?? 'normal';
@@ -439,16 +439,16 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
             {(keyset === 'scientific' || keyset === 'scientific_landscape_2nd' || keyset === 'scientific_2nd') && (
               <Text style={[styles.angleIndicator, fadedTextStyle]}>{angleMode === 'rad' ? 'Rad' : 'Deg'}</Text>
             )}
-            <Text style={[styles.expression, fadedTextStyle, { fontSize: expressionFontSize }]} numberOfLines={1} adjustsFontSizeToFit>
+            <Text style={[styles.expression, { color: displayTextColor, fontSize: resultFontSize, flexShrink: 1 }]} numberOfLines={1} adjustsFontSizeToFit>
               {renderTemplateExpression(
                 finalizeTemplate(expression),
-                fadedTextStyle.color as string,
+                displayTextColor,
                 dimTextColor,
                 false,
-                expressionFontSize
+                resultFontSize
               )}
             </Text>
-            <Text style={[styles.expression, fadedTextStyle, { alignSelf: 'center', fontSize: expressionFontSize }]}> =</Text>
+            <Text style={[styles.expression, { color: displayTextColor, alignSelf: 'center', fontSize: resultFontSize }]}> =</Text>
           </View>
           {templateMode && !resultMode
             ? (
@@ -531,10 +531,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   speakButtonIcon: { fontSize: 24 },
-  expression: { fontSize: 28, color: '#8E8E93', marginBottom: 8, textAlign: 'left', alignSelf: 'stretch' },
+  // Matches `result` (same weight/alignment); size and colour come from props.
+  expression: { fontSize: 48, fontWeight: '300', color: '#FFFFFF', marginBottom: 8, textAlign: 'right', alignSelf: 'stretch' },
   result: { fontSize: 48, fontWeight: '300', color: '#FFFFFF', textAlign: 'right', alignSelf: 'stretch' },
-  expressionRow: { flexDirection: 'row', alignItems: 'flex-end', alignSelf: 'stretch' },
-  angleIndicator: { fontSize: 16, color: '#8E8E93', marginRight: 8, paddingBottom: 4 },
+  // justifyContent pushes the expression + "=" to the right edge, so the row
+  // lines up with the right-aligned result below it.
+  expressionRow: { flexDirection: 'row', alignItems: 'flex-end', alignSelf: 'stretch', justifyContent: 'flex-end' },
+  // marginRight: 'auto' keeps the Rad/Deg indicator at the left edge now that
+  // the row pushes its contents right.
+  angleIndicator: { fontSize: 16, color: '#8E8E93', marginRight: 'auto', paddingBottom: 4 },
   keyboardContainer: { backgroundColor: KB_BG },
   toast: {
     position: 'absolute', top: 8, alignSelf: 'center',
