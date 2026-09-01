@@ -14,11 +14,19 @@ import { useEditor } from '../../context/EditorContext';
 import { useLocalization } from '../../localization';
 import { StyleGroup, KeyStyleOverride, KeyboardConfig, VisibilityMode, StyleGroupType } from '../../../types';
 import { getGroupType, showsColors, showsVisibility } from '../../utils/groupType';
+import { resolveHiddenKeys } from '../../utils/precedingVisibility';
 import { CompactColorPicker } from '../shared/CompactColorPicker';
 import { ButtonGroupRow } from '../shared/ButtonGroupRow';
 import { KeyboardPreview, KeyPressEvent } from '../KeyboardPreview';
 import { transformConfigForPreview } from '../../utils/keyboardConfigMerger';
 import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
+
+/**
+ * Key types stored by type rather than by value, so they can be selected and
+ * styled consistently. Shared by tap handling and "select all" so the two agree
+ * on what a key is called.
+ */
+const SPECIAL_KEY_TYPES = ['enter', 'shift', 'backspace', 'space', 'settings', 'close', 'nikkud', 'next-keyboard', 'language', 'suggestion'];
 
 interface AddStyleRuleModalProps {
   visible: boolean;
@@ -186,8 +194,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
 
     // For special keys (enter, shift, backspace, space, nikkud), use the type as the value for storage
     // This ensures they can be selected and styled consistently
-    const specialKeyTypes = ['enter', 'shift', 'backspace', 'space', 'settings', 'close', 'nikkud', 'next-keyboard', 'language', 'suggestion'];
-    const keyValue = specialKeyTypes.includes(type) ? type : (value || type);
+    const keyValue = SPECIAL_KEY_TYPES.includes(type) ? type : (value || type);
 
     if (!keyValue) return;
 
@@ -243,6 +250,28 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
     onClose();
   };
 
+  /**
+   * Every key a visibility rule may dim: all non-essential keys in the keyboard.
+   * Essential (functional) keys are excluded — they must never be dimmed, or the
+   * keyboard becomes unusable.
+   */
+  const allSelectableKeyValues = useMemo(() => {
+    const essentialTypes = new Set(['space', 'backspace', 'enter', 'next-keyboard', 'settings', 'shift', 'keyset', 'nikkud', 'close', 'language']);
+    const essentialValues = new Set([' ', ',', '.']);
+    const values = new Set<string>();
+    for (const keyset of state.config.keysets) {
+      for (const row of keyset.rows) {
+        for (const key of row.keys) {
+          const keyType = (key.type || '').toLowerCase();
+          if (essentialTypes.has(keyType)) continue;
+          const keyValue = key.value || key.caption || key.label || key.type;
+          if (keyValue && !essentialValues.has(keyValue)) values.add(keyValue);
+        }
+      }
+    }
+    return values;
+  }, [state.config.keysets]);
+
   // Build config with the current rule AND all active groups that precede it in the list.
   // IMPORTANT: In the modal preview, we show opacity effect (0.3) to preview semi-hidden keys,
   // but we don't fully hide keys (visibility modes) because we need all keys visible for selection.
@@ -251,23 +280,44 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
     const currentIndex = editingGroup
       ? state.styleGroups.findIndex(g => g.id === editingGroup.id)
       : state.styleGroups.length; // new rule goes at the end
-    const precedingGroups = state.styleGroups
+    const preceding = state.styleGroups
       .slice(0, currentIndex)
-      .filter(g => g.active !== false)
-      .map(g => ({
-        name: g.id,
-        items: g.members,
+      .filter(g => g.active !== false);
+
+    // Keys the preceding groups hide. Shown dimmed rather than removed: the
+    // effect of earlier groups has to be visible here, but every key must stay
+    // tappable so it can still be selected for the group being edited.
+    const dimmedByPreceding = resolveHiddenKeys(preceding, allSelectableKeyValues);
+
+    const precedingGroups = preceding.map(g => ({
+      name: g.id,
+      items: g.members,
+      template: {
+        color: g.style.color || '',
+        bgColor: g.style.bgColor || '',
+        // Never fully hide — all keys must stay tappable for selection.
+        opacity: 1.0,
+        hidden: false,
+        visibilityMode: 'default' as VisibilityMode,
+      },
+    }));
+
+    const groups: any[] = [...precedingGroups];
+
+    // Dim whatever the preceding groups hide, after their colours are applied.
+    if (dimmedByPreceding.size > 0) {
+      groups.push({
+        name: '_preceding_hidden_',
+        items: Array.from(dimmedByPreceding),
         template: {
-          color: g.style.color || '',
-          bgColor: g.style.bgColor || '',
-          // Keep color styling but never dim/hide keys — all keys must stay tappable
-          opacity: 1.0,
+          color: '',
+          bgColor: '',
+          opacity: 0.3,
           hidden: false,
           visibilityMode: 'default' as VisibilityMode,
         },
-      }));
-
-    const groups: any[] = [...precedingGroups];
+      });
+    }
 
     if (selectedKeyValues.length > 0) {
       if (visibilityMode === 'hide') {
@@ -284,26 +334,9 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
           },
         });
       } else if (visibilityMode === 'showOnly') {
-        // For "showOnly" mode: apply opacity to NON-selected keys (they will be hidden)
-        // Essential keys (functional keys) should never be dimmed
-        const essentialTypes = new Set(['space', 'backspace', 'enter', 'next-keyboard', 'settings', 'shift', 'keyset', 'nikkud', 'close', 'language']);
-        const essentialValues = new Set([' ', ',', '.']);
-
-        // Collect all non-essential key values from the keyboard
-        const allKeyValues = new Set<string>();
-        for (const keyset of state.config.keysets) {
-          for (const row of keyset.rows) {
-            for (const key of row.keys) {
-              const keyType = (key.type || '').toLowerCase();
-              // Skip essential keys - they should never be dimmed
-              if (essentialTypes.has(keyType)) continue;
-              const keyValue = key.value || key.caption || key.label || key.type;
-              if (keyValue && !essentialValues.has(keyValue)) allKeyValues.add(keyValue);
-            }
-          }
-        }
-        // Find keys that are NOT selected (essential keys already excluded above)
-        const nonSelectedKeys = Array.from(allKeyValues).filter(k => !selectedKeyValues.includes(k));
+        // For "showOnly" mode: apply opacity to NON-selected keys (they will be hidden).
+        // Essential keys are already excluded from allSelectableKeyValues.
+        const nonSelectedKeys = Array.from(allSelectableKeyValues).filter(k => !selectedKeyValues.includes(k));
 
         // Add group for selected keys with colors (they will be shown)
         groups.push({
@@ -450,7 +483,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
       groups, // Only the current group being edited, not other groups
       wordSuggestionsEnabled: state.config.wordSuggestionsEnabled ?? true,
     };
-  }, [state.config, state.styleGroups, editingGroup, selectedKeyValues, bgColor, textColor, visibilityMode, hideCloseKey, hideGlobeButton, selectedLanguages, speakButtonInKeyboard]);
+  }, [state.config, state.styleGroups, editingGroup, selectedKeyValues, bgColor, textColor, visibilityMode, allSelectableKeyValues, hideCloseKey, hideGlobeButton, selectedLanguages, speakButtonInKeyboard]);
 
   const previewConfigJson = useMemo(() => {
     const base = transformConfigForPreview(previewConfig);
@@ -490,13 +523,12 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
       ?? previewConfig.keysets?.[0];
     if (!keyset) return [] as string[];
 
-    const specialKeyTypes = ['enter', 'shift', 'backspace', 'space', 'settings', 'close', 'nikkud', 'next-keyboard', 'language', 'suggestion'];
     const values: string[] = [];
     for (const row of keyset.rows) {
       for (const key of row.keys as any[]) {
         const type = (key.type || '').toLowerCase();
         if (type === 'keyset') continue;
-        const keyValue = specialKeyTypes.includes(type)
+        const keyValue = SPECIAL_KEY_TYPES.includes(type)
           ? type
           : (key.value || key.caption || key.label || key.type);
         if (keyValue) values.push(keyValue);

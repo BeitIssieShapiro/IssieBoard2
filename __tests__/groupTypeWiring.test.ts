@@ -100,6 +100,29 @@ describe('the group list shows the type', () => {
   });
 });
 
+describe('the modal preview reflects preceding groups', () => {
+  test('preceding visibility rules are resolved and dimmed', () => {
+    // Preceding groups used to be stripped of all visibility effect, so a new
+    // group showed the whole keyboard and appeared to ignore an earlier
+    // "show only" rule.
+    expect(MODAL).toContain('resolveHiddenKeys(preceding, allSelectableKeyValues)');
+    expect(MODAL).toContain('_preceding_hidden_');
+  });
+
+  test('dimming is used rather than true hiding, so keys stay tappable', () => {
+    const start = MODAL.indexOf("name: '_preceding_hidden_'");
+    const body = MODAL.slice(start, start + 300);
+    expect(body).toMatch(/opacity:\s*0\.3/);
+    expect(body).toMatch(/hidden:\s*false/);
+  });
+
+  test('the essential-key list is defined once', () => {
+    // It was duplicated between the preceding-group and showOnly paths.
+    const occurrences = MODAL.split('const essentialTypes').length - 1;
+    expect(occurrences).toBe(1);
+  });
+});
+
 describe('select all', () => {
   test('it targets the visible keyset only', () => {
     expect(MODAL).toContain('selectableKeysInView');
@@ -117,9 +140,11 @@ describe('select all', () => {
   test('it uses the same value convention as tapping a key', () => {
     const start = MODAL.indexOf('const selectableKeysInView');
     const body = MODAL.slice(start, MODAL.indexOf('}, [previewConfig.keysets', start));
-    // Special keys are stored by type, everything else by value — same as handleKeyPress.
-    expect(body).toContain('specialKeyTypes.includes(type)');
+    // Special keys are stored by type, everything else by value — same as
+    // handleKeyPress, which now shares the one SPECIAL_KEY_TYPES constant.
+    expect(body).toContain('SPECIAL_KEY_TYPES.includes(type)');
     expect(body).toContain('key.value || key.caption || key.label || key.type');
+    expect(MODAL.split('const SPECIAL_KEY_TYPES').length - 1).toBe(1);
   });
 
   test('deselecting leaves keys from other keysets alone', () => {
