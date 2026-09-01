@@ -45,12 +45,14 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     });
   };
 
+  // Larger and green so the voice tab stands out from the keyboard tabs.
   const VOICE_EXTRA_TAB = {
     id: 'voice',
     label: strings.settings.tabs.voice,
-    iconName: 'volume-high-outline',
+    iconName: 'volume-high',
     iconType: 'Ionicons' as const,
-    iconColor: '#D97706',
+    iconColor: '#059669',
+    iconScale: 1.25,
   };
 
   const navigateBack = useCallback(() => navigation.goBack(), [navigation]);

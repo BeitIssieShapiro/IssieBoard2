@@ -25,6 +25,7 @@ export interface SettingsSidebarProps {
     iconName: string;
     iconType: IconType;
     iconColor: string;
+    iconScale?: number;
   }>;
 }
 
@@ -38,6 +39,7 @@ interface TabDef {
   iconText?: string; // Unicode text icon (e.g. nikkud)
   iconImage?: ImageSourcePropType; // PNG asset icon
   iconColor: string; // accent color for inactive state
+  iconScale?: number; // multiplies the responsive icon size, so a tab can stand out
 }
 
 const NIKKUD_IMAGE_HE = require('../../../../../src/icons/nikkud_hataf_kamatz.png');
@@ -51,12 +53,14 @@ const getKeyboardChildren = (tabLabels: { general: string; keysGroups: string; n
   { id: 'advanced', label: tabLabels.advanced, iconName: 'cog-outline', iconType: 'Ionicons', iconColor: '#6B7280' },
 ];
 
+// Larger and green so the voice tab stands out from the keyboard tabs.
 const getVoiceTab = (label: string): TabDef => ({
   id: 'voice',
   label,
-  iconName: 'volume-high-outline',
+  iconName: 'volume-high',
   iconType: 'Ionicons',
-  iconColor: '#D97706',
+  iconColor: '#059669',
+  iconScale: 1.25,
 });
 
 const getLanguageTab = (label: string): TabDef => ({
@@ -120,7 +124,7 @@ const TabItem: React.FC<{
             name: tab.iconName!,
             type: tab.iconType!,
             color: isActive ? '#FFFFFF' : tab.iconColor,
-            size: extraCompact ? 16 : compact ? 19 : 22,
+            size: Math.round((extraCompact ? 16 : compact ? 19 : 22) * (tab.iconScale ?? 1)),
           }}
         />
       )}
@@ -335,7 +339,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                     name: tab.iconName,
                     type: tab.iconType,
                     color: activeTab === tab.id ? '#FFFFFF' : tab.iconColor,
-                    size: 16,
+                    size: Math.round(16 * (tab.iconScale ?? 1)),
                   }}
                 />
               </View>
@@ -415,7 +419,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                 name: VOICE_TAB.iconName!,
                 type: VOICE_TAB.iconType!,
                 color: activeTab === 'voice' ? '#FFFFFF' : VOICE_TAB.iconColor,
-                size: 16,
+                size: Math.round(16 * (VOICE_TAB.iconScale ?? 1)),
               }}
             />
           </View>
