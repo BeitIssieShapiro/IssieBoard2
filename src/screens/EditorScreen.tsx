@@ -316,6 +316,8 @@ const buildConfiguration = (profile: SavedProfileDefinition): KeyboardConfig => 
 const loadProfileById = async (profileId: string): Promise<{
   profileDef: SavedProfileDefinition;
   styleGroups: any[];
+  /** True when the profile has its own stored style groups, even an empty list. */
+  hasStoredStyleGroups: boolean;
 } | null> => {
   try {
     const profileDefJson = await KeyboardPreferences.getProfile(`profile_def_${profileId}`);
@@ -325,14 +327,16 @@ const loadProfileById = async (profileId: string): Promise<{
 
     // Load style groups
     let styleGroups: any[] = [];
+    let hasStoredStyleGroups = false;
     try {
       const styleGroupsJson = await KeyboardPreferences.getProfile(`${profileId}_styleGroups`);
       if (styleGroupsJson) {
         styleGroups = JSON.parse(styleGroupsJson);
+        hasStoredStyleGroups = Array.isArray(styleGroups);
       }
     } catch { /* ignore */ }
 
-    return { profileDef, styleGroups };
+    return { profileDef, styleGroups, hasStoredStyleGroups };
   } catch {
     return null;
   }
@@ -423,7 +427,7 @@ interface EditorScreenInnerProps {
   onProfileChange: (profileId: string, profileName: string, language: LanguageId, keyboardId: string) => void;
   onLanguageChange: (language: LanguageId) => void;
   onKeyboardChange: (keyboardId: string) => void;
-  onCreateNew: (name: string, language: LanguageId, keyboardId: string) => Promise<void>;
+  onCreateNew: (name: string, language: LanguageId, keyboardId: string) => Promise<{ newConfig: KeyboardConfig; styleGroups: any[] }>;
   onSwitchToClassic?: () => void;
   showProfilePickerRef?: React.MutableRefObject<(() => void) | null>;
   /** Headless mode: only render toolbox panels + modals, no header/canvas/profile row */
@@ -1275,8 +1279,11 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       if (appContext === 'issiecalc') {
         const baseConfig = require('../../ios/IssieCalc/default_config.json');
         const merged = { ...baseConfig, ...loaded.profileDef };
-        // Restore styleGroups from saved style groups or from base config groups
-        const styleGroups = loaded.styleGroups.length > 0
+        // Restore styleGroups from saved style groups, falling back to the base
+        // config groups only when this profile never stored any (legacy profiles).
+        // An explicitly saved empty list is honoured as-is, so a freshly created
+        // calculator stays free of the built-in groups.
+        const styleGroups = loaded.hasStoredStyleGroups
           ? loaded.styleGroups
           : (baseConfig.groups || [])
             .filter((g: any) => g.name && !g.name.startsWith('_'))
@@ -1808,12 +1815,20 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     setShowProfilePicker(false);
 
     try {
-      await onCreateNew(name, lang, kbId);
+      const created = await onCreateNew(name, lang, kbId);
       // The onCreateNew already sets the new profile as current in the parent
       // Just update local state to match
       setCurrentProfileName(name);
       setCurrentLanguage(lang);
       setCurrentKeyboardId(kbId);
+      // The parent only updates the EditorProvider's *initial* props, which are
+      // ignored after mount. Push the fresh config into the live editor state so
+      // the toolbox and preview reset immediately instead of showing the previous
+      // profile's groups until settings are closed and reopened.
+      if (created?.newConfig) {
+        setConfig(created.newConfig, created.styleGroups ?? []);
+        dispatch({ type: 'MARK_SAVED' });
+      }
       showToast(`✓ ${strings.alerts.profileSaved} "${name}"`);
       await loadProfilesList();
       return true;
@@ -1822,7 +1837,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       showToast('✗ ' + strings.alerts.failedToSaveProfile);
       return false;
     }
-  }, [onCreateNew, showToast, loadProfilesList, strings.alerts.failedToSaveProfile, strings.alerts.profileSaved]);
+  }, [onCreateNew, setConfig, dispatch, showToast, loadProfilesList, strings.alerts.failedToSaveProfile, strings.alerts.profileSaved]);
 
   const handleSetActiveForProfile = useCallback(async (profile: ProfileOption) => {
     try {
@@ -2666,11 +2681,17 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
               const savedConfig = JSON.parse(savedJson);
               // Prefer _styleGroups (preserves inactive groups) over reconstructing from config.groups
               let restoredStyleGroups: any[] = [];
+              let hasStoredStyleGroups = false;
               const savedStyleGroupsJson = await KeyboardPreferences.getProfile(`${activeId}_styleGroups`);
               if (savedStyleGroupsJson) {
-                try { restoredStyleGroups = JSON.parse(savedStyleGroupsJson); } catch {}
+                try {
+                  restoredStyleGroups = JSON.parse(savedStyleGroupsJson);
+                  hasStoredStyleGroups = Array.isArray(restoredStyleGroups);
+                } catch {}
               }
-              if (restoredStyleGroups.length === 0) {
+              // Only reconstruct when this profile never stored style groups; an
+              // explicitly empty list means the user has none (e.g. a new calculator).
+              if (!hasStoredStyleGroups) {
                 // Fallback: reconstruct from config.groups (all treated as active)
                 restoredStyleGroups = (savedConfig.groups || [])
                   .filter((g: any) => g.name && !g.name.startsWith('_'))
@@ -3215,16 +3236,9 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
     if (appContext === 'issiecalc') {
       const baseConfig = require('../../ios/IssieCalc/default_config.json');
 
-      const styleGroups = (baseConfig.groups || [])
-        .filter((g: any) => g.name && !g.name.startsWith('_'))
-        .map((g: any, i: number) => ({
-          id: `calc_group_${i}_${g.name}`,
-          name: g.name,
-          members: g.items || [],
-          style: { color: g.template?.color || '', bgColor: g.template?.bgColor || '' },
-          active: true,
-          createdAt: new Date().toISOString(),
-        }));
+      // A brand-new calculator starts fresh: no style groups carried over from
+      // the base config (cloning is what copies existing styling).
+      const styleGroups: any[] = [];
 
       const calcProfileDef: any = {
         id: newProfileId,
@@ -3232,7 +3246,18 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
         version: '1.0.0',
         language,
         keyboardId: 'calc',
-        groups: baseConfig.groups || [],
+        groups: [],
+        // Colors reset to default too. '' is what CompactColorPicker emits for
+        // "system default" (SYSTEM_DEFAULT_COLOR), and both the renderer and
+        // isDefaultBackground() treat it as unset — so the pickers show
+        // "default" as selected and the native defaults apply.
+        backgroundColor: '',
+        keysBgColor: '',
+        textColor: '',
+        // Cleared too, so CalcScreen falls back to deriving the display text
+        // colour by luminance against the background instead of the base
+        // config's hardcoded white.
+        calcDisplayColor: '',
       };
 
       await KeyboardPreferences.setProfile(
@@ -3269,7 +3294,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
       setInitialConfig(calcConfig);
       setInitialStyleGroups(styleGroups);
       setActiveKeyboardProfileId(newProfileId);
-      return;
+      return { newConfig: calcConfig, styleGroups };
     }
 
     const profileDef = createFactoryDefaultProfile(
@@ -3311,6 +3336,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
     setInitialConfig(config);
     setInitialStyleGroups([]);
     setActiveKeyboardProfileId(newProfileId);
+    return { newConfig: config, styleGroups: [] };
   }, [appContext]);
 
   if (loading || !initialConfig) {
