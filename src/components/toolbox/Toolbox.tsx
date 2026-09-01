@@ -310,6 +310,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
               style={styles.subtleButton}
               onPress={() => handleCreatePressed('colors')}
               activeOpacity={0.7}>
+              <MyIcon info={{ name: 'add', type: 'Ionicons', color: '#3B82F6', size: 18 }} />
               <MyIcon info={{ name: 'color-palette', type: 'Ionicons', color: '#3B82F6', size: 18 }} />
               <Text allowFontScaling={false} style={styles.subtleButtonText}>{strings.toolbox.customizeColors}</Text>
             </TouchableOpacity>
@@ -317,6 +318,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
               style={styles.subtleButton}
               onPress={() => handleCreatePressed('visibility')}
               activeOpacity={0.7}>
+              <MyIcon info={{ name: 'add', type: 'Ionicons', color: '#3B82F6', size: 18 }} />
               <MyIcon info={{ name: 'eye-off', type: 'Ionicons', color: '#3B82F6', size: 18 }} />
               <Text allowFontScaling={false} style={styles.subtleButtonText}>{strings.toolbox.customizeVisibility}</Text>
             </TouchableOpacity>
@@ -436,6 +438,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
               style={styles.subtleButton}
               onPress={() => handleCreatePressed('colors')}
               activeOpacity={0.7}>
+              <MyIcon info={{ name: 'add', type: 'Ionicons', color: '#3B82F6', size: 18 }} />
               <MyIcon info={{ name: 'color-palette', type: 'Ionicons', color: '#3B82F6', size: 18 }} />
               <Text allowFontScaling={false} style={styles.subtleButtonText}>{strings.toolbox.customizeColors}</Text>
             </TouchableOpacity>
@@ -443,6 +446,7 @@ export const Toolbox: React.FC<ToolboxProps> = ({
               style={styles.subtleButton}
               onPress={() => handleCreatePressed('visibility')}
               activeOpacity={0.7}>
+              <MyIcon info={{ name: 'add', type: 'Ionicons', color: '#3B82F6', size: 18 }} />
               <MyIcon info={{ name: 'eye-off', type: 'Ionicons', color: '#3B82F6', size: 18 }} />
               <Text allowFontScaling={false} style={styles.subtleButtonText}>{strings.toolbox.customizeVisibility}</Text>
             </TouchableOpacity>

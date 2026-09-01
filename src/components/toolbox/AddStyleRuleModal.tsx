@@ -272,52 +272,47 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
     return values;
   }, [state.config.keysets]);
 
-  // Build config with the current rule AND all active groups that precede it in the list.
-  // IMPORTANT: In the modal preview, we show opacity effect (0.3) to preview semi-hidden keys,
-  // but we don't fully hide keys (visibility modes) because we need all keys visible for selection.
-  const previewConfig = useMemo((): KeyboardConfig => {
-    // Collect preceding active groups (groups before this one in the ordered list)
+  /** The active groups that come before the one being edited, in list order. */
+  const precedingGroupsList = useMemo(() => {
     const currentIndex = editingGroup
       ? state.styleGroups.findIndex(g => g.id === editingGroup.id)
       : state.styleGroups.length; // new rule goes at the end
-    const preceding = state.styleGroups
-      .slice(0, currentIndex)
-      .filter(g => g.active !== false);
+    return state.styleGroups.slice(0, currentIndex).filter(g => g.active !== false);
+  }, [state.styleGroups, editingGroup]);
 
-    // Keys the preceding groups hide. Shown dimmed rather than removed: the
-    // effect of earlier groups has to be visible here, but every key must stay
-    // tappable so it can still be selected for the group being edited.
-    const dimmedByPreceding = resolveHiddenKeys(preceding, allSelectableKeyValues);
+  /**
+   * Keys hidden by those groups. They are removed from the preview entirely: a
+   * key an earlier group hides is not available to this group, so it must not be
+   * selectable here.
+   */
+  const hiddenByPrecedingValues = useMemo(
+    () => resolveHiddenKeys(precedingGroupsList, allSelectableKeyValues),
+    [precedingGroupsList, allSelectableKeyValues],
+  );
 
-    const precedingGroups = preceding.map(g => ({
+  // Build config with the current rule AND all active groups that precede it in the list.
+  // IMPORTANT: keys hidden by *preceding* groups are removed from the preview —
+  // they are not available to this group, so they must not be selectable. The
+  // rule being edited still previews its own effect as opacity 0.3, so its keys
+  // stay tappable while the user is choosing them.
+  const previewConfig = useMemo((): KeyboardConfig => {
+    const precedingGroups = precedingGroupsList.map(g => ({
       name: g.id,
       items: g.members,
       template: {
         color: g.style.color || '',
         bgColor: g.style.bgColor || '',
-        // Never fully hide — all keys must stay tappable for selection.
+        // Visibility is applied once, below, from the resolved set — these
+        // groups contribute only their colours.
         opacity: 1.0,
         hidden: false,
         visibilityMode: 'default' as VisibilityMode,
       },
     }));
 
+    // Keys hidden by preceding groups are removed from the keysets below, so no
+    // group is needed to style them away here.
     const groups: any[] = [...precedingGroups];
-
-    // Dim whatever the preceding groups hide, after their colours are applied.
-    if (dimmedByPreceding.size > 0) {
-      groups.push({
-        name: '_preceding_hidden_',
-        items: Array.from(dimmedByPreceding),
-        template: {
-          color: '',
-          bgColor: '',
-          opacity: 0.3,
-          hidden: false,
-          visibilityMode: 'default' as VisibilityMode,
-        },
-      });
-    }
 
     if (selectedKeyValues.length > 0) {
       if (visibilityMode === 'hide') {
@@ -386,13 +381,21 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
     if (hideCloseKey) hideKeys.add('close');
     if (hideGlobeButton) { hideKeys.add('settings'); hideKeys.add('next-keyboard'); }
 
-    const filteredConfig = hideKeys.size > 0 ? {
+    // Keys hidden by a preceding group are removed outright rather than styled
+    // away, so they cannot be tapped or picked up by "select all".
+    const dropKey = (key: any): boolean => {
+      if (hideKeys.has(key.type)) return true;
+      const keyValue = key.value || key.caption || key.label || key.type;
+      return !!keyValue && hiddenByPrecedingValues.has(keyValue);
+    };
+
+    const filteredConfig = (hideKeys.size > 0 || hiddenByPrecedingValues.size > 0) ? {
       ...state.config,
       keysets: state.config.keysets.map((keyset: any) => ({
         ...keyset,
         rows: keyset.rows.map((row: any) => ({
           ...row,
-          keys: row.keys.filter((key: any) => !hideKeys.has(key.type)),
+          keys: row.keys.filter((key: any) => !dropKey(key)),
         })),
       })),
     } : state.config;
@@ -483,7 +486,7 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
       groups, // Only the current group being edited, not other groups
       wordSuggestionsEnabled: state.config.wordSuggestionsEnabled ?? true,
     };
-  }, [state.config, state.styleGroups, editingGroup, selectedKeyValues, bgColor, textColor, visibilityMode, allSelectableKeyValues, hideCloseKey, hideGlobeButton, selectedLanguages, speakButtonInKeyboard]);
+  }, [state.config, precedingGroupsList, hiddenByPrecedingValues, selectedKeyValues, bgColor, textColor, visibilityMode, allSelectableKeyValues, hideCloseKey, hideGlobeButton, selectedLanguages, speakButtonInKeyboard]);
 
   const previewConfigJson = useMemo(() => {
     const base = transformConfigForPreview(previewConfig);
@@ -536,6 +539,19 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
     }
     return [...new Set(values)];
   }, [previewConfig.keysets, visibleKeysetId]);
+
+  /**
+   * Drop any selected key that a preceding group hides. Those keys are no longer
+   * in the preview, so they could not be deselected by tapping — they would stay
+   * in the group invisibly.
+   */
+  useEffect(() => {
+    if (!visible) return;
+    setSelectedKeyValues(prev => {
+      const kept = prev.filter(k => !hiddenByPrecedingValues.has(k));
+      return kept.length === prev.length ? prev : kept;
+    });
+  }, [visible, hiddenByPrecedingValues]);
 
   /** True once every selectable key in view is already selected. */
   const allInViewSelected = selectableKeysInView.length > 0

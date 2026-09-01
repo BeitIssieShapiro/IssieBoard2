@@ -68,6 +68,16 @@ describe('the toolbox offers the two typed create buttons', () => {
     expect(TOOLBOX).toContain('customizeVisibility');
   });
 
+  test('both buttons carry a "+" so they read as adding a group', () => {
+    for (const label of ['customizeColors', 'customizeVisibility']) {
+      const idx = TOOLBOX.indexOf(`strings.toolbox.${label}`);
+      expect(idx).toBeGreaterThan(-1);
+      // The add icon precedes the type icon on the same button.
+      const button = TOOLBOX.slice(Math.max(0, idx - 400), idx);
+      expect(button).toMatch(/name: 'add'/);
+    }
+  });
+
   test('the chosen type reaches the modal', () => {
     expect(TOOLBOX).toContain('initialGroupType={newGroupType}');
   });
@@ -101,19 +111,28 @@ describe('the group list shows the type', () => {
 });
 
 describe('the modal preview reflects preceding groups', () => {
-  test('preceding visibility rules are resolved and dimmed', () => {
+  test('preceding visibility rules are resolved', () => {
     // Preceding groups used to be stripped of all visibility effect, so a new
     // group showed the whole keyboard and appeared to ignore an earlier
     // "show only" rule.
-    expect(MODAL).toContain('resolveHiddenKeys(preceding, allSelectableKeyValues)');
-    expect(MODAL).toContain('_preceding_hidden_');
+    expect(MODAL).toContain('resolveHiddenKeys(precedingGroupsList, allSelectableKeyValues)');
   });
 
-  test('dimming is used rather than true hiding, so keys stay tappable', () => {
-    const start = MODAL.indexOf("name: '_preceding_hidden_'");
-    const body = MODAL.slice(start, start + 300);
-    expect(body).toMatch(/opacity:\s*0\.3/);
-    expect(body).toMatch(/hidden:\s*false/);
+  test('hidden keys are removed from the keysets, not just styled away', () => {
+    // They must not be tappable or reachable via "select all", so filtering the
+    // keysets is what guarantees it — a group template would leave them present.
+    expect(MODAL).toContain('hiddenByPrecedingValues.has(keyValue)');
+    const start = MODAL.indexOf('const filteredConfig');
+    const body = MODAL.slice(start, start + 400);
+    expect(body).toContain('dropKey');
+    expect(body).toMatch(/hiddenByPrecedingValues\.size > 0/);
+    // The old style-away group is gone.
+    expect(MODAL).not.toContain('_preceding_hidden_');
+  });
+
+  test('a selected key that becomes hidden is dropped from the selection', () => {
+    // Otherwise it stays in the group with no way to untap it.
+    expect(MODAL).toMatch(/hiddenByPrecedingValues\.has\(k\)/);
   });
 
   test('the essential-key list is defined once', () => {
