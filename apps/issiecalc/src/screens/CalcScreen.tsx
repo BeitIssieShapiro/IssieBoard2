@@ -11,6 +11,10 @@ import { evaluate, countUnclosedParens } from '../services/Calculator';
 import { useLocalization } from '../../../issievoice/src/context/LocalizationContext';
 import KeyboardPreferences from '../../../../src/native/KeyboardPreferences';
 import { transformConfigForPreview } from '../../../../src/utils/keyboardConfigMerger';
+import {
+  resolveCalcDisplayBackground,
+  resolveCalcDisplayTextColor,
+} from '../../../../src/utils/previewBackground';
 
 const builtConfig = require('../../../../ios/IssieCalc/default_config.json');
 
@@ -375,25 +379,20 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
     ? liveConfig.backgroundColor
     : KB_BG;
 
+  // Background for everything above the keyboard (top bar + display). Falls back
+  // to the keyboard background so calculators without the setting look unchanged.
+  const displayBg = resolveCalcDisplayBackground(liveConfig?.calcDisplayBgColor, screenBg);
+
   // Derive display text color: calcDisplayColor > luminance-based contrast
-  const displayTextColor = (() => {
-    if (liveConfig?.calcDisplayColor) return liveConfig.calcDisplayColor;
-    const hex = screenBg.replace('#', '');
-    if (hex.length === 6) {
-      const r = parseInt(hex.slice(0, 2), 16) / 255;
-      const g = parseInt(hex.slice(2, 4), 16) / 255;
-      const b = parseInt(hex.slice(4, 6), 16) / 255;
-      return (0.299 * r + 0.587 * g + 0.114 * b) > 0.5 ? '#000000' : '#FFFFFF';
-    }
-    return '#FFFFFF';
-  })();
+  // against the display background (not the keyboard's — they can differ).
+  const displayTextColor = resolveCalcDisplayTextColor(liveConfig?.calcDisplayColor, displayBg);
   const dimTextColor = displayTextColor === '#000000' ? '#555555' : '#8E8E93';
   const fadedTextStyle = { color: displayTextColor, opacity: 0.6 } as const;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: screenBg }]} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: displayBg }]} edges={['top', 'left', 'right']}>
       {/* Top bar */}
-      <View style={[styles.topBar, { backgroundColor: screenBg }]}>
+      <View style={[styles.topBar, { backgroundColor: displayBg }]}>
         {calcMode === 'both' && (
           <View style={styles.segmented}>
             <TouchableOpacity
@@ -414,7 +413,7 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
       </View>
 
       {/* Display */}
-      <View style={[styles.display, { backgroundColor: screenBg }]}>
+      <View style={[styles.display, { backgroundColor: displayBg }]}>
         {readoutMode !== 'off' && (
           <TouchableOpacity
             style={styles.speakButton}
@@ -480,7 +479,7 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
             )}
         </View>
       </View>
-      <View style={styles.keyboardContainer}>
+      <View style={[styles.keyboardContainer, { backgroundColor: screenBg }]}>
         <Animated.View style={[styles.toast, { opacity: toastOpacity }]} pointerEvents="none">
           <Text style={styles.toastText}>{toastMessage}</Text>
         </Animated.View>

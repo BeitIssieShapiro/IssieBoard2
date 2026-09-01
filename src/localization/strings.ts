@@ -146,6 +146,7 @@ export interface Strings {
     keysBackground: string;
     keysText: string;
     calcDisplayColor: string;
+    calcDisplayBgColor: string;
     groupOverrideAll: string;
     groupOverrideSome: string;
     showScientific: string;
@@ -514,6 +515,7 @@ const en: Strings = {
     keysBackground: 'Keys Background',
     keysText: 'Keys Text',
     calcDisplayColor: 'Display Text',
+    calcDisplayBgColor: 'Display Background',
     groupOverrideAll: 'All keys use a color from a keys-group, so changes here have no visible effect.',
     groupOverrideSome: '{{masked}} of {{total}} keys use a color from a keys-group and will not change here.',
     showScientific: 'Show Calculators',
@@ -867,6 +869,7 @@ const he: Strings = {
     keysBackground: 'רקע מקשים',
     keysText: 'טקסט מקשים',
     calcDisplayColor: 'טקסט תצוגה',
+    calcDisplayBgColor: 'רקע תצוגה',
     groupOverrideAll: 'כל המקשים מקבלים צבע מקבוצת מקשים, ולכן לשינוי כאן אין השפעה.',
     groupOverrideSome: '{{masked}} מתוך {{total}} מקשים מקבלים צבע מקבוצת מקשים ולא ישתנו כאן.',
     showScientific: 'הצג מחשבונים',
@@ -1220,6 +1223,7 @@ const ar: Strings = {
     keysBackground: 'خلفية المفاتيح',
     keysText: 'نص المفاتيح',
     calcDisplayColor: 'نص الشاشة',
+    calcDisplayBgColor: 'خلفية الشاشة',
     groupOverrideAll: 'جميع المفاتيح تستخدم لونًا من مجموعة مفاتيح، لذا لا تأثير للتغيير هنا.',
     groupOverrideSome: '{{masked}} من {{total}} مفاتيح تستخدم لونًا من مجموعة مفاتيح ولن تتغير هنا.',
     showScientific: 'إظهار الآلات الحاسبة',

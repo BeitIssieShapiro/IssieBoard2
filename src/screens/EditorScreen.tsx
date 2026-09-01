@@ -3258,6 +3258,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
         // colour by luminance against the background instead of the base
         // config's hardcoded white.
         calcDisplayColor: '',
+        calcDisplayBgColor: '',
       };
 
       await KeyboardPreferences.setProfile(

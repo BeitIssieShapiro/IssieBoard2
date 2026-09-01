@@ -97,8 +97,9 @@ describe('a new calc profile starts with no style groups', () => {
     expect(calcBranch).toMatch(/keysBgColor:\s*''/);
     expect(calcBranch).toMatch(/textColor:\s*''/);
     expect(calcBranch).toMatch(/calcDisplayColor:\s*''/);
+    expect(calcBranch).toMatch(/calcDisplayBgColor:\s*''/);
     expect(calcBranch).not.toMatch(
-      /(backgroundColor|keysBgColor|textColor|calcDisplayColor):\s*'default'/,
+      /(backgroundColor|keysBgColor|textColor|calcDisplayColor|calcDisplayBgColor):\s*'default'/,
     );
   });
 

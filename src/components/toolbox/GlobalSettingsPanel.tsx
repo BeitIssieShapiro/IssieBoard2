@@ -262,6 +262,19 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
     dispatch({ type: 'MARK_DIRTY' });
   };
 
+  // Background for everything above the keyboard (top bar + display area).
+  // Empty falls back to the keyboard background, so existing calculators are
+  // unchanged until a colour is picked.
+  const calcDisplayBgColor = (state.config as any).calcDisplayBgColor || '';
+  const updateCalcDisplayBgColor = (color: string) => {
+    const updatedConfig = { ...state.config, calcDisplayBgColor: color } as any;
+    dispatch({
+      type: 'SET_CONFIG',
+      payload: { config: updatedConfig, styleGroups: state.styleGroups },
+    });
+    dispatch({ type: 'MARK_DIRTY' });
+  };
+
   const showScientific = (state.config as any).showScientific !== false;
   const calcMode: 'basic' | 'scientific' | 'both' = (() => {
     const v = (state.config as any).calcMode;
@@ -337,7 +350,10 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
                   </>
                 )}
                 {appContext === 'issiecalc' && (
-                  <Text allowFontScaling={false} style={styles.colorColumnHeader}>{strings.globalSettings.calcDisplayColor}</Text>
+                  <>
+                    <Text allowFontScaling={false} style={styles.colorColumnHeader}>{strings.globalSettings.calcDisplayBgColor}</Text>
+                    <Text allowFontScaling={false} style={styles.colorColumnHeader}>{strings.globalSettings.calcDisplayColor}</Text>
+                  </>
                 )}
               </View>
 
@@ -388,15 +404,26 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
                 )}
 
                 {appContext === 'issiecalc' && (
-                  <View style={styles.colorColumn}>
-                    <CompactColorPicker
-                      title=""
-                      value={calcDisplayColor}
-                      onChange={updateCalcDisplayColor}
-                      showSystemDefault
-                      systemDefaultLabel={strings.common.default}
-                    />
-                  </View>
+                  <>
+                    <View style={styles.colorColumn}>
+                      <CompactColorPicker
+                        title=""
+                        value={calcDisplayBgColor}
+                        onChange={updateCalcDisplayBgColor}
+                        showSystemDefault
+                        systemDefaultLabel={strings.common.default}
+                      />
+                    </View>
+                    <View style={styles.colorColumn}>
+                      <CompactColorPicker
+                        title=""
+                        value={calcDisplayColor}
+                        onChange={updateCalcDisplayColor}
+                        showSystemDefault
+                        systemDefaultLabel={strings.common.default}
+                      />
+                    </View>
+                  </>
                 )}
               </View>
 

@@ -41,3 +41,44 @@ export function resolvePreviewBackground(
 
   return DEFAULT_PREVIEW_BACKGROUND;
 }
+
+/**
+ * Background for everything above the keyboard on the IssieCalc main screen
+ * (top bar + expression/result display).
+ *
+ * Defaults to the keyboard background, so a calculator that never sets it looks
+ * exactly as it did before the setting existed.
+ *
+ * @param calcDisplayBgColor  calcDisplayBgColor from the config
+ * @param keyboardBackground  the already-resolved keyboard background
+ */
+export function resolveCalcDisplayBackground(
+  calcDisplayBgColor: string | null | undefined,
+  keyboardBackground: string,
+): string {
+  return isDefaultBackground(calcDisplayBgColor)
+    ? keyboardBackground
+    : (calcDisplayBgColor as string);
+}
+
+/**
+ * Text colour for the calc display: an explicit calcDisplayColor wins, otherwise
+ * pick black or white for contrast against whatever is actually behind the text
+ * (the display background, which may differ from the keyboard background).
+ */
+export function resolveCalcDisplayTextColor(
+  calcDisplayColor: string | null | undefined,
+  displayBackground: string,
+): string {
+  if (calcDisplayColor && !isDefaultBackground(calcDisplayColor)) {
+    return calcDisplayColor;
+  }
+  const hex = displayBackground.replace('#', '');
+  if (hex.length === 6) {
+    const r = parseInt(hex.slice(0, 2), 16) / 255;
+    const g = parseInt(hex.slice(2, 4), 16) / 255;
+    const b = parseInt(hex.slice(4, 6), 16) / 255;
+    return 0.299 * r + 0.587 * g + 0.114 * b > 0.5 ? '#000000' : '#FFFFFF';
+  }
+  return '#FFFFFF';
+}
