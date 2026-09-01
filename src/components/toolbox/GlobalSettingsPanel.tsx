@@ -155,10 +155,21 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
     { id: 'heavy', label: strings.globalSettings.weightHeavy, value: 'heavy' as const },
   ];
 
+  /**
+   * IssieCalc styles its keys exclusively through keys-groups, so the two
+   * key-colour swatches would always be overridden and are hidden there. With
+   * them gone the override analysis has nothing to report, so it is skipped.
+   */
+  const showKeyColors = appContext !== 'issiecalc';
+
   // Which groups mask the General-tab colors, for the keyset currently shown.
   // Mirrors InteractiveCanvas: styleGroups drives the preview, falling back to
   // config.groups only when there are no style rules at all (issiecalc case).
   const overrideReports = useMemo(() => {
+    const empty: OverrideReport = { maskedCount: 0, totalCount: 0, groupNames: [], allMasked: false };
+    if (!showKeyColors) {
+      return { keysBgColor: empty, textColor: empty } as Record<OverridableColor, OverrideReport>;
+    }
     const groups = state.styleGroups.length > 0
       ? state.styleGroups
       : (state.config.groups || []);
@@ -168,7 +179,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
       keysBgColor: analyzeGroupOverrides(groups as any, keyset as any, 'keysBgColor'),
       textColor: analyzeGroupOverrides(groups as any, keyset as any, 'textColor'),
     } as Record<OverridableColor, OverrideReport>;
-  }, [state.styleGroups, state.config.groups, state.config.keysets, state.activeKeyset]);
+  }, [showKeyColors, state.styleGroups, state.config.groups, state.config.keysets, state.activeKeyset]);
 
   const warningTextFor = (report: OverrideReport): string | null => {
     if (report.maskedCount === 0) return null;
@@ -319,8 +330,12 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
               {/* Header Row */}
               <View style={[styles.colorsHeaderRow]}>
                 <Text allowFontScaling={false} style={styles.colorColumnHeader}>{strings.globalSettings.background}</Text>
-                <Text allowFontScaling={false} style={styles.colorColumnHeader}>{strings.globalSettings.keysBackground}</Text>
-                <Text allowFontScaling={false} style={styles.colorColumnHeader}>{strings.globalSettings.keysText}</Text>
+                {showKeyColors && (
+                  <>
+                    <Text allowFontScaling={false} style={styles.colorColumnHeader}>{strings.globalSettings.keysBackground}</Text>
+                    <Text allowFontScaling={false} style={styles.colorColumnHeader}>{strings.globalSettings.keysText}</Text>
+                  </>
+                )}
                 {appContext === 'issiecalc' && (
                   <Text allowFontScaling={false} style={styles.colorColumnHeader}>{strings.globalSettings.calcDisplayColor}</Text>
                 )}
@@ -338,35 +353,39 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
                   />
                 </View>
 
-                <View style={styles.colorColumn}>
-                  <View style={styles.colorPickerWrapper}>
-                    <View style={overrideReports.keysBgColor.allMasked && styles.colorPickerMuted}>
-                      <CompactColorPicker
-                        title=""
-                        value={keysBgColor}
-                        onChange={updateKeysBgColor}
-                        showSystemDefault
-                        systemDefaultLabel={strings.common.default}
-                      />
+                {showKeyColors && (
+                  <>
+                    <View style={styles.colorColumn}>
+                      <View style={styles.colorPickerWrapper}>
+                        <View style={overrideReports.keysBgColor.allMasked && styles.colorPickerMuted}>
+                          <CompactColorPicker
+                            title=""
+                            value={keysBgColor}
+                            onChange={updateKeysBgColor}
+                            showSystemDefault
+                            systemDefaultLabel={strings.common.default}
+                          />
+                        </View>
+                        {renderOverrideBadge('keysBgColor')}
+                      </View>
                     </View>
-                    {renderOverrideBadge('keysBgColor')}
-                  </View>
-                </View>
 
-                <View style={styles.colorColumn}>
-                  <View style={styles.colorPickerWrapper}>
-                    <View style={overrideReports.textColor.allMasked && styles.colorPickerMuted}>
-                      <CompactColorPicker
-                        title=""
-                        value={textColor}
-                        onChange={updateTextColor}
-                        showSystemDefault
-                        systemDefaultLabel={strings.common.default}
-                      />
+                    <View style={styles.colorColumn}>
+                      <View style={styles.colorPickerWrapper}>
+                        <View style={overrideReports.textColor.allMasked && styles.colorPickerMuted}>
+                          <CompactColorPicker
+                            title=""
+                            value={textColor}
+                            onChange={updateTextColor}
+                            showSystemDefault
+                            systemDefaultLabel={strings.common.default}
+                          />
+                        </View>
+                        {renderOverrideBadge('textColor')}
+                      </View>
                     </View>
-                    {renderOverrideBadge('textColor')}
-                  </View>
-                </View>
+                  </>
+                )}
 
                 {appContext === 'issiecalc' && (
                   <View style={styles.colorColumn}>
