@@ -345,7 +345,11 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
             <View style={styles.colorsTable}>
               {/* Header Row */}
               <View style={[styles.colorsHeaderRow]}>
-                <Text allowFontScaling={false} style={styles.colorColumnHeader}>{strings.globalSettings.background}</Text>
+                <Text allowFontScaling={false} style={styles.colorColumnHeader}>
+                  {appContext === 'issiecalc'
+                    ? strings.globalSettings.calcBackground
+                    : strings.globalSettings.background}
+                </Text>
                 {showKeyColors && (
                   <>
                     <Text allowFontScaling={false} style={styles.colorColumnHeader}>{strings.globalSettings.keysBackground}</Text>

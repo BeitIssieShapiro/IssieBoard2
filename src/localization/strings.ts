@@ -145,6 +145,9 @@ export interface Strings {
   globalSettings: {
     colors: string;
     background: string;
+    /** Background label on the calculator, where "background" alone is ambiguous
+     *  next to the exercise box. IssieBoard/IssieVoice keep `background`. */
+    calcBackground: string;
     keysBackground: string;
     keysText: string;
     calcDisplayColor: string;
@@ -524,10 +527,11 @@ const en: Strings = {
   globalSettings: {
     colors: 'Colors',
     background: 'Background',
+    calcBackground: 'Calculator Background',
     keysBackground: 'Keys Background',
     keysText: 'Keys Text',
-    calcDisplayColor: 'Display Text',
-    calcDisplayBgColor: 'Display Background',
+    calcDisplayColor: 'Exercise Text',
+    calcDisplayBgColor: 'Exercise Box Background',
     groupOverrideAll: 'All keys use a color from a keys-group, so changes here have no visible effect.',
     groupOverrideSome: '{{masked}} of {{total}} keys use a color from a keys-group and will not change here.',
     showScientific: 'Show Calculators',
@@ -884,10 +888,11 @@ const he: Strings = {
   globalSettings: {
     colors: 'צבעים',
     background: 'רקע',
+    calcBackground: 'רקע מחשבון',
     keysBackground: 'רקע מקשים',
     keysText: 'טקסט מקשים',
-    calcDisplayColor: 'טקסט תצוגה',
-    calcDisplayBgColor: 'רקע תצוגה',
+    calcDisplayColor: 'טקסט תרגיל',
+    calcDisplayBgColor: 'רקע תיבת תרגיל',
     groupOverrideAll: 'כל המקשים מקבלים צבע מקבוצת מקשים, ולכן לשינוי כאן אין השפעה.',
     groupOverrideSome: '{{masked}} מתוך {{total}} מקשים מקבלים צבע מקבוצת מקשים ולא ישתנו כאן.',
     showScientific: 'הצג מחשבונים',
@@ -1244,10 +1249,11 @@ const ar: Strings = {
   globalSettings: {
     colors: 'الألوان',
     background: 'الخلفية',
+    calcBackground: 'خلفية الآلة الحاسبة',
     keysBackground: 'خلفية المفاتيح',
     keysText: 'نص المفاتيح',
-    calcDisplayColor: 'نص الشاشة',
-    calcDisplayBgColor: 'خلفية الشاشة',
+    calcDisplayColor: 'نص التمرين',
+    calcDisplayBgColor: 'خلفية مربع التمرين',
     groupOverrideAll: 'جميع المفاتيح تستخدم لونًا من مجموعة مفاتيح، لذا لا تأثير للتغيير هنا.',
     groupOverrideSome: '{{masked}} من {{total}} مفاتيح تستخدم لونًا من مجموعة مفاتيح ولن تتغير هنا.',
     showScientific: 'إظهار الآلات الحاسبة',

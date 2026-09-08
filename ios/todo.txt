@@ -10,6 +10,11 @@ V- move expression to the right - same font fontSize
 V- remove general keys colors, add select all.
 V- change the icon of voice (in the tab) - standout and maybe different icon. (green, larger)
 
+V- icon of voice in main screen
+V- expr/result boldness from settings too
+- 
+
+
 Board
 -----
 V- cancel changes in issieboard - removes group!
@@ -32,7 +37,7 @@ V- gap between nums and the rest and make the rest narrower
 - find another term for "Advanced"
 V- remove preset for issiecalc only
 V- add icons to sci/basic selector
-- user feedback
+V- user feedback
 
 
 
