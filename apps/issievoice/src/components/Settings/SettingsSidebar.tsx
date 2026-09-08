@@ -165,7 +165,9 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
 
   const { strings, isRTL, language: uiLanguage } = useLocalization();
   const tabLabels = strings.settings.tabs;
-  const backLabel = getEditorStrings(uiLanguage).common.back;
+  const editorCommon = getEditorStrings(uiLanguage).common;
+  const backLabel = editorCommon.back;
+  const aboutLabel = editorCommon.about;
   const backIcon = isRTL ? 'arrow-forward' : 'arrow-back';
   const ALL_KEYBOARD_CHILDREN = getKeyboardChildren(tabLabels, kbLanguage);
   const KEYBOARD_CHILDREN = hiddenTabs ? ALL_KEYBOARD_CHILDREN.filter(t => !hiddenTabs.includes(t.id)) : ALL_KEYBOARD_CHILDREN;
@@ -276,14 +278,19 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
         {/* About button — pushed to bottom - landscape*/}
         {onAbout && (
 
-          <View style={[styles.subTabAboutVContainer, isRTL && {flexDirection:"row-reverse"}]}>
+          <View style={styles.subTabAboutVContainer}>
             <TouchableOpacity
-              style={[styles.sidebarCard, isPhone && styles.sidebarCardCompact, isPhoneVoice && styles.sidebarCardExtraCompact, { justifyContent: "flex-end" }]}
+              style={[styles.sidebarCard, isPhone && styles.sidebarCardCompact, isPhoneVoice && styles.sidebarCardExtraCompact, isRTL && { flexDirection: 'row-reverse' }]}
               onPress={onAbout}
               activeOpacity={0.7}>
               <View style={[isPhoneVoice ? styles.iconCircleExtraCompact : isPhone ? styles.iconCircleCompact : styles.iconCircle, { backgroundColor: colors.primary + '18' }]}>
                 <MyIcon info={{ name: 'information-circle-outline', type: 'Ionicons', color: colors.primary, size: isPhoneVoice ? 16 : isPhone ? 19 : 22 }} />
               </View>
+              <Text
+                allowFontScaling={false}
+                style={isPhoneVoice ? styles.sidebarCardTextExtraCompact : isPhone ? styles.sidebarCardTextCompact : styles.sidebarCardText}>
+                {aboutLabel}
+              </Text>
             </TouchableOpacity>
           </View>
         )}
@@ -313,7 +320,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
             return (
               <TouchableOpacity
                 key={tab.id}
-                style={[isPhone ? styles.subTabIconOnly : styles.subTab, isActive && styles.subTabActive]}
+                style={[isPhone ? styles.subTabIconOnly : styles.subTab, isActive && styles.subTabActive, isRTL && { flexDirection: 'row-reverse' }]}
                 onPress={() => onTabChange(tab.id)}
                 activeOpacity={0.7}
                 disabled={isDisabled}>
@@ -363,7 +370,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
           {extraTabs && extraTabs.map(tab => (
             <TouchableOpacity
               key={tab.id}
-              style={[isPhone ? styles.subTabIconOnly : styles.subTab, activeTab === tab.id && styles.subTabActive]}
+              style={[isPhone ? styles.subTabIconOnly : styles.subTab, activeTab === tab.id && styles.subTabActive, isRTL && { flexDirection: 'row-reverse' }]}
               onPress={() => onTabChange(tab.id)}
               activeOpacity={0.7}>
               <View
@@ -390,16 +397,20 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
             </TouchableOpacity>
           ))}
 
-          {/* About button — icon only, pushed to far end */}
+          {/* About button — pushed to far end. Label follows the sibling tabs,
+              which drop theirs on phones to fit the row. */}
           {onAbout && (
             <View style={[styles.subTabAboutHContainer, isRTL && { flexDirection: "row-reverse" }]}>
               <TouchableOpacity
-                style={[styles.subTabIconOnly]}
+                style={[isPhone ? styles.subTabIconOnly : styles.subTab, isRTL && { flexDirection: 'row-reverse' }]}
                 onPress={onAbout}
                 activeOpacity={0.7}>
                 <View style={[styles.iconCircleTiny, { backgroundColor: colors.primary + '18' }]}>
                   <MyIcon info={{ name: 'information-circle-outline', type: 'Ionicons', color: colors.primary, size: 16 }} />
                 </View>
+                {!isPhone && (
+                  <Text allowFontScaling={false} style={styles.subTabText}>{aboutLabel}</Text>
+                )}
               </TouchableOpacity>
             </View>
           )}
@@ -507,16 +518,17 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
           </Text>
         </TouchableOpacity>
 
-        {/* About button */}
+        {/* About button — pushed to the far end of the row */}
         {onAbout && (
-          <View style={[styles.subTabAboutContainer]}>
+          <View style={[styles.subTabAboutHContainer, isRTL && { flexDirection: 'row-reverse' }]}>
             <TouchableOpacity
-              style={[styles.tab, isRTL ? { marginRight: 'auto' } : { marginLeft: 'auto' }, isRTL && { flexDirection: 'row-reverse' }]}
+              style={[styles.tab, styles.aboutTab, isRTL && { flexDirection: 'row-reverse' }]}
               onPress={onAbout}
               activeOpacity={0.7}>
               <View style={[styles.iconCircleSmall, { backgroundColor: colors.primary + '18' }]}>
                 <MyIcon info={{ name: 'information-circle-outline', type: 'Ionicons', color: colors.primary, size: 18 }} />
               </View>
+              <Text allowFontScaling={false} style={styles.tabText}>{aboutLabel}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -531,7 +543,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
             return (
               <TouchableOpacity
                 key={tab.id}
-                style={[isPhone ? styles.subTabIconOnly : styles.subTab, isActive && styles.subTabActive]}
+                style={[isPhone ? styles.subTabIconOnly : styles.subTab, isActive && styles.subTabActive, isRTL && { flexDirection: 'row-reverse' }]}
                 onPress={() => onTabChange(tab.id)}
                 activeOpacity={0.7}
                 disabled={isDisabled}>
@@ -723,6 +735,10 @@ const styles = StyleSheet.create({
     height: 46,
     justifyContent: 'center',
   },
+  // "About" is short — drop the tab minWidth so it hugs its label.
+  aboutTab: {
+    minWidth: 0,
+  },
   sidebarCardText: {
     fontSize: 16,
     fontWeight: '600',
@@ -862,9 +878,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flex: 1,
   },
+  // Pushes About to the bottom of the sidebar. Stays a column so the card
+  // stretches to the sidebar width like its peers; the button itself handles
+  // RTL, so this must not be flipped to a row.
   subTabAboutVContainer: {
-    alignItems: 'flex-end',
-    flexDirection: "row",
+    alignItems: 'stretch',
+    flexDirection: "column",
+    justifyContent: 'flex-end',
     flex: 1,
   },
   subTabActive: {

@@ -17,6 +17,7 @@ export interface Strings {
     default: string;
     done: string;
     back: string;
+    about: string;
     on: string;
     off: string;
     visible: string;
@@ -399,6 +400,7 @@ const en: Strings = {
     default: 'Default',
     done: 'Done',
     back: 'Back',
+    about: 'About',
     on: 'On',
     off: 'Off',
     visible: 'Visible',
@@ -760,6 +762,7 @@ const he: Strings = {
     default: 'ברירת מחדל',
     done: 'סיום',
     back: 'חזרה',
+    about: 'אודות',
     on: 'פעיל',
     off: 'כבוי',
     visible: 'גלוי',
@@ -1121,6 +1124,7 @@ const ar: Strings = {
     default: 'افتراضي',
     done: 'تم',
     back: 'رجوع',
+    about: 'حول',
     on: 'مفعّل',
     off: 'معطّل',
     visible: 'مرئي',
