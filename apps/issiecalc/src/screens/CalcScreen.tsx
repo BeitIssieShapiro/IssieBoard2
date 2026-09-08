@@ -15,6 +15,8 @@ import {
   resolveCalcDisplayBackground,
   resolveCalcDisplayTextColor,
 } from '../../../../src/utils/previewBackground';
+import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
+import { SPEAK_ICON_NAME, SPEAK_ICON_COLOR } from '../speakIcon';
 
 const builtConfig = require('../../../../ios/IssieCalc/default_config.json');
 
@@ -50,23 +52,49 @@ function isLandscape() {
 
 const HAS_TEMPLATE_FN = /yroot\(|logy\(|xpow\(/;
 
+/**
+ * The config's font weight as a React Native weight, so the expression/result
+ * text follows the general-tab setting the same way its font size does.
+ * The names match the native renderer's mapping (KeyboardRenderer.swift), which
+ * applies the same setting to the keys — including weights the settings panel
+ * does not offer but built-in profiles use (e.g. 'black').
+ */
+type RNFontWeight = '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900';
+
+function resolveDisplayFontWeight(weight: string | null | undefined): RNFontWeight {
+  switch ((weight ?? '').toLowerCase()) {
+    case 'ultralight': return '100';
+    case 'thin': return '200';
+    case 'light': return '300';
+    case 'normal':
+    case 'regular': return '400';
+    case 'medium': return '500';
+    case 'semibold': return '600';
+    case 'bold': return '700';
+    case 'heavy': return '800';
+    case 'black': return '900';
+    // The display has always rendered light; keep that when nothing is set.
+    default: return '300';
+  }
+}
+
 type TemplateConfig = {
   activeRe: RegExp;
   finalRe: RegExp;
-  render: (x: string, y: string, cursor: React.ReactNode, fontSize: number, color: string) => React.ReactNode;
+  render: (x: string, y: string, cursor: React.ReactNode, fontSize: number, color: string, fontWeight: RNFontWeight) => React.ReactNode;
 };
 
 const TEMPLATE_CONFIGS: TemplateConfig[] = [
   {
     activeRe: /^(.*)yroot\(([^,]+),([^\x00]*)\x00\)(.*)$/,
     finalRe:  /^(.*)yroot\(([^,]+),([^)]+)\)(.*)$/,
-    render: (x, y, cursor, fontSize, color) => {
+    render: (x, y, cursor, fontSize, color, fontWeight) => {
       const sf = Math.floor(fontSize * 0.6);
       return (
         <>
-          <Text style={{ fontSize: sf, lineHeight: sf * 1.1, color, textAlignVertical: 'top' }}>{y}</Text>
+          <Text style={{ fontSize: sf, lineHeight: sf * 1.1, color, fontWeight, textAlignVertical: 'top' }}>{y}</Text>
           {cursor}
-          <Text style={{ fontSize, color, textAlignVertical: 'bottom' }}>{'√'}{formatExpression(x)}</Text>
+          <Text style={{ fontSize, color, fontWeight, textAlignVertical: 'bottom' }}>{'√'}{formatExpression(x)}</Text>
         </>
       );
     },
@@ -74,14 +102,14 @@ const TEMPLATE_CONFIGS: TemplateConfig[] = [
   {
     activeRe: /^(.*)logy\(([^,]+),([^\x00]*)\x00\)(.*)$/,
     finalRe:  /^(.*)logy\(([^,]+),([^)]+)\)(.*)$/,
-    render: (x, y, cursor, fontSize, color) => {
+    render: (x, y, cursor, fontSize, color, fontWeight) => {
       const sf = Math.floor(fontSize * 0.6);
       return (
         <>
-          <Text style={{ fontSize, color, textAlignVertical: 'bottom' }}>{'log'}</Text>
-          <Text style={{ fontSize: sf, lineHeight: sf * 1.1, color, textAlignVertical: 'bottom' }}>{y}</Text>
+          <Text style={{ fontSize, color, fontWeight, textAlignVertical: 'bottom' }}>{'log'}</Text>
+          <Text style={{ fontSize: sf, lineHeight: sf * 1.1, color, fontWeight, textAlignVertical: 'bottom' }}>{y}</Text>
           {cursor}
-          <Text style={{ fontSize, color, textAlignVertical: 'bottom' }}>{'('}{formatExpression(x)}{')'}</Text>
+          <Text style={{ fontSize, color, fontWeight, textAlignVertical: 'bottom' }}>{'('}{formatExpression(x)}{')'}</Text>
         </>
       );
     },
@@ -89,12 +117,12 @@ const TEMPLATE_CONFIGS: TemplateConfig[] = [
   {
     activeRe: /^(.*)xpow\(([^,]+),([^\x00]*)\x00\)(.*)$/,
     finalRe:  /^(.*)xpow\(([^,]+),([^)]+)\)(.*)$/,
-    render: (x, y, cursor, fontSize, color) => {
+    render: (x, y, cursor, fontSize, color, fontWeight) => {
       const sf = Math.floor(fontSize * 0.6);
       return (
         <>
-          <Text style={{ fontSize, color, textAlignVertical: 'bottom' }}>{formatExpression(x)}</Text>
-          <Text style={{ fontSize: sf, lineHeight: sf * 1.1, color, textAlignVertical: 'top' }}>{y}</Text>
+          <Text style={{ fontSize, color, fontWeight, textAlignVertical: 'bottom' }}>{formatExpression(x)}</Text>
+          <Text style={{ fontSize: sf, lineHeight: sf * 1.1, color, fontWeight, textAlignVertical: 'top' }}>{y}</Text>
           {cursor}
         </>
       );
@@ -107,7 +135,8 @@ function renderTemplateExpression(
   displayTextColor: string,
   dimColor: string,
   showCursor: boolean = true,
-  fontSize: number = 48
+  fontSize: number = 48,
+  fontWeight: RNFontWeight = '300'
 ): React.ReactNode {
   for (const cfg of TEMPLATE_CONFIGS) {
     const re = showCursor ? cfg.activeRe : cfg.finalRe;
@@ -118,13 +147,13 @@ function renderTemplateExpression(
       const yHasParens = y.includes('(');
       // Hide cursor only when Y has parens and they are all closed
       const cursor = showCursor && !(yHasParens && yOpenParens === 0)
-        ? <Text style={{ fontSize: Math.floor(fontSize * 0.6), color: dimColor, textAlignVertical: 'top' }}>_</Text>
+        ? <Text style={{ fontSize: Math.floor(fontSize * 0.6), color: dimColor, fontWeight, textAlignVertical: 'top' }}>_</Text>
         : null;
       return (
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', alignSelf: 'flex-end' }}>
-          {before ? <Text style={{ color: displayTextColor, fontSize, textAlignVertical: 'bottom' }}>{formatExpression(before)}</Text> : null}
-          {cfg.render(x, y, cursor, fontSize, displayTextColor)}
-          {after ? <Text style={{ color: displayTextColor, fontSize, textAlignVertical: 'bottom' }}>{formatExpression(after)}</Text> : null}
+          {before ? <Text style={{ color: displayTextColor, fontSize, fontWeight, textAlignVertical: 'bottom' }}>{formatExpression(before)}</Text> : null}
+          {cfg.render(x, y, cursor, fontSize, displayTextColor, fontWeight)}
+          {after ? <Text style={{ color: displayTextColor, fontSize, fontWeight, textAlignVertical: 'bottom' }}>{formatExpression(after)}</Text> : null}
         </View>
       );
     }
@@ -135,14 +164,14 @@ function renderTemplateExpression(
       const [, before, x, y, after] = mf;
       return (
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', alignSelf: 'flex-end' }}>
-          {before ? <Text style={{ color: displayTextColor, fontSize, textAlignVertical: 'bottom' }}>{formatExpression(before)}</Text> : null}
-          {cfg.render(x, y, null, fontSize, displayTextColor)}
-          {after ? <Text style={{ color: displayTextColor, fontSize, textAlignVertical: 'bottom' }}>{formatExpression(after)}</Text> : null}
+          {before ? <Text style={{ color: displayTextColor, fontSize, fontWeight, textAlignVertical: 'bottom' }}>{formatExpression(before)}</Text> : null}
+          {cfg.render(x, y, null, fontSize, displayTextColor, fontWeight)}
+          {after ? <Text style={{ color: displayTextColor, fontSize, fontWeight, textAlignVertical: 'bottom' }}>{formatExpression(after)}</Text> : null}
         </View>
       );
     }
   }
-  return <Text style={{ color: displayTextColor, fontSize }}>{formatExpression(expression) || '0'}</Text>;
+  return <Text style={{ color: displayTextColor, fontSize, fontWeight }}>{formatExpression(expression) || '0'}</Text>;
 }
 
 function patchAngleToggleCaption(config: any, caption: string): any {
@@ -276,6 +305,9 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
   })();
   // The expression row uses the same size as the result.
   const resultFontSize = Math.round(48 * displayFontScale);
+  // ...and the same weight, which follows the general-tab font weight setting
+  // just as the size follows fontSizePreset.
+  const displayFontWeight = resolveDisplayFontWeight(liveConfig?.fontWeight);
 
   const heightRatio = (() => {
     const preset = liveConfig?.heightPreset ?? 'normal';
@@ -431,7 +463,11 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
               }
             }}
             activeOpacity={0.6}>
-            <Text style={[styles.speakButtonIcon, { color: dimTextColor }]}>🔊</Text>
+            {/* Reads as a button: the voice tab's green becomes the tile, with
+                the same glyph in white on top. */}
+            <View style={styles.speakButtonTile}>
+              <MyIcon info={{ name: SPEAK_ICON_NAME, type: 'Ionicons', color: '#FFFFFF', size: 32 }} />
+            </View>
           </TouchableOpacity>
         )}
         <View style={styles.displayInner}>
@@ -439,29 +475,30 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
             {(keyset === 'scientific' || keyset === 'scientific_landscape_2nd' || keyset === 'scientific_2nd') && (
               <Text style={[styles.angleIndicator, fadedTextStyle]}>{angleMode === 'rad' ? 'Rad' : 'Deg'}</Text>
             )}
-            <Text style={[styles.expression, { color: displayTextColor, fontSize: resultFontSize, flexShrink: 1 }]} numberOfLines={1} adjustsFontSizeToFit>
+            <Text style={[styles.expression, { color: displayTextColor, fontSize: resultFontSize, fontWeight: displayFontWeight, flexShrink: 1 }]} numberOfLines={1} adjustsFontSizeToFit>
               {renderTemplateExpression(
                 finalizeTemplate(expression),
                 displayTextColor,
                 dimTextColor,
                 false,
-                resultFontSize
+                resultFontSize,
+                displayFontWeight
               )}
             </Text>
-            <Text style={[styles.expression, { color: displayTextColor, alignSelf: 'center', fontSize: resultFontSize }]}> =</Text>
+            <Text style={[styles.expression, { color: displayTextColor, alignSelf: 'center', fontSize: resultFontSize, fontWeight: displayFontWeight }]}> =</Text>
           </View>
           {templateMode && !resultMode
             ? (
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'flex-start', alignSelf: 'stretch' }}>
-                {renderTemplateExpression(expression, displayTextColor, dimTextColor, true, resultFontSize) as any}
+                {renderTemplateExpression(expression, displayTextColor, dimTextColor, true, resultFontSize, displayFontWeight) as any}
               </View>
             ) : HAS_TEMPLATE_FN.test(expression) && !resultMode
             ? (
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'flex-start', alignSelf: 'stretch' }}>
-                {renderTemplateExpression(expression, displayTextColor, dimTextColor, false, resultFontSize) as any}
+                {renderTemplateExpression(expression, displayTextColor, dimTextColor, false, resultFontSize, displayFontWeight) as any}
               </View>
             ) : (
-          <Text style={[styles.result, { color: displayTextColor, fontSize: resultFontSize }]} numberOfLines={1}>
+          <Text style={[styles.result, { color: displayTextColor, fontSize: resultFontSize, fontWeight: displayFontWeight }]} numberOfLines={1}>
             {resultMode
               ? (result === 'NUMBER_TOO_BIG' ? strings.settings.numberTooBig : result)
               : (() => {
@@ -527,10 +564,18 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
     paddingBottom: 12,
     paddingRight: 8,
-    width: 44,
+    width: 56,
     alignItems: 'center',
   },
-  speakButtonIcon: { fontSize: 24 },
+  // A rounded-square tile, so the control reads as a button rather than a glyph.
+  speakButtonTile: {
+    width: 48,
+    height: 48,
+    borderRadius: 13,
+    backgroundColor: SPEAK_ICON_COLOR,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   // Matches `result` (same weight/alignment); size and colour come from props.
   expression: { fontSize: 48, fontWeight: '300', color: '#FFFFFF', marginBottom: 8, textAlign: 'right', alignSelf: 'stretch' },
   result: { fontSize: 48, fontWeight: '300', color: '#FFFFFF', textAlign: 'right', alignSelf: 'stretch' },

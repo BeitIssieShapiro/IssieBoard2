@@ -10,6 +10,7 @@ import { AboutScreen } from '../../../../src/components/AboutScreen';
 import { ISSIECCALC_ABOUT } from '../../../../src/components/about-content';
 import { useCalcTTS } from '../context/CalcTTSContext';
 import KeyboardPreferences from '../../../../src/native/KeyboardPreferences';
+import { SPEAK_ICON_NAME, SPEAK_ICON_COLOR } from '../speakIcon';
 
 const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState('general');
@@ -49,9 +50,9 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const VOICE_EXTRA_TAB = {
     id: 'voice',
     label: strings.settings.tabs.voice,
-    iconName: 'volume-high',
+    iconName: SPEAK_ICON_NAME,
     iconType: 'Ionicons' as const,
-    iconColor: '#059669',
+    iconColor: SPEAK_ICON_COLOR,
     iconScale: 1.25,
   };
 
