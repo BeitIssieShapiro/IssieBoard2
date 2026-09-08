@@ -309,6 +309,7 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
               mode={isKeyboardOnly ? 'keyboard' : 'voice'}
               kbLanguage={kbLanguage}
               onAbout={() => setShowAbout(true)}
+              onGoBack={!isKeyboardOnly && canGoBack ? handleGoBack : undefined}
             />
             <View style={styles.detailArea}>
               {renderContent()}
@@ -324,6 +325,7 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
               mode={isKeyboardOnly ? 'keyboard' : 'voice'}
               kbLanguage={kbLanguage}
               onAbout={() => setShowAbout(true)}
+              onGoBack={!isKeyboardOnly && canGoBack ? handleGoBack : undefined}
             />
             <View style={styles.detailArea}>
               {renderContent()}

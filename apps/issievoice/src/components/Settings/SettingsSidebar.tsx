@@ -4,6 +4,7 @@ import { colors } from '../../constants';
 import { MyIcon, IconType } from '@beitissieshapiro/issie-shared/dist/icons';
 import { cardShadow, subtleShadow } from '../../../../../src/styles/shadows';
 import { useLocalization } from '../../context/LocalizationContext';
+import { getStrings as getEditorStrings } from '../../../../../src/localization/strings';
 
 export interface SettingsSidebarProps {
   activeTab: string;
@@ -18,6 +19,8 @@ export interface SettingsSidebarProps {
   kbLanguage?: 'en' | 'he' | 'ar';
   /** Called when the About (i) button is pressed */
   onAbout?: () => void;
+  /** Called when the back button is pressed — button is hidden when omitted */
+  onGoBack?: () => void;
   /** Additional tabs shown after keyboard children (e.g. IssieCalc voice tab) */
   extraTabs?: Array<{
     id: string;
@@ -151,6 +154,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   mode = 'voice',
   kbLanguage = 'he',
   onAbout,
+  onGoBack,
   extraTabs,
 }) => {
   const keyboardOnly = mode === 'keyboard';
@@ -159,8 +163,10 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   const isPhone = shortSide < 600;
   const isPhoneVoice = isPhone && !keyboardOnly;
 
-  const { strings, isRTL } = useLocalization();
+  const { strings, isRTL, language: uiLanguage } = useLocalization();
   const tabLabels = strings.settings.tabs;
+  const backLabel = getEditorStrings(uiLanguage).common.back;
+  const backIcon = isRTL ? 'arrow-forward' : 'arrow-back';
   const ALL_KEYBOARD_CHILDREN = getKeyboardChildren(tabLabels, kbLanguage);
   const KEYBOARD_CHILDREN = hiddenTabs ? ALL_KEYBOARD_CHILDREN.filter(t => !hiddenTabs.includes(t.id)) : ALL_KEYBOARD_CHILDREN;
   const VOICE_TAB = getVoiceTab(tabLabels.voice);
@@ -169,6 +175,27 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   if (isLandscape) {
     return (
       <View style={[styles.sidebar, isPhoneVoice ? styles.sidebarExtraCompact : isPhone && styles.sidebarCompact, isRTL && { alignItems: 'stretch' }, isRTL && { marginLeft: 0, marginRight: 12 }]}>
+        {/* Back button — top of the sidebar so it's reachable from every tab */}
+        {onGoBack && (
+          <TouchableOpacity
+            style={[styles.backCard, isPhoneVoice ? styles.backCardExtraCompact : isPhone && styles.backCardCompact, isRTL && { flexDirection: 'row-reverse' }]}
+            onPress={onGoBack}
+            activeOpacity={0.7}>
+            <View style={[isPhoneVoice ? styles.iconCircleExtraCompact : styles.iconCircleCompact, styles.backIconCircle]}>
+              <MyIcon info={{ name: backIcon, type: 'Ionicons', color: colors.primary, size: isPhoneVoice ? 20 : 24 }} />
+            </View>
+            <Text
+              allowFontScaling={false}
+              style={[
+                isPhoneVoice ? styles.sidebarCardTextExtraCompact : isPhone ? styles.sidebarCardTextCompact : styles.sidebarCardText,
+                styles.backCardText,
+              ]}>
+              {backLabel}
+            </Text>
+          </TouchableOpacity>
+        )}
+        {onGoBack && <View style={styles.divider} />}
+
         {/* Keyboard group header — only in voice mode */}
         {!keyboardOnly && (
           <TouchableOpacity
@@ -270,6 +297,16 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
     return (
       <View style={styles.tabsContainer}>
         <View style={[styles.subTabRow, isRTL && { flexDirection: 'row-reverse' }]}>
+          {onGoBack && (
+            <>
+              <TouchableOpacity style={styles.subTabIconOnly} onPress={onGoBack} activeOpacity={0.7}>
+                <View style={styles.iconCircleTiny}>
+                  <MyIcon info={{ name: backIcon, type: 'Ionicons', color: colors.primary, size: 20 }} />
+                </View>
+              </TouchableOpacity>
+              <View style={styles.dividerVertical} />
+            </>
+          )}
           {KEYBOARD_CHILDREN.map(tab => {
             const isActive = activeTab === tab.id;
             const isDisabled = disabledTabs?.includes(tab.id);
@@ -378,6 +415,15 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
     <View style={styles.tabsContainer}>
       {/* Level 1: Keyboard | Voice */}
       <View style={[styles.tabRow, isRTL && { flexDirection: 'row-reverse' }]}>
+        {onGoBack && (
+          <>
+            <TouchableOpacity style={[styles.tab, styles.backTab]} onPress={onGoBack} activeOpacity={0.7}>
+              <MyIcon info={{ name: backIcon, type: 'Ionicons', color: colors.primary, size: 26 }} />
+            </TouchableOpacity>
+            <View style={styles.dividerVertical} />
+          </>
+        )}
+
         <TouchableOpacity
           style={[styles.tab, keyboardActive && styles.tabActive, isRTL && { flexDirection: 'row-reverse' }]}
           onPress={() => {
@@ -640,6 +686,43 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     ...cardShadow,
   },
+  // Back button — sidebar (landscape). Padding/gap mirror `groupHeader` so its
+  // height lines up with the "Keyboard" header directly below it.
+  // Height and radius match `languageTabs` in KeyboardHeader so the back button
+  // lines up with the language selector in the header to its right.
+  backCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    gap: 10,
+    height: 44,
+    borderRadius: 12,
+  },
+  backCardCompact: {
+    paddingHorizontal: 10,
+    gap: 8,
+    marginTop: -8,
+  },
+  backCardExtraCompact: {
+    paddingHorizontal: 8,
+    gap: 6,
+    marginTop: -6,
+  },
+  backCardText: {
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  backIconCircle: {
+    backgroundColor: colors.primary + '18',
+  },
+  // Back button — portrait tab row. Overrides the wide minWidth of `tab` and
+  // matches its height (iconCircleSmall 30 + paddingVertical 8*2) so the row aligns.
+  backTab: {
+    minWidth: 0,
+    paddingHorizontal: 14,
+    height: 46,
+    justifyContent: 'center',
+  },
   sidebarCardText: {
     fontSize: 16,
     fontWeight: '600',
@@ -667,9 +750,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   iconCircleCompact: {
-    width: 30,
-    height: 30,
-    borderRadius: 10,
+    width: 45,
+    height: 45,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -699,6 +782,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.borderLight,
     marginVertical: 6,
     marginHorizontal: 12,
+  },
+  // Portrait counterpart of `divider` — separates the back button from the tabs.
+  dividerVertical: {
+    width: 1,
+    alignSelf: 'stretch',
+    backgroundColor: colors.borderLight,
+    marginHorizontal: 2,
   },
 
   // Portrait tabs styles
