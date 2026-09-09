@@ -71,6 +71,7 @@ class KeyboardPreviewView: UIView {
 
     // Minimum length syncedText reached during a pending coalesced operation.
     // Used to tell React how many chars were deleted before new chars were added.
+    // Measured in UTF-16 code units — see notifyReactNativeOfTextChange.
     private var pendingMinLength: Int = Int.max
 
     // MARK: - Mode Detection
@@ -235,6 +236,19 @@ class KeyboardPreviewView: UIView {
             }
         }
 
+        proxy.onDeleteScalarBackward = { [weak self] in
+            guard let self = self else { return }
+            if !self.syncedText.unicodeScalars.isEmpty {
+                // Set flag to prevent double-processing in setText
+                self.isProcessingKeyboardOperation = true
+                // Remove exactly one scalar, so replacing a nikkud vowel strips only
+                // the mark and leaves the base letter intact.
+                self.syncedText.unicodeScalars.removeLast()
+                // Defer notification to coalesce compound operations
+                self.scheduleDeferredTextNotification()
+            }
+        }
+
         proxy.onCursorMove = { [weak self] offset in
             guard let self = self else { return }
             self.onKeyPress?([
@@ -332,13 +346,17 @@ class KeyboardPreviewView: UIView {
     }
 
     private func notifyReactNativeOfTextChange(_ newText: String, deletedDownTo minLength: Int? = nil) {
-        let prevLen = lastNotifiedText.count
+        // Lengths MUST be in UTF-16 code units, not Swift Characters. React slices the
+        // string with these values as JS indices, and JS strings are UTF-16 indexed.
+        // Swift's `count` collapses a Hebrew letter + nikkud into one grapheme cluster
+        // where JS sees two units — using it makes React slice mid-cluster and duplicate text.
+        let prevLen = lastNotifiedText.utf16.count
         lastNotifiedText = newText
         // deletedTo: the number of chars that survived deletion.
         // For pure inserts: equals prevLen (nothing deleted).
-        // For pure deletes: equals newText.count (chars removed from tail).
+        // For pure deletes: equals newText length (chars removed from tail).
         // For compound delete+insert (e.g. "i"→"I"): the minimum length reached mid-operation.
-        let deletedTo = minLength ?? min(prevLen, newText.count)
+        let deletedTo = minLength ?? min(prevLen, newText.utf16.count)
         print("📝 KeyboardPreviewView: Notifying React Native of text change: '\(newText)' (prevLen: \(prevLen), deletedTo: \(deletedTo))")
 
         onKeyPress?([
@@ -358,10 +376,11 @@ class KeyboardPreviewView: UIView {
     private func scheduleDeferredTextNotification() {
         // Track the minimum length reached during this operation.
         // Initialize from lastNotifiedText (the pre-operation baseline) on first call.
+        // UTF-16 code units, to match the indices React slices with.
         if !hasPendingTextNotification {
-            pendingMinLength = lastNotifiedText.count
+            pendingMinLength = lastNotifiedText.utf16.count
         }
-        pendingMinLength = min(pendingMinLength, syncedText.count)
+        pendingMinLength = min(pendingMinLength, syncedText.utf16.count)
 
         hasPendingTextNotification = true
 

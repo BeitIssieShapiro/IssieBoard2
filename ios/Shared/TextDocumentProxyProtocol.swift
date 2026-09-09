@@ -22,8 +22,13 @@ protocol TextDocumentProxyProtocol: AnyObject {
     /// Insert text at cursor position
     func insertText(_ text: String)
 
-    /// Delete one character backward
+    /// Delete one user-visible character backward (a whole grapheme cluster,
+    /// e.g. a Hebrew letter together with its nikkud)
     func deleteBackward()
+
+    /// Delete one Unicode scalar backward — used to strip a single combining mark
+    /// (e.g. replacing one nikkud vowel with another) without removing its base letter.
+    func deleteScalarBackward()
 
     /// Adjust cursor position by character offset
     func adjustTextPosition(byCharacterOffset offset: Int)
@@ -37,4 +42,13 @@ protocol TextDocumentProxyProtocol: AnyObject {
     /// Text content type (email, URL, etc.)
     @available(iOS 10.0, *)
     var textContentType: UITextContentType? { get }
+}
+
+extension TextDocumentProxyProtocol {
+    /// Default: UIKit's deleteBackward already removes a single scalar when the
+    /// preceding character is a combining mark, so the system proxy needs no override.
+    /// Only CustomTextDocumentProxy, which edits a Swift String, must distinguish them.
+    func deleteScalarBackward() {
+        deleteBackward()
+    }
 }

@@ -33,6 +33,14 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1
   const { strings, isRTL, language } = useLocalization();
   const textInputRef = useRef<TextInput>(null);
   const [selection, setSelection] = useState<{ start: number; end: number } | undefined>(undefined);
+  // True while the user has a non-empty range selected by touch. Used to avoid
+  // yanking focus (and thus the selection) out from under them on re-render.
+  const hasUserSelectionRef = useRef(false);
+  // Last text value we re-focused for, so caret-only updates don't re-trigger focus.
+  const lastFocusedTextRef = useRef(text);
+  // Nonce of the most recently applied programmatic caret move, so a stale release
+  // timer can't clear a selection set by a newer move.
+  const appliedNonceRef = useRef(-1);
   const {width: winW, height: winH} = useWindowDimensions();
   const isPhoneLandscape = winW > winH && Math.min(winW, winH) < 500;
 
@@ -54,8 +62,14 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1
   const fontSize = Math.max(isPhoneLandscape ? 14 : 16, baseFontSize * scaleFactor);
   const lineHeight = fontSize * (isPhoneLandscape ? 1.0 : 1.4);
 
-  // Re-focus after text changes from our custom keyboard
+  // Re-focus after text changes from our custom keyboard.
+  // Only when the text actually changed AND the input isn't already focused:
+  // calling focus() on an already-focused UITextView resets the caret to its
+  // previous position, which would undo a tap the user just made to reposition it.
   useEffect(() => {
+    if (text === lastFocusedTextRef.current) return;
+    lastFocusedTextRef.current = text;
+    if (textInputRef.current?.isFocused()) return;
     textInputRef.current?.focus();
   }, [text]);
 
@@ -71,13 +85,24 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1
     return () => clearTimeout(timer);
   }, []);
 
-  // Apply pending selection (e.g. after suggestion press) then release control
+  // Apply a programmatic caret move (suggestion press, space-swipe cursor move),
+  // then release control so the user can move the caret freely again.
   useEffect(() => {
     if (pendingSelection !== null) {
-      setSelection({ start: pendingSelection, end: pendingSelection });
+      const {pos, nonce} = pendingSelection;
+      setSelection({ start: pos, end: pos });
+      // A programmatic move collapses any previous range selection.
+      hasUserSelectionRef.current = false;
       clearPendingSelection();
-      // Release controlled selection after it's applied
-      const timer = setTimeout(() => setSelection(undefined), 50);
+      // Release the controlled selection once applied, so the user can move the
+      // caret by touch. Guarded by nonce: a timer from an earlier move must not
+      // clear a selection a *later* move just set.
+      appliedNonceRef.current = nonce;
+      const timer = setTimeout(() => {
+        if (appliedNonceRef.current === nonce) {
+          setSelection(undefined);
+        }
+      }, 50);
       return () => clearTimeout(timer);
     }
   }, [pendingSelection]);
@@ -125,9 +150,17 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1
           setText(newText);
         }}
         onSelectionChange={(e) => {
-          if (pendingSelection === null) {
-            setCursorPosition(e.nativeEvent.selection.start);
-          }
+          const {start, end} = e.nativeEvent.selection;
+          // Release the controlled `selection` prop as soon as the user moves the
+          // caret themselves. Otherwise a value left over from the last programmatic
+          // move (i.e. the end of the text, after typing) gets re-applied on this
+          // re-render and snaps the visible caret back to the end.
+          setSelection(undefined);
+          // Report only — never push a collapsed selection back into the TextInput,
+          // which would also wipe out a range the user is dragging out by hand.
+          // Track the caret from `end`, which is where it sits after a drag.
+          setCursorPosition(end, false);
+          hasUserSelectionRef.current = start !== end;
         }}
         multiline={true}
         editable={true}

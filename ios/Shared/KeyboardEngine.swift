@@ -459,9 +459,11 @@ class KeyboardEngine {
 
         let scalarsAfter = scalars.count - 1 - existingIndex
 
-        // Delete everything from the existing mark to end of cluster
-        for _ in 0..<scalarsAfter { textProxy.deleteBackward() }
-        textProxy.deleteBackward() // delete the existing mark
+        // Delete everything from the existing mark to end of cluster.
+        // Scalar-granular: these are combining marks, and removing a whole grapheme
+        // cluster here would take the base letter with them.
+        for _ in 0..<scalarsAfter { textProxy.deleteScalarBackward() }
+        textProxy.deleteScalarBackward() // delete the existing mark
 
         // Re-insert tail (marks after the conflicting one)
         if scalarsAfter > 0 {

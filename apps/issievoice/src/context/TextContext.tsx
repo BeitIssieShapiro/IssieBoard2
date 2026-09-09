@@ -7,8 +7,27 @@ interface TextContextType {
   clearText: () => void;
   deleteLastWord: () => void;
   cursorPosition: number;
-  setCursorPosition: (pos: number) => void;
-  pendingSelection: number | null;
+  /**
+   * Records the caret position. By default this also asks the TextInput to move
+   * its caret there (`pushToInput`), which is what keyboard-driven moves need.
+   * Pass `pushToInput: false` when merely *reporting* where the user already put
+   * the caret — otherwise the TextInput gets a collapsed selection pushed back at
+   * it and any range the user drag-selected is destroyed.
+   */
+  setCursorPosition: (pos: number, pushToInput?: boolean) => void;
+  /**
+   * Move the caret by `offset`, clamped to `maxLength`, relative to the latest
+   * position. Reads a ref rather than the `cursorPosition` state so a rapid burst
+   * of moves (space-key swipe) accumulates correctly instead of every event in the
+   * burst computing from the same not-yet-committed state value.
+   */
+  moveCursorBy: (offset: number, maxLength: number) => void;
+  /**
+   * A pending request to move the TextInput caret. Carries a monotonic `nonce` so
+   * two successive moves to the *same* index still register as distinct requests —
+   * a plain number would be deduped by setState and the second move would be lost.
+   */
+  pendingSelection: {pos: number; nonce: number} | null;
   clearPendingSelection: () => void;
 }
 
@@ -18,14 +37,23 @@ export const TextProvider = ({children}: {children: ReactNode}) => {
   const [currentText, setCurrentText] = useState('');
   const cursorRef = useRef(0);
   const [cursorPosition, setCursorPositionState] = useState(0);
-  const [pendingSelection, setPendingSelection] = useState<number | null>(null);
+  const [pendingSelection, setPendingSelection] = useState<{pos: number; nonce: number} | null>(null);
+  const nonceRef = useRef(0);
 
   const clearPendingSelection = () => setPendingSelection(null);
 
-  const setCursorPosition = (pos: number) => {
+  const setCursorPosition = (pos: number, pushToInput: boolean = true) => {
     cursorRef.current = pos;
     setCursorPositionState(pos);
-    setPendingSelection(pos);
+    if (pushToInput) {
+      nonceRef.current += 1;
+      setPendingSelection({pos, nonce: nonceRef.current});
+    }
+  };
+
+  const moveCursorBy = (offset: number, maxLength: number) => {
+    const next = Math.max(0, Math.min(maxLength, cursorRef.current + offset));
+    setCursorPosition(next);
   };
 
   const setText = (text: string) => {
@@ -71,6 +99,7 @@ export const TextProvider = ({children}: {children: ReactNode}) => {
         deleteLastWord,
         cursorPosition,
         setCursorPosition,
+        moveCursorBy,
         pendingSelection,
         clearPendingSelection,
       }}>

@@ -27,7 +27,7 @@ interface MainScreenProps {
 }
 
 const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
-  const { currentText, setText, cursorPosition, setCursorPosition } = useText();
+  const { currentText, setText, cursorPosition, setCursorPosition, moveCursorBy } = useText();
   const { speak, setLanguage: setTTSLanguage } = useTTS();
   const { language: deviceLanguage, strings } = useLocalization();
   const { showNotification } = useNotification();
@@ -494,8 +494,9 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
       if (!isNaN(offset)) {
         const isRTL = currentLanguage === 'he' || currentLanguage === 'ar';
         const adjustedOffset = isRTL ? -offset : offset;
-        const newPos = Math.max(0, Math.min(currentText.length, cursorPosition + adjustedOffset));
-        setCursorPosition(newPos);
+        // Relative move: a swipe emits many events faster than React commits state,
+        // so each must build on the previous one rather than on a stale cursorPosition.
+        moveCursorBy(adjustedOffset, currentText.length);
       }
       return;
     }

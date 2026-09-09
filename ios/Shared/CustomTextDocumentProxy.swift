@@ -23,6 +23,9 @@ class CustomTextDocumentProxy: TextDocumentProxyProtocol {
     /// Callback to notify React Native to delete backward
     var onDeleteBackward: (() -> Void)?
 
+    /// Callback to notify React Native to delete a single Unicode scalar backward
+    var onDeleteScalarBackward: (() -> Void)?
+
     /// Callback to notify React Native to move cursor
     var onCursorMove: ((Int) -> Void)?
 
@@ -63,6 +66,11 @@ class CustomTextDocumentProxy: TextDocumentProxyProtocol {
     func deleteBackward() {
         print("📝 CustomTextDocumentProxy.deleteBackward")
         onDeleteBackward?()
+    }
+
+    func deleteScalarBackward() {
+        print("📝 CustomTextDocumentProxy.deleteScalarBackward")
+        onDeleteScalarBackward?()
     }
 
     func adjustTextPosition(byCharacterOffset offset: Int) {
