@@ -38,9 +38,6 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1
   const hasUserSelectionRef = useRef(false);
   // Last text value we re-focused for, so caret-only updates don't re-trigger focus.
   const lastFocusedTextRef = useRef(text);
-  // Nonce of the most recently applied programmatic caret move, so a stale release
-  // timer can't clear a selection set by a newer move.
-  const appliedNonceRef = useRef(-1);
   const {width: winW, height: winH} = useWindowDimensions();
   const isPhoneLandscape = winW > winH && Math.min(winW, winH) < 500;
 
@@ -85,25 +82,18 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1
     return () => clearTimeout(timer);
   }, []);
 
-  // Apply a programmatic caret move (suggestion press, space-swipe cursor move),
-  // then release control so the user can move the caret freely again.
+  // Apply a programmatic caret move (suggestion press, space-swipe cursor move).
+  // Control is released in onSelectionChange once the TextInput echoes the move
+  // back, rather than on a timer: a swipe emits moves continuously, and a timed
+  // release would clear the controlled selection between two moves whenever the
+  // user swiped slowly, dropping that part of the gesture.
   useEffect(() => {
     if (pendingSelection !== null) {
-      const {pos, nonce} = pendingSelection;
+      const {pos} = pendingSelection;
       setSelection({ start: pos, end: pos });
       // A programmatic move collapses any previous range selection.
       hasUserSelectionRef.current = false;
       clearPendingSelection();
-      // Release the controlled selection once applied, so the user can move the
-      // caret by touch. Guarded by nonce: a timer from an earlier move must not
-      // clear a selection a *later* move just set.
-      appliedNonceRef.current = nonce;
-      const timer = setTimeout(() => {
-        if (appliedNonceRef.current === nonce) {
-          setSelection(undefined);
-        }
-      }, 50);
-      return () => clearTimeout(timer);
     }
   }, [pendingSelection]);
 
@@ -151,11 +141,14 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1
         }}
         onSelectionChange={(e) => {
           const {start, end} = e.nativeEvent.selection;
-          // Release the controlled `selection` prop as soon as the user moves the
-          // caret themselves. Otherwise a value left over from the last programmatic
-          // move (i.e. the end of the text, after typing) gets re-applied on this
-          // re-render and snaps the visible caret back to the end.
-          setSelection(undefined);
+          // Release the controlled `selection` prop once the caret is confirmed to
+          // be where the prop says. Doing it here rather than on a timer means a
+          // programmatic move stays controlled until it actually lands, while a
+          // user tap or drag — which reports a different position — releases
+          // immediately so a stale value can never snap the caret back.
+          if (selection !== undefined && selection.start === start && selection.end === end) {
+            setSelection(undefined);
+          }
           // Report only — never push a collapsed selection back into the TextInput,
           // which would also wipe out a range the user is dragging out by hand.
           // Track the caret from `end`, which is where it sits after a drag.

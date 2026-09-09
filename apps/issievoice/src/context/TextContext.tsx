@@ -23,6 +23,13 @@ interface TextContextType {
    */
   moveCursorBy: (offset: number, maxLength: number) => void;
   /**
+   * The caret position as of right now, including moves not yet committed to
+   * React state. A space-swipe emits a burst of moves faster than React renders,
+   * so `cursorPosition` can lag; read this when acting on the caret inside an
+   * event handler (e.g. deciding what letter precedes an insertion).
+   */
+  getCursorPosition: () => number;
+  /**
    * A pending request to move the TextInput caret. Carries a monotonic `nonce` so
    * two successive moves to the *same* index still register as distinct requests —
    * a plain number would be deduped by setState and the second move would be lost.
@@ -55,6 +62,8 @@ export const TextProvider = ({children}: {children: ReactNode}) => {
     const next = Math.max(0, Math.min(maxLength, cursorRef.current + offset));
     setCursorPosition(next);
   };
+
+  const getCursorPosition = () => cursorRef.current;
 
   const setText = (text: string) => {
     setCurrentText(text);
@@ -100,6 +109,7 @@ export const TextProvider = ({children}: {children: ReactNode}) => {
         cursorPosition,
         setCursorPosition,
         moveCursorBy,
+        getCursorPosition,
         pendingSelection,
         clearPendingSelection,
       }}>

@@ -333,6 +333,14 @@ class KeyboardPreviewView: UIView {
             self?.renderKeyboard()
         }
 
+        // Report LTR so the renderer does not invert the space-swipe offset.
+        // The system keyboard needs that inversion because it drives UIKit's
+        // adjustTextPosition, which works in reading order. In the preview the
+        // offset instead becomes a string-index delta, and React applies the RTL
+        // inversion itself — without this, both layers invert and cancel out,
+        // leaving the caret moving the wrong way or not at all.
+        engine.onGetTextDirection = { false }
+
         // Provide the base letter before cursor for modifier filtering in top-row nikkud
         engine.renderer.onGetCharBeforeCursor = { [weak self] in
             guard let text = self?.syncedText, !text.isEmpty else { return nil }

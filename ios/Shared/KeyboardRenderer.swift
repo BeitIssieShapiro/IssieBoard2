@@ -120,6 +120,16 @@ class KeyboardRenderer {
     private var shiftState: ShiftState = .inactive
     private var nikkudActive: Bool = false
     private var cursorMoveMode: Bool = false
+    /// Set when a cursor-move long-press ends, so the button's trailing
+    /// .touchUpInside (which fires after the gesture's .ended) is not treated as a
+    /// space tap. Cleared on the next run loop pass.
+    private var justFinishedCursorMove: Bool = false
+    /// Encoded key info when the space-like key is really a nikkud key, so a
+    /// stationary long-press can still toggle nikkud mode.
+    private var nikkudLongPressKeyInfo: String?
+    /// True once the finger has travelled far enough to count as a cursor move
+    /// rather than a stationary long-press.
+    private var cursorMoveDidMove: Bool = false
     private var config: KeyboardConfig?
     var currentKeysetId: String = ""  // Public so container can read it (but shouldn't write)
     private var editorContext: (enterVisible: Bool, enterLabel: String, enterAction: Int, fieldType: String)?
@@ -670,6 +680,14 @@ class KeyboardRenderer {
     /// Check if currently in cursor movement mode
     func isInCursorMoveMode() -> Bool {
         return cursorMoveMode
+    }
+
+    /// True when a nikkud key doubles as the space key. On narrow layouts a short
+    /// tap on nikkud is forwarded as a space (see handleKeyClick), which makes it
+    /// the de-facto space key for long-press cursor movement too.
+    private func isNikkudActingAsSpace() -> Bool {
+        guard let spaceInfo = findSpaceKeyInfo() else { return false }
+        return spaceInfo.width < lastRenderedRegularKeyWidth * 6
     }
 
     /// Returns true when nikkud top-row should be shown.
@@ -1819,12 +1837,30 @@ class KeyboardRenderer {
             
             button.addTarget(self, action: #selector(keyTapped(_:)), for: .touchUpInside)
             
-            // Add long-press gesture for space key (for cursor movement mode)
-            if keyType == "space" || key.value == " " {
+            // Add long-press gesture for space key (for cursor movement mode).
+            // A nikkud key that stands in for space (narrow layouts forward its short
+            // tap as a space, see handleKeyClick) must get the same cursor-move
+            // gesture — otherwise long-pressing the only space-like key on the
+            // keyboard just inserts a space on release.
+            //
+            // Deliberately independent of `nikkudActive`: that flag flips whenever
+            // nikkud mode is toggled and the keyboard re-renders, so keying the
+            // gesture to it would silently drop cursor-move after the first use.
+            let nikkudActsAsSpace = keyType == "nikkud" && isNikkudActingAsSpace()
+            let actsAsSpace = keyType == "space" || key.value == " " || nikkudActsAsSpace
+            if actsAsSpace {
                 print("🔧 SPACE KEY: Adding long-press gesture recognizer (keyType='\(keyType)', value='\(key.value)', onCursorMove=\(onCursorMove != nil))")
                 let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(spaceLongPressed(_:)))
                 longPressGesture.minimumPressDuration = 0.5
+                // Allow the finger to travel without the recognizer cancelling —
+                // movement is the cursor-move gesture, not a failed press.
+                longPressGesture.allowableMovement = .greatestFiniteMagnitude
                 button.addGestureRecognizer(longPressGesture)
+                // A nikkud key doubling as space still needs its own long-press to
+                // toggle nikkud mode — that is the only way to activate it.
+                if nikkudActsAsSpace {
+                    nikkudLongPressKeyInfo = encodeKeyInfo(key)
+                }
             }
             // Keyset keys: keep long-press for selection in edit mode only
             else if keyType == "keyset" {
@@ -1842,7 +1878,7 @@ class KeyboardRenderer {
             }
         }
         button.accessibilityIdentifier = encodeKeyInfo(key)
-        
+
         // Create the VISUAL key view (smaller, with padding to create visual gap)
         // This is a non-interactive view for display only
         let visualKeyView = UIView()
@@ -2238,6 +2274,11 @@ class KeyboardRenderer {
         // Ignore tap if keyset slide gesture took over
         if isKeysetSlideActive { return }
 
+        // Ignore the touch-up that ends a cursor-move long-press. The button's
+        // .touchUpInside fires independently of the gesture recognizer, so without
+        // this a space would be inserted every time the user finishes swiping.
+        if cursorMoveMode || justFinishedCursorMove { return }
+
         guard let keyInfo = decodeKeyInfo(sender.accessibilityIdentifier),
               let key = parseKeyFromInfo(keyInfo) else {
             return
@@ -2279,7 +2320,13 @@ class KeyboardRenderer {
         }
         
         print("🔑 Key long-pressed: type='\(key.type)', value='\(key.value)'")
-        
+        keyLongPressAction(for: key)
+    }
+
+    /// The effect of a long-press on a key, independent of which recognizer saw it.
+    /// Shared with spaceLongPressed, where a nikkud key that doubles as the space
+    /// key reaches this only when the press stayed put (no cursor movement).
+    private func keyLongPressAction(for key: ParsedKey) {
         // Handle nikkud key - only activate if currently inactive
         if key.type.lowercased() == "nikkud" {
             if !nikkudActive {
@@ -2303,6 +2350,7 @@ class KeyboardRenderer {
         case .began:
             print("🔄 Space long-press BEGAN - entering cursor move mode")
             cursorMoveMode = true
+            cursorMoveDidMove = false
             cursorMoveStartPoint = gesture.location(in: gesture.view)
             cursorMoveAccumulatedDistance = 0
             
@@ -2329,6 +2377,9 @@ class KeyboardRenderer {
             let charactersToMove = Int(cursorMoveAccumulatedDistance / cursorMoveSensitivity)
             
             if charactersToMove != 0 {
+                // Any real travel means this is a cursor move, not a stationary
+                // long-press that should toggle nikkud mode.
+                cursorMoveDidMove = true
                 // Use the locked direction from session start (not re-evaluated during movement)
                 var offset = charactersToMove
                 
@@ -2350,8 +2401,25 @@ class KeyboardRenderer {
             }
             
         case .ended, .cancelled, .failed:
-            print("🔄 Space long-press ENDED - exiting cursor move mode")
+            print("🔄 Space long-press ENDED - exiting cursor move mode (didMove=\(cursorMoveDidMove))")
             cursorMoveMode = false
+            // Suppress the button's trailing .touchUpInside so ending the swipe
+            // does not also insert a space.
+            justFinishedCursorMove = true
+            DispatchQueue.main.async { [weak self] in
+                self?.justFinishedCursorMove = false
+            }
+
+            // A stationary long-press on a nikkud key that doubles as space keeps
+            // its original meaning: toggle nikkud mode.
+            if !cursorMoveDidMove, gesture.state == .ended,
+               let encoded = nikkudLongPressKeyInfo,
+               let keyInfo = decodeKeyInfo(encoded),
+               let key = parseKeyFromInfo(keyInfo) {
+                print("🔄 No movement — treating as nikkud long-press")
+                keyLongPressAction(for: key)
+            }
+            cursorMoveDidMove = false
             cursorMoveStartPoint = .zero
             cursorMoveAccumulatedDistance = 0
             

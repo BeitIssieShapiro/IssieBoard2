@@ -18,6 +18,8 @@ import FavoritesBar from '../components/FavoritesBar/FavoritesBar';
 import { KeyboardPreview, KeyPressEvent } from '../../../../src/components/KeyboardPreview';
 import { buildKeyboardConfig } from '../../../../src/utils/keyboardConfigMerger';
 import { colors } from '../constants';
+import { nikkudMergeBackspaceCount } from '../utils/nikkudMerge';
+import { detectTextDirection } from '../utils/textDirection';
 import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 import KeyboardPreferences from '../../../../src/native/KeyboardPreferences';
 import { LANGUAGE_CYCLE_ORDER, KbLanguage } from '../components/Settings/LanguageSettingsPanel';
@@ -27,7 +29,7 @@ interface MainScreenProps {
 }
 
 const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
-  const { currentText, setText, cursorPosition, setCursorPosition, moveCursorBy } = useText();
+  const { currentText, setText, cursorPosition, setCursorPosition, moveCursorBy, getCursorPosition } = useText();
   const { speak, setLanguage: setTTSLanguage } = useTTS();
   const { language: deviceLanguage, strings } = useLocalization();
   const { showNotification } = useNotification();
@@ -451,7 +453,15 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
       const engineText = value;
       const prevLength: number | undefined = event.nativeEvent.prevLength;
       const deletedTo: number | undefined = event.nativeEvent.deletedTo;
-      const pos = cursorPosition;
+      // Read the live caret, not the `cursorPosition` state: a space-swipe emits a
+      // burst of cursor moves faster than React commits, so the state value can
+      // still be stale here — which would splice the text at the wrong offset and
+      // inspect the wrong preceding letter for the nikkud merge.
+      // Read the live caret, not the `cursorPosition` state: a space-swipe emits a
+      // burst of cursor moves faster than React commits, so the state value can
+      // still be stale here — which would splice the text at the wrong offset and
+      // inspect the wrong preceding letter for the nikkud merge.
+      const pos = getCursorPosition();
       const after = currentText.slice(pos);
 
       if (prevLength != null && deletedTo != null) {
@@ -459,9 +469,23 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
         const deleted = prevLength - deletedTo;
         const inserted = engineText.slice(deletedTo);
         const deleteFrom = Math.max(0, pos - deleted);
-        const newBefore = currentText.slice(0, deleteFrom);
+        let newBefore = currentText.slice(0, deleteFrom);
+        // If the picker produced a letter+nikkud and the caret sits right after that
+        // same bare letter, vocalize the existing letter instead of inserting a
+        // duplicate. Native can't do this: it has no caret and treats the buffer as
+        // append-only, so the merge has to happen here where the caret is known.
+        //
+        // Only mid-word: at the end of the text the user is appending a new letter,
+        // not editing the one already there, so "א" then picking "אֵ" must give "אאֵ".
+        const atEndOfText = deleteFrom >= currentText.length;
+        if (!atEndOfText) {
+          const merge = nikkudMergeBackspaceCount(newBefore, inserted);
+          if (merge > 0) {
+            newBefore = newBefore.slice(0, newBefore.length - merge);
+          }
+        }
         const newText = newBefore + inserted + after;
-        const newCursor = deleteFrom + inserted.length;
+        const newCursor = newBefore.length + inserted.length;
         setCursorPosition(newCursor);
         setText(newText);
       } else {
@@ -492,7 +516,12 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
     if (type === 'cursor_move') {
       const offset = parseInt(value, 10);
       if (!isNaN(offset)) {
-        const isRTL = currentLanguage === 'he' || currentLanguage === 'ar';
+        // Follow the direction the *text* is rendered in, not the keyboard
+        // language: typing "Abc" on a Hebrew keyboard displays LTR, so a swipe
+        // must map to string indices the same way TextDisplayArea lays it out.
+        const isRTL = currentText
+          ? detectTextDirection(currentText) === 'rtl'
+          : currentLanguage === 'he' || currentLanguage === 'ar';
         const adjustedOffset = isRTL ? -offset : offset;
         // Relative move: a swipe emits many events faster than React commits state,
         // so each must build on the previous one rather than on a stale cursorPosition.
@@ -521,7 +550,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
 
     // Legacy event handling (for config mode or old implementation)
     // Insert at cursor position
-    const pos = cursorPosition;
+    const pos = getCursorPosition();
     const before = currentText.slice(0, pos);
     const after = currentText.slice(pos);
 
