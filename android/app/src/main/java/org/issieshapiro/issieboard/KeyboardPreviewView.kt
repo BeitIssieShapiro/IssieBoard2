@@ -31,13 +31,23 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
 
     private var configJson: String? = null
     private var selectedKeys: String? = null  // JSON array of selected key IDs
-    private var renderer: KeyboardRenderer? = null
     private var parsedConfig: KeyboardConfig? = null
+    private var currentLanguage: String? = null
 
-    // Word suggestion controller - shared logic with keyboard extension
-    private var suggestionController: WordSuggestionController? = null
+    // Standalone renderer for config mode (IssieBoard editor).
+    // In input mode the engine owns the renderer instead — see the `renderer` accessor.
+    private var configModeRenderer: KeyboardRenderer? = null
 
-    // Track typed text (for preview testing)
+    // Keyboard engine for input mode (null in config mode)
+    private var keyboardEngine: KeyboardEngine? = null
+
+    // Custom text proxy for input mode (null in config mode)
+    private var textProxy: CustomTextDocumentProxy? = null
+
+    // Word suggestion controller for config mode. In input mode the engine owns one.
+    private var configModeSuggestionController: WordSuggestionController? = null
+
+    // Track typed text (config mode only — input mode uses syncedText via the proxy)
     private var typedText: String = ""
 
     // Preview max height (for scaling)
@@ -46,10 +56,36 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
     // Fixed render height — overrides heightPreset, rows expand to fill exactly
     private var targetRenderHeight: Int? = null
 
-    // Track if we're in input mode (IssieVoice) vs config mode (IssieBoard)
-    // Input mode is detected when setText() is called
-    private var isInputMode: Boolean = false
-    
+    // Synced text that mirrors React Native state (single source of truth proxy)
+    private var syncedText: String = ""
+
+    // The last text value sent to React Native via text_changed
+    private var lastNotifiedText: String = ""
+
+    // Track if we're processing a keyboard operation to prevent double-handling
+    private var isProcessingKeyboardOperation: Boolean = false
+
+    // Whether a deferred text notification is pending (coalesces rapid changes)
+    private var hasPendingTextNotification: Boolean = false
+
+    // Minimum length syncedText reached during a pending coalesced operation.
+    // Used to tell React how many chars were deleted before new chars were added.
+    // Measured in UTF-16 code units — see notifyReactNativeOfTextChange.
+    private var pendingMinLength: Int = Int.MAX_VALUE
+
+    /** True if in input mode (IssieVoice), false if in config mode (IssieBoard) */
+    private val isInputMode: Boolean
+        get() = textProxy != null
+
+    /** The active renderer: the engine's in input mode, the standalone one otherwise */
+    private val renderer: KeyboardRenderer?
+        get() = keyboardEngine?.renderer ?: configModeRenderer
+
+    /** The active suggestion controller */
+    private val suggestionController: WordSuggestionController?
+        get() = keyboardEngine?.suggestionController ?: configModeSuggestionController
+
+
     // Keyboard container - LinearLayout for better React Native compatibility
     private val keyboardContainer = LinearLayout(context).apply {
         orientation = LinearLayout.VERTICAL
@@ -74,16 +110,17 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
         // Add keyboard container at index 0 (bottom layer)
         addView(keyboardContainer, 0)
         
-        // Create renderer
+        // Create the config-mode renderer. Input mode replaces this with the engine's
+        // renderer when setText() first arrives (see initializeInputMode).
         val r = KeyboardRenderer(context)
-        renderer = r
-        
+        configModeRenderer = r
+
         // Setup suggestion controller with context for dictionary loading
-        suggestionController = WordSuggestionController(r).apply {
+        configModeSuggestionController = WordSuggestionController(r).apply {
             initialize(context)
             setLanguage("en")
         }
-        
+
         // In preview mode, hide the globe (language) button - it's redundant
         r.setShowGlobeButton(false)
 
@@ -93,11 +130,11 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
         r.onKeyPress = { key ->
             handleKeyPress(key)
         }
-        
+
         r.onDeleteCharacter = {
             handleBackspace()
         }
-        
+
         r.onDeleteWord = {
             handleDeleteWord()
         }
@@ -109,7 +146,7 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
         r.onNikkudSelected = { value ->
             handleNikkudSelected(value)
         }
-        
+
         r.onKeysetChanged = { newKeyset ->
             // Emit keyset-changed event to React Native
             val eventData: WritableMap = Arguments.createMap().apply {
@@ -305,25 +342,274 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
         debugLog("🔧 setText called with: '$newText'")
 
         // First time setText is called - enter input mode (IssieVoice)
-        if (!isInputMode) {
+        if (textProxy == null) {
             debugLog("🔧 Entering INPUT MODE (IssieVoice)")
-            isInputMode = true
-
-            // In input mode, set onSuggestionSelected for engine-path suggestion handling
-            renderer?.onSuggestionSelected = { suggestion ->
-                handleSuggestionSelected(suggestion)
-            }
-
-            // In input mode, we don't want selection mode, so don't set onKeyLongPress
-            // (isSelectionMode in KeyboardRenderer is determined by onKeyLongPress != null)
+            initializeInputMode(newText)
+            return
         }
 
-        // Update typed text
-        typedText = newText
+        // Update synced text to match React Native
+        if (syncedText != newText) {
+            debugLog("📝 setText syncing '${newText.takeLast(20)}', fromKeyboard: $isProcessingKeyboardOperation")
+            val oldText = syncedText
+            syncedText = newText
+            // Keep lastNotifiedText in sync — React already knows this text
+            lastNotifiedText = newText
 
-        // Update suggestion controller with new text
-        // Use detectCurrentWord to trigger suggestion updates
-        suggestionController?.detectCurrentWord(newText)
+            // If text was cleared (became empty or much shorter), force update even
+            // during a keyboard operation
+            val wasCleared = newText.isEmpty() && oldText.isNotEmpty()
+            val wasShortenedSignificantly = newText.length < oldText.length - 5
+
+            if (wasCleared || wasShortenedSignificantly) {
+                debugLog("📝 Text cleared or shortened significantly - forcing handleTextChanged()")
+                keyboardEngine?.handleTextChanged()
+                keyboardEngine?.autoShiftAfterPunctuation()
+                return
+            }
+
+            // If this came from keyboard, skip re-processing (keyboard already updated
+            // suggestions). syncedText is still updated above so queries return the right value.
+            if (isProcessingKeyboardOperation) {
+                debugLog("📝 Skipping handleTextChanged (keyboard already handled it)")
+                return
+            }
+
+            // External change (clicking suggestion or external keyboard)
+            debugLog("📝 setText: External change - calling handleTextChanged()")
+            keyboardEngine?.handleTextChanged()
+        }
+    }
+
+    // MARK: - Mode Initialization
+
+    /**
+     * Enter input mode: wire a CustomTextDocumentProxy to React Native and drive a
+     * KeyboardEngine with it. Port of ios/IssieBoardNG/KeyboardPreviewView.swift
+     * initializeInputMode(with:).
+     */
+    private fun initializeInputMode(initialText: String) {
+        debugLog("📱 Initializing INPUT MODE with text: '$initialText', language: $currentLanguage")
+
+        // Create custom text proxy (pure bridge, no internal state)
+        val proxy = CustomTextDocumentProxy()
+        textProxy = proxy
+
+        // Wire up proxy to React Native - proxy queries the internal mirror of RN state
+        proxy.getCurrentText = { syncedText }
+
+        proxy.onInsertText = { text ->
+            // Set flag to prevent double-processing in setText
+            isProcessingKeyboardOperation = true
+            syncedText += text
+            // Defer notification to coalesce compound operations (e.g. delete+insert for "i"→"I")
+            scheduleDeferredTextNotification()
+        }
+
+        proxy.onDeleteBackward = {
+            if (syncedText.isNotEmpty()) {
+                isProcessingKeyboardOperation = true
+                // Remove a whole grapheme cluster, so a vocalized Hebrew letter and its
+                // marks disappear together — matching Swift's String.removeLast().
+                val breaker = java.text.BreakIterator.getCharacterInstance()
+                breaker.setText(syncedText)
+                breaker.last()
+                syncedText = syncedText.substring(0, breaker.previous())
+                scheduleDeferredTextNotification()
+            }
+        }
+
+        proxy.onDeleteScalarBackward = {
+            if (syncedText.isNotEmpty()) {
+                isProcessingKeyboardOperation = true
+                // Remove exactly one scalar, so replacing a nikkud vowel strips only
+                // the mark and leaves the base letter intact.
+                val lastCodePoint = syncedText.codePointBefore(syncedText.length)
+                syncedText = syncedText.substring(0, syncedText.length - Character.charCount(lastCodePoint))
+                scheduleDeferredTextNotification()
+            }
+        }
+
+        proxy.onCursorMove = { offset ->
+            val eventData: WritableMap = Arguments.createMap().apply {
+                putString("type", "cursor_move")
+                putString("value", offset.toString())
+                putString("label", "")
+                putBoolean("hasNikkud", false)
+            }
+            emitKeyPressEvent(eventData)
+        }
+
+        // Initialize synced text with initial value
+        syncedText = initialText
+        lastNotifiedText = initialText
+
+        // Create keyboard engine with the proxy
+        val language = currentLanguage ?: "en"
+        debugLog("📱 Creating KeyboardEngine with language: $language")
+        val engine = KeyboardEngine(proxy, language, context)
+        keyboardEngine = engine
+        engine.suggestionController.initialize(context)
+        engine.suggestionController.setLanguage(language)
+
+        setupEngineCallbacks(engine)
+
+        // Re-render with the engine's renderer
+        if (parsedConfig != null) {
+            debugLog("📱 Rendering keyboard with engine")
+            renderKeyboard()
+        } else {
+            debugLog("⚠️ No config available yet - will render when config is set")
+        }
+    }
+
+    /**
+     * Wire the engine's renderer callbacks to React Native.
+     * Port of ios/IssieBoardNG/KeyboardPreviewView.swift setupEngineCallbacks().
+     */
+    private fun setupEngineCallbacks(engine: KeyboardEngine) {
+        val r = engine.renderer
+
+        // In preview mode, hide the globe (language) button - it's redundant
+        r.setShowGlobeButton(false)
+        r.setPreviewMode(maxHeight = previewMaxHeight)
+
+        // Chain our callback with the engine's own onKeyPress
+        val engineOnKeyPress = r.onKeyPress
+        r.onKeyPress = { key ->
+            // First, let the engine handle it
+            engineOnKeyPress?.invoke(key)
+
+            // Then forward event-type keys to React Native
+            if (key.type.lowercase() == "event") {
+                debugLog("📢 Forwarding event key to React Native: ${key.value}")
+                emitKeyPress(key)
+            }
+        }
+
+        r.onSuggestionsUpdated = { suggestions ->
+            debugLog("🔮 Sending ${suggestions.size} suggestions to React Native: $suggestions")
+            emitSuggestionsChangeEvent(suggestions)
+        }
+
+        r.onOpenSettings = {
+            emitOpenSettingsEvent()
+        }
+
+        r.onKeysetChanged = { newKeyset ->
+            val eventData: WritableMap = Arguments.createMap().apply {
+                putString("type", "keyset-changed")
+                putString("value", newKeyset)
+                putString("label", "")
+                putBoolean("hasNikkud", false)
+            }
+            emitKeyPressEvent(eventData)
+        }
+
+        r.onStateChange = {
+            forceLayoutRefresh()
+        }
+
+        // Re-report height when the nikkud top-row activates/deactivates
+        r.onNikkudStateChanged = {
+            renderKeyboard()
+        }
+
+        engine.getCurrentText = { syncedText }
+
+        engine.onRenderKeyboard = {
+            renderKeyboard()
+        }
+
+        engine.onLanguageSwitch = {
+            val eventData: WritableMap = Arguments.createMap().apply {
+                putString("type", "language")
+                putString("value", "")
+                putString("label", "")
+                putBoolean("hasNikkud", false)
+            }
+            emitKeyPressEvent(eventData)
+        }
+
+        // Report LTR so the renderer does not invert the space-swipe offset.
+        // The system keyboard needs that inversion because it drives the input
+        // connection, which works in reading order. In the preview the offset instead
+        // becomes a string-index delta, and React applies the RTL inversion itself —
+        // without this, both layers invert and cancel out, leaving the caret moving
+        // the wrong way or not at all.
+        engine.onGetTextDirection = { false }
+
+        // Provide the base letter before cursor for modifier filtering in top-row nikkud
+        r.onGetCharBeforeCursor = {
+            if (syncedText.isEmpty()) {
+                null
+            } else {
+                val breaker = java.text.BreakIterator.getCharacterInstance()
+                breaker.setText(syncedText)
+                breaker.last()
+                val lastCluster = syncedText.substring(breaker.previous())
+                lastCluster.codePoints().toArray()
+                    .firstOrNull { Character.isLetter(it) }
+                    ?.let { String(Character.toChars(it)) }
+            }
+        }
+    }
+
+    // MARK: - React Native Text Notification
+
+    private fun notifyReactNativeOfTextChange(newText: String, deletedDownTo: Int? = null) {
+        // Lengths MUST be in UTF-16 code units, because React slices the string with
+        // these values as JS indices and JS strings are UTF-16 indexed. Kotlin's
+        // String.length is already UTF-16, so it is the correct measure here — counting
+        // code points instead would collapse a Hebrew letter + nikkud into one unit
+        // where JS sees two, making React slice mid-cluster and duplicate text.
+        val prevLen = lastNotifiedText.length
+        lastNotifiedText = newText
+        // deletedTo: the number of chars that survived deletion.
+        // For pure inserts: equals prevLen (nothing deleted).
+        // For pure deletes: equals newText length (chars removed from tail).
+        // For compound delete+insert (e.g. "i"→"I"): the minimum length reached mid-operation.
+        val deletedTo = deletedDownTo ?: minOf(prevLen, newText.length)
+        debugLog("📝 Notifying React Native of text change: '$newText' (prevLen: $prevLen, deletedTo: $deletedTo)")
+
+        val eventData: WritableMap = Arguments.createMap().apply {
+            putString("type", "text_changed")
+            putString("value", newText)
+            putInt("prevLength", prevLen)
+            putInt("deletedTo", deletedTo)
+            putString("label", "")
+            putBoolean("hasNikkud", false)
+        }
+        emitKeyPressEvent(eventData)
+    }
+
+    /**
+     * Schedule a deferred text notification.
+     * Multiple calls within the same main-looper pass are coalesced — only the final
+     * syncedText value is sent. This prevents stale-state races in React when a single
+     * key operation does multiple insert/delete steps (e.g., "i"→"I" auto-capitalize).
+     */
+    private fun scheduleDeferredTextNotification() {
+        // Track the minimum length reached during this operation.
+        // Initialize from lastNotifiedText (the pre-operation baseline) on first call.
+        // UTF-16 code units, to match the indices React slices with.
+        if (!hasPendingTextNotification) {
+            pendingMinLength = lastNotifiedText.length
+        }
+        pendingMinLength = minOf(pendingMinLength, syncedText.length)
+
+        hasPendingTextNotification = true
+
+        post {
+            if (hasPendingTextNotification) {
+                hasPendingTextNotification = false
+                val minLen = pendingMinLength
+                pendingMinLength = Int.MAX_VALUE
+                notifyReactNativeOfTextChange(syncedText, minLen)
+                // Clear the keyboard operation flag after React Native has time to process
+                postDelayed({ isProcessingKeyboardOperation = false }, 50)
+            }
+        }
     }
 
     /**
@@ -338,9 +624,21 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
         val lang = language ?: "en"
         debugLog("🔧 setLanguage called with: $lang")
 
+        if (currentLanguage == lang) return
+        currentLanguage = lang
+
         // Reset renderer's keyset to default when language changes
         // so it doesn't try to use a stale keyset ID from the old config
         renderer?.currentKeysetId = ""
+
+        if (keyboardEngine != null) {
+            // KeyboardEngine.language is a val (unlike iOS, where it is mutable), so a
+            // language change means building a new engine. syncedText carries over —
+            // initializeInputMode seeds the fresh proxy with it.
+            debugLog("🔧 Language changed in input mode - recreating engine")
+            initializeInputMode(syncedText)
+            return
+        }
 
         // Update suggestion controller language
         suggestionController?.setLanguage(lang)
@@ -569,6 +867,14 @@ class KeyboardPreviewView(context: Context) : FrameLayout(context) {
 
     // MARK: - Key Press Handling
     
+    /**
+     * Config-mode key handling: maintain a local typedText buffer and emit one event
+     * per key, which MainScreen handles on its legacy path.
+     *
+     * Input mode never reaches here — the engine owns the text via
+     * CustomTextDocumentProxy and emits text_changed instead. These callbacks are only
+     * installed on configModeRenderer.
+     */
     private fun handleKeyPress(key: ParsedKey) {
         when (key.type.lowercase()) {
             "event", "suggestion" -> {

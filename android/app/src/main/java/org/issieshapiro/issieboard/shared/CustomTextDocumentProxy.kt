@@ -28,6 +28,12 @@ class CustomTextDocumentProxy : TextDocumentProxyProtocol {
     /** Callback to notify React Native to delete backward */
     var onDeleteBackward: (() -> Unit)? = null
 
+    /** Callback to notify React Native to delete a single Unicode scalar backward */
+    var onDeleteScalarBackward: (() -> Unit)? = null
+
+    /** Callback to notify React Native to move the cursor */
+    var onCursorMove: ((Int) -> Unit)? = null
+
     /** Cursor position (index in string) - always at end for now */
     private val cursorPosition: Int
         get() = getCurrentText?.invoke()?.length ?: 0
@@ -67,9 +73,14 @@ class CustomTextDocumentProxy : TextDocumentProxyProtocol {
         onDeleteBackward?.invoke()
     }
 
+    override fun deleteScalarBackward() {
+        Log.d(TAG, "deleteScalarBackward")
+        onDeleteScalarBackward?.invoke()
+    }
+
     override fun adjustTextPosition(offset: Int) {
-        // Not implemented for simple use case (cursor always at end)
-        Log.d(TAG, "adjustTextPosition: $offset (not implemented)")
+        Log.d(TAG, "adjustTextPosition: $offset")
+        onCursorMove?.invoke(offset)
     }
 
     // MARK: - Field Type Hints (not applicable for preview, return defaults)

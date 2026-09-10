@@ -91,6 +91,16 @@ class KeyboardRenderer(private val context: Context) {
     private var shiftState: ShiftState = ShiftState.INACTIVE
     private var nikkudActive: Boolean = false
     private var cursorMoveMode: Boolean = false
+    /** Set when a cursor-move long-press ends, so the trailing click (which fires
+     * independently of the touch listener) is not treated as a space tap.
+     * Cleared on the next main-looper pass. */
+    private var justFinishedCursorMove: Boolean = false
+    /** The key when the space-like key is really a nikkud key, so a stationary
+     * long-press can still toggle nikkud mode. */
+    private var nikkudLongPressKey: ParsedKey? = null
+    /** True once the finger has travelled far enough to count as a cursor move
+     * rather than a stationary long-press. */
+    private var cursorMoveDidMove: Boolean = false
     private var config: KeyboardConfig? = null
     var currentKeysetId: String = ""  // Public so container can read it
     private var editorContext: EditorContext? = null
@@ -1946,7 +1956,19 @@ class KeyboardRenderer(private val context: Context) {
                     handleKeyClick(key, it)
                 }
 
-                if (keyType == "nikkud") {
+                if (keyType == "nikkud" && isNikkudActingAsSpace()) {
+                    // This nikkud key stands in for space (narrow layouts forward its short
+                    // tap as a space, see handleKeyClick), so it must get the cursor-move
+                    // gesture — otherwise long-pressing the only space-like key on the
+                    // keyboard just inserts a space on release.
+                    //
+                    // Deliberately independent of `nikkudActive`: that flag flips whenever
+                    // nikkud mode is toggled and the keyboard re-renders, so keying the
+                    // gesture to it would silently drop cursor-move after the first use.
+                    // A stationary press still toggles nikkud mode — see spaceLongPressEnd.
+                    nikkudLongPressKey = key
+                    attachCursorMoveTouchListener(buttonContainer)
+                } else if (keyType == "nikkud") {
                     // Nikkud: requires 0.5 sec long-press to activate (when inactive)
                     var longPressHandler: android.os.Handler? = null
                     var longPressRunnable: Runnable? = null
@@ -1962,9 +1984,7 @@ class KeyboardRenderer(private val context: Context) {
                                     longPressRunnable = Runnable {
                                         debugLog("🔑 Nikkud long-pressed - activating")
                                         didLongPress = true
-                                        nikkudActive = true
-                                        onNikkudActivePersist?.invoke(true)
-                                        rerender()
+                                        keyLongPressAction(key)
                                     }
                                     longPressHandler?.postDelayed(longPressRunnable!!, 500)
                                 }
@@ -2057,42 +2077,7 @@ class KeyboardRenderer(private val context: Context) {
             val keyType = key.type.lowercase()
             if (keyType == "space" || key.value == " ") {
                 // Space key: long-press for cursor movement
-                var longPressHandler: android.os.Handler? = null
-                var longPressRunnable: Runnable? = null
-                
-                buttonContainer.setOnTouchListener { _, event ->
-                    when (event.action) {
-                        MotionEvent.ACTION_DOWN -> {
-                            // Start long-press timer for cursor mode
-                            longPressHandler = android.os.Handler(android.os.Looper.getMainLooper())
-                            longPressRunnable = Runnable {
-                                spaceLongPressAction(event, buttonContainer)
-                            }
-                            longPressHandler?.postDelayed(longPressRunnable!!, 500)
-                            false
-                        }
-                        MotionEvent.ACTION_MOVE -> {
-                            if (cursorMoveMode) {
-                                spaceLongPressAction(event, buttonContainer)
-                                true
-                            } else {
-                                false
-                            }
-                        }
-                        MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                            longPressHandler?.removeCallbacks(longPressRunnable!!)
-                            if (cursorMoveMode) {
-                                // End cursor mode
-                                spaceLongPressEnd()
-                                true
-                            } else {
-                                // Normal tap - let click listener handle it
-                                false
-                            }
-                        }
-                        else -> false
-                    }
-                }
+                attachCursorMoveTouchListener(buttonContainer)
             } else if (keyType == "keyset") {
                 // Keyset: long-press for edit mode selection
                 if (isSelectionMode) {
@@ -2175,6 +2160,11 @@ class KeyboardRenderer(private val context: Context) {
         // Ignore tap if keyset slide gesture took over (port of iOS isKeysetSlideActive guard)
         if (isKeysetSlideActive) return
 
+        // Ignore the click that ends a cursor-move long-press. The click listener fires
+        // independently of the touch listener, so without this a space would be inserted
+        // every time the user finishes swiping.
+        if (cursorMoveMode || justFinishedCursorMove) return
+
         alwaysLog("🔑 Key clicked: type='${key.type}', value='${key.value}'")
         debugLog("🔑 Key clicked: type='${key.type}', value='${key.value}'")
         
@@ -2205,7 +2195,7 @@ class KeyboardRenderer(private val context: Context) {
                 } else {
                     // Normal mode, nikkud inactive: short tap = space if layout is narrow
                     val spaceInfo = findSpaceKeyInfo()
-                    if (spaceInfo != null && spaceInfo.second < lastRenderedRegularKeyWidth * 6) {
+                    if (spaceInfo != null && isNikkudActingAsSpace()) {
                         debugLog("   → Nikkud short-tap: forwarding as space (spaceWidth=${spaceInfo.second}, threshold=${lastRenderedRegularKeyWidth * 6})")
                         onKeyPress?.invoke(spaceInfo.first)
                     } else {
@@ -2596,6 +2586,15 @@ class KeyboardRenderer(private val context: Context) {
         return null
     }
 
+    /** True when a nikkud key doubles as the space key. On narrow layouts a short
+     * tap on nikkud is forwarded as a space (see handleKeyClick), which makes it
+     * the de-facto space key for long-press cursor movement too.
+     * Port of ios/Shared/KeyboardRenderer.swift isNikkudActingAsSpace() */
+    private fun isNikkudActingAsSpace(): Boolean {
+        val spaceInfo = findSpaceKeyInfo() ?: return false
+        return spaceInfo.second < lastRenderedRegularKeyWidth * 6
+    }
+
     // MARK: - Nikkud Top Row
 
     /**
@@ -2949,68 +2948,154 @@ class KeyboardRenderer(private val context: Context) {
     }
     
     // MARK: - Cursor Movement
-    
-    /** Handle space long-press action (begin or move) */
-    private fun spaceLongPressAction(event: MotionEvent, view: View) {
-        if (!cursorMoveMode) {
-            // Begin cursor mode
-            debugLog("🔄 Space long-press BEGAN - entering cursor move mode")
-            cursorMoveMode = true
-            cursorMoveStartPoint = android.graphics.PointF(event.rawX, event.rawY)
-            cursorMoveAccumulatedDistance = 0f
-            
-            // Lock text direction at the start of the session
-            cursorMoveDirectionIsRTL = onGetTextDirection?.invoke() ?: isCurrentKeyboardRTL()
-            debugLog("🔄 Direction locked: isRTL=$cursorMoveDirectionIsRTL")
-            
-            // Clear suggestions while in cursor mode
-            clearSuggestions()
-            
-            // Dim all keys to indicate cursor mode
-            dimKeysForCursorMode(true)
-        } else {
-            // Continue cursor movement
-            val currentPoint = android.graphics.PointF(event.rawX, event.rawY)
-            val deltaX = currentPoint.x - cursorMoveStartPoint.x
-            
-            // Add to accumulated distance
-            cursorMoveAccumulatedDistance += deltaX
-            
-            // Check if we've moved enough to trigger a cursor movement
-            val charactersToMove = (cursorMoveAccumulatedDistance / cursorMoveSensitivity).toInt()
-            
-            if (charactersToMove != 0) {
-                // Use the locked direction from session start
-                var offset = charactersToMove
-                
-                // Reverse direction for RTL text
-                if (cursorMoveDirectionIsRTL) {
-                    offset = -offset
+
+    /**
+     * Attach the cursor-move long-press gesture to a key.
+     *
+     * Shared by the real space key and by a nikkud key that stands in for space on
+     * narrow layouts. Raw coordinates are passed by value rather than holding the
+     * MotionEvent: the begin action runs from a delayed Runnable, by which time the
+     * event object has been recycled and its coordinates are no longer valid.
+     */
+    private fun attachCursorMoveTouchListener(buttonContainer: View) {
+        var longPressHandler: android.os.Handler? = null
+        var longPressRunnable: Runnable? = null
+
+        buttonContainer.setOnTouchListener { _, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    // Capture by value — `event` is recycled before the runnable fires.
+                    val downX = event.rawX
+                    val downY = event.rawY
+                    longPressHandler = android.os.Handler(android.os.Looper.getMainLooper())
+                    longPressRunnable = Runnable {
+                        spaceLongPressBegin(downX, downY)
+                    }
+                    longPressHandler?.postDelayed(longPressRunnable!!, 500)
+                    false
                 }
-                
-                debugLog("🔄 Cursor move: deltaX=$deltaX, accumulated=$cursorMoveAccumulatedDistance, isRTL=$cursorMoveDirectionIsRTL, moving $offset characters")
-                
-                // Move cursor via callback
-                onCursorMove?.invoke(offset)
-                
-                // Reset accumulated distance by the amount we just moved
-                cursorMoveAccumulatedDistance -= charactersToMove * cursorMoveSensitivity
-                
-                // Update start point for next delta calculation
-                cursorMoveStartPoint = currentPoint
+                MotionEvent.ACTION_MOVE -> {
+                    if (cursorMoveMode) {
+                        // Travel does not cancel the gesture — movement IS the gesture.
+                        spaceLongPressMove(event.rawX, event.rawY)
+                        true
+                    } else {
+                        false
+                    }
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    longPressRunnable?.let { longPressHandler?.removeCallbacks(it) }
+                    if (cursorMoveMode) {
+                        // End cursor mode
+                        spaceLongPressEnd(wasCancelled = event.action == MotionEvent.ACTION_CANCEL)
+                        true
+                    } else {
+                        // Normal tap - let click listener handle it
+                        false
+                    }
+                }
+                else -> false
             }
         }
     }
-    
+
+    /** Begin a cursor-move session at the given raw screen coordinates */
+    private fun spaceLongPressBegin(rawX: Float, rawY: Float) {
+        debugLog("🔄 Space long-press BEGAN - entering cursor move mode")
+        cursorMoveMode = true
+        cursorMoveDidMove = false
+        cursorMoveStartPoint = android.graphics.PointF(rawX, rawY)
+        cursorMoveAccumulatedDistance = 0f
+
+        // Lock text direction at the start of the session
+        cursorMoveDirectionIsRTL = onGetTextDirection?.invoke() ?: isCurrentKeyboardRTL()
+        debugLog("🔄 Direction locked: isRTL=$cursorMoveDirectionIsRTL")
+
+        // Clear suggestions while in cursor mode
+        clearSuggestions()
+
+        // Dim all keys to indicate cursor mode
+        dimKeysForCursorMode(true)
+    }
+
+    /** Continue an in-progress cursor-move session */
+    private fun spaceLongPressMove(rawX: Float, rawY: Float) {
+        // Continue cursor movement
+        val currentPoint = android.graphics.PointF(rawX, rawY)
+        val deltaX = currentPoint.x - cursorMoveStartPoint.x
+
+        // Add to accumulated distance
+        cursorMoveAccumulatedDistance += deltaX
+
+        // Check if we've moved enough to trigger a cursor movement
+        val charactersToMove = (cursorMoveAccumulatedDistance / cursorMoveSensitivity).toInt()
+
+        if (charactersToMove != 0) {
+            // Any real travel means this is a cursor move, not a stationary
+            // long-press that should toggle nikkud mode.
+            cursorMoveDidMove = true
+
+            // Use the locked direction from session start
+            var offset = charactersToMove
+
+            // Reverse direction for RTL text
+            if (cursorMoveDirectionIsRTL) {
+                offset = -offset
+            }
+
+            debugLog("🔄 Cursor move: deltaX=$deltaX, accumulated=$cursorMoveAccumulatedDistance, isRTL=$cursorMoveDirectionIsRTL, moving $offset characters")
+
+            // Move cursor via callback
+            onCursorMove?.invoke(offset)
+
+            // Reset accumulated distance by the amount we just moved
+            cursorMoveAccumulatedDistance -= charactersToMove * cursorMoveSensitivity
+
+            // Update start point for next delta calculation
+            cursorMoveStartPoint = currentPoint
+        }
+    }
+
     /** End space long-press (exit cursor mode) */
-    private fun spaceLongPressEnd() {
-        debugLog("🔄 Space long-press ENDED - exiting cursor move mode")
+    private fun spaceLongPressEnd(wasCancelled: Boolean = false) {
+        debugLog("🔄 Space long-press ENDED - exiting cursor move mode (didMove=$cursorMoveDidMove)")
         cursorMoveMode = false
         cursorMoveStartPoint = android.graphics.PointF(0f, 0f)
         cursorMoveAccumulatedDistance = 0f
-        
+
+        // Suppress the trailing click so ending the swipe does not also insert a space.
+        justFinishedCursorMove = true
+        container?.post { justFinishedCursorMove = false }
+
+        // A stationary long-press on a nikkud key that doubles as space keeps its
+        // original meaning: toggle nikkud mode.
+        val stationaryNikkudKey = nikkudLongPressKey
+        if (!cursorMoveDidMove && !wasCancelled && stationaryNikkudKey != null) {
+            debugLog("🔄 No movement — treating as nikkud long-press")
+            keyLongPressAction(stationaryNikkudKey)
+        }
+        cursorMoveDidMove = false
+
         // Restore normal key appearance
         dimKeysForCursorMode(false)
+    }
+
+    /**
+     * The effect of a long-press on a key, independent of which listener saw it.
+     * Shared with the cursor-move gesture, where a nikkud key that doubles as the
+     * space key reaches this only when the press stayed put (no cursor movement).
+     * Port of ios/Shared/KeyboardRenderer.swift keyLongPressAction(for:)
+     */
+    private fun keyLongPressAction(key: ParsedKey) {
+        // Handle nikkud key - only activate if currently inactive
+        if (key.type.lowercase() == "nikkud") {
+            if (!nikkudActive) {
+                debugLog("🔑 Nikkud long-pressed - activating")
+                nikkudActive = true
+                onNikkudActivePersist?.invoke(true)
+                rerender()
+            }
+        }
     }
     
     /** Dim or restore keys for cursor movement mode */

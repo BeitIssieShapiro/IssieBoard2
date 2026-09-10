@@ -63,6 +63,26 @@ class NikkudPickerController(private val context: Context) {
     /** Current keyboard ID */
     private var currentKeyboardId: String? = null
 
+    /**
+     * Button size that fits `itemsPerRow` columns inside the container.
+     *
+     * Port of the sizing in ios/Shared/NikkudPickerController.swift showPicker():
+     * cap at 85% of the container width, subtract inter-button spacing and the
+     * container's own padding, then divide by the column count. Never upscale past
+     * keyRowHeight — only shrink to fit. Without this the row is laid out at the full
+     * key height regardless of screen width and overflows on narrow devices.
+     */
+    private fun fittedButtonSize(itemsPerRow: Int): Int {
+        // The container is the keyboard, which spans the screen; fall back to the
+        // display width when it is null or not laid out yet.
+        val containerWidth = container?.width?.takeIf { it > 0 }
+            ?: context.resources.displayMetrics.widthPixels
+        val maxAvailableWidth = containerWidth * 0.85f
+        val totalSpacing = spacing * (itemsPerRow - 1) + 2 * padding
+        val calculatedButtonSize = ((maxAvailableWidth - totalSpacing) / itemsPerRow).toInt()
+        return min(keyRowHeight, calculatedButtonSize)
+    }
+
     /** Key styling from keyboard config */
     private var keyRowHeight: Int = dpToPx(50)
     private var keyFontSize: Float = 24f
@@ -230,7 +250,8 @@ class NikkudPickerController(private val context: Context) {
         
         // Calculate layout
         val itemsPerRow = min(6, max(3, nikkudOptions.size))
-        
+        val buttonSize = fittedButtonSize(itemsPerRow)
+
         // Create main container
         val mainLayout = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
@@ -243,7 +264,7 @@ class NikkudPickerController(private val context: Context) {
             }
             elevation = dpToPx(8).toFloat()
         }
-        
+
         // Build rows dynamically
         val rows = nikkudOptions.chunked(itemsPerRow)
         rows.forEachIndexed { rowIndex, rowOptions ->
@@ -257,10 +278,10 @@ class NikkudPickerController(private val context: Context) {
                     if (rowIndex > 0) topMargin = spacing
                 }
             }
-            
+
             rowOptions.forEachIndexed { colIndex, option ->
-                val button = createNikkudButton(option.caption ?: option.value, option.value)
-                val params = LinearLayout.LayoutParams(keyRowHeight, keyRowHeight)
+                val button = createNikkudButton(option.caption ?: option.value, option.value, buttonSize)
+                val params = LinearLayout.LayoutParams(buttonSize, buttonSize)
                 if (colIndex > 0) params.marginStart = spacing
                 rowLayout.addView(button, params)
             }
@@ -294,7 +315,8 @@ class NikkudPickerController(private val context: Context) {
         
         // Calculate layout
         val itemsPerRow = min(6, max(3, nikkudOptions.size))
-        
+        val buttonSize = fittedButtonSize(itemsPerRow)
+
         // Create main container
         val mainLayout = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
@@ -307,7 +329,7 @@ class NikkudPickerController(private val context: Context) {
             }
             elevation = dpToPx(8).toFloat()
         }
-        
+
         // Create options container (separate from modifier row for in-place updates)
         val optionsContainer = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
@@ -328,8 +350,8 @@ class NikkudPickerController(private val context: Context) {
             }
             
             rowOptions.forEachIndexed { colIndex, option ->
-                val button = createNikkudButton(option.caption ?: option.value, option.value)
-                val params = LinearLayout.LayoutParams(keyRowHeight, keyRowHeight)
+                val button = createNikkudButton(option.caption ?: option.value, option.value, buttonSize)
+                val params = LinearLayout.LayoutParams(buttonSize, buttonSize)
                 if (colIndex > 0) params.marginStart = spacing
                 rowLayout.addView(button, params)
             }
@@ -431,14 +453,29 @@ class NikkudPickerController(private val context: Context) {
         }
     }
     
-    private fun createNikkudButton(caption: String, value: String): Button {
+    /**
+     * @param buttonSize the final laid-out size of this button, used to shrink the font
+     *   so the glyph and its marks fit. Pass null to keep the full configured size.
+     */
+    private fun createNikkudButton(caption: String, value: String, buttonSize: Int? = null): Button {
         return Button(context).apply {
             text = caption
-            textSize = keyFontSize
+            textSize = fittedFontSize(buttonSize)
             setTypeface(typeface, keyFontWeight)
             gravity = Gravity.CENTER
             isAllCaps = false
-            
+
+            // Android Buttons carry sizeable default padding and a minimum width/height,
+            // which eat into an already-shrunken button and clip the glyph. iOS uses 4pt
+            // insets here, so match that and drop the minimums.
+            val inset = dpToPx(4)
+            setPadding(inset, inset, inset, inset)
+            minWidth = 0
+            minHeight = 0
+            minimumWidth = 0
+            minimumHeight = 0
+            includeFontPadding = false
+
             val bgDrawable = GradientDrawable().apply {
                 setColor(Color.WHITE)
                 cornerRadius = dpToPx(8).toFloat()
@@ -446,12 +483,29 @@ class NikkudPickerController(private val context: Context) {
             }
             background = bgDrawable
             setTextColor(Color.BLACK)
-            
+
             tag = value
             setOnClickListener { v ->
                 nikkudOptionTapped(v)
             }
         }
+    }
+
+    /**
+     * Scale the font down when the button had to shrink to fit the screen.
+     *
+     * iOS gets this from adjustsFontSizeToFitWidth with minimumScaleFactor = 0.5.
+     * Android's platform auto-sizing needs API 26 (minSdk here is 24), so derive the
+     * size directly: keep the configured font while the button is at full size, and
+     * scale in proportion once it shrinks — never below half, matching iOS's floor.
+     *
+     * A vocalized letter needs vertical room for marks below the glyph, so the font is
+     * kept to a fraction of the button box rather than filling it.
+     */
+    private fun fittedFontSize(buttonSize: Int?): Float {
+        if (buttonSize == null || buttonSize <= 0 || keyRowHeight <= 0) return keyFontSize
+        val scale = (buttonSize.toFloat() / keyRowHeight.toFloat()).coerceIn(0.5f, 1.0f)
+        return keyFontSize * scale
     }
     
     private fun createModifierRow(letter: String): ViewGroup {

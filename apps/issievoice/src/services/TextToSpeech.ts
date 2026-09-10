@@ -8,6 +8,17 @@ export interface TTSSettings {
   voice?: string; // Optional voice ID
 }
 
+/**
+ * A tts-progress event. Every field is optional because the two platforms send
+ * different shapes — iOS `{location, length}`, Android `{start, end, frame}`.
+ */
+export interface TtsProgressEvent {
+  location?: number;
+  length?: number;
+  start?: number;
+  end?: number;
+}
+
 class TextToSpeechService {
   private initialized = false;
 
@@ -97,7 +108,18 @@ class TextToSpeechService {
     Tts.addEventListener('tts-start', callback);
   }
 
-  onTtsProgress(callback: (event: {location: number; length: number}) => void): void {
+  /**
+   * The tts-progress payload differs by platform:
+   *
+   * - iOS sends AVSpeechSynthesizer's willSpeakRangeOfSpeechString as
+   *   `{location, length}` — an offset and a span.
+   * - Android sends UtteranceProgressListener.onRangeStart as
+   *   `{start, end, frame}` — two absolute offsets, and no `location`/`length`
+   *   keys at all.
+   *
+   * Callers must normalise before use — see toCharacterRange in TTSContext.
+   */
+  onTtsProgress(callback: (event: TtsProgressEvent) => void): void {
     Tts.addEventListener('tts-progress', callback);
   }
 

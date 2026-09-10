@@ -60,6 +60,26 @@ class SystemTextDocumentProxy(
         }
     }
 
+    /**
+     * Delete exactly one Unicode scalar backward.
+     *
+     * Unlike iOS — where UIKit's deleteBackward already removes a single combining
+     * mark, so the protocol default suffices — deleteBackward() above deliberately
+     * deletes a whole grapheme cluster. Stripping a nikkud vowel therefore has to go
+     * through here, or the base letter is taken with it.
+     */
+    override fun deleteScalarBackward() {
+        val before = inputConnection.getTextBeforeCursor(2, 0)?.toString()
+        if (before.isNullOrEmpty()) {
+            inputConnection.deleteSurroundingText(1, 0)
+            return
+        }
+        // A supplementary code point occupies two UTF-16 units; delete both so we
+        // never leave a lone surrogate behind.
+        val lastCodePoint = before.codePointBefore(before.length)
+        inputConnection.deleteSurroundingText(Character.charCount(lastCodePoint), 0)
+    }
+
     override fun adjustTextPosition(offset: Int) {
         // Move cursor by offset
         if (offset != 0) {

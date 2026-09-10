@@ -33,9 +33,19 @@ interface TextDocumentProxyProtocol {
     fun insertText(text: String)
 
     /**
-     * Delete one character backward
+     * Delete one user-visible character backward (a whole grapheme cluster,
+     * e.g. a Hebrew letter together with its nikkud)
      */
     fun deleteBackward()
+
+    /**
+     * Delete one Unicode scalar backward — used to strip a single combining mark
+     * (e.g. replacing one nikkud vowel with another) without removing its base letter.
+     *
+     * Default forwards to deleteBackward(). Implementations whose deleteBackward()
+     * removes a whole grapheme cluster MUST override this.
+     */
+    fun deleteScalarBackward() = deleteBackward()
 
     /**
      * Adjust cursor position by character offset

@@ -1,9 +1,41 @@
 import React, {createContext, useContext, useEffect, useState, ReactNode} from 'react';
-import TTS, {TTSSettings} from '../services/TextToSpeech';
+import TTS, {TTSSettings, TtsProgressEvent} from '../services/TextToSpeech';
 
 interface SpokenRange {
   location: number;
   length: number;
+}
+
+/**
+ * Normalise a platform tts-progress payload to `{location, length}`.
+ *
+ * iOS sends `{location, length}`; Android's UtteranceProgressListener.onRangeStart
+ * sends `{start, end, frame}` with no `location`/`length` keys at all. Reading
+ * `location` off an Android event yields undefined, which makes the highlight
+ * slicing produce `substring(0, undefined)` — the whole string — followed by
+ * `substring(NaN)`, also the whole string, rendering the text twice.
+ *
+ * Returns null for a payload carrying neither shape, so a malformed event clears
+ * the highlight rather than moving it somewhere arbitrary.
+ */
+function toCharacterRange(event: TtsProgressEvent): SpokenRange | null {
+  // iOS. Checked first so its length — which may legitimately be 0 for an
+  // empty range — is preserved exactly as reported.
+  if (Number.isFinite(event.location)) {
+    const location = event.location as number;
+    const length = Number.isFinite(event.length) ? (event.length as number) : 1;
+    return {location, length};
+  }
+
+  // Android. `end` is exclusive, so the span is end - start; guard against a
+  // malformed event where end <= start by falling back to a 1-char range.
+  if (Number.isFinite(event.start)) {
+    const location = event.start as number;
+    const end = Number.isFinite(event.end) ? (event.end as number) : location + 1;
+    return {location, length: Math.max(end - location, 1)};
+  }
+
+  return null;
 }
 
 interface TTSContextType {
@@ -64,7 +96,7 @@ export const TTSProvider = ({children}: {children: ReactNode}) => {
       setSpokenText(null);
     });
     TTS.onTtsProgress((event) => {
-      setSpokenRange({location: event.location, length: event.length});
+      setSpokenRange(toCharacterRange(event));
     });
 
     return () => {

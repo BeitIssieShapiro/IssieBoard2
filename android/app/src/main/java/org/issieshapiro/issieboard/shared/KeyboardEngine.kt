@@ -528,8 +528,14 @@ class KeyboardEngine(
             return
         }
 
-        // Get the last grapheme cluster
-        val lastCluster = before.takeLast(1)
+        // Get the last grapheme cluster — the base letter together with any combining
+        // marks already on it. takeLast(1) would grab a single UTF-16 char, which for a
+        // vocalized letter is just the trailing mark, so no conflict would ever be found.
+        val breaker = java.text.BreakIterator.getCharacterInstance()
+        breaker.setText(before)
+        breaker.last()
+        val clusterStart = breaker.previous()
+        val lastCluster = before.substring(clusterStart)
         val scalars = lastCluster.codePoints().toArray()
 
         // Find an existing mark in the same conflict group
@@ -546,9 +552,11 @@ class KeyboardEngine(
 
         val scalarsAfter = scalars.size - 1 - conflictIndex
 
-        // Delete everything from the existing mark to end of cluster
-        repeat(scalarsAfter) { textProxy.deleteBackward() }
-        textProxy.deleteBackward() // delete the existing mark
+        // Delete everything from the existing mark to end of cluster.
+        // Scalar-granular: these are combining marks, and removing a whole grapheme
+        // cluster here would take the base letter with them.
+        repeat(scalarsAfter) { textProxy.deleteScalarBackward() }
+        textProxy.deleteScalarBackward() // delete the existing mark
 
         // Re-insert tail (marks after the conflicting one)
         if (scalarsAfter > 0) {

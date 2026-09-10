@@ -108,10 +108,19 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1
       return <Text style={[styles.highlightText, { fontSize, lineHeight }, isTextRTL && styles.textInputRTL, speakButtonPadding > 0 && { paddingBottom: speakButtonPadding }]}>{text}</Text>;
     }
 
+    // Clamp to the text: a range that runs past the end (or carries a non-finite
+    // offset from a malformed progress event) would otherwise slice with NaN and
+    // emit the whole string in both the `before` and `after` segments, rendering
+    // the text twice.
     const { location, length } = spokenRange;
-    const before = text.substring(0, location);
-    const highlighted = text.substring(location, location + length);
-    const after = text.substring(location + length);
+    if (!Number.isFinite(location) || !Number.isFinite(length)) {
+      return <Text style={[styles.highlightText, { fontSize, lineHeight }, isTextRTL && styles.textInputRTL, speakButtonPadding > 0 && { paddingBottom: speakButtonPadding }]}>{text}</Text>;
+    }
+    const start = Math.max(0, Math.min(location, text.length));
+    const end = Math.max(start, Math.min(start + length, text.length));
+    const before = text.substring(0, start);
+    const highlighted = text.substring(start, end);
+    const after = text.substring(end);
 
     return (
       <Text style={[styles.highlightText, { fontSize, lineHeight }, isTextRTL && styles.textInputRTL, speakButtonPadding > 0 && { paddingBottom: speakButtonPadding }]}>
@@ -259,7 +268,15 @@ const styles = StyleSheet.create({
     borderRadius: 27,
   },
   hiddenTextInput: {
-    color: 'transparent',
+    // Hide the input's own text so only the highlight overlay is visible.
+    // Android keeps painting the text despite a transparent color, leaving it
+    // showing through under the overlay — so make the whole input invisible there.
+    // opacity is not used on iOS because it would also hide the caret, which stays
+    // visible while speaking.
+    ...Platform.select({
+      android: { opacity: 0 },
+      default: { color: 'transparent' },
+    }),
   },
   highlightOverlay: {
     position: 'absolute',
@@ -272,9 +289,16 @@ const styles = StyleSheet.create({
     color: colors.text,
     textAlignVertical: 'top',
     textAlign: 'left',
-    paddingTop: 13,
+    // Match the TextInput's paddingTop so the overlay sits exactly on top of the
+    // text it replaces. iOS needs +5 because a UITextView insets its own text
+    // relative to a plain Text; Android lays both out the same, and the extra
+    // offset there is what made the overlay appear ~20px below the input's text.
+    paddingTop: Platform.OS === 'ios' ? 13 : 8,
     paddingLeft: 64,
     paddingRight: 64,
+    // Android adds extra leading above the first line of a Text but not inside a
+    // TextInput, which would push the overlay down even with matching padding.
+    ...Platform.select({ android: { includeFontPadding: false }, default: {} }),
   },
   highlightedWord: {
     backgroundColor: '#FFD700',
