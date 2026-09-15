@@ -246,6 +246,7 @@ export interface Strings {
     namePlaceholder: string;
     presetKeysLocked: string;
     tapKeysToSelect: string;
+    tapKeysToShowOnly: string;
     visibility: string;
     visibilityDefault: string;
     visibilityHide: string;
@@ -267,6 +268,7 @@ export interface Strings {
     namePlaceholder: string;
     presetKeysLocked: string;
     tapKeysToSelect: string;
+    tapKeysToShowOnly: string;
     visibility: string;
     visibilityDefault: string;
     visibilityHide: string;
@@ -629,6 +631,7 @@ const en: Strings = {
     namePlaceholder: 'Enter group name',
     presetKeysLocked: 'Preset keys are locked and cannot be changed.',
     tapKeysToSelect: 'Tap keys on the keyboard preview to select them.',
+    tapKeysToShowOnly: 'Tap the keys you want visible. Any key you do not select will be hidden.',
     visibility: 'Visibility',
     visibilityDefault: 'Default (Visible)',
     visibilityHide: 'Hide',
@@ -991,6 +994,7 @@ const he: Strings = {
     namePlaceholder: 'הזן שם קבוצה',
     presetKeysLocked: 'מקשי תבנית נעולים ולא ניתנים לשינוי.',
     tapKeysToSelect: 'לחץ על מקשים בתצוגה המקדימה כדי לבחור אותם.',
+    tapKeysToShowOnly: 'בחר את המקשים שברצונך שיהיו גלויים. כל מקש שלא ייבחר יוסתר.',
     visibility: 'נראות',
     visibilityDefault: 'ברירת מחדל (גלוי)',
     visibilityHide: 'הסתר',
@@ -1353,6 +1357,7 @@ const ar: Strings = {
     namePlaceholder: 'أدخل اسم المجموعة',
     presetKeysLocked: 'مفاتيح القالب مقفلة ولا يمكن تغييرها.',
     tapKeysToSelect: 'اضغط على المفاتيح في المعاينة لتحديدها.',
+    tapKeysToShowOnly: 'اضغط على المفاتيح التي تريد إظهارها. سيتم إخفاء أي مفتاح لا تحدده.',
     visibility: 'الرؤية',
     visibilityDefault: 'افتراضي (مرئي)',
     visibilityHide: 'إخفاء',

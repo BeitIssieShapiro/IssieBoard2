@@ -57,7 +57,36 @@ describe('the modal offers only the sections for the type', () => {
   });
 
   test('presets keep both sections so they lose nothing', () => {
-    expect(MODAL).toMatch(/setGroupType\(isPreset \? 'both'/);
+    // The type is computed into newGroupType first (IssieCalc needs it to pin
+    // the visibility mode), then stored — so assert on the derivation.
+    expect(MODAL).toMatch(/newGroupType = isPreset \? 'both'/);
+    expect(MODAL).toContain('setGroupType(newGroupType)');
+  });
+});
+
+describe('IssieCalc visibility groups are always "show only"', () => {
+  test('the mode selector is hidden there', () => {
+    // One behaviour only, so the three-way selector would be a dead choice.
+    expect(MODAL).toContain("const isCalcVisibilityOnly = appContext === 'issiecalc'");
+    expect(MODAL).toContain('{!isCalcVisibilityOnly && (');
+  });
+
+  test('the mode is pinned on both the new and editing paths', () => {
+    const start = MODAL.indexOf('if (visible) {');
+    const body = MODAL.slice(start, MODAL.indexOf('}, [visible]', start));
+    // Editing an existing group must not read a stale 'hide'/'default' back.
+    expect(body).toMatch(/isCalcVisibilityOnly && showsVisibility\(getGroupType\(editingGroup\)\)[\s\S]*?setVisibilityMode\('showOnly'\)/);
+    // New groups start pinned too, since there is no selector to change it.
+    expect(body).toMatch(/isCalcVisibilityOnly && showsVisibility\(newGroupType\)[\s\S]*?'showOnly'/);
+  });
+
+  test('the instruction tells the user to pick the keys to show', () => {
+    // The generic "tap keys to select them" does not say what selecting does
+    // when the only outcome is visibility.
+    expect(MODAL).toContain('strings.styleRuleModal.tapKeysToShowOnly');
+    const STRINGS = read('src/localization/strings.ts');
+    // Declared in the interface and translated in all three languages.
+    expect(STRINGS.split('tapKeysToShowOnly').length - 1).toBe(5);
   });
 });
 

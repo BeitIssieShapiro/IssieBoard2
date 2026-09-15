@@ -309,6 +309,20 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
   // just as the size follows fontSizePreset.
   const displayFontWeight = resolveDisplayFontWeight(liveConfig?.fontWeight);
 
+  // In result mode the expression and result share one row when they fit, and
+  // fall back to two rows when they don't. We can't predict the width — template
+  // expressions (√, logᵧ, xʸ) render as nested Views — so we lay the combined row
+  // out invisibly, measure it, then commit to one layout or the other.
+  const [displayWidth, setDisplayWidth] = useState(0);
+  const [combinedFits, setCombinedFits] = useState<boolean | null>(null);
+  // Re-measure whenever anything that changes the row's width changes.
+  const measureKey = `${expression} ${result} ${resultFontSize} ${displayWidth}`;
+  const measuredKey = useRef<string | null>(null);
+  if (measuredKey.current !== measureKey) {
+    measuredKey.current = measureKey;
+    if (combinedFits !== null) setCombinedFits(null);
+  }
+
   const heightRatio = (() => {
     const preset = liveConfig?.heightPreset ?? 'normal';
     if (isScientific) {
@@ -421,6 +435,23 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
   const dimTextColor = displayTextColor === '#000000' ? '#555555' : '#8E8E93';
   const fadedTextStyle = { color: displayTextColor, opacity: 0.6 } as const;
 
+  const showAngleIndicator = keyset === 'scientific' || keyset === 'scientific_landscape_2nd' || keyset === 'scientific_2nd';
+  const angleIndicator = showAngleIndicator
+    ? <Text style={[styles.angleIndicator, fadedTextStyle]}>{angleMode === 'rad' ? 'Rad' : 'Deg'}</Text>
+    : null;
+
+  // Shared by the one-row and two-row layouts so they can't drift apart.
+  const resultText = result === 'NUMBER_TOO_BIG' ? strings.settings.numberTooBig : result;
+  const expressionNode = renderTemplateExpression(
+    finalizeTemplate(expression),
+    displayTextColor,
+    dimTextColor,
+    false,
+    resultFontSize,
+    displayFontWeight
+  );
+  const displayTextStyle = { color: displayTextColor, fontSize: resultFontSize, fontWeight: displayFontWeight };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: displayBg }]} edges={['top', 'left', 'right']}>
       {/* Top bar */}
@@ -466,27 +497,44 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
             {/* Reads as a button: the voice tab's green becomes the tile, with
                 the same glyph in white on top. */}
             <View style={styles.speakButtonTile}>
-              <MyIcon info={{ name: SPEAK_ICON_NAME, type: 'Ionicons', color: '#FFFFFF', size: 32 }} />
+              <MyIcon info={{ name: SPEAK_ICON_NAME, type: 'Ionicons', color: '#FFFFFF', size: 58 }} />
             </View>
           </TouchableOpacity>
         )}
-        <View style={styles.displayInner}>
-          <View style={[styles.expressionRow, !resultMode && { opacity: 0 }]}>
-            {(keyset === 'scientific' || keyset === 'scientific_landscape_2nd' || keyset === 'scientific_2nd') && (
-              <Text style={[styles.angleIndicator, fadedTextStyle]}>{angleMode === 'rad' ? 'Rad' : 'Deg'}</Text>
-            )}
-            <Text style={[styles.expression, { color: displayTextColor, fontSize: resultFontSize, fontWeight: displayFontWeight, flexShrink: 1 }]} numberOfLines={1} adjustsFontSizeToFit>
-              {renderTemplateExpression(
-                finalizeTemplate(expression),
-                displayTextColor,
-                dimTextColor,
-                false,
-                resultFontSize,
-                displayFontWeight
-              )}
-            </Text>
-            <Text style={[styles.expression, { color: displayTextColor, alignSelf: 'center', fontSize: resultFontSize, fontWeight: displayFontWeight }]}> =</Text>
-          </View>
+        <View
+          style={[styles.displayInner, readoutMode !== 'off' && styles.displayInnerWithSpeak]}
+          onLayout={e => setDisplayWidth(e.nativeEvent.layout.width)}>
+          {/* Measuring pass: lay the combined row out at its natural width,
+              invisibly, so we can compare it against the display width. */}
+          {resultMode && combinedFits === null && displayWidth > 0 && (
+            <View style={styles.measureRow} pointerEvents="none">
+              <View
+                style={styles.measureContent}
+                onLayout={e => setCombinedFits(e.nativeEvent.layout.width <= displayWidth)}>
+                {expressionNode}
+                <Text style={[styles.expression, displayTextStyle, styles.inlineText]}>{' = '}{resultText}</Text>
+              </View>
+            </View>
+          )}
+          {resultMode && combinedFits === true ? (
+            /* One row: expression, "=" and result together. */
+            <View style={styles.expressionRow}>
+              {angleIndicator}
+              {expressionNode}
+              <Text style={[styles.expression, displayTextStyle, styles.inlineText]} numberOfLines={1}>{' = '}{resultText}</Text>
+            </View>
+          ) : (
+            /* Two rows: expression + "=" above, result below. Outside result
+               mode this row is invisible but keeps its height, so the result
+               line doesn't jump when a result appears. */
+            <View style={[styles.expressionRow, (!resultMode || combinedFits === null) && { opacity: 0 }]}>
+              {angleIndicator}
+              <Text style={[styles.expression, displayTextStyle, { flexShrink: 1 }]} numberOfLines={1} adjustsFontSizeToFit>
+                {expressionNode}
+              </Text>
+              <Text style={[styles.expression, displayTextStyle, { alignSelf: 'center' }]}> =</Text>
+            </View>
+          )}
           {templateMode && !resultMode
             ? (
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'flex-start', alignSelf: 'stretch' }}>
@@ -497,10 +545,10 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'flex-start', alignSelf: 'stretch' }}>
                 {renderTemplateExpression(expression, displayTextColor, dimTextColor, false, resultFontSize, displayFontWeight) as any}
               </View>
-            ) : (
-          <Text style={[styles.result, { color: displayTextColor, fontSize: resultFontSize, fontWeight: displayFontWeight }]} numberOfLines={1}>
+            ) : resultMode && combinedFits !== false ? null : (
+          <Text style={[styles.result, displayTextStyle]} numberOfLines={1}>
             {resultMode
-              ? (result === 'NUMBER_TOO_BIG' ? strings.settings.numberTooBig : result)
+              ? resultText
               : (() => {
                     const formatted = formatExpression(expression) || '0';
                     const ghostCount = countUnclosedParens(expression);
@@ -560,18 +608,25 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     alignItems: 'flex-end',
   },
+  // Pinned to the display's top-left, just under the basic/scientific selector,
+  // so it stays clear of the expression/result rows, which grow from the bottom.
+  // left: -8 cancels 8pt of the display's 24pt horizontal padding, lining the
+  // button up with the selector above it (topBar's paddingHorizontal: 16).
   speakButton: {
-    alignSelf: 'flex-end',
-    paddingBottom: 12,
-    paddingRight: 8,
-    width: 56,
-    alignItems: 'center',
+    position: 'absolute',
+    top: 0,
+    left: 16  ,
+    zIndex: 1,
   },
+  // Keeps the expression/result clear of the speak button's 86pt tile when the
+  // display is short (landscape, compact heights).
+  displayInnerWithSpeak: { paddingTop: 94 },
   // A rounded-square tile, so the control reads as a button rather than a glyph.
+  // Sized 180% of the original 48pt for an easier touch target.
   speakButtonTile: {
-    width: 48,
-    height: 48,
-    borderRadius: 13,
+    width: 86,
+    height: 86,
+    borderRadius: 23,
     backgroundColor: SPEAK_ICON_COLOR,
     alignItems: 'center',
     justifyContent: 'center',
@@ -582,6 +637,14 @@ const styles = StyleSheet.create({
   // justifyContent pushes the expression + "=" to the right edge, so the row
   // lines up with the right-aligned result below it.
   expressionRow: { flexDirection: 'row', alignItems: 'flex-end', alignSelf: 'stretch', justifyContent: 'flex-end' },
+  // The measuring pass must not take up space or be seen: absolute keeps it out
+  // of the column flow, and the content child lays out at its natural width so
+  // we learn how wide the combined row actually wants to be.
+  measureRow: { position: 'absolute', opacity: 0, left: 0, top: 0, flexDirection: 'row' },
+  measureContent: { flexDirection: 'row', alignItems: 'flex-end', flexShrink: 0 },
+  // The " = result" text sits inline after the expression node, which may be a
+  // View (templates), so it must not stretch across the row.
+  inlineText: { alignSelf: 'flex-end', marginBottom: 0, textAlign: 'left' },
   // marginRight: 'auto' keeps the Rad/Deg indicator at the left edge now that
   // the row pushes its contents right.
   angleIndicator: { fontSize: 16, color: '#8E8E93', marginRight: 'auto', paddingBottom: 4 },

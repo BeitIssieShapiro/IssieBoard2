@@ -81,6 +81,9 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
   const [bgColor, setBgColor] = useState('');
   const [textColor, setTextColor] = useState('');
   const [visibilityMode, setVisibilityMode] = useState<VisibilityMode>('default');
+  // IssieCalc supports a single visibility behaviour — "show only" — so the mode
+  // selector is hidden there and the mode is pinned instead.
+  const isCalcVisibilityOnly = appContext === 'issiecalc';
   // What this group is for. Presets keep 'both' so they never lose settings.
   const [groupType, setGroupType] = useState<StyleGroupType>('colors');
 
@@ -129,8 +132,12 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
         setSelectedKeyValues([...editingGroup.members]);
         setBgColor(editingGroup.style.bgColor || '');
         setTextColor(editingGroup.style.color || '');
-        // Convert legacy hidden boolean to visibilityMode
-        if (editingGroup.style.visibilityMode) {
+        // Convert legacy hidden boolean to visibilityMode. IssieCalc offers only
+        // "show only" for visibility groups, so the mode is forced rather than
+        // read back from the group.
+        if (isCalcVisibilityOnly && showsVisibility(getGroupType(editingGroup))) {
+          setVisibilityMode('showOnly');
+        } else if (editingGroup.style.visibilityMode) {
           setVisibilityMode(editingGroup.style.visibilityMode);
         } else if (editingGroup.style.hidden) {
           setVisibilityMode('hide');
@@ -146,10 +153,15 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
         setSelectedKeyValues(initialSelectedKeys || []);
         setBgColor(initialBgColor || '');
         setTextColor(initialTextColor || '');
-        setVisibilityMode(initialVisibilityMode || 'default');
+        const newGroupType = isPreset ? 'both' : (initialGroupType || 'colors');
+        setVisibilityMode(
+          isCalcVisibilityOnly && showsVisibility(newGroupType)
+            ? 'showOnly'
+            : (initialVisibilityMode || 'default')
+        );
         // Presets are authored with both colours and visibility, so they are
         // not restricted to one type.
-        setGroupType(isPreset ? 'both' : (initialGroupType || 'colors'));
+        setGroupType(newGroupType);
       }
     }
     // Only run when modal visibility changes, not when editingGroup changes
@@ -712,6 +724,8 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
                 <Text allowFontScaling={false} style={[styles.sectionTitle, styles.selectAllTitle]}>
                   {isPreset
                     ? strings.styleRuleModal.presetKeysLocked
+                    : isCalcVisibilityOnly && showsVisibility(groupType)
+                    ? strings.styleRuleModal.tapKeysToShowOnly
                     : strings.styleRuleModal.tapKeysToSelect}
                 </Text>
                 {!isPreset && selectableKeysInView.length > 0 && (
@@ -760,18 +774,22 @@ export const AddStyleRuleModal: React.FC<AddStyleRuleModalProps> = ({
             {/* Visibility Mode — only for visibility (or legacy 'both') groups */}
             {showsVisibility(groupType) && (
             <View>
-              <ButtonGroupRow
-                isRTL={isRTL}
-                title={strings.styleRuleModal.visibility}
-                options={[
-                  { id: 'default', label: strings.styleRuleModal.visibilityDefault },
-                  { id: 'hide', label: strings.styleRuleModal.visibilityHide },
-                  { id: 'showOnly', label: strings.styleRuleModal.visibilityShowOnly },
-                ]}
-                selectedId={visibilityMode}
-                onSelect={(id) => setVisibilityMode(id as VisibilityMode)}
-              />
-              {visibilityMode === 'showOnly' && (
+              {/* IssieCalc has only one visibility behaviour, so the selector is
+                  omitted and the mode stays pinned to "show only". */}
+              {!isCalcVisibilityOnly && (
+                <ButtonGroupRow
+                  isRTL={isRTL}
+                  title={strings.styleRuleModal.visibility}
+                  options={[
+                    { id: 'default', label: strings.styleRuleModal.visibilityDefault },
+                    { id: 'hide', label: strings.styleRuleModal.visibilityHide },
+                    { id: 'showOnly', label: strings.styleRuleModal.visibilityShowOnly },
+                  ]}
+                  selectedId={visibilityMode}
+                  onSelect={(id) => setVisibilityMode(id as VisibilityMode)}
+                />
+              )}
+              {visibilityMode === 'showOnly' && !isCalcVisibilityOnly && (
                 <Text allowFontScaling={false} style={styles.visibilityHint}>
                   {strings.styleRuleModal.showOnlyHint}
                 </Text>
