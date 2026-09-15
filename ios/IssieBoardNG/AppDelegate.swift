@@ -7,8 +7,6 @@ import FirebaseCore
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
-  var window: UIWindow?
-
   var reactNativeDelegate: ReactNativeDelegate?
   var reactNativeFactory: RCTReactNativeFactory?
 
@@ -28,81 +26,31 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     RNFBAppCheckModule.sharedInstance()
     FirebaseApp.configure()
 
-    window = UIWindow(frame: UIScreen.main.bounds)
-
-    // Determine which app mode based on bundle identifier
-    let bundleId = Bundle.main.bundleIdentifier ?? ""
-    print("🔍 Bundle ID: \(bundleId)")
-    
-    let moduleName: String
-    if bundleId.contains("IssieVoice") {
-      moduleName = "IssieVoice"
-    } else if bundleId.contains("IssieCalc") {
-      moduleName = "IssieCalc"
-    } else {
-      moduleName = "IssieBoardNG"
-    }
-    print("🎯 Loading module: \(moduleName)")
-    
-    // Extract and prepare initial URL if app was opened via file
-    var initialProps: [AnyHashable: Any] = [:]
-    if let url = launchOptions?[.url] as? URL,
-       url.isFileURL,
-       let tempURL = securelyCopyToTemp(url: url) {
-      initialProps["url"] = tempURL.absoluteString
-    }
-
-    factory.startReactNative(
-      withModuleName: moduleName,
-      in: window,
-      initialProperties: initialProps.isEmpty ? nil : initialProps,
-      launchOptions: launchOptions
-    )
-
+    // The window is created by SceneDelegate, which also starts React Native —
+    // required by the iOS 27 SDK's scene-based life cycle.
     return true
   }
-  
-  // Handle URL scheme for opening app from keyboard extension or file import
+
+  // Routes every scene to SceneDelegate. Its presence is also one of the two
+  // signals iOS uses to decide whether an app has adopted the scene life cycle.
   func application(
-    _ app: UIApplication,
-    open url: URL,
-    options: [UIApplication.OpenURLOptionsKey: Any] = [:]
-  ) -> Bool {
-    print("App opened via URL: \(url)")
-
-    // Handle issieboard:// URL scheme (existing keyboard extension logic)
-    if url.scheme == "issieboard" {
-      let bundleId = Bundle.main.bundleIdentifier ?? ""
-      guard !bundleId.contains("IssieVoice") else {
-        return false
-      }
-
-      if url.host == "settings" {
-        if let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-           let queryItems = components.queryItems,
-           let keyboardParam = queryItems.first(where: { $0.name == "keyboard" })?.value {
-          let preferences = KeyboardPreferences()
-          preferences.setString(keyboardParam, forKey: "launch_keyboard")
-          CFNotificationCenterPostNotification(
-            CFNotificationCenterGetDarwinNotifyCenter(),
-            CFNotificationName("com.issieboard.launchKeyboard" as CFString),
-            nil, nil, true
-          )
-        }
-      }
-      return true
-    }
-
-    // Handle file URLs (import from share/open-with)
-    if url.isFileURL {
-      guard let tempURL = securelyCopyToTemp(url: url) else { return false }
-      return RCTLinkingManager.application(app, open: tempURL, options: options)
-    }
-
-    return false
+    _ application: UIApplication,
+    configurationForConnecting connectingSceneSession: UISceneSession,
+    options: UIScene.ConnectionOptions
+  ) -> UISceneConfiguration {
+    let configuration = UISceneConfiguration(
+      name: "Default Configuration",
+      sessionRole: connectingSceneSession.role
+    )
+    configuration.delegateClass = SceneDelegate.self
+    return configuration
   }
 
-  private func securelyCopyToTemp(url: URL) -> URL? {
+  /**
+   * Copies a security-scoped inbox file into the temp directory so React Native
+   * can read it. Used by SceneDelegate for both cold- and warm-start imports.
+   */
+  func securelyCopyToTemp(url: URL) -> URL? {
     let hasAccess = url.startAccessingSecurityScopedResource()
     defer {
       if hasAccess {

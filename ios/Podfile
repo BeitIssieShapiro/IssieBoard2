@@ -54,6 +54,10 @@ target 'IssieVoice' do
   shared_pods
 end
 
+target 'IssieCalc' do
+  shared_pods
+end
+
 post_install do |installer|
   config = use_native_modules!
   react_native_post_install(
@@ -65,8 +69,23 @@ post_install do |installer|
 
 
 
+  # Xcode 27 only supports deployment targets 15.0+. Some pods (GoogleUtilities,
+  # nanopb, PromisesObjC, RNDeviceInfo) still declare 9.0/12.0 in their podspecs,
+  # and the generated *_Privacy resource bundles inherit that. Raise anything
+  # below the Podfile platform up to it.
+  min_ios = '15.5'
+
+  installer.pods_project.build_configurations.each do |config|
+    config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = min_ios
+  end
+
   installer.pods_project.targets.each do |target|
     target.build_configurations.each do |config|
+
+      current = config.build_settings['IPHONEOS_DEPLOYMENT_TARGET']
+      if current.nil? || current.to_f < min_ios.to_f
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = min_ios
+      end
 
       # fmt/base.h unconditionally redefines FMT_USE_CONSTEVAL based on __cplusplus,
       # so preprocessor defines are overwritten. The reliable fix is to compile fmt
