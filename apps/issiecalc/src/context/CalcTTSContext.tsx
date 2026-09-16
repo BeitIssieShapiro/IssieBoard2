@@ -51,12 +51,19 @@ const WRAPPING_FUNCTIONS = new Set([
   // Template keys (xʸ, ʸ√, logᵧ). They wrap the operand like the rest, but
   // dispatch rewrites them (x^( → xpow(x,•)) and waits for a second operand,
   // so without this they fell through every branch and read nothing at all.
-  'x^(', 'yroot(', 'logy(',
+  'x^(', 'yroot(', 'logy(', '10^(', '2^(', 'e^(',
 ]);
 
 // Postfix functions: operand comes first in readout ("[operand] [fn]")
-// x^( reads "8 to the power" — the exponent follows as you type it.
-const POSTFIX_FUNCTIONS = new Set(['x^2', 'x^3', 'factorial(', 'x^(']);
+// x^( reads "8 to the power" — the exponent follows as you type it. 10ˣ/2ˣ/eˣ
+// name their own base, so they read "times 10 to the power" instead (they
+// multiply onto the operand rather than raising it).
+const POSTFIX_FUNCTIONS = new Set(['x^2', 'x^3', 'factorial(', 'x^(', '10^(', '2^(', 'e^(']);
+
+// The keys whose base is part of the key itself (10ˣ, 2ˣ, eˣ). dispatch turns
+// them into `<operand>*xpow(<base>,•)`, so the readout must take the operand
+// from before the multiply and join it with "times".
+const CONSTANT_BASE_POWERS = new Set(['10^(', '2^(', 'e^(']);
 
 // Localized "of" connectors and angle unit words
 const LANG_OF: Record<string, string> = { en: 'of', he: 'של', ar: 'من' };
@@ -81,7 +88,7 @@ const SUBSTITUTIONS: Record<string, SubMap> = {
     'sinh(': 'hyperbolic sine', 'cosh(': 'hyperbolic cosine', 'tanh(': 'hyperbolic tangent',
     'asinh(': 'inverse hyperbolic sine', 'acosh(': 'inverse hyperbolic cosine', 'atanh(': 'inverse hyperbolic tangent',
     'x^2': 'squared', 'x^3': 'cubed', 'x^(': 'to the power',
-    '^(': 'to the power', '2^(': '2 to the power', '1/(': '1 over',
+    '^(': 'to the power', '2^(': '2 to the power', '10^(': '10 to the power', 'e^(': 'e to the power', '1/(': '1 over',
     '(': 'open parenthesis', ')': 'close parenthesis',
     'pi': 'pi', 'e': 'e', '=': 'equals',
   },
@@ -95,7 +102,7 @@ const SUBSTITUTIONS: Record<string, SubMap> = {
     'sinh(': 'סינוס היפרבולי', 'cosh(': 'קוסינוס היפרבולי', 'tanh(': 'טנגנס היפרבולי',
     'asinh(': 'ארקסינוס היפרבולי', 'acosh(': 'ארקקוסינוס היפרבולי', 'atanh(': 'ארקטנגנס היפרבולי',
     'x^2': 'בָּרִיבּוּעַ', 'x^3': 'בָּשְׁלִישִׁית', 'x^(': 'בחזקת',
-    '^(': 'בחזקת', '2^(': '2 בחזקת', '1/(': '1 חלקי',
+    '^(': 'בחזקת', '2^(': '2 בחזקת', '10^(': '10 בחזקת', 'e^(': 'e בחזקת', '1/(': '1 חלקי',
     '(': 'סוגר פתוח', ')': 'סוגר סגור',
     'pi': 'פאי', 'e': 'e', '=': 'שָׁוֶה',
   },
@@ -109,7 +116,7 @@ const SUBSTITUTIONS: Record<string, SubMap> = {
     'sinh(': 'جيب زائدي', 'cosh(': 'جيب تمام زائدي', 'tanh(': 'ظل زائدي',
     'asinh(': 'جيب زائدي معكوس', 'acosh(': 'جيب تمام زائدي معكوس', 'atanh(': 'ظل زائدي معكوس',
     'x^2': 'تربيع', 'x^3': 'تكعيب', 'x^(': 'أس',
-    '^(': 'أس', '2^(': '2 أس', '1/(': '1 على',
+    '^(': 'أس', '2^(': '2 أس', '10^(': '10 أس', 'e^(': 'e أس', '1/(': '1 على',
     '(': 'قوس مفتوح', ')': 'قوس مغلق',
     'pi': 'باي', 'e': 'e', '=': 'يساوي',
   },
@@ -153,10 +160,19 @@ const LEADING_CALL = new RegExp(
 // A half-built template: dispatch rewrites x^( to `xpow(8,)` (the \x00 marker
 // is stripped before we see it) and waits for the exponent. The operand being
 // wrapped is the first argument.
-const PENDING_TEMPLATE = /^(?:xpow|yroot|logy)\(([^,]*),\s*\)$/;
+//
+// Unanchored at the front because 10ˣ/2ˣ/eˣ multiply onto what precedes them
+// (5 then 10ˣ → `5*xpow(10,)`), so the template is only at the end.
+const PENDING_TEMPLATE = /(?:xpow|yroot|logy)\(([^,]*),\s*\)$/;
 
 // The same template once its second argument is filled in: xpow(2,3).
-const COMPLETED_TEMPLATE = /^(?:xpow|yroot|logy)\(([^,]*),([^,)]+)\)$/;
+const COMPLETED_TEMPLATE = /(?:xpow|yroot|logy)\(([^,]*),([^,)]+)\)$/;
+
+/** `(5` → `5`: an unclosed paren carries nothing to say. */
+function stripOpenParen(s: string): string {
+  const stripped = s.replace(/^\(+/, '');
+  return stripped || s;
+}
 
 function extractLastOperand(expression: string): string {
   const expr = expression.trim();
@@ -174,7 +190,9 @@ function extractLastOperand(expression: string): string {
         const unparened = part.replace(/^\((.+)\)$/, '$1');
         // Strip leading function name: sin(50) → 50, 3root(8) → 8
         const inner = unparened.replace(LEADING_CALL, '').replace(/\)$/, '');
-        return inner || unparened || part;
+        // A still-open paren would otherwise be read out as part of the
+        // operand ("(5"), so drop it.
+        return stripOpenParen(inner || unparened || part);
       }
     }
   }
@@ -237,6 +255,11 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const mathLevelRef = useRef<MathLevel>('standard');
 
   const initializedRef = useRef(false);
+
+  // True when the last keypress announced a complete power ("10 to the power
+  // 3"), so "=" must not repeat the exponent. Only 10ˣ/2ˣ/eˣ set it: xʸ leaves
+  // its slot open for an exponent that nothing has spoken yet.
+  const powerFullySpokenRef = useRef(false);
 
   useEffect(() => {
     TTS.initialize().then(() => {
@@ -313,6 +336,12 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const readout = useCallback((keyValue: string, expression: string, result: string, angleMode?: 'deg' | 'rad') => {
     const mode = readoutModeRef.current;
+    // Tracked for every key (even silent ones like AC, which must clear it) so
+    // "=" knows whether the exponent has already been spoken. "=" itself leaves
+    // it alone — it is the reader of this flag, not a writer.
+    if (keyValue !== '=') {
+      powerFullySpokenRef.current = CONSTANT_BASE_POWERS.has(keyValue);
+    }
     if (mode === 'off') return;
     if (SILENT_KEYS.has(keyValue)) return;
 
@@ -343,7 +372,15 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
         // only its first argument has been announced — pressing x^( said "2 to
         // the power" and the exponent typed after it was never spoken. Say the
         // second argument before "equals" so nothing is lost.
-        const template = expression.trim().match(COMPLETED_TEMPLATE);
+        //
+        // 10ˣ/2ˣ/eˣ are the exception: they complete the power on the keypress
+        // and announce all of it ("10 to the power 3"), so repeating the
+        // exponent here would say it twice. The expression alone cannot tell
+        // the two apart — xʸ pressed on a literal 10 also yields xpow(10,3) —
+        // so this tracks which key actually built it.
+        const template = powerFullySpokenRef.current
+          ? null
+          : expression.trim().match(COMPLETED_TEMPLATE);
         if (template) {
           const res = result === 'Error' ? 'error' : speakableNumber(formatResult(result, decimalDigitsRef.current, lang), lang);
           speak(speakableNumber(template[2], lang));
@@ -370,11 +407,20 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
         if (keyValue === 'x^2' || keyValue === 'x^3') {
           const base = expression.endsWith(keyValue) ? expression.slice(0, -keyValue.length) : expression;
           operand = speakableNumber(extractLastOperand(base), lang);
+        } else if (CONSTANT_BASE_POWERS.has(keyValue)) {
+          // `xpow(10,5)`: the key completes the power outright, and the number
+          // that was typed is now the exponent — the second argument. The base
+          // is the key's own, which the function name already says.
+          const done = expression.match(COMPLETED_TEMPLATE);
+          operand = done ? speakableNumber(done[2], lang) : '';
         } else {
           operand = speakableNumber(extractLastOperand(expression), lang);
         }
         const fnName = getSubMap(lang, ml)[keyValue] ?? keyValue;
-        if (POSTFIX_FUNCTIONS.has(keyValue)) {
+        if (CONSTANT_BASE_POWERS.has(keyValue)) {
+          // The power is complete when pressed: "10 to the power 5".
+          speak(operand ? `${fnName} ${operand}` : fnName);
+        } else if (POSTFIX_FUNCTIONS.has(keyValue)) {
           speak(operand ? `${operand} ${fnName}` : fnName);
         } else if (operand && ANGLE_FUNCTIONS.has(keyValue) && angleMode) {
           const of_ = getLangWord(LANG_OF, lang);

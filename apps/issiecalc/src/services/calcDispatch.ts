@@ -36,11 +36,24 @@ const FUNCTION_KEYS = new Set([
   'sin(', 'cos(', 'tan(', 'asin(', 'acos(', 'atan(',
   'sinh(', 'cosh(', 'tanh(', 'asinh(', 'acosh(', 'atanh(',
   'ln(', 'log(', 'log2(', '2root(', '3root(',
-  'factorial(', 'sqrt(', 'e^(', '2^(', '10^(', '1/(',
+  'factorial(', 'sqrt(', '1/(',
 ]);
 
-const TEMPLATE_KEYS = new Set(['yroot(', 'logy(', 'x^(']);
+const TEMPLATE_KEYS = new Set(['yroot(', 'logy(', 'x^(', '10^(', '2^(', 'e^(']);
 const TEMPLATE_KEY_TO_FN: Record<string, string> = { 'x^(': 'xpow(' };
+
+/**
+ * 10ˣ, 2ˣ and eˣ carry their own base, so unlike x^( the operand that precedes
+ * them becomes the *exponent*: 5 then 10ˣ → 10⁵. The power is therefore
+ * complete on the keypress — nothing is left to type. Rendering, evaluation and
+ * readout reuse the xpow( form that x^( already produces, which is what gives
+ * them a real raised exponent instead of a flat "10^(5".
+ */
+const CONSTANT_BASE_TEMPLATES: Record<string, string> = {
+  '10^(': '10',
+  '2^(': '2',
+  'e^(': 'e',
+};
 
 // Suffix keys require a numeric operand already present — ignored otherwise
 const SUFFIX_KEYS = new Set(['x^2', 'x^3', 'factorial(', '1/(']);
@@ -267,19 +280,28 @@ export function dispatch(inState: CalcState, key: string): CalcState {
 
   // Template keys — enter two-arg input mode
   if (TEMPLATE_KEYS.has(key)) {
-    const fn = TEMPLATE_KEY_TO_FN[key] ?? key;
+    const constantBase = CONSTANT_BASE_TEMPLATES[key];
+    const fn = constantBase ? 'xpow(' : (TEMPLATE_KEY_TO_FN[key] ?? key);
     const baseExpr = state.resultMode ? state.result : state.expression;
     const baseState = state.resultMode
       ? { ...state, expression: '', result: '', resultMode: false }
       : state;
     const parts = extractTrailingOperand(baseExpr);
-    let newExpr: string;
-    if (parts) {
+
+    if (constantBase) {
+      // 10ˣ means "10 to the x", so the operand already typed IS the exponent:
+      // 5 then 10ˣ → 10⁵. The base comes from the key, so the template is
+      // complete on the keypress — no marker, no template mode. Without an
+      // operand there is no exponent, so the key does nothing (CalcScreen
+      // shows the "needs X first" toast).
+      if (!parts) return state;
       const [before, operand] = parts;
-      newExpr = `${before}${fn}${operand},${TEMPLATE_MARKER})`;
-    } else {
-      newExpr = `${baseExpr}${fn},${TEMPLATE_MARKER})`;
+      return { ...baseState, expression: `${before}${fn}${constantBase},${operand})` };
     }
+
+    const newExpr = parts
+      ? `${parts[0]}${fn}${parts[1]},${TEMPLATE_MARKER})`
+      : `${baseExpr}${fn},${TEMPLATE_MARKER})`;
     return { ...baseState, expression: newExpr, templateMode: true };
   }
 

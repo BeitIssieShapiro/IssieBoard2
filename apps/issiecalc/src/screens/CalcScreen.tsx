@@ -7,6 +7,7 @@ import { useCalc } from '../context/CalcContext';
 import { dispatch, CalcState, finalizeTemplate, readoutArgs } from '../services/calcDispatch';
 import { useCalcTTS, getSubMap, speakableNumber, formatResult } from '../context/CalcTTSContext';
 import { speakExpression as speakExpressionText } from '../services/speakExpression';
+import { matchTemplateCall } from '../services/templateCall';
 import TTS from '../../../issievoice/src/services/TextToSpeech';
 import { countUnclosedParens } from '../services/Calculator';
 import { useLocalization } from '../../../issievoice/src/context/LocalizationContext';
@@ -62,6 +63,11 @@ function isLandscape() {
 
 const HAS_TEMPLATE_FN = /yroot\(|logy\(|xpow\(/;
 
+// Template keys that need an operand already on screen, and warn without one.
+// 10ˣ/2ˣ/eˣ are included because the operand becomes their exponent — with
+// nothing typed there is no exponent to raise the key's base to.
+const TEMPLATE_KEYS_NEEDING_X = new Set(['yroot(', 'logy(', 'x^(', '10^(', '2^(', 'e^(']);
+
 /**
  * The config's font weight as a React Native weight, so the expression/result
  * text follows the general-tab setting the same way its font size does.
@@ -90,14 +96,15 @@ function resolveDisplayFontWeight(weight: string | null | undefined): RNFontWeig
 
 type TemplateConfig = {
   activeRe: RegExp;
-  finalRe: RegExp;
+  /** Function name as it appears in the expression, e.g. "xpow(". */
+  fn: string;
   render: (x: string, y: string, cursor: React.ReactNode, fontSize: number, color: string, fontWeight: RNFontWeight) => React.ReactNode;
 };
 
 const TEMPLATE_CONFIGS: TemplateConfig[] = [
   {
     activeRe: /^(.*)yroot\(([^,]+),([^\x00]*)\x00\)(.*)$/,
-    finalRe:  /^(.*)yroot\(([^,]+),([^)]+)\)(.*)$/,
+    fn: 'yroot(',
     render: (x, y, cursor, fontSize, color, fontWeight) => {
       const sf = Math.floor(fontSize * 0.6);
       return (
@@ -111,7 +118,7 @@ const TEMPLATE_CONFIGS: TemplateConfig[] = [
   },
   {
     activeRe: /^(.*)logy\(([^,]+),([^\x00]*)\x00\)(.*)$/,
-    finalRe:  /^(.*)logy\(([^,]+),([^)]+)\)(.*)$/,
+    fn: 'logy(',
     render: (x, y, cursor, fontSize, color, fontWeight) => {
       const sf = Math.floor(fontSize * 0.6);
       return (
@@ -126,7 +133,7 @@ const TEMPLATE_CONFIGS: TemplateConfig[] = [
   },
   {
     activeRe: /^(.*)xpow\(([^,]+),([^\x00]*)\x00\)(.*)$/,
-    finalRe:  /^(.*)xpow\(([^,]+),([^)]+)\)(.*)$/,
+    fn: 'xpow(',
     render: (x, y, cursor, fontSize, color, fontWeight) => {
       const sf = Math.floor(fontSize * 0.6);
       return (
@@ -149,10 +156,13 @@ function renderTemplateExpression(
   fontWeight: RNFontWeight = '300'
 ): React.ReactNode {
   for (const cfg of TEMPLATE_CONFIGS) {
-    const re = showCursor ? cfg.activeRe : cfg.finalRe;
-    const m = expression.match(re);
+    // While the slot is being filled the marker bounds it, so a regex is safe;
+    // a finished call needs paren counting (see matchTemplateCall).
+    const m = showCursor
+      ? expression.match(cfg.activeRe)?.slice(1)
+      : matchTemplateCall(expression, cfg.fn);
     if (m) {
-      const [, before, x, y, after] = m;
+      const [before, x, y, after] = m;
       const yOpenParens = y.split('').reduce((d, c) => c === '(' ? d+1 : c === ')' ? d-1 : d, 0);
       const yHasParens = y.includes('(');
       // Hide cursor only when Y has parens and they are all closed
@@ -169,9 +179,9 @@ function renderTemplateExpression(
     }
     // Also try finalized form when showCursor=true (expression row after =)
     if (!showCursor) continue;
-    const mf = expression.match(cfg.finalRe);
+    const mf = matchTemplateCall(expression, cfg.fn);
     if (mf) {
-      const [, before, x, y, after] = mf;
+      const [before, x, y, after] = mf;
       return (
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', alignSelf: 'flex-end' }}>
           {before ? <Text style={{ color: displayTextColor, fontSize, fontWeight, textAlignVertical: 'bottom' }}>{formatExpression(before)}</Text> : null}
@@ -353,7 +363,7 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
     }
 
     // Template keys require an X operand — show toast if none present
-    if ((value === 'yroot(' || value === 'logy(' || value === 'x^(') && !currentState.resultMode) {
+    if (TEMPLATE_KEYS_NEEDING_X.has(value) && !currentState.resultMode) {
       const expr = currentState.expression;
       if (!expr || /[+\-*/^%,(]$/.test(expr)) {
         showToastMsg(strings.settings.calcNeedsXFirst);
