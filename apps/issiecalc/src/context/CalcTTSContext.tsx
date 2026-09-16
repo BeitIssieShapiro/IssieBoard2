@@ -48,10 +48,15 @@ const WRAPPING_FUNCTIONS = new Set([
   'sinh(', 'cosh(', 'tanh(', 'asinh(', 'acosh(', 'atanh(',
   'sqrt(', 'ln(', 'log(', 'log2(', 'logy(', '2root(', '3root(', 'yroot(', 'factorial(',
   'x^2', 'x^3',
+  // Template keys (xʸ, ʸ√, logᵧ). They wrap the operand like the rest, but
+  // dispatch rewrites them (x^( → xpow(x,•)) and waits for a second operand,
+  // so without this they fell through every branch and read nothing at all.
+  'x^(', 'yroot(', 'logy(',
 ]);
 
 // Postfix functions: operand comes first in readout ("[operand] [fn]")
-const POSTFIX_FUNCTIONS = new Set(['x^2', 'x^3', 'factorial(']);
+// x^( reads "8 to the power" — the exponent follows as you type it.
+const POSTFIX_FUNCTIONS = new Set(['x^2', 'x^3', 'factorial(', 'x^(']);
 
 // Localized "of" connectors and angle unit words
 const LANG_OF: Record<string, string> = { en: 'of', he: 'של', ar: 'من' };
@@ -131,8 +136,32 @@ function getOperatorName(key: string, language: string | null, mathLevel?: MathL
   return map[key] ?? key;
 }
 
+// Pressing a wrapping function wraps the current operand, so 8 then 3root(
+// gives `3root(8)`. Stripping the name back off must therefore cope with names
+// that a `[a-zA-Z]+` pattern misses: 2root(/3root( open with a digit and log2(
+// ends with one. Left unstripped, the name is tokenized and spoken a second
+// time ("cube root of 3root 8"). Built from WRAPPING_FUNCTIONS, longest first
+// so 3root( wins over any shorter overlapping name.
+const LEADING_CALL = new RegExp(
+  '^(?:' + [...WRAPPING_FUNCTIONS]
+    .filter(f => f.endsWith('('))
+    .sort((a, b) => b.length - a.length)
+    .map(f => f.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .join('|') + ')'
+);
+
+// A half-built template: dispatch rewrites x^( to `xpow(8,)` (the \x00 marker
+// is stripped before we see it) and waits for the exponent. The operand being
+// wrapped is the first argument.
+const PENDING_TEMPLATE = /^(?:xpow|yroot|logy)\(([^,]*),\s*\)$/;
+
+// The same template once its second argument is filled in: xpow(2,3).
+const COMPLETED_TEMPLATE = /^(?:xpow|yroot|logy)\(([^,]*),([^,)]+)\)$/;
+
 function extractLastOperand(expression: string): string {
   const expr = expression.trim();
+  const pending = expr.match(PENDING_TEMPLATE);
+  if (pending) return pending[1];
   // Scan right-to-left for a binary operator (preceded by digit or closing paren)
   for (let i = expr.length - 1; i >= 1; i--) {
     const ch = expr[i];
@@ -143,15 +172,16 @@ function extractLastOperand(expression: string): string {
         const part = expr.slice(i + 1).trim();
         // Strip outer parens: (-9) → -9
         const unparened = part.replace(/^\((.+)\)$/, '$1');
-        // Strip leading function name: sin(50) → 50
-        const inner = unparened.replace(/^[a-zA-Z]+\(/, '').replace(/\)$/, '');
+        // Strip leading function name: sin(50) → 50, 3root(8) → 8
+        const inner = unparened.replace(LEADING_CALL, '').replace(/\)$/, '');
         return inner || unparened || part;
       }
     }
   }
   // Whole expression — strip outer function call if present
-  const funcMatch = expr.match(/^[a-zA-Z]+\((.+)\)$/);
-  if (funcMatch) return funcMatch[1];
+  if (LEADING_CALL.test(expr) && expr.endsWith(')')) {
+    return expr.replace(LEADING_CALL, '').replace(/\)$/, '');
+  }
   return expr;
 }
 
@@ -309,7 +339,16 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const eq = getSubMap(lang, ml)['='] ?? 'equals';
         const endsWithFunction = /[a-zA-Z]+\([^)]*\)$/.test(expression.trim()) ||
           /x\^2$/.test(expression.trim()) || /x\^3$/.test(expression.trim());
-        if (endsWithFunction) {
+        // A completed template (xʸ, ʸ√, logᵧ) ends in a function call too, but
+        // only its first argument has been announced — pressing x^( said "2 to
+        // the power" and the exponent typed after it was never spoken. Say the
+        // second argument before "equals" so nothing is lost.
+        const template = expression.trim().match(COMPLETED_TEMPLATE);
+        if (template) {
+          const res = result === 'Error' ? 'error' : speakableNumber(formatResult(result, decimalDigitsRef.current, lang), lang);
+          speak(speakableNumber(template[2], lang));
+          setTimeout(() => speakWithPause(eq, res), 500);
+        } else if (endsWithFunction) {
           const res = result === 'Error' ? 'error' : speakableNumber(formatResult(result, decimalDigitsRef.current, lang), lang);
           speakWithPause(eq, res);
         } else {
@@ -363,7 +402,10 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
   );
 };
 
-export { getSubMap, speakableNumber, formatResult };
+// POSTFIX_FUNCTIONS/LANG_OF/getLangWord are shared with CalcScreen's
+// speakExpression so the speak button phrases calls ("cube root of 8",
+// "5 factorial") exactly as the per-key readout above does.
+export { getSubMap, speakableNumber, formatResult, getLangWord, POSTFIX_FUNCTIONS, LANG_OF };
 
 export function useCalcTTS(): CalcTTSContextValue {
   const ctx = useContext(CalcTTSContext);

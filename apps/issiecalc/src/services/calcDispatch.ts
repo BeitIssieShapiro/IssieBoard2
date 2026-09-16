@@ -302,3 +302,28 @@ export function dispatch(inState: CalcState, key: string): CalcState {
 
   return state;
 }
+
+/**
+ * The expression and result to speak for a keypress.
+ *
+ * While a template (xʸ, ʸ√, logᵧ) is being filled the expression still carries
+ * its \x00 marker, which evaluate() cannot parse — reading the raw string made
+ * "=" say "error" for an expression the display had already computed. Both
+ * values are finalized first, as the display and computeResult do.
+ *
+ * Extracted from CalcScreen.handleKeyPress so it can be tested directly.
+ */
+export function readoutArgs(
+  key: string,
+  prevState: CalcState,
+  nextState: CalcState
+): { expression: string; result: string } {
+  const isEquals = key === '=';
+  const expression = finalizeTemplate(isEquals ? prevState.expression : nextState.expression);
+  if (!isEquals) {
+    return { expression, result: nextState.result };
+  }
+  const mode = prevState.keyset === 'basic' ? 'basic' : 'scientific';
+  const evaluated = evaluate(finalizeTemplate(prevState.expression), prevState.angleMode, mode);
+  return { expression, result: evaluated || 'Error' };
+}

@@ -4,10 +4,11 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useFocusEffect } from '@react-navigation/native';
 import { KeyboardPreview, KeyPressEvent } from '../../../../src/components/KeyboardPreview';
 import { useCalc } from '../context/CalcContext';
-import { dispatch, CalcState, finalizeTemplate } from '../services/calcDispatch';
+import { dispatch, CalcState, finalizeTemplate, readoutArgs } from '../services/calcDispatch';
 import { useCalcTTS, getSubMap, speakableNumber, formatResult } from '../context/CalcTTSContext';
+import { speakExpression as speakExpressionText } from '../services/speakExpression';
 import TTS from '../../../issievoice/src/services/TextToSpeech';
-import { evaluate, countUnclosedParens } from '../services/Calculator';
+import { countUnclosedParens } from '../services/Calculator';
 import { useLocalization } from '../../../issievoice/src/context/LocalizationContext';
 import KeyboardPreferences from '../../../../src/native/KeyboardPreferences';
 import { transformConfigForPreview } from '../../../../src/utils/keyboardConfigMerger';
@@ -33,6 +34,15 @@ function toSuperscript(s: string): string {
 function formatExpression(expr: string): string {
   return expr
     .replace(/factorial\(([^)]*)\)/g, '$1!')
+    // √ / ∛ for the square- and cube-root keys, matching their ²√x / ³√x
+    // captions and the √ that Xroot (yroot) renders. These are ordinary
+    // one-arg functions, so the radicand keeps its parens — `√(9)+1` stays
+    // unambiguous. While the argument is still being typed the paren is
+    // left open, as the other function rules here do.
+    .replace(/2root\(([^)]*)\)/g, '√($1)')
+    .replace(/3root\(([^)]*)\)/g, '∛($1)')
+    .replace(/2root\(/g, '√(')
+    .replace(/3root\(/g, '∛(')
     .replace(/x\^2/g, '²')
     .replace(/x\^3/g, '³')
     .replace(/x\^\(([^)]*)\)/g, (_, exp) => exp ? `^${exp}` : '^(')
@@ -227,31 +237,10 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
     showToast(msg);
   }, [showToast]);
   const { readout, readoutMode, language, decimalDigits, mathLevel, loadFromConfig } = useCalcTTS();
-  const speakExpression = useCallback((expr: string): string => {
-    const lang = language;
-    const ml = mathLevel ?? 'standard';
-    const map = getSubMap(lang, ml);
-    // Tokenize: match known multi-char tokens first, then single chars
-    const tokens = Object.keys(map).sort((a, b) => b.length - a.length);
-    let result = '';
-    let i = 0;
-    while (i < expr.length) {
-      let matched = false;
-      for (const token of tokens) {
-        if (expr.startsWith(token, i)) {
-          result += ' ' + map[token];
-          i += token.length;
-          matched = true;
-          break;
-        }
-      }
-      if (!matched) {
-        result += expr[i];
-        i++;
-      }
-    }
-    return result.trim();
-  }, [language, mathLevel]);
+  const speakExpression = useCallback(
+    (expr: string): string => speakExpressionText(expr, language, mathLevel ?? 'standard'),
+    [language, mathLevel]
+  );
 
   const speakDirect = useCallback((text: string) => { TTS.speak(text).catch(() => {}); }, []);
   const { strings } = useLocalization();
@@ -413,11 +402,9 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
       memoryStore();
     }
 
-    // Readout
-    const readoutExpr = value === '=' ? expression : newState.expression;
-    const readoutRes = value === '='
-      ? (evaluate(expression, angleMode, keyset === 'basic' ? 'basic' : 'scientific') || 'Error')
-      : newState.result;
+    // Readout (see readoutArgs: strips the \x00 template marker so "=" doesn't
+    // say "error" for an expression the display has already computed).
+    const { expression: readoutExpr, result: readoutRes } = readoutArgs(value, currentState, newState);
     readout(value, readoutExpr, readoutRes, newState.angleMode);
   };
 
@@ -479,7 +466,7 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
       <View style={[styles.display, { backgroundColor: displayBg }]}>
         {readoutMode !== 'off' && (
           <TouchableOpacity
-            style={styles.speakButton}
+            style={[styles.speakButton, calcMode !== 'both' && styles.speakButtonRaised]}
             onPress={() => {
               const lang = language;
               const ml = mathLevel ?? 'standard';
@@ -497,12 +484,12 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
             {/* Reads as a button: the voice tab's green becomes the tile, with
                 the same glyph in white on top. */}
             <View style={styles.speakButtonTile}>
-              <MyIcon info={{ name: SPEAK_ICON_NAME, type: 'Ionicons', color: '#FFFFFF', size: 58 }} />
+              <MyIcon info={{ name: SPEAK_ICON_NAME, type: 'Ionicons', color: '#FFFFFF', size: 41 }} />
             </View>
           </TouchableOpacity>
         )}
         <View
-          style={[styles.displayInner, readoutMode !== 'off' && styles.displayInnerWithSpeak]}
+          style={[styles.displayInner, readoutMode !== 'off' && calcMode === 'both' && styles.displayInnerWithSpeak]}
           onLayout={e => setDisplayWidth(e.nativeEvent.layout.width)}>
           {/* Measuring pass: lay the combined row out at its natural width,
               invisibly, so we can compare it against the display width. */}
@@ -618,15 +605,18 @@ const styles = StyleSheet.create({
     left: 16  ,
     zIndex: 1,
   },
-  // Keeps the expression/result clear of the speak button's 86pt tile when the
+  // With no basic/scientific selector the top bar row is empty, so the button
+  // moves up into it (its own height) instead of leaving a gap above the
+  // display. -60 keeps it within the bar, whose height the 54pt gear sets.
+  speakButtonRaised: { top: -60 },
+  // Keeps the expression/result clear of the speak button's 60pt tile when the
   // display is short (landscape, compact heights).
-  displayInnerWithSpeak: { paddingTop: 94 },
+  displayInnerWithSpeak: { paddingTop: 68 },
   // A rounded-square tile, so the control reads as a button rather than a glyph.
-  // Sized 180% of the original 48pt for an easier touch target.
   speakButtonTile: {
-    width: 86,
-    height: 86,
-    borderRadius: 23,
+    width: 60,
+    height: 60,
+    borderRadius: 16,
     backgroundColor: SPEAK_ICON_COLOR,
     alignItems: 'center',
     justifyContent: 'center',
