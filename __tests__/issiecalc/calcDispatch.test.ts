@@ -460,13 +460,16 @@ describe('x^( normalization', () => {
 });
 
 describe('e^( wrapping', () => {
-  test('e^( on empty appends e^(', () => {
+  // eˣ needs an operand to raise: on an empty display it does nothing (the
+  // screen shows the "needs X first" toast).
+  test('e^( on empty is ignored', () => {
     const s = runSequence(['e^(']);
-    expect(s[0].expression).toBe('e^(');
+    expect(s[0].expression).toBe('');
   });
   test('e^( on 5 wraps to e^(5)', () => {
     const s = runSequence(['5', 'e^(']);
-    expect(s[1].expression).toBe('e^(5)');
+    // The typed number becomes the exponent: e⁵, built on the xpow template.
+    expect(s[1].expression).toBe('xpow(e,5)');
   });
   test('e^(1) ≈ 2.71828', () => {
     const s = runSequence(['1', 'e^(', '=']);
@@ -481,7 +484,7 @@ describe('e^( wrapping', () => {
 describe('10^( wrapping', () => {
   test('10^( on 3 wraps to 10^(3)', () => {
     const s = runSequence(['3', '10^(']);
-    expect(s[1].expression).toBe('10^(3)');
+    expect(s[1].expression).toBe('xpow(10,3)');
   });
   test('10^(3) = 1000', () => {
     const s = runSequence(['3', '10^(', '=']);

@@ -8,6 +8,7 @@ import { dispatch, CalcState, finalizeTemplate, readoutArgs } from '../services/
 import { useCalcTTS, getSubMap, speakableNumber, formatResult } from '../context/CalcTTSContext';
 import { speakExpression as speakExpressionText } from '../services/speakExpression';
 import { matchTemplateCall } from '../services/templateCall';
+import { formatExpression } from '../services/formatExpression';
 import TTS from '../../../issievoice/src/services/TextToSpeech';
 import { countUnclosedParens } from '../services/Calculator';
 import { useLocalization } from '../../../issievoice/src/context/LocalizationContext';
@@ -24,49 +25,17 @@ const builtConfig = require('../../../../ios/IssieCalc/default_config.json');
 
 const KB_BG = builtConfig.backgroundColor && builtConfig.backgroundColor !== 'default' ? builtConfig.backgroundColor : '#000000';
 
-const SUPERSCRIPT: Record<string, string> = {
-  '0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹',
-  '-':'⁻','.':'·','+':'⁺',
-};
-function toSuperscript(s: string): string {
-  return s.split('').map(c => SUPERSCRIPT[c] ?? c).join('');
-}
-
-function formatExpression(expr: string): string {
-  return expr
-    .replace(/factorial\(([^)]*)\)/g, '$1!')
-    // √ / ∛ for the square- and cube-root keys, matching their ²√x / ³√x
-    // captions and the √ that Xroot (yroot) renders. These are ordinary
-    // one-arg functions, so the radicand keeps its parens — `√(9)+1` stays
-    // unambiguous. While the argument is still being typed the paren is
-    // left open, as the other function rules here do.
-    .replace(/2root\(([^)]*)\)/g, '√($1)')
-    .replace(/3root\(([^)]*)\)/g, '∛($1)')
-    .replace(/2root\(/g, '√(')
-    .replace(/3root\(/g, '∛(')
-    .replace(/x\^2/g, '²')
-    .replace(/x\^3/g, '³')
-    .replace(/x\^\(([^)]*)\)/g, (_, exp) => exp ? `^${exp}` : '^(')
-    .replace(/e\^\(([^)]*)\)/g, (_, exp) => exp ? `e${toSuperscript(exp)}` : 'e^(')
-    .replace(/10\^\(([^)]*)\)/g, (_, exp) => exp ? `10${toSuperscript(exp)}` : '10^(')
-    .replace(/2\^\(([^)]*)\)/g, (_, exp) => exp ? `2${toSuperscript(exp)}` : '2^(')
-    .replace(/1\/\(([^)]*)\)/g, (_, x) => x ? `(1/${x})` : '1/(')
-    .replace(/\bpi\b/g, 'π')
-    .replace(/\*/g, '×')
-    .replace(/\//g, '÷');
-}
-
 function isLandscape() {
   const { width, height } = Dimensions.get('window');
   return width > height;
 }
 
-const HAS_TEMPLATE_FN = /yroot\(|logy\(|xpow\(/;
+const HAS_TEMPLATE_FN = /yroot\(|logy\(|xpow\(|ypow\(/;
 
 // Template keys that need an operand already on screen, and warn without one.
 // 10ˣ/2ˣ/eˣ are included because the operand becomes their exponent — with
 // nothing typed there is no exponent to raise the key's base to.
-const TEMPLATE_KEYS_NEEDING_X = new Set(['yroot(', 'logy(', 'x^(', '10^(', '2^(', 'e^(']);
+const TEMPLATE_KEYS_NEEDING_X = new Set(['yroot(', 'logy(', 'x^(', 'y^(', '10^(', '2^(', 'e^(']);
 
 /**
  * The config's font weight as a React Native weight, so the expression/result
@@ -121,11 +90,22 @@ const TEMPLATE_CONFIGS: TemplateConfig[] = [
     fn: 'logy(',
     render: (x, y, cursor, fontSize, color, fontWeight) => {
       const sf = Math.floor(fontSize * 0.6);
+      // A logarithm's base is a subscript. The row aligns its children to the
+      // top (for the raised indices the other templates need), so the base is
+      // pushed back down — otherwise log₇ renders as log⁷, which reads as a
+      // power instead. Past the baseline (fontSize - sf) by a further quarter
+      // of its own size, so it clearly hangs below the "log" rather than
+      // sitting level with it.
+      const dropToBaseline = fontSize - sf + Math.round(sf * 0.25);
       return (
         <>
           <Text style={{ fontSize, color, fontWeight, textAlignVertical: 'bottom' }}>{'log'}</Text>
-          <Text style={{ fontSize: sf, lineHeight: sf * 1.1, color, fontWeight, textAlignVertical: 'bottom' }}>{y}</Text>
-          {cursor}
+          {/* Base and its cursor drop together, so the caret tracks the digits
+              being typed rather than floating where a superscript would sit. */}
+          <View style={{ flexDirection: 'row', marginTop: dropToBaseline }}>
+            <Text style={{ fontSize: sf, lineHeight: sf * 1.1, color, fontWeight }}>{y}</Text>
+            {cursor}
+          </View>
           <Text style={{ fontSize, color, fontWeight, textAlignVertical: 'bottom' }}>{'('}{formatExpression(x)}{')'}</Text>
         </>
       );
@@ -140,6 +120,22 @@ const TEMPLATE_CONFIGS: TemplateConfig[] = [
         <>
           <Text style={{ fontSize, color, fontWeight, textAlignVertical: 'bottom' }}>{formatExpression(x)}</Text>
           <Text style={{ fontSize: sf, lineHeight: sf * 1.1, color, fontWeight, textAlignVertical: 'top' }}>{y}</Text>
+          {cursor}
+        </>
+      );
+    },
+  },
+  {
+    activeRe: /^(.*)ypow\(([^,]+),([^\x00]*)\x00\)(.*)$/,
+    fn: 'ypow(',
+    // yˣ: the number typed first is the exponent, the one typed next is the
+    // base, so the arguments render in the opposite order to xpow(.
+    render: (x, y, cursor, fontSize, color, fontWeight) => {
+      const sf = Math.floor(fontSize * 0.6);
+      return (
+        <>
+          <Text style={{ fontSize, color, fontWeight, textAlignVertical: 'bottom' }}>{formatExpression(y)}</Text>
+          <Text style={{ fontSize: sf, lineHeight: sf * 1.1, color, fontWeight, textAlignVertical: 'top' }}>{formatExpression(x)}</Text>
           {cursor}
         </>
       );
@@ -255,7 +251,6 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
   const speakDirect = useCallback((text: string) => { TTS.speak(text).catch(() => {}); }, []);
   const { strings } = useLocalization();
   const insets = useSafeAreaInsets();
-  const [keyboardHeight, setKeyboardHeight] = useState(500);
   const [screenHeight, setScreenHeight] = useState(Dimensions.get('window').height);
   const [landscape, setLandscape] = useState(isLandscape());
   const [liveConfig, setLiveConfig] = useState<any>(builtConfig);
@@ -322,16 +317,31 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
     if (combinedFits !== null) setCombinedFits(null);
   }
 
-  const heightRatio = (() => {
-    const preset = liveConfig?.heightPreset ?? 'normal';
-    if (isScientific) {
-      return preset === 'compact' ? 0.65 : preset === 'normal' ? 0.80 : preset === 'tall' ? 0.80 : 0.80;
-    }
-    return preset === 'compact' ? 0.40 : preset === 'normal' ? 0.50 : preset === 'tall' ? 0.60 : 0.70;
-  })();
+  // Fixed, not a user setting: unlike a keyboard that opens over other content,
+  // the calculator's keypad *is* the screen, so its height is a layout decision
+  // rather than a preference (the settings panel hides the control for this
+  // app). What is left over holds the top bar (~66pt), the speak button
+  // (~68pt), and the expression and result rows — 48pt each scaled by
+  // fontSizePreset. 0.76 is the old 'tall' value.
+  // Basic gets a little more than it needs for its 5 rows: the operator column
+  // is 0.75 units wide against the digits' 1.0, so at a shorter keyboard those
+  // keys come out wider than they are tall. The extra height squares them up
+  // into circles, which reads better.
+  const heightRatio = isScientific ? 0.76 : 0.64;
 
+  // The keypad is a sibling of the top bar and display inside the SafeAreaView,
+  // so a share of the *whole* screen overflows: the chrome above and the bottom
+  // inset still have to fit. In landscape that space is scarce (screenHeight is
+  // the short side), so measure what is actually left and take a share of that
+  // instead — TOP_CHROME covers the top bar, and insets.bottom the home
+  // indicator.
+  const TOP_CHROME = 66;
+  const landscapeAvailable = Math.max(
+    0,
+    screenHeight - TOP_CHROME - insets.top - insets.bottom
+  );
   const effectiveKbHeight = landscape
-    ? keyboardHeight
+    ? landscapeAvailable * 0.78
     : screenHeight * heightRatio;
 
   const configJson = useMemo(() => {
@@ -569,9 +579,8 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
           style={{ height: effectiveKbHeight, backgroundColor: screenBg }}
           configJson={configJson}
           hideGlobeButton
-          targetHeight={landscape ? undefined : effectiveKbHeight}
+          targetHeight={effectiveKbHeight}
           onKeyPress={handleKeyPress}
-          onHeightChange={e => setKeyboardHeight(e.nativeEvent.height)}
         />
         <View style={{ height: insets.bottom, backgroundColor: screenBg }} />
       </View>

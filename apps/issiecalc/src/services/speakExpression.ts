@@ -8,6 +8,8 @@ import {
   speakableNumber,
   getLangWord,
   POSTFIX_FUNCTIONS,
+  SELF_CONNECTING_FUNCTIONS,
+  getRootOrdinal,
   LANG_OF,
   MathLevel,
 } from '../context/CalcTTSContext';
@@ -23,14 +25,42 @@ import {
 const TEMPLATE_CALLS: Record<string, {
   /** Map key whose translation names this function. */
   nameKey: string;
-  render: (x: string, y: string, name: string, of_: string) => string;
+  render: (
+    x: string,
+    y: string,
+    name: string,
+    of_: string,
+    language: string | null
+  ) => string;
 }> = {
   // 2 x^y 3 → "2 to the power 3"
   'xpow(': { nameKey: 'x^(', render: (x, y, name) => `${x} ${name} ${y}` },
-  // yroot(x,y) is the y-th root of x → "y root of x"
-  'yroot(': { nameKey: 'yroot(', render: (x, y, name, of_) => `${y} ${name} ${of_} ${x}` },
-  // logy(x,y) is log base y of x → "log base y of x"
-  'logy(': { nameKey: 'logy(', render: (x, y, name, of_) => `${name} ${y} ${of_} ${x}` },
+  // yroot(x,y) is the y-th root of x (the ʸ√x key: y is the index, x the
+  // radicand). Named by its index the way roots are read aloud — "cube root of
+  // 5", the same words the dedicated ³√x key uses — falling back to
+  // "root <index> of x" where no ordinal word exists.
+  'yroot(': {
+    nameKey: 'yroot(',
+    render: (x, y, name, of_, language) => {
+      const ordinal = getRootOrdinal(y, language);
+      return ordinal ? `${ordinal} ${of_} ${x}` : `${name} ${y} ${of_} ${x}`;
+    },
+  },
+  // ypow(x,y) is the yˣ key: x is the exponent, y the base. Reading it as a
+  // plain power ("3 to the power 2") says the operands in the order they are
+  // written, so it reuses xʸ's localized name rather than y^('s, which is
+  // phrased for the keypress ("2 as the exponent of…", base still unknown).
+  'ypow(': {
+    nameKey: 'x^(',
+    render: (x, y, name) => `${y} ${name} ${x}`,
+  },
+  // logy(x,y) is log base y of x → "log base 2 of 8". The name keeps its "y"
+  // for the keypress announcement, where the base is not yet known ("log base
+  // y of 8"); here the real base replaces it.
+  'logy(': {
+    nameKey: 'logy(',
+    render: (x, y, name, of_) => `${name.replace(/\s*y\s*$/, '')} ${y} ${of_} ${x}`,
+  },
 };
 
 const isPlainNumber = (s: string) => /^-?\d*\.?\d+$/.test(s.trim());
@@ -96,7 +126,7 @@ export function speakExpression(
       const name = map[nameKey] ?? nameKey;
       const x = speakExpression(args[0], language, ml);
       const y = speakExpression(args[1], language, ml);
-      result += ` ${render(x, y, name, of_)} `;
+      result += ` ${render(x, y, name, of_, language)} `;
       i = close + 1;
       matched = true;
       break;
@@ -114,9 +144,15 @@ export function speakExpression(
         if (inner !== null && isPlainNumber(inner)) {
           const name = map[token];
           const operand = speakableNumber(inner.trim(), language);
-          result += POSTFIX_FUNCTIONS.has(token)
-            ? ` ${operand} ${name}`
-            : ` ${name} ${of_} ${operand}`;
+          if (POSTFIX_FUNCTIONS.has(token)) {
+            result += ` ${operand} ${name}`;
+          } else if (SELF_CONNECTING_FUNCTIONS.has(token)) {
+            // The name ends in its own preposition: "1 over 7", not
+            // "1 over of 7".
+            result += ` ${name} ${operand}`;
+          } else {
+            result += ` ${name} ${of_} ${operand}`;
+          }
           i = close + 1;
           matched = true;
           break;

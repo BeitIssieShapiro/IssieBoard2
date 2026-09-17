@@ -72,8 +72,8 @@ describe('2 x^y 3 =', () => {
 
   it.each([
     // yroot(x,y) = the y-th root of x; logy(x,y) = log base y of x.
-    ['yroot(8,3)', '3 y root of 8'],
-    ['logy(8,2)', 'log base y 2 of 8'],
+    ['yroot(8,3)', 'cube root of 8'],
+    ['logy(8,2)', 'log base 2 of 8'],
     // Still readable when combined with ordinary operators/functions.
     ['xpow(2,3)+1', '2 to the power 3 plus 1'],
     ['xpow(2,3)*3root(27)', '2 to the power 3 times cube root of 27'],

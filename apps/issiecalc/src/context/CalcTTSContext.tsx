@@ -47,23 +47,65 @@ const WRAPPING_FUNCTIONS = new Set([
   'sin(', 'cos(', 'tan(', 'asin(', 'acos(', 'atan(',
   'sinh(', 'cosh(', 'tanh(', 'asinh(', 'acosh(', 'atanh(',
   'sqrt(', 'ln(', 'log(', 'log2(', 'logy(', '2root(', '3root(', 'yroot(', 'factorial(',
-  'x^2', 'x^3',
+  'x^2', 'x^3', '1/(',
   // Template keys (xʸ, ʸ√, logᵧ). They wrap the operand like the rest, but
   // dispatch rewrites them (x^( → xpow(x,•)) and waits for a second operand,
   // so without this they fell through every branch and read nothing at all.
-  'x^(', 'yroot(', 'logy(', '10^(', '2^(', 'e^(',
+  'x^(', 'y^(', 'yroot(', 'logy(', '10^(', '2^(', 'e^(',
 ]);
 
 // Postfix functions: operand comes first in readout ("[operand] [fn]")
-// x^( reads "8 to the power" — the exponent follows as you type it. 10ˣ/2ˣ/eˣ
-// name their own base, so they read "times 10 to the power" instead (they
-// multiply onto the operand rather than raising it).
-const POSTFIX_FUNCTIONS = new Set(['x^2', 'x^3', 'factorial(', 'x^(', '10^(', '2^(', 'e^(']);
+// x^( reads "8 to the power" — the exponent follows as you type it.
+const POSTFIX_FUNCTIONS = new Set(['x^2', 'x^3', 'factorial(', 'x^(', 'y^(']);
 
-// The keys whose base is part of the key itself (10ˣ, 2ˣ, eˣ). dispatch turns
-// them into `<operand>*xpow(<base>,•)`, so the readout must take the operand
-// from before the multiply and join it with "times".
+// The keys whose base is part of the key itself (10ˣ, 2ˣ, eˣ). The operand
+// already typed becomes the exponent, so the key completes the power and
+// announces all of it ("10 to the power 5").
 const CONSTANT_BASE_POWERS = new Set(['10^(', '2^(', 'e^(']);
+
+// Names that already end in their own preposition ("1 over", "1 חלקי"), so
+// appending the "of" connector would say it twice — "1 over of 7".
+const SELF_CONNECTING_FUNCTIONS = new Set(['1/(']);
+
+/**
+ * Names the ʸ√x key's root by its index, the way mathematics is read aloud:
+ * index 2 and 3 have their own words ("square root", "cube root"), 4 and above
+ * use an ordinal ("fourth root"). Hebrew and Arabic follow the same convention,
+ * and their forms here match the dedicated ²√x/³√x keys exactly.
+ *
+ * Ordinals only exist as words for small indices, so anything outside the table
+ * — a large or non-integer index — falls back to the plain number ("root 12 of
+ * 5"), which is always safe to say rather than inventing a form.
+ */
+const LANG_ROOT_ORDINALS: Record<string, Record<string, string>> = {
+  en: {
+    '2': 'square root', '3': 'cube root', '4': 'fourth root', '5': 'fifth root',
+    '6': 'sixth root', '7': 'seventh root', '8': 'eighth root', '9': 'ninth root',
+    '10': 'tenth root',
+  },
+  he: {
+    // Masculine forms: שורש is masculine.
+    '2': 'שורש ריבועי', '3': 'שורש שלישי', '4': 'שורש רביעי', '5': 'שורש חמישי',
+    '6': 'שורש שישי', '7': 'שורש שביעי', '8': 'שורש שמיני', '9': 'שורש תשיעי',
+    '10': 'שורש עשירי',
+  },
+  ar: {
+    '2': 'جذر تربيعي', '3': 'جذر تكعيبي', '4': 'جذر رابع', '5': 'جذر خامس',
+    '6': 'جذر سادس', '7': 'جذر سابع', '8': 'جذر ثامن', '9': 'جذر تاسع',
+    '10': 'جذر عاشر',
+  },
+};
+
+/**
+ * The spoken name for a root of the given index, e.g. "cube root" for 3.
+ * Returns null when there is no ordinal word, so callers can fall back to
+ * "<root> <index>".
+ */
+function getRootOrdinal(index: string, language: string | null): string | null {
+  const prefix = (language ?? '').split('-')[0].toLowerCase();
+  const table = LANG_ROOT_ORDINALS[prefix] ?? LANG_ROOT_ORDINALS.en;
+  return table[index.trim()] ?? null;
+}
 
 // Localized "of" connectors and angle unit words
 const LANG_OF: Record<string, string> = { en: 'of', he: 'של', ar: 'من' };
@@ -82,12 +124,12 @@ const SUBSTITUTIONS: Record<string, SubMap> = {
     '+': 'plus', '-': 'minus', '*': 'times', '/': 'divided by',
     '^': 'to the power of', '%': 'percent',
     'sqrt(': 'square root', 'ln(': 'ln', 'log(': 'log', 'log2(': 'log base 2',
-    'logy(': 'log base y', '2root(': 'square root', '3root(': 'cube root', 'yroot(': 'y root',
+    'logy(': 'log base y', '2root(': 'square root', '3root(': 'cube root', 'yroot(': 'root',
     'factorial(': 'factorial', 'sin(': 'sine', 'cos(': 'cosine', 'tan(': 'tangent',
     'asin(': 'arc sine', 'acos(': 'arc cosine', 'atan(': 'arc tangent',
     'sinh(': 'hyperbolic sine', 'cosh(': 'hyperbolic cosine', 'tanh(': 'hyperbolic tangent',
     'asinh(': 'inverse hyperbolic sine', 'acosh(': 'inverse hyperbolic cosine', 'atanh(': 'inverse hyperbolic tangent',
-    'x^2': 'squared', 'x^3': 'cubed', 'x^(': 'to the power',
+    'x^2': 'squared', 'x^3': 'cubed', 'x^(': 'to the power', 'y^(': 'as the exponent of', 'EE': 'times ten to the',
     '^(': 'to the power', '2^(': '2 to the power', '10^(': '10 to the power', 'e^(': 'e to the power', '1/(': '1 over',
     '(': 'open parenthesis', ')': 'close parenthesis',
     'pi': 'pi', 'e': 'e', '=': 'equals',
@@ -96,12 +138,12 @@ const SUBSTITUTIONS: Record<string, SubMap> = {
     '+': 'פלוס', '-': 'פחות', '*': 'כפול', '/': 'חֵלְקֵי',
     '^': 'בחזקת', '%': 'אחוז',
     'sqrt(': 'שורש', 'ln(': 'ln', 'log(': 'לוג', 'log2(': 'לוג בסיס 2',
-    'logy(': 'לוג בסיס y', '2root(': 'שורש ריבועי', '3root(': 'שורש שלישי', 'yroot(': 'שורש y',
+    'logy(': 'לוג בסיס y', '2root(': 'שורש ריבועי', '3root(': 'שורש שלישי', 'yroot(': 'שורש',
     'factorial(': 'עצרת', 'sin(': 'סינוס', 'cos(': 'קוסינוס', 'tan(': 'טנגנס',
     'asin(': 'ארקסינוס', 'acos(': 'ארקקוסינוס', 'atan(': 'ארקטנגנס',
     'sinh(': 'סינוס היפרבולי', 'cosh(': 'קוסינוס היפרבולי', 'tanh(': 'טנגנס היפרבולי',
     'asinh(': 'ארקסינוס היפרבולי', 'acosh(': 'ארקקוסינוס היפרבולי', 'atanh(': 'ארקטנגנס היפרבולי',
-    'x^2': 'בָּרִיבּוּעַ', 'x^3': 'בָּשְׁלִישִׁית', 'x^(': 'בחזקת',
+    'x^2': 'בָּרִיבּוּעַ', 'x^3': 'בָּשְׁלִישִׁית', 'x^(': 'בחזקת', 'y^(': 'כמעריך של', 'EE': 'כפול עשר בחזקת',
     '^(': 'בחזקת', '2^(': '2 בחזקת', '10^(': '10 בחזקת', 'e^(': 'e בחזקת', '1/(': '1 חלקי',
     '(': 'סוגר פתוח', ')': 'סוגר סגור',
     'pi': 'פאי', 'e': 'e', '=': 'שָׁוֶה',
@@ -110,12 +152,12 @@ const SUBSTITUTIONS: Record<string, SubMap> = {
     '+': 'زائد', '-': 'ناقص', '*': 'مضروب', '/': 'مقسوم على',
     '^': 'أس', '%': 'بالمئة',
     'sqrt(': 'جذر تربيعي', 'ln(': 'لوغاريتم طبيعي', 'log(': 'لوغاريتم', 'log2(': 'لوغاريتم أساس 2',
-    'logy(': 'لوغاريتم أساس y', '2root(': 'جذر تربيعي', '3root(': 'جذر تكعيبي', 'yroot(': 'جذر y',
+    'logy(': 'لوغاريتم أساس y', '2root(': 'جذر تربيعي', '3root(': 'جذر تكعيبي', 'yroot(': 'جذر',
     'factorial(': 'مضروب', 'sin(': 'جيب', 'cos(': 'جيب التمام', 'tan(': 'ظل',
     'asin(': 'جيب معكوس', 'acos(': 'جيب التمام المعكوس', 'atan(': 'ظل معكوس',
     'sinh(': 'جيب زائدي', 'cosh(': 'جيب تمام زائدي', 'tanh(': 'ظل زائدي',
     'asinh(': 'جيب زائدي معكوس', 'acosh(': 'جيب تمام زائدي معكوس', 'atanh(': 'ظل زائدي معكوس',
-    'x^2': 'تربيع', 'x^3': 'تكعيب', 'x^(': 'أس',
+    'x^2': 'تربيع', 'x^3': 'تكعيب', 'x^(': 'أس', 'y^(': 'كأس لـ', 'EE': 'في عشرة أس',
     '^(': 'أس', '2^(': '2 أس', '10^(': '10 أس', 'e^(': 'e أس', '1/(': '1 على',
     '(': 'قوس مفتوح', ')': 'قوس مغلق',
     'pi': 'باي', 'e': 'e', '=': 'يساوي',
@@ -161,12 +203,21 @@ const LEADING_CALL = new RegExp(
 // is stripped before we see it) and waits for the exponent. The operand being
 // wrapped is the first argument.
 //
-// Unanchored at the front because 10ˣ/2ˣ/eˣ multiply onto what precedes them
-// (5 then 10ˣ → `5*xpow(10,)`), so the template is only at the end.
-const PENDING_TEMPLATE = /(?:xpow|yroot|logy)\(([^,]*),\s*\)$/;
+// Unanchored at the front because a template can follow other terms
+// (`1+xpow(2,)`), so it is only at the end of the expression.
+const PENDING_TEMPLATE = /(?:xpow|ypow|yroot|logy)\(([^,]*),\s*\)$/;
+
+// A function call still missing its ")": pressing 2root on a cleared display
+// gives `2root(`, and typing into it gives `2root(9`. The operand is whatever
+// follows the name — empty in the first case. Without this the whole call was
+// returned and then spoken ("square root of 2root(", "=" reading "2root(9").
+// Anchored only at the end, so it matches mid-expression too (`5+2root(`).
+const UNCLOSED_CALL = new RegExp(
+  LEADING_CALL.source.replace(/^\^/, '') + '([^()]*)$'
+);
 
 // The same template once its second argument is filled in: xpow(2,3).
-const COMPLETED_TEMPLATE = /(?:xpow|yroot|logy)\(([^,]*),([^,)]+)\)$/;
+const COMPLETED_TEMPLATE = /(?:xpow|ypow|yroot|logy)\(([^,]*),([^,)]+)\)$/;
 
 /** `(5` → `5`: an unclosed paren carries nothing to say. */
 function stripOpenParen(s: string): string {
@@ -178,6 +229,9 @@ function extractLastOperand(expression: string): string {
   const expr = expression.trim();
   const pending = expr.match(PENDING_TEMPLATE);
   if (pending) return pending[1];
+  // An unclosed call: the operand is what has been typed into it, if anything.
+  const unclosed = expr.match(UNCLOSED_CALL);
+  if (unclosed) return unclosed[1];
   // Scan right-to-left for a binary operator (preceded by digit or closing paren)
   for (let i = expr.length - 1; i >= 1; i--) {
     const ch = expr[i];
@@ -383,7 +437,14 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
           : expression.trim().match(COMPLETED_TEMPLATE);
         if (template) {
           const res = result === 'Error' ? 'error' : speakableNumber(formatResult(result, decimalDigitsRef.current, lang), lang);
-          speak(speakableNumber(template[2], lang));
+          // For a root the index alone ("3") says nothing useful, so name the
+          // whole thing the way it is read aloud: "cube root of 5".
+          const rootOrdinal = expression.trim().startsWith('yroot(')
+            ? getRootOrdinal(template[2], lang)
+            : null;
+          speak(rootOrdinal
+            ? `${rootOrdinal} ${getLangWord(LANG_OF, lang)} ${speakableNumber(template[1], lang)}`
+            : speakableNumber(template[2], lang));
           setTimeout(() => speakWithPause(eq, res), 500);
         } else if (endsWithFunction) {
           const res = result === 'Error' ? 'error' : speakableNumber(formatResult(result, decimalDigitsRef.current, lang), lang);
@@ -426,6 +487,9 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
           const of_ = getLangWord(LANG_OF, lang);
           const unit = angleMode === 'deg' ? getLangWord(LANG_DEG, lang) : getLangWord(LANG_RAD, lang);
           speak(`${fnName} ${of_} ${operand} ${unit}`);
+        } else if (operand && SELF_CONNECTING_FUNCTIONS.has(keyValue)) {
+          // "1 over 7", not "1 over of 7".
+          speak(`${fnName} ${operand}`);
         } else if (operand) {
           const of_ = getLangWord(LANG_OF, lang);
           speak(`${fnName} ${of_} ${operand}`);
@@ -451,7 +515,7 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
 // POSTFIX_FUNCTIONS/LANG_OF/getLangWord are shared with CalcScreen's
 // speakExpression so the speak button phrases calls ("cube root of 8",
 // "5 factorial") exactly as the per-key readout above does.
-export { getSubMap, speakableNumber, formatResult, getLangWord, POSTFIX_FUNCTIONS, LANG_OF };
+export { getSubMap, speakableNumber, formatResult, getLangWord, POSTFIX_FUNCTIONS, LANG_OF, SELF_CONNECTING_FUNCTIONS, getRootOrdinal };
 
 export function useCalcTTS(): CalcTTSContextValue {
   const ctx = useContext(CalcTTSContext);

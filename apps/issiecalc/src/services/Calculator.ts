@@ -78,6 +78,9 @@ function normalize(expression: string, angleMode: 'rad' | 'deg'): string {
   e = e.replace(/yroot\(([^,]+),([^)]+)\)/g, (_, x, y) => `(${x})^(1/(${y}))`);
   e = e.replace(/logy\(([^,]+),([^)]+)\)/g, (_, x, y) => `log(${x})/log(${y})`);
   e = e.replace(/xpow\(([^,]+),([^)]+)\)/g, (_, x, y) => `(${x})^(${y})`);
+  // ypow(x,y) is the yˣ key: the number already typed is the exponent and the
+  // one typed next is the base — the mirror of xʸ.
+  e = e.replace(/ypow\(([^,]+),([^)]+)\)/g, (_, x, y) => `(${y})^(${x})`);
 
   // Deg mode: wrap sin/cos/tan args with deg→rad conversion
   if (angleMode === 'deg') {

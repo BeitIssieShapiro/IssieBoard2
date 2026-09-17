@@ -297,113 +297,97 @@
           "keys": [
             {
               "value": "(",
-              "width": 0.8
+              "width": 0.667
             },
             {
               "value": ")",
-              "width": 0.8
+              "width": 0.667
             },
             {
               "value": "ms",
               "caption": "ms",
-              "width": 0.8
+              "width": 0.667
             },
             {
               "value": "mr",
               "caption": "mr",
-              "width": 0.8
+              "width": 0.667
             },
             {
-              "value": "[2ND]",
-              "caption": "2nd",
-              "width": 0.8
+              "hidden": true,
+              "width": 0.667
+            },
+            {
+              "hidden": true,
+              "width": 0.667
             }
           ]
         },
         {
           "keys": [
             {
-              "value": "[ANGLE_TOGGLE]",
-              "caption": "Rad",
-              "width": 0.8
+              "value": "[2ND]",
+              "caption": "2nd",
+              "width": 0.667
             },
             {
               "value": "x^2",
               "caption": "x²",
-              "width": 0.8
+              "width": 0.667
             },
             {
               "value": "x^3",
               "caption": "x³",
-              "width": 0.8
+              "width": 0.667
             },
             {
               "value": "x^(",
               "caption": "xʸ",
-              "width": 0.8
+              "width": 0.667
+            },
+            {
+              "value": "e^(",
+              "caption": "eˣ",
+              "width": 0.667
             },
             {
               "value": "10^(",
               "caption": "10ˣ",
-              "width": 0.8
+              "width": 0.667
             }
           ]
         },
         {
           "keys": [
             {
-              "value": "e^(",
-              "caption": "eˣ",
-              "width": 0.8
-            },
-            {
-              "value": "2^(",
-              "caption": "2ˣ",
-              "width": 0.8
-            },
-            {
               "value": "1/(",
               "caption": "¹/ₓ",
-              "width": 0.8
+              "width": 0.667
             },
             {
               "value": "2root(",
               "caption": "²√x",
-              "width": 0.8
+              "width": 0.667
             },
             {
               "value": "3root(",
               "caption": "³√x",
-              "width": 0.8
-            }
-          ]
-        },
-        {
-          "keys": [
+              "width": 0.667
+            },
             {
               "value": "yroot(",
               "caption": "ʸ√x",
-              "width": 0.8
+              "width": 0.667
             },
             {
               "value": "ln(",
               "caption": "ln",
-              "width": 0.8
+              "width": 0.667
             },
             {
               "value": "log(",
               "caption": "log₁₀",
-              "width": 0.8
-            },
-            {
-              "value": "log2(",
-              "caption": "log₂",
-              "width": 0.8
-            },
-            {
-              "value": "logy(",
-              "caption": "logᵧ",
-              "width": 0.8
+              "width": 0.667
             }
           ]
         },
@@ -412,26 +396,31 @@
             {
               "value": "factorial(",
               "caption": "x!",
-              "width": 0.8
+              "width": 0.667
             },
             {
               "value": "sin(",
               "caption": "sin",
-              "width": 0.8
+              "width": 0.667
             },
             {
               "value": "cos(",
               "caption": "cos",
-              "width": 0.8
+              "width": 0.667
             },
             {
               "value": "tan(",
               "caption": "tan",
-              "width": 0.8
+              "width": 0.667
             },
             {
               "value": "e",
-              "width": 0.8
+              "width": 0.667
+            },
+            {
+              "value": "EE",
+              "caption": "EE",
+              "width": 0.667
             }
           ]
         },
@@ -440,27 +429,32 @@
             {
               "value": "rand",
               "caption": "Rand",
-              "width": 0.8
+              "width": 0.667
             },
             {
               "value": "sinh(",
               "caption": "sinh",
-              "width": 0.8
+              "width": 0.667
             },
             {
               "value": "cosh(",
               "caption": "cosh",
-              "width": 0.8
+              "width": 0.667
             },
             {
               "value": "tanh(",
               "caption": "tanh",
-              "width": 0.8
+              "width": 0.667
             },
             {
               "value": "pi",
               "caption": "π",
-              "width": 0.8
+              "width": 0.667
+            },
+            {
+              "value": "[ANGLE_TOGGLE]",
+              "caption": "Rad",
+              "width": 0.667
             }
           ]
         },
@@ -558,113 +552,97 @@
           "keys": [
             {
               "value": "(",
-              "width": 0.8
+              "width": 0.667
             },
             {
               "value": ")",
-              "width": 0.8
+              "width": 0.667
             },
             {
               "value": "ms",
               "caption": "ms",
-              "width": 0.8
+              "width": 0.667
             },
             {
               "value": "mr",
               "caption": "mr",
-              "width": 0.8
+              "width": 0.667
             },
             {
-              "value": "[2ND_OFF]",
-              "caption": "2nd",
-              "width": 0.8
+              "hidden": true,
+              "width": 0.667
+            },
+            {
+              "hidden": true,
+              "width": 0.667
             }
           ]
         },
         {
           "keys": [
             {
-              "value": "[ANGLE_TOGGLE]",
-              "caption": "Rad",
-              "width": 0.8
+              "value": "[2ND_OFF]",
+              "caption": "2nd",
+              "width": 0.667
             },
             {
               "value": "x^2",
               "caption": "x²",
-              "width": 0.8
+              "width": 0.667
             },
             {
               "value": "x^3",
               "caption": "x³",
-              "width": 0.8
+              "width": 0.667
             },
             {
               "value": "x^(",
               "caption": "xʸ",
-              "width": 0.8
+              "width": 0.667
             },
             {
-              "value": "10^(",
-              "caption": "10ˣ",
-              "width": 0.8
-            }
-          ]
-        },
-        {
-          "keys": [
-            {
-              "value": "e^(",
-              "caption": "eˣ",
-              "width": 0.8
+              "value": "y^(",
+              "caption": "yˣ",
+              "width": 0.667
             },
             {
               "value": "2^(",
               "caption": "2ˣ",
-              "width": 0.8
-            },
-            {
-              "value": "1/(",
-              "caption": "¹/ₓ",
-              "width": 0.8
-            },
-            {
-              "value": "2root(",
-              "caption": "²√x",
-              "width": 0.8
-            },
-            {
-              "value": "3root(",
-              "caption": "³√x",
-              "width": 0.8
+              "width": 0.667
             }
           ]
         },
         {
           "keys": [
             {
+              "value": "1/(",
+              "caption": "¹/ₓ",
+              "width": 0.667
+            },
+            {
+              "value": "2root(",
+              "caption": "²√x",
+              "width": 0.667
+            },
+            {
+              "value": "3root(",
+              "caption": "³√x",
+              "width": 0.667
+            },
+            {
               "value": "yroot(",
               "caption": "ʸ√x",
-              "width": 0.8
-            },
-            {
-              "value": "ln(",
-              "caption": "ln",
-              "width": 0.8
-            },
-            {
-              "value": "log(",
-              "caption": "log₁₀",
-              "width": 0.8
-            },
-            {
-              "value": "log2(",
-              "caption": "log₂",
-              "width": 0.8
+              "width": 0.667
             },
             {
               "value": "logy(",
               "caption": "logᵧ",
-              "width": 0.8
+              "width": 0.667
+            },
+            {
+              "value": "log2(",
+              "caption": "log₂",
+              "width": 0.667
             }
           ]
         },
@@ -673,26 +651,31 @@
             {
               "value": "factorial(",
               "caption": "x!",
-              "width": 0.8
+              "width": 0.667
             },
             {
               "value": "asin(",
               "caption": "sin⁻¹",
-              "width": 0.8
+              "width": 0.667
             },
             {
               "value": "acos(",
               "caption": "cos⁻¹",
-              "width": 0.8
+              "width": 0.667
             },
             {
               "value": "atan(",
               "caption": "tan⁻¹",
-              "width": 0.8
+              "width": 0.667
             },
             {
               "value": "e",
-              "width": 0.8
+              "width": 0.667
+            },
+            {
+              "value": "EE",
+              "caption": "EE",
+              "width": 0.667
             }
           ]
         },
@@ -701,27 +684,32 @@
             {
               "value": "rand",
               "caption": "Rand",
-              "width": 0.8
+              "width": 0.667
             },
             {
               "value": "asinh(",
               "caption": "sinh⁻¹",
-              "width": 0.8
+              "width": 0.667
             },
             {
               "value": "acosh(",
               "caption": "cosh⁻¹",
-              "width": 0.8
+              "width": 0.667
             },
             {
               "value": "atanh(",
               "caption": "tanh⁻¹",
-              "width": 0.8
+              "width": 0.667
             },
             {
               "value": "pi",
               "caption": "π",
-              "width": 0.8
+              "width": 0.667
+            },
+            {
+              "value": "[ANGLE_TOGGLE]",
+              "caption": "Rad",
+              "width": 0.667
             }
           ]
         },
@@ -870,12 +858,12 @@
               "caption": "xʸ"
             },
             {
-              "value": "10^(",
-              "caption": "10ˣ"
+              "value": "e^(",
+              "caption": "eˣ"
             },
             {
-              "value": "2^(",
-              "caption": "2ˣ"
+              "value": "10^(",
+              "caption": "10ˣ"
             },
             {
               "value": "7"
@@ -912,12 +900,12 @@
               "caption": "ʸ√x"
             },
             {
-              "value": "logy(",
-              "caption": "logᵧ"
+              "value": "ln(",
+              "caption": "ln"
             },
             {
-              "value": "log2(",
-              "caption": "log₂"
+              "value": "log(",
+              "caption": "log₁₀"
             },
             {
               "value": "4"
@@ -955,8 +943,8 @@
               "value": "e"
             },
             {
-              "value": "ln(",
-              "caption": "ln"
+              "value": "EE",
+              "caption": "EE"
             },
             {
               "value": "1"
@@ -1073,8 +1061,8 @@
               "caption": "xʸ"
             },
             {
-              "value": "10^(",
-              "caption": "10ˣ"
+              "value": "y^(",
+              "caption": "yˣ"
             },
             {
               "value": "2^(",
@@ -1155,12 +1143,11 @@
               "caption": "tan⁻¹"
             },
             {
-              "value": "e^(",
-              "caption": "eˣ"
+              "value": "e"
             },
             {
-              "value": "ln(",
-              "caption": "ln"
+              "value": "EE",
+              "caption": "EE"
             },
             {
               "value": "1"

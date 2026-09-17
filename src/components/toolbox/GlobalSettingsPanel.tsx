@@ -663,23 +663,30 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
               <View style={styles.separator} />
 
 
-              {/* Height Preset */}
-              <View style={styles.section}>
-                <ButtonGroupRow
-                  isRTL={isRTL}
-                  title={strings.globalSettings.keyboardHeight}
-                  options={heightPresetOptions.map(opt => ({
-                    id: opt.id,
-                    label: opt.label,
-                  }))}
-                  selectedId={currentHeightPreset}
-                  onSelect={(id) => {
-                    updateHeightPreset(id);
-                  }}
-                />
-              </View>
+              {/* Height Preset — not offered for IssieCalc, where the keyboard
+                  is the whole screen rather than something that opens over
+                  other content, so its height is fixed to leave room for the
+                  expression and result. */}
+              {appContext !== 'issiecalc' && (
+                <>
+                  <View style={styles.section}>
+                    <ButtonGroupRow
+                      isRTL={isRTL}
+                      title={strings.globalSettings.keyboardHeight}
+                      options={heightPresetOptions.map(opt => ({
+                        id: opt.id,
+                        label: opt.label,
+                      }))}
+                      selectedId={currentHeightPreset}
+                      onSelect={(id) => {
+                        updateHeightPreset(id);
+                      }}
+                    />
+                  </View>
 
-              <View style={styles.separator} />
+                  <View style={styles.separator} />
+                </>
+              )}
 
               {/* Font Size Preset */}
               <View style={styles.section}>

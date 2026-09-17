@@ -1,4 +1,4 @@
-import { evaluate, negateLastNumber } from './Calculator';
+import { evaluate, negateLastNumber, countUnclosedParens } from './Calculator';
 
 export interface CalcState {
   expression: string;
@@ -39,8 +39,8 @@ const FUNCTION_KEYS = new Set([
   'factorial(', 'sqrt(', '1/(',
 ]);
 
-const TEMPLATE_KEYS = new Set(['yroot(', 'logy(', 'x^(', '10^(', '2^(', 'e^(']);
-const TEMPLATE_KEY_TO_FN: Record<string, string> = { 'x^(': 'xpow(' };
+const TEMPLATE_KEYS = new Set(['yroot(', 'logy(', 'x^(', 'y^(', '10^(', '2^(', 'e^(']);
+const TEMPLATE_KEY_TO_FN: Record<string, string> = { 'x^(': 'xpow(', 'y^(': 'ypow(' };
 
 /**
  * 10ˣ, 2ˣ and eˣ carry their own base, so unlike x^( the operand that precedes
@@ -225,7 +225,14 @@ export function dispatch(inState: CalcState, key: string): CalcState {
     const mode = state.keyset === 'basic' ? 'basic' : 'scientific';
     const res = evaluate(state.expression, state.angleMode, mode);
     const finalRes = res === '' ? 'Error' : res;
-    return { ...state, result: finalRes, resultMode: true };
+    // evaluate() auto-closes unclosed parens to compute the result, so close
+    // them in the expression too — otherwise the display keeps showing the
+    // half-open call it just evaluated ("√(9 = 3").
+    const unclosed = countUnclosedParens(state.expression);
+    const expression = unclosed > 0
+      ? state.expression + ')'.repeat(unclosed)
+      : state.expression;
+    return { ...state, expression, result: finalRes, resultMode: true };
   }
 
   if (key === '+/-') {
@@ -265,6 +272,22 @@ export function dispatch(inState: CalcState, key: string): CalcState {
 
   // rand — non-deterministic; caller must inject value, dispatch is a no-op
   if (key === 'rand') return state;
+
+  // EE — scientific notation: the digits typed next are the exponent, so
+  // 5 EE 3 is 5×10³. normalize() already turns "5E+3" back into a literal, so
+  // only the input side is needed here. Requires a mantissa to attach to, and
+  // only one E per number.
+  if (key === 'EE') {
+    const base = state.resultMode ? state.result : state.expression;
+    // Includes any E+nn already present, so a second EE is rejected.
+    const lastNumber = base.match(/[\d.]+(?:E[+-]?\d*)?$/)?.[0] ?? '';
+    if (!/\d$/.test(base) || lastNumber.includes('E')) return state;
+    // A bare "E" is not parseable until a digit follows; the sign keeps it
+    // valid, and a negative exponent is entered with +/-.
+    return state.resultMode
+      ? { ...state, expression: base + 'E+', result: '', resultMode: false }
+      : { ...state, expression: base + 'E+' };
+  }
 
   // Suffix keys (x², x³, n!, x^() require expression ending with digit or )
   // When expression is empty (after AC), implicitly use 0 as the operand

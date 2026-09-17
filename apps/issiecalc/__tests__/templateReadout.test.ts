@@ -76,7 +76,7 @@ describe('x^y template: 8 x^y 4 =', () => {
   });
 
   it.each([
-    ['yroot(', 'y root of 8'],
+    ['yroot(', 'root of 8'],
     ['logy(', 'log base y of 8'],
   ])('%s also announces itself', (key, expected) => {
     jest.useFakeTimers();

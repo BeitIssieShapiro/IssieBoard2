@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import { evaluate, negateLastNumber } from '../services/Calculator';
+import { dispatch, isInTemplateMode } from '../services/calcDispatch';
 import KeyboardPreferences from '../../../../src/native/KeyboardPreferences';
 
 const ANGLE_MODE_KEY = 'issiecalc_angle_mode';
@@ -143,14 +144,32 @@ export const CalcProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setExpression(expressionRef.current);
   }, []);
 
+  /**
+   * "=" is implemented once, in calcDispatch, and this delegates to it.
+   *
+   * It used to evaluate here independently, which meant fixes could land in
+   * one copy and not the other — closing the unclosed parens that evaluate()
+   * assumes was fixed in dispatch and never reached the display ("√(2 = 1.41").
+   */
   const computeResult = useCallback(() => {
-    const mode = keysetRef.current === 'basic' ? 'basic' : 'scientific';
-    const res = evaluate(expressionRef.current, angleModeRef.current, mode);
-    const finalRes = res === '' ? 'Error' : res;
-    resultRef.current = finalRes;
-    resultModeRef.current = true;
-    setResult(finalRes);
-    setResultMode(true);
+    const next = dispatch(
+      {
+        expression: expressionRef.current,
+        result: resultRef.current,
+        resultMode: resultModeRef.current,
+        angleMode: angleModeRef.current,
+        keyset: keysetRef.current,
+        memory: memoryRef.current,
+        templateMode: isInTemplateMode(expressionRef.current),
+      },
+      '='
+    );
+    expressionRef.current = next.expression;
+    resultRef.current = next.result;
+    resultModeRef.current = next.resultMode;
+    setExpression(next.expression);
+    setResult(next.result);
+    setResultMode(next.resultMode);
   }, []);
 
   const toggleSign = useCallback(() => {
