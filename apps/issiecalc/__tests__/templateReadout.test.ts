@@ -69,7 +69,7 @@ describe('x^y template: 8 x^y 4 =', () => {
     }
 
     // The power key announces itself instead of staying silent...
-    expect(heard['x^(']).toEqual(['8 to the power']);
+    expect(heard['x^(']).toEqual(['8 to the power of']);
     // ...and "=" reads the exponent (typed after that announcement, so not yet
     // spoken) followed by the computed value, not "error".
     expect(heard['=']).toEqual(['4', 'equals', '4096']);

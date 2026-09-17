@@ -33,7 +33,7 @@ const TEMPLATE_CALLS: Record<string, {
     language: string | null
   ) => string;
 }> = {
-  // 2 x^y 3 → "2 to the power 3"
+  // 2 x^y 3 → "2 to the power of 3"
   'xpow(': { nameKey: 'x^(', render: (x, y, name) => `${x} ${name} ${y}` },
   // yroot(x,y) is the y-th root of x (the ʸ√x key: y is the index, x the
   // radicand). Named by its index the way roots are read aloud — "cube root of
@@ -47,7 +47,7 @@ const TEMPLATE_CALLS: Record<string, {
     },
   },
   // ypow(x,y) is the yˣ key: x is the exponent, y the base. Reading it as a
-  // plain power ("3 to the power 2") says the operands in the order they are
+  // plain power ("3 to the power of 2") says the operands in the order they are
   // written, so it reuses xʸ's localized name rather than y^('s, which is
   // phrased for the keypress ("2 as the exponent of…", base still unknown).
   'ypow(': {

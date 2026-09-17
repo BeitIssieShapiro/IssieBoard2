@@ -37,7 +37,10 @@ const CalcTTSContext = createContext<CalcTTSContextValue | null>(null);
 
 const SILENT_KEYS = new Set(['⌫', 'AC', '+/-', '[2ND]', '[2ND_OFF]', '[ANGLE_TOGGLE]', 'ms', 'mr', 'rand']);
 
-const OPERATOR_KEYS = new Set(['+', '-', '*', '/', '^', '%']);
+// No '^': the keypad has no bare power operator — powers come from the xʸ/10ˣ
+// family, which dispatch rewrites to xpow(…) and WRAPPING_FUNCTIONS handles.
+// Adding a '^' key would need a name in the substitution maps to go with it.
+const OPERATOR_KEYS = new Set(['+', '-', '*', '/', '%']);
 
 // Trig functions that take an angle argument
 const ANGLE_FUNCTIONS = new Set(['sin(', 'cos(', 'tan(', 'asin(', 'acos(', 'atan(']);
@@ -55,12 +58,12 @@ const WRAPPING_FUNCTIONS = new Set([
 ]);
 
 // Postfix functions: operand comes first in readout ("[operand] [fn]")
-// x^( reads "8 to the power" — the exponent follows as you type it.
+// x^( reads "8 to the power of" — the exponent follows as you type it.
 const POSTFIX_FUNCTIONS = new Set(['x^2', 'x^3', 'factorial(', 'x^(', 'y^(']);
 
 // The keys whose base is part of the key itself (10ˣ, 2ˣ, eˣ). The operand
 // already typed becomes the exponent, so the key completes the power and
-// announces all of it ("10 to the power 5").
+// announces all of it ("10 to the power of 5").
 const CONSTANT_BASE_POWERS = new Set(['10^(', '2^(', 'e^(']);
 
 // Names that already end in their own preposition ("1 over", "1 חלקי"), so
@@ -122,21 +125,25 @@ type SubMap = Record<string, string>;
 const SUBSTITUTIONS: Record<string, SubMap> = {
   en: {
     '+': 'plus', '-': 'minus', '*': 'times', '/': 'divided by',
-    '^': 'to the power of', '%': 'percent',
+    '%': 'percent',
     'sqrt(': 'square root', 'ln(': 'ln', 'log(': 'log', 'log2(': 'log base 2',
     'logy(': 'log base y', '2root(': 'square root', '3root(': 'cube root', 'yroot(': 'root',
     'factorial(': 'factorial', 'sin(': 'sine', 'cos(': 'cosine', 'tan(': 'tangent',
     'asin(': 'arc sine', 'acos(': 'arc cosine', 'atan(': 'arc tangent',
     'sinh(': 'hyperbolic sine', 'cosh(': 'hyperbolic cosine', 'tanh(': 'hyperbolic tangent',
     'asinh(': 'inverse hyperbolic sine', 'acosh(': 'inverse hyperbolic cosine', 'atanh(': 'inverse hyperbolic tangent',
-    'x^2': 'squared', 'x^3': 'cubed', 'x^(': 'to the power', 'y^(': 'as the exponent of', 'EE': 'times ten to the',
-    '^(': 'to the power', '2^(': '2 to the power', '10^(': '10 to the power', 'e^(': 'e to the power', '1/(': '1 over',
+    // "to the power of", not a bare "to the power": English needs the
+    // connector to read as speech ("2 to the power of 3"). It is part of the
+    // name rather than appended like the "of" in "cube root of 8", because
+    // only English takes one here — בחזקת and أس already carry it.
+    'x^2': 'squared', 'x^3': 'cubed', 'x^(': 'to the power of', 'y^(': 'as the exponent of', 'EE': 'times ten to the',
+    '^(': 'to the power of', '2^(': '2 to the power of', '10^(': '10 to the power of', 'e^(': 'e to the power of', '1/(': '1 over',
     '(': 'open parenthesis', ')': 'close parenthesis',
     'pi': 'pi', 'e': 'e', '=': 'equals',
   },
   he: {
     '+': 'פלוס', '-': 'פחות', '*': 'כפול', '/': 'חֵלְקֵי',
-    '^': 'בחזקת', '%': 'אחוז',
+    '%': 'אחוז',
     'sqrt(': 'שורש', 'ln(': 'ln', 'log(': 'לוג', 'log2(': 'לוג בסיס 2',
     'logy(': 'לוג בסיס y', '2root(': 'שורש ריבועי', '3root(': 'שורש שלישי', 'yroot(': 'שורש',
     'factorial(': 'עצרת', 'sin(': 'סינוס', 'cos(': 'קוסינוס', 'tan(': 'טנגנס',
@@ -150,7 +157,7 @@ const SUBSTITUTIONS: Record<string, SubMap> = {
   },
   ar: {
     '+': 'زائد', '-': 'ناقص', '*': 'مضروب', '/': 'مقسوم على',
-    '^': 'أس', '%': 'بالمئة',
+    '%': 'بالمئة',
     'sqrt(': 'جذر تربيعي', 'ln(': 'لوغاريتم طبيعي', 'log(': 'لوغاريتم', 'log2(': 'لوغاريتم أساس 2',
     'logy(': 'لوغاريتم أساس y', '2root(': 'جذر تربيعي', '3root(': 'جذر تكعيبي', 'yroot(': 'جذر',
     'factorial(': 'مضروب', 'sin(': 'جيب', 'cos(': 'جيب التمام', 'tan(': 'ظل',
@@ -167,7 +174,8 @@ const SUBSTITUTIONS: Record<string, SubMap> = {
 // Young-level overrides per language (only keys that differ)
 const YOUNG_OVERRIDES: Partial<Record<string, SubMap>> = {
   he: {
-    '+': 'ועוד', '-': 'פחות', '*': 'פַּעֲמִים', '/': 'חֵלְקֵי',
+    // פְּעָמִים: pe with sheva, ayin with kamatz, mem with chirik-yod.
+    '+': 'ועוד', '-': 'פחות', '*': 'פְּעָמִים', '/': 'חֵלְקֵי',
   },
 };
 
@@ -310,7 +318,7 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const initializedRef = useRef(false);
 
-  // True when the last keypress announced a complete power ("10 to the power
+  // True when the last keypress announced a complete power ("10 to the power of
   // 3"), so "=" must not repeat the exponent. Only 10ˣ/2ˣ/eˣ set it: xʸ leaves
   // its slot open for an exponent that nothing has spoken yet.
   const powerFullySpokenRef = useRef(false);
@@ -428,7 +436,7 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
         // second argument before "equals" so nothing is lost.
         //
         // 10ˣ/2ˣ/eˣ are the exception: they complete the power on the keypress
-        // and announce all of it ("10 to the power 3"), so repeating the
+        // and announce all of it ("10 to the power of 3"), so repeating the
         // exponent here would say it twice. The expression alone cannot tell
         // the two apart — xʸ pressed on a literal 10 also yields xpow(10,3) —
         // so this tracks which key actually built it.
@@ -479,7 +487,7 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
         const fnName = getSubMap(lang, ml)[keyValue] ?? keyValue;
         if (CONSTANT_BASE_POWERS.has(keyValue)) {
-          // The power is complete when pressed: "10 to the power 5".
+          // The power is complete when pressed: "10 to the power of 5".
           speak(operand ? `${fnName} ${operand}` : fnName);
         } else if (POSTFIX_FUNCTIONS.has(keyValue)) {
           speak(operand ? `${operand} ${fnName}` : fnName);

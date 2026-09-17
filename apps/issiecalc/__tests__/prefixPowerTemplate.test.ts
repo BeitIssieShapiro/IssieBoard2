@@ -86,13 +86,13 @@ describe('10ˣ / 2ˣ / eˣ as templates', () => {
       s = next;
     }
     // The key announces the whole power, exponent included...
-    expect(heard['10^(']).toEqual(['10 to the power 5']);
+    expect(heard['10^(']).toEqual(['10 to the power of 5']);
     // ...so "=" only needs the result.
     expect(heard['=']).toEqual(['equals', '100000']);
   });
 
   it('speak button reads the finished expression', () => {
-    expect(speakExpression('xpow(10,5)', 'en')).toBe('10 to the power 5');
+    expect(speakExpression('xpow(10,5)', 'en')).toBe('10 to the power of 5');
   });
 
   // 10 xʸ 3 builds the same xpow(10,3) that 3 then 10ˣ does, but here the
@@ -115,7 +115,7 @@ describe('10ˣ / 2ˣ / eˣ as templates', () => {
       heard[key] = [...spoken];
       s = next;
     }
-    expect(heard['x^(']).toEqual(['10 to the power']);
+    expect(heard['x^(']).toEqual(['10 to the power of']);
     expect(heard['=']).toEqual(['3', 'equals', '1000']);
   });
 });
