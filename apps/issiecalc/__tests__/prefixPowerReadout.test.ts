@@ -61,10 +61,10 @@ describe('10^x / 2^x (prefix powers)', () => {
   // The number already typed becomes the exponent (3 then 10ˣ → 10³), so the
   // key announces the finished power and "=" only adds the result.
   it.each([
-    ['10^(', '10 to the power 3', '1000'],
-    ['2^(', '2 to the power 3', '8'],
+    ['10^(', '10 to the power of 3', '1000'],
+    ['2^(', '2 to the power of 3', '8'],
     // Truncated to the default 2 decimal digits by the readout settings.
-    ['e^(', 'e to the power 3', '20.08 and 5 more digits'],
+    ['e^(', 'e to the power of 3', '20.08 and 5 more digits'],
   ])('%s announces the whole power', (key, announced, expected) => {
     const heard = play(['3', key, '=']);
     expect(heard[key]).toEqual([announced]);
@@ -72,10 +72,10 @@ describe('10^x / 2^x (prefix powers)', () => {
   });
 
   it.each([
-    ['xpow(10,5)', '10 to the power 5'],
-    ['xpow(2,5)', '2 to the power 5'],
-    ['xpow(e,5)', 'e to the power 5'],
-    ['3*xpow(10,5)', '3 times 10 to the power 5'],
+    ['xpow(10,5)', '10 to the power of 5'],
+    ['xpow(2,5)', '2 to the power of 5'],
+    ['xpow(e,5)', 'e to the power of 5'],
+    ['3*xpow(10,5)', '3 times 10 to the power of 5'],
   ])('speak button reads %s', (expr, expected) => {
     expect(speakExpression(expr, 'en')).toBe(expected);
   });

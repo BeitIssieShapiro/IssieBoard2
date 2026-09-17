@@ -37,10 +37,27 @@ const CalcTTSContext = createContext<CalcTTSContextValue | null>(null);
 
 const SILENT_KEYS = new Set(['⌫', 'AC', '+/-', '[2ND]', '[2ND_OFF]', '[ANGLE_TOGGLE]', 'ms', 'mr', 'rand']);
 
-const OPERATOR_KEYS = new Set(['+', '-', '*', '/', '^', '%']);
+// No '^': the keypad has no bare power operator — powers come from the xʸ/10ˣ
+// family, which dispatch rewrites to xpow(…) and WRAPPING_FUNCTIONS handles.
+// Adding a '^' key would need a name in the substitution maps to go with it.
+const OPERATOR_KEYS = new Set(['+', '-', '*', '/', '%']);
 
-// Trig functions that take an angle argument
-const ANGLE_FUNCTIONS = new Set(['sin(', 'cos(', 'tan(', 'asin(', 'acos(', 'atan(']);
+// Trig functions whose *argument* is an angle, so the unit is spoken with it
+// ("sine of 30 degrees"). The inverse three are deliberately absent: they take
+// a ratio and return an angle, so their unit belongs to the result instead —
+// see ANGLE_RESULT_FUNCTIONS.
+const ANGLE_FUNCTIONS = new Set(['sin(', 'cos(', 'tan(']);
+
+// ...and the mirror image: asin/acos/atan take a plain ratio and *return* an
+// angle, so "=" names the unit on the answer ("equals 90 degrees") rather than
+// on the argument.
+const ANGLE_RESULT_FUNCTIONS = new Set(['asin(', 'acos(', 'atan(']);
+
+/** True when the expression's outermost call returns an angle. */
+function returnsAngle(expression: string): boolean {
+  const expr = expression.trim();
+  return [...ANGLE_RESULT_FUNCTIONS].some(fn => expr.startsWith(fn) && expr.endsWith(')'));
+}
 
 // Functions that wrap an existing operand (used in every-number mode)
 const WRAPPING_FUNCTIONS = new Set([
@@ -55,17 +72,22 @@ const WRAPPING_FUNCTIONS = new Set([
 ]);
 
 // Postfix functions: operand comes first in readout ("[operand] [fn]")
-// x^( reads "8 to the power" — the exponent follows as you type it.
+// x^( reads "8 to the power of" — the exponent follows as you type it.
 const POSTFIX_FUNCTIONS = new Set(['x^2', 'x^3', 'factorial(', 'x^(', 'y^(']);
 
 // The keys whose base is part of the key itself (10ˣ, 2ˣ, eˣ). The operand
 // already typed becomes the exponent, so the key completes the power and
-// announces all of it ("10 to the power 5").
+// announces all of it ("10 to the power of 5").
 const CONSTANT_BASE_POWERS = new Set(['10^(', '2^(', 'e^(']);
 
 // Names that already end in their own preposition ("1 over", "1 חלקי"), so
 // appending the "of" connector would say it twice — "1 over of 7".
 const SELF_CONNECTING_FUNCTIONS = new Set(['1/(']);
+
+// Keys that put a value on the display without being digits. They are spoken
+// by name, and — because they survive into the expression as the letters "pi"
+// and "e" — they also have to be translated when read back as an operand.
+const CONSTANT_KEYS = new Set(['pi', 'e']);
 
 /**
  * Names the ʸ√x key's root by its index, the way mathematics is read aloud:
@@ -122,21 +144,25 @@ type SubMap = Record<string, string>;
 const SUBSTITUTIONS: Record<string, SubMap> = {
   en: {
     '+': 'plus', '-': 'minus', '*': 'times', '/': 'divided by',
-    '^': 'to the power of', '%': 'percent',
+    '%': 'percent',
     'sqrt(': 'square root', 'ln(': 'ln', 'log(': 'log', 'log2(': 'log base 2',
     'logy(': 'log base y', '2root(': 'square root', '3root(': 'cube root', 'yroot(': 'root',
     'factorial(': 'factorial', 'sin(': 'sine', 'cos(': 'cosine', 'tan(': 'tangent',
     'asin(': 'arc sine', 'acos(': 'arc cosine', 'atan(': 'arc tangent',
     'sinh(': 'hyperbolic sine', 'cosh(': 'hyperbolic cosine', 'tanh(': 'hyperbolic tangent',
     'asinh(': 'inverse hyperbolic sine', 'acosh(': 'inverse hyperbolic cosine', 'atanh(': 'inverse hyperbolic tangent',
-    'x^2': 'squared', 'x^3': 'cubed', 'x^(': 'to the power', 'y^(': 'as the exponent of', 'EE': 'times ten to the',
-    '^(': 'to the power', '2^(': '2 to the power', '10^(': '10 to the power', 'e^(': 'e to the power', '1/(': '1 over',
+    // "to the power of", not a bare "to the power": English needs the
+    // connector to read as speech ("2 to the power of 3"). It is part of the
+    // name rather than appended like the "of" in "cube root of 8", because
+    // only English takes one here — בחזקת and أس already carry it.
+    'x^2': 'squared', 'x^3': 'cubed', 'x^(': 'to the power of', 'y^(': 'as the exponent of', 'EE': 'times ten to the',
+    '^(': 'to the power of', '2^(': '2 to the power of', '10^(': '10 to the power of', 'e^(': 'e to the power of', '1/(': '1 over',
     '(': 'open parenthesis', ')': 'close parenthesis',
     'pi': 'pi', 'e': 'e', '=': 'equals',
   },
   he: {
     '+': 'פלוס', '-': 'פחות', '*': 'כפול', '/': 'חֵלְקֵי',
-    '^': 'בחזקת', '%': 'אחוז',
+    '%': 'אחוז',
     'sqrt(': 'שורש', 'ln(': 'ln', 'log(': 'לוג', 'log2(': 'לוג בסיס 2',
     'logy(': 'לוג בסיס y', '2root(': 'שורש ריבועי', '3root(': 'שורש שלישי', 'yroot(': 'שורש',
     'factorial(': 'עצרת', 'sin(': 'סינוס', 'cos(': 'קוסינוס', 'tan(': 'טנגנס',
@@ -150,7 +176,7 @@ const SUBSTITUTIONS: Record<string, SubMap> = {
   },
   ar: {
     '+': 'زائد', '-': 'ناقص', '*': 'مضروب', '/': 'مقسوم على',
-    '^': 'أس', '%': 'بالمئة',
+    '%': 'بالمئة',
     'sqrt(': 'جذر تربيعي', 'ln(': 'لوغاريتم طبيعي', 'log(': 'لوغاريتم', 'log2(': 'لوغاريتم أساس 2',
     'logy(': 'لوغاريتم أساس y', '2root(': 'جذر تربيعي', '3root(': 'جذر تكعيبي', 'yroot(': 'جذر',
     'factorial(': 'مضروب', 'sin(': 'جيب', 'cos(': 'جيب التمام', 'tan(': 'ظل',
@@ -167,7 +193,8 @@ const SUBSTITUTIONS: Record<string, SubMap> = {
 // Young-level overrides per language (only keys that differ)
 const YOUNG_OVERRIDES: Partial<Record<string, SubMap>> = {
   he: {
-    '+': 'ועוד', '-': 'פחות', '*': 'פַּעֲמִים', '/': 'חֵלְקֵי',
+    // פְּעָמִים: pe with sheva, ayin with kamatz, mem with chirik-yod.
+    '+': 'ועוד', '-': 'פחות', '*': 'פְּעָמִים', '/': 'חֵלְקֵי',
   },
 };
 
@@ -254,7 +281,11 @@ function extractLastOperand(expression: string): string {
   if (LEADING_CALL.test(expr) && expr.endsWith(')')) {
     return expr.replace(LEADING_CALL, '').replace(/\)$/, '');
   }
-  return expr;
+  // A group opened but not yet closed ("(2") reaches here as the whole
+  // expression. The branch above strips the bracket once an operator follows
+  // it; without the same treatment the first operand of a bracketed sum was
+  // spoken as the character itself — "(2 plus".
+  return stripOpenParen(expr);
 }
 
 const LANG_MORE_DIGITS: Record<string, (n: number) => string> = {
@@ -264,6 +295,22 @@ const LANG_MORE_DIGITS: Record<string, (n: number) => string> = {
 };
 
 const LANG_MINUS: Record<string, string> = { en: 'minus', he: 'מינוס', ar: 'ناقص' };
+
+/**
+ * An operand as it should be spoken: a number, or a constant's localized name.
+ *
+ * "2*pi" leaves "pi" as the last operand, and speakableNumber has no reason to
+ * look at the substitution map — so an Arabic voice was handed the English
+ * letters "pi" while the speak button, which does go through the map, said
+ * باي for the very same expression.
+ */
+function sayOperand(value: string, language: string | null, mathLevel?: MathLevel): string {
+  const trimmed = value.trim();
+  if (CONSTANT_KEYS.has(trimmed)) {
+    return getSubMap(language, mathLevel)[trimmed] ?? trimmed;
+  }
+  return speakableNumber(value, language);
+}
 
 function speakableNumber(value: string, language: string | null): string {
   const prefix = (language ?? '').split('-')[0].toLowerCase();
@@ -310,10 +357,16 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const initializedRef = useRef(false);
 
-  // True when the last keypress announced a complete power ("10 to the power
+  // True when the last keypress announced a complete power ("10 to the power of
   // 3"), so "=" must not repeat the exponent. Only 10ˣ/2ˣ/eˣ set it: xʸ leaves
   // its slot open for an exponent that nothing has spoken yet.
   const powerFullySpokenRef = useRef(false);
+
+  // True when the last keypress was a constant, which speaks its own name. "="
+  // otherwise reads the trailing operand again and says it twice ("pi", "pi",
+  // "equals"). Digits do not need this: they are silent in every-number mode,
+  // so "=" saying the number they built is the first time it is heard.
+  const constantSpokenRef = useRef(false);
 
   useEffect(() => {
     TTS.initialize().then(() => {
@@ -388,6 +441,24 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setTimeout(() => { TTS.speak(after).catch(() => {}); }, pauseMs);
   }, []);
 
+  /**
+   * How the answer is spoken: "error", or the number trimmed to the user's
+   * decimal setting — with the angle unit appended when the expression is an
+   * inverse-trig call, whose result *is* an angle ("equals 90 degrees").
+   */
+  const sayResult = useCallback((
+    result: string,
+    lang: string | null,
+    expression: string,
+    angleMode?: 'deg' | 'rad'
+  ): string => {
+    if (result === 'Error') return 'error';
+    const value = speakableNumber(formatResult(result, decimalDigitsRef.current, lang), lang);
+    if (!angleMode || !returnsAngle(expression)) return value;
+    const unit = angleMode === 'deg' ? getLangWord(LANG_DEG, lang) : getLangWord(LANG_RAD, lang);
+    return `${value} ${unit}`;
+  }, []);
+
   const readout = useCallback((keyValue: string, expression: string, result: string, angleMode?: 'deg' | 'rad') => {
     const mode = readoutModeRef.current;
     // Tracked for every key (even silent ones like AC, which must clear it) so
@@ -395,6 +466,7 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // it alone — it is the reader of this flag, not a writer.
     if (keyValue !== '=') {
       powerFullySpokenRef.current = CONSTANT_BASE_POWERS.has(keyValue);
+      constantSpokenRef.current = CONSTANT_KEYS.has(keyValue);
     }
     if (mode === 'off') return;
     if (SILENT_KEYS.has(keyValue)) return;
@@ -407,8 +479,7 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
         // for 'both', fall through to every-number block which handles '='
         if (mode === 'every-digit') {
           const eq = getSubMap(lang, ml)['='] ?? 'equals';
-          const res = result === 'Error' ? 'error' : speakableNumber(formatResult(result, decimalDigitsRef.current, lang), lang);
-          speakWithPause(eq, res);
+          speakWithPause(eq, sayResult(result, lang, expression, angleMode));
           return;
         }
       } else {
@@ -420,7 +491,17 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (mode === 'every-number' || mode === 'both') {
       if (keyValue === '=') {
         const eq = getSubMap(lang, ml)['='] ?? 'equals';
-        const endsWithFunction = /[a-zA-Z]+\([^)]*\)$/.test(expression.trim()) ||
+        // One spelling of the answer for every branch below, so the angle unit
+        // that asin/acos/atan put on their result cannot be applied in some
+        // and forgotten in others.
+        const spokenResult = () => sayResult(result, lang, expression, angleMode);
+        // A trailing function call has already been announced in full by the
+        // key that created it, so "=" goes straight to the answer. The name may
+        // carry digits at either end — log2( ends with one, 2root( and 3root(
+        // begin with one — so matching only [a-zA-Z]+ missed them and read the
+        // operand a second time ("log base 2 of 8", then "8" again).
+        const endsWithFunction = /[a-zA-Z][a-zA-Z0-9]*\([^)]*\)$/.test(expression.trim()) ||
+          /\d+[a-zA-Z]+\([^)]*\)$/.test(expression.trim()) ||
           /x\^2$/.test(expression.trim()) || /x\^3$/.test(expression.trim());
         // A completed template (xʸ, ʸ√, logᵧ) ends in a function call too, but
         // only its first argument has been announced — pressing x^( said "2 to
@@ -428,7 +509,7 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
         // second argument before "equals" so nothing is lost.
         //
         // 10ˣ/2ˣ/eˣ are the exception: they complete the power on the keypress
-        // and announce all of it ("10 to the power 3"), so repeating the
+        // and announce all of it ("10 to the power of 3"), so repeating the
         // exponent here would say it twice. The expression alone cannot tell
         // the two apart — xʸ pressed on a literal 10 also yields xpow(10,3) —
         // so this tracks which key actually built it.
@@ -436,7 +517,7 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
           ? null
           : expression.trim().match(COMPLETED_TEMPLATE);
         if (template) {
-          const res = result === 'Error' ? 'error' : speakableNumber(formatResult(result, decimalDigitsRef.current, lang), lang);
+          const res = spokenResult();
           // For a root the index alone ("3") says nothing useful, so name the
           // whole thing the way it is read aloud: "cube root of 5".
           const rootOrdinal = expression.trim().startsWith('yroot(')
@@ -447,19 +528,35 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
             : speakableNumber(template[2], lang));
           setTimeout(() => speakWithPause(eq, res), 500);
         } else if (endsWithFunction) {
-          const res = result === 'Error' ? 'error' : speakableNumber(formatResult(result, decimalDigitsRef.current, lang), lang);
+          const res = spokenResult();
           speakWithPause(eq, res);
+        } else if (constantSpokenRef.current) {
+          // The constant key just said its own name; go straight to the answer.
+          speakWithPause(eq, spokenResult());
         } else {
-          const operand = speakableNumber(extractLastOperand(expression), lang);
-          const res = result === 'Error' ? 'error' : speakableNumber(formatResult(result, decimalDigitsRef.current, lang), lang);
-          speak(operand);
-          setTimeout(() => speakWithPause(eq, res), 500);
+          const operand = sayOperand(extractLastOperand(expression), lang, ml);
+          const res = spokenResult();
+          // A trailing "%" leaves nothing to extract, and an empty utterance is
+          // a wasted trip to the voice — skip straight to the answer.
+          if (!operand.trim()) {
+            speakWithPause(eq, res);
+          } else {
+            speak(operand);
+            setTimeout(() => speakWithPause(eq, res), 500);
+          }
         }
+        return;
+      }
+      // π and e produce a value like a digit does, so they announce themselves
+      // by name. Without this they reached none of the branches below and were
+      // pressed in silence.
+      if (CONSTANT_KEYS.has(keyValue)) {
+        speak(getSubMap(lang, ml)[keyValue] ?? keyValue);
         return;
       }
       if (OPERATOR_KEYS.has(keyValue)) {
         const beforeOp = expression.slice(0, -1).trim();
-        const operand = speakableNumber(extractLastOperand(beforeOp || expression), lang);
+        const operand = sayOperand(extractLastOperand(beforeOp || expression), lang, ml);
         speak(`${operand} ${getOperatorName(keyValue, lang, ml)}`);
         return;
       }
@@ -479,7 +576,7 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
         const fnName = getSubMap(lang, ml)[keyValue] ?? keyValue;
         if (CONSTANT_BASE_POWERS.has(keyValue)) {
-          // The power is complete when pressed: "10 to the power 5".
+          // The power is complete when pressed: "10 to the power of 5".
           speak(operand ? `${fnName} ${operand}` : fnName);
         } else if (POSTFIX_FUNCTIONS.has(keyValue)) {
           speak(operand ? `${operand} ${fnName}` : fnName);
@@ -499,7 +596,7 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return;
       }
     }
-  }, [speak, speakWithPause]);
+  }, [speak, speakWithPause, sayResult]);
 
   return (
     <CalcTTSContext.Provider value={{

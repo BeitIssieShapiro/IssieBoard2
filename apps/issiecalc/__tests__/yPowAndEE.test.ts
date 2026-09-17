@@ -79,9 +79,9 @@ describe('speaking yˣ and EE', () => {
 
   it.each([
     // Read in written order: base, then exponent.
-    ['ypow(2,3)', 'en', '3 to the power 2'],
+    ['ypow(2,3)', 'en', '3 to the power of 2'],
     ['ypow(2,3)', 'he', '3 בחזקת 2'],
-    ['xpow(2,3)', 'en', '2 to the power 3'],
+    ['xpow(2,3)', 'en', '2 to the power of 3'],
   ])('%s in %s reads "%s"', (expr, lang, expected) => {
     expect(speakExpression(expr, lang)).toBe(expected);
   });
