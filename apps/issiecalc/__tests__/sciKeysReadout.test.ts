@@ -145,6 +145,21 @@ describe('logarithms', () => {
     expect(typing).toEqual(['log base 2 of 8']);
     expect(button).toBe('log base 2 of 8');
   });
+
+  it('does not repeat the operand on "=" for a name ending in a digit', () => {
+    // log2( has a digit before its paren, which the "ends with a function"
+    // check used to miss — so "=" read the operand again ("log base 2 of 8",
+    // then "8").
+    expect(press(['8', 'log2(', '=']).typing)
+      .toEqual(['log base 2 of 8', 'equals', '3']);
+  });
+
+  it.each([
+    [['9', '2root(', '='], 'square root of 9', '3'],
+    [['8', '3root(', '='], 'cube root of 8', '2'],
+  ])('%j does not repeat the operand for a name starting with a digit', (keys, named, answer) => {
+    expect(press(keys as string[]).typing).toEqual([named, 'equals', answer]);
+  });
 });
 
 describe('exponentials', () => {
@@ -225,42 +240,62 @@ describe('inverse hyperbolic functions', () => {
 });
 
 describe('inverse trigonometry', () => {
+  // These take a ratio and return an angle, so — unlike sin/cos/tan — the unit
+  // belongs to the answer, not to the argument.
   it.each([
-    [['1', 'asin('], 'arc sine'],
-    [['1', 'acos('], 'arc cosine'],
-    [['1', 'atan('], 'arc tangent'],
-  ])('%j names the function', (keys, expectedName) => {
-    // The name is asserted on its own; the unit that follows it is wrong today
-    // and is pinned separately below.
-    expect(press(keys as string[]).typing[0]).toContain(expectedName);
+    [['1', 'asin('], 'arc sine of 1'],
+    [['1', 'acos('], 'arc cosine of 1'],
+    [['1', 'atan('], 'arc tangent of 1'],
+  ])('%j names the function without qualifying its argument', (keys, expected) => {
+    const { typing, button } = press(keys as string[]);
+    expect(typing).toEqual([expected]);
+    expect(button).toBe(expected);
   });
 
-  it('computes the angle it is named for', () => {
-    const { result } = press(['1', 'asin(', '=']);
+  it('leaves the argument unqualified in radian mode too', () => {
+    expect(press(['1', 'asin('], { angleMode: 'rad' }).typing).toEqual(['arc sine of 1']);
+  });
+
+  it('names the unit on the result, which is the angle', () => {
+    const { result, typing } = press(['1', 'asin(', '=']);
     expect(result).toBe('90');
+    expect(typing).toEqual(['arc sine of 1', 'equals', '90 degrees']);
   });
 
-  it('the speak button leaves the argument unqualified, which is right', () => {
-    expect(press(['1', 'asin(']).button).toBe('arc sine of 1');
+  it('follows the radian setting when naming the result', () => {
+    expect(press(['1', 'atan(', '='], { angleMode: 'rad' }).typing)
+      .toEqual(['arc tangent of 1', 'equals', '0.78 and 7 more digits radians']);
   });
 
-  it.failing('should not call the argument an angle', () => {
-    // asin takes a ratio and *returns* an angle, so "arc sine of 1 degrees"
-    // qualifies the wrong number — the unit belongs to the result. The cause is
-    // ANGLE_FUNCTIONS, which lumps asin/acos/atan in with sin/cos/tan; the
-    // forward three do take an angle and are correct.
-    expect(press(['1', 'asin(']).typing).toEqual(['arc sine of 1']);
+  it('names the result unit in every-digit mode as well', () => {
+    expect(press(['1', 'asin(', '='], { mode: 'every-digit' }).typing)
+      .toEqual(['1', 'arc sine', 'equals', '90 degrees']);
   });
 
-  it('records what it says today', () => {
-    // Companion to the failing test above: fixing one must update the other.
-    expect(press(['1', 'asin(']).typing).toEqual(['arc sine of 1 degrees']);
-    expect(press(['1', 'asin('], { angleMode: 'rad' }).typing)
-      .toEqual(['arc sine of 1 radians']);
+  it.each([
+    ['he-IL', 'ארקסינוס של 1', '90 מעלות'],
+    ['ar-SA', 'جيب معكوس من 1', '90 درجات'],
+  ])('%s puts the unit on the result too', (language, named, answered) => {
+    expect(press(['1', 'asin(', '='], { language }).typing)
+      .toEqual([named, expect.anything(), answered]);
+  });
+
+  it('leaves a forward trig result unqualified, its argument carrying the unit', () => {
+    // The mirror of the above: sin takes the angle, so the answer is a ratio
+    // and must not be given a unit.
+    expect(press(['3', '0', 'sin(', '=']).typing)
+      .toEqual(['sine of 30 degrees', 'equals', '0.5']);
   });
 });
 
 describe('constants', () => {
+  // π and e put a value on the display the way a digit does, so they announce
+  // themselves by name when pressed.
+  it('announces a constant as it is typed', () => {
+    expect(press(['pi']).typing).toEqual(['pi']);
+    expect(press(['e']).typing).toEqual(['e']);
+  });
+
   it('reads pi when it is part of a sum', () => {
     const { result, typing, button } = press(['2', '*', 'pi', '=']);
     expect(result).toBe('6.28318531');
@@ -268,9 +303,17 @@ describe('constants', () => {
     expect(button).toBe('2 times pi');
   });
 
-  it('reads pi and e on "="', () => {
+  it('does not say the constant twice when "=" follows it', () => {
+    // The key has already named it, so "=" goes straight to the answer rather
+    // than reading the trailing operand again.
     expect(press(['pi', '=']).typing).toEqual(['pi', 'equals', '3.14 and 6 more digits']);
     expect(press(['e', '=']).typing).toEqual(['e', 'equals', '2.71 and 6 more digits']);
+  });
+
+  it('still reads a digit operand on "=", which nothing else has spoken', () => {
+    // The guard above must not suppress the ordinary case: digits are silent
+    // in every-number mode, so "=" saying the number is its first airing.
+    expect(press(['4', '2', '=']).typing).toEqual(['42', 'equals', '42']);
   });
 
   it('the speak button names both constants', () => {
@@ -278,19 +321,7 @@ describe('constants', () => {
     expect(press(['e']).button).toBe('e');
   });
 
-  it.failing('should announce a constant as it is typed', () => {
-    // Every other value-producing key says something when pressed. pi and e
-    // have names in all three maps but reach neither OPERATOR_KEYS nor
-    // WRAPPING_FUNCTIONS, so every-number mode passes over them in silence.
-    expect(press(['pi']).typing).toEqual(['pi']);
-  });
-
-  it('records the silence today', () => {
-    expect(press(['pi']).typing).toEqual([]);
-    expect(press(['e']).typing).toEqual([]);
-  });
-
-  it('announces constants in every-digit mode, where keys speak directly', () => {
+  it('announces constants in every-digit mode too', () => {
     expect(press(['pi'], { mode: 'every-digit' }).typing).toEqual(['pi']);
   });
 });
@@ -308,15 +339,15 @@ describe('percent', () => {
     expect(button).toBe('200 times 10 percent');
   });
 
-  it.failing('should not push an empty utterance on "="', () => {
-    // "=" speaks the last operand before the result, but a trailing "%" leaves
-    // nothing to extract, so an empty string is handed to TTS. Harmless to
-    // hear, but it is a wasted utterance the other keys do not produce.
+  it('does not push an empty utterance on "="', () => {
+    // A trailing "%" leaves nothing for "=" to extract as an operand, so it
+    // goes straight to the answer rather than handing TTS an empty string.
     expect(press(['5', '0', '%', '=']).typing).toEqual(['50 percent', 'equals', '0.5']);
   });
 
-  it('records the empty utterance today', () => {
-    expect(press(['5', '0', '%', '=']).typing).toEqual(['50 percent', '', 'equals', '0.5']);
+  it('reads a percentage of a product without a gap', () => {
+    expect(press(['2', '0', '0', '*', '1', '0', '%', '=']).typing)
+      .toEqual(['200 times', '10 percent', 'equals', '20']);
   });
 });
 
@@ -333,15 +364,20 @@ describe('parentheses', () => {
     expect(button).toBe('2 times open parenthesis 3 plus 4 close parenthesis');
   });
 
-  it.failing('should not read a bare bracket while typing', () => {
-    // The operator branch takes the text before the "+" verbatim, so a leading
-    // "(" is spoken as the character itself. The button says "open
-    // parenthesis"; typing says "(2 plus".
-    expect(press(['(', '2', '+', '3', ')', '=']).typing[0]).toBe('open parenthesis 2 plus');
+  it('does not read a bare bracket while typing', () => {
+    // An unclosed group is stripped before the operand is spoken, so the
+    // character itself is never voiced ("(2 plus").
+    expect(press(['(', '2', '+', '3', ')', '=']).typing[0]).toBe('2 plus');
   });
 
-  it('records the raw bracket today', () => {
-    expect(press(['(', '2', '+', '3', ')', '=']).typing[0]).toBe('(2 plus');
+  it('reads the whole bracketed session in order', () => {
+    expect(press(['(', '2', '+', '3', ')', '=']).typing)
+      .toEqual(['2 plus', '3', 'equals', '5']);
+  });
+
+  it('keeps the bracket out of a nested group too', () => {
+    expect(press(['2', '*', '(', '3', '+', '4', ')', '=']).typing)
+      .toEqual(['2 times', '3 plus', '4', 'equals', '14']);
   });
 });
 
@@ -493,7 +529,7 @@ describe('every function key in Arabic', () => {
   });
 });
 
-describe('the constants are left untranslated on "="', () => {
+describe('the constants are translated wherever they are read', () => {
   it.each([
     ['he-IL', 'פאי'],
     ['ar-SA', 'باي'],
@@ -501,16 +537,26 @@ describe('the constants are left untranslated on "="', () => {
     expect(press(['pi'], { language }).button).toBe(expected);
   });
 
-  it.failing('should translate pi when "=" reads the operand', () => {
-    // "=" speaks the last operand via extractLastOperand + speakableNumber,
-    // neither of which consults the substitution map — so the literal "pi" is
-    // handed to an Arabic voice. The speak button, which does go through the
-    // map, says باي correctly for the same expression.
-    expect(press(['2', '*', 'pi', '='], { language: 'ar-SA' }).typing[1]).toBe('باي');
+  it.each([
+    ['he-IL', 'פאי'],
+    ['ar-SA', 'باي'],
+  ])('%s names pi when it is pressed', (language, expected) => {
+    expect(press(['pi'], { language }).typing).toEqual([expected]);
   });
 
-  it('records the untranslated constant today', () => {
-    expect(press(['2', '*', 'pi', '='], { language: 'ar-SA' }).typing[1]).toBe('pi');
-    expect(press(['2', '*', 'pi', '='], { language: 'he-IL' }).typing[1]).toBe('pi');
+  it.each([
+    ['he-IL', 'פאי'],
+    ['ar-SA', 'باي'],
+  ])('%s translates pi when "=" reads it as an operand', (language, expected) => {
+    // The operand path goes through the substitution map, so a Hebrew or
+    // Arabic voice is never handed the English letters "pi".
+    expect(press(['2', '*', 'pi', '='], { language }).typing[1]).toBe(expected);
+  });
+
+  it.each([
+    ['he-IL', 'e'],
+    ['ar-SA', 'e'],
+  ])('%s keeps e as the letter, which is how it is written and said', (language, expected) => {
+    expect(press(['2', '*', 'e', '='], { language }).typing[1]).toBe(expected);
   });
 });
