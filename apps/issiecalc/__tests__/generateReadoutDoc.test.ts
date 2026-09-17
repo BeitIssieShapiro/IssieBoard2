@@ -144,24 +144,29 @@ function run(
 }
 
 /**
- * Every case in all three languages, grouped so the translations sit directly
- * under the English row and a missing or mistranslated name is obvious at a
- * glance. The note is written once and carried by the English row; repeating it
- * under each translation would just be noise.
+ * A Group is three rows — one per language — that represent a single test case.
+ * The renderer numbers the group as one item and uses rowspan to span the number
+ * and key cells across all three language rows.
  */
+interface Group { kind: 'group'; rows: [Row, Row, Row]; note?: string }
+
 const DOC_LANGUAGES = ['en-US', 'he-IL', 'ar-SA'];
 
-function pairs(cases: Array<[string[], string?]>): Row[] {
-  const rows: Row[] = [];
-  for (const [keys, note] of cases) {
-    for (const language of DOC_LANGUAGES) {
-      rows.push(run(keys, language === 'en-US' ? { note } : { language }));
-    }
-  }
-  return rows;
+/**
+ * Every case in all three languages as a Group, so the translations sit directly
+ * under the English row and a missing or mistranslated name is obvious at a glance.
+ */
+function pairs(cases: Array<[string[], string?]>): Group[] {
+  return cases.map(([keys, note]) => ({
+    kind: 'group' as const,
+    note,
+    rows: DOC_LANGUAGES.map(language =>
+      run(keys, language === 'en-US' ? { note } : { language })
+    ) as [Row, Row, Row],
+  }));
 }
 
-interface Section { title: string; blurb: string; rows: Row[] }
+interface Section { title: string; blurb: string; rows: Array<Row | Group> }
 
 function buildSections(): Section[] {
   return [
@@ -222,7 +227,7 @@ function buildSections(): Section[] {
       rows: pairs([
         [['2', '0', 'ln(', '=']],
         [['1', '0', '0', 'log(', '=']],
-        [['8', 'log2(', '='], 'Says its operand twice on "=" — see Known bugs.'],
+        [['8', 'log2(', '=']],
       ]),
     },
     {
@@ -250,8 +255,8 @@ function buildSections(): Section[] {
     },
     {
       title: 'Inverse trigonometry',
-      blurb: 'asin/acos/atan take a ratio and return an angle. They currently announce the '
-        + 'argument with an angle unit, which is the wrong way round — see Known bugs.',
+      blurb: 'asin/acos/atan take a ratio and return an angle. The unit is spoken with the result '
+        + '("arc sine of 1, equals 90 degrees"), not the argument.',
       rows: pairs([
         [['1', 'asin(', '=']],
         [['1', 'acos(']],
@@ -260,7 +265,7 @@ function buildSections(): Section[] {
     },
     {
       title: 'Constants',
-      blurb: 'π and e have names in every language but are silent when pressed — see Known bugs.',
+      blurb: 'π and e speak their name when pressed, and the result is announced without repeating the name.',
       rows: pairs([
         [['pi', '=']],
         [['e', '=']],
@@ -269,8 +274,8 @@ function buildSections(): Section[] {
     },
     {
       title: 'Percent and parentheses',
-      blurb: 'The percent key reads with its operand. Brackets are named by the speak button, '
-        + 'but typing reads a leading one as a bare character — see Known bugs.',
+      blurb: 'The percent key reads with its operand. Brackets are named by the speak button; '
+        + 'typing omits the bracket character and reads only the contents.',
       rows: pairs([
         [['5', '0', '%', '=']],
         [['2', '0', '0', '*', '1', '0', '%', '=']],
@@ -288,9 +293,13 @@ function buildSections(): Section[] {
           [['6', '0', 'cos(']],
           [['4', '5', 'tan(']],
         ]),
-        run(['3', '0', 'sin('], { angleMode: 'rad', note: 'Radian mode names the other unit.' }),
-        run(['3', '0', 'sin('], { angleMode: 'rad', language: 'he-IL' }),
-        run(['3', '0', 'sin('], { angleMode: 'rad', language: 'ar-SA' }),
+        {
+          kind: 'group',
+          note: 'Radian mode names the other unit.',
+          rows: DOC_LANGUAGES.map(language =>
+            run(['3', '0', 'sin('], { angleMode: 'rad', language: language === 'en-US' ? undefined : language })
+          ) as [Row, Row, Row],
+        },
       ],
     },
     {
@@ -344,30 +353,6 @@ function buildSections(): Section[] {
           mode: 'every-digit',
           note: 'The same key IS announced in every-digit and both — which is what makes the silence above look like an omission.',
         }),
-        run(['1', 'asin('], {
-          bug: 'Says "arc sine of 1 degrees". asin takes a ratio and RETURNS an angle, so the unit '
-            + 'is attached to the wrong number. Cause: ANGLE_FUNCTIONS lumps asin/acos/atan in with '
-            + 'sin/cos/tan, where the unit is correct. Expected: "arc sine of 1".',
-        }),
-        run(['1', 'asin('], { language: 'he-IL', bug: 'The same fault in Hebrew: "ארקסינוס של 1 מעלות".' }),
-        run(['1', 'asin('], { language: 'ar-SA', bug: 'And in Arabic: "جيب معكوس من 1 درجات".' }),
-        run(['pi'], {
-          bug: 'Silent when pressed, though π has a name in every language. Like EE it reaches '
-            + 'neither OPERATOR_KEYS nor WRAPPING_FUNCTIONS. Expected: "pi". Same for e.',
-        }),
-        run(['8', 'log2(', '='], {
-          bug: 'Says its operand twice: "log base 2 of 8", then "8" again before "equals". The "=" '
-            + 'branch treats the call as an ordinary operand because log2( ends in a digit before '
-            + 'its paren, so endsWithFunction does not match it.',
-        }),
-        run(['5', '0', '%', '='], {
-          bug: 'Pushes an empty utterance between the operand and "equals": a trailing "%" leaves '
-            + 'nothing for "=" to extract. Harmless to hear, but no other key does it.',
-        }),
-        run(['(', '2', '+', '3', ')', '='], {
-          bug: 'Typing reads the bracket as a bare character — "(2 plus" — where the speak button '
-            + 'correctly says "open parenthesis 2 plus 3 close parenthesis".',
-        }),
       ],
     },
   ];
@@ -404,7 +389,7 @@ const KEY_LABEL: Record<string, string> = {
 };
 const keyLabel = (k: string) => KEY_LABEL[k] ?? k;
 
-function renderRow(r: Row, idx: string): string {
+function renderRow(r: Row, idx: string, opts: { showNum?: boolean; numSpan?: number; note?: string } = {}): string {
   const dir = RTL.has(r.language) ? ' dir="rtl"' : '';
   const keys = r.keys.map(k => `<kbd>${esc(keyLabel(k))}</kbd>`).join('<span class="arr">›</span>');
   const typing = r.typing.length
@@ -413,22 +398,17 @@ function renderRow(r: Row, idx: string): string {
   const button = r.button
     ? `<span class="btn-say"${dir}>${esc(r.button)}</span>`
     : '<span class="silent">— nothing —</span>';
-  const note = r.bug
+  const noteText = r.bug
     ? `<p class="note bug"><strong>Bug:</strong> ${esc(r.bug)}</p>`
-    : r.note ? `<p class="note">${esc(r.note)}</p>` : '';
-  const tags = [
+    : (opts.note ?? r.note) ? `<p class="note">${esc(opts.note ?? r.note ?? '')}</p>` : '';
+  const langTag = `<span class="tag lang">${esc(LANG_LABEL[r.language] ?? r.language)}</span>`;
+  const modeTags = [
     `<span class="tag">${esc(MODE_LABEL[r.mode] ?? r.mode)}</span>`,
-    `<span class="tag">${esc(LANG_LABEL[r.language] ?? r.language)}</span>`,
     r.mathLevel === 'young' ? '<span class="tag young">Young</span>' : '',
-    // Only the six trig keys are affected by the angle mode; the hyperbolics
-    // take a plain number, so tagging them Deg/Rad would imply otherwise.
     r.keys.some(k => ['sin(', 'cos(', 'tan(', 'asin(', 'acos(', 'atan('].includes(k))
       ? `<span class="tag">${r.angleMode === 'deg' ? 'Deg' : 'Rad'}</span>` : '',
   ].filter(Boolean).join('');
 
-  // What to compare against the device, and — in its own column — the internal
-  // string, which is what the readout code actually receives and what the test
-  // assertions are written against.
   const display = r.display
     ? `<span class="shown">${esc(r.display)}</span>`
     : '<span class="silent">empty</span>';
@@ -436,22 +416,41 @@ function renderRow(r: Row, idx: string): string {
     ? `<code class="raw">${esc(r.expression)}</code>`
     : '<span class="silent">—</span>';
 
+  const span = opts.numSpan ?? 1;
+  const numCell = opts.showNum !== false
+    ? `<td class="c-num" rowspan="${span}">${idx}</td>
+    <td class="c-keys" rowspan="${span}">${keys}<div class="tags">${modeTags}</div>${noteText}</td>`
+    : '';
+
   return `
   <tr class="${r.bug ? 'is-bug' : ''}">
-    <td class="c-check"><input type="checkbox" id="chk-${idx}" aria-label="Mark verified"></td>
-    <td class="c-keys">${keys}<div class="tags">${tags}</div></td>
+    ${numCell}
+    <td class="c-check"><input type="checkbox" id="chk-${idx}-${r.language}" aria-label="Mark verified"></td>
+    <td class="c-lang">${langTag}</td>
     <td class="c-expr">${display}</td>
     <td class="c-raw">${raw}</td>
-    <td class="c-typing">${typing}${note}</td>
+    <td class="c-typing">${typing}</td>
     <td class="c-button">${button}</td>
   </tr>`;
 }
 
+function renderGroup(g: Group, idx: string): string {
+  const [en, he, ar] = g.rows;
+  const first = renderRow(en, idx, { showNum: true, numSpan: 3, note: g.note });
+  const second = renderRow(he, idx, { showNum: false });
+  const third = renderRow(ar, idx, { showNum: false });
+  return first + second + third;
+}
+
 function renderHTML(sections: Section[]): string {
-  const total = sections.reduce((n, s) => n + s.rows.length, 0);
-  let i = 0;
+  const totalCases = sections.reduce((n, s) => n + s.rows.length, 0);
+  let caseNum = 0;
   const body = sections.map(s => {
-    const rows = s.rows.map(r => renderRow(r, String(i++))).join('');
+    const rendered = s.rows.map(item => {
+      const num = String(++caseNum);
+      if ('kind' in item && item.kind === 'group') return renderGroup(item, num);
+      return renderRow(item as Row, num, { showNum: true, numSpan: 1 });
+    }).join('');
     return `
   <section>
     <h2>${esc(s.title)} <span class="count">${s.rows.length}</span></h2>
@@ -459,15 +458,17 @@ function renderHTML(sections: Section[]): string {
     <table>
       <thead>
         <tr>
-          <th class="c-check"><span class="sr">Verified</span></th>
+          <th class="c-num">#</th>
           <th class="c-keys">Press these keys</th>
+          <th class="c-check"><span class="sr">Verified</span></th>
+          <th class="c-lang">Language</th>
           <th class="c-expr">You should see</th>
           <th class="c-raw">Internal expression</th>
           <th class="c-typing">Should say while typing</th>
           <th class="c-button">Speak button should say</th>
         </tr>
       </thead>
-      <tbody>${rows}</tbody>
+      <tbody>${rendered}</tbody>
     </table>
   </section>`;
   }).join('');
@@ -535,13 +536,16 @@ function renderHTML(sections: Section[]): string {
   tr.is-bug { background: var(--bug-soft); }
   tr.done { opacity: .5; }
   tr.done .c-keys kbd { opacity: .7; }
-  .c-check { width: 34px; }
+  .tag.lang { background: var(--accent-soft); color: var(--accent); }
+  .c-num { width: 32px; text-align: center; color: var(--muted); font-size: .85rem; font-variant-numeric: tabular-nums; vertical-align: top; padding-top: .6rem; }
+  .c-check { width: 28px; }
   .c-check input { width: 17px; height: 17px; cursor: pointer; accent-color: var(--ok); }
-  .c-keys { width: 20%; }
-  .c-expr { width: 13%; }
-  .c-raw { width: 14%; }
+  .c-lang { width: 70px; white-space: nowrap; }
+  .c-keys { width: 18%; vertical-align: top; }
+  .c-expr { width: 12%; }
+  .c-raw { width: 12%; }
   .c-typing { width: 27%; }
-  .c-button { width: 22%; }
+  .c-button { width: 20%; }
   /* The calculator's own display: large, light, right-aligned on a dark slab,
      so a glance at the device and a glance at this column compare directly. */
   .shown {
@@ -616,7 +620,7 @@ function renderHTML(sections: Section[]): string {
   </div>
 ${body}
   <footer>
-    ${total} cases · generated from <code>apps/issiecalc/__tests__/</code> ·
+    ${totalCases} cases · generated from <code>apps/issiecalc/__tests__/</code> ·
     regenerate with <code>npx jest apps/issiecalc/__tests__/generateReadoutDoc.test.ts</code>
   </footer>
 </div>
