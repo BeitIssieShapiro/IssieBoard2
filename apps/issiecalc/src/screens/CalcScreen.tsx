@@ -1,6 +1,6 @@
-import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Animated } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import React, { useMemo, useState, useCallback, useRef } from 'react';
+import { View, Text as RNText, TextProps, StyleSheet, TouchableOpacity, Animated, Modal, Pressable } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets, useSafeAreaFrame } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { KeyboardPreview, KeyPressEvent } from '../../../../src/components/KeyboardPreview';
 import { useCalc } from '../context/CalcContext';
@@ -21,14 +21,19 @@ import {
 import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 import { SPEAK_ICON_NAME, SPEAK_ICON_COLOR } from '../speakIcon';
 
+// The calculator layout is size-critical: the expression and result are measured
+// and fitted to the display, and the keypad segments are fixed-height. Letting the
+// OS accessibility text size scale them breaks the layout, so this screen uses a
+// non-scaling Text everywhere. (A global Text.defaultProps shim does not work —
+// RN's Text is a plain function component and React 19 dropped defaultProps for
+// those, so the prop has to be set per element.)
+const Text = ({ allowFontScaling = false, ...props }: TextProps) => (
+  <RNText allowFontScaling={allowFontScaling} {...props} />
+);
+
 const builtConfig = require('../../../../ios/IssieCalc/default_config.json');
 
 const KB_BG = builtConfig.backgroundColor && builtConfig.backgroundColor !== 'default' ? builtConfig.backgroundColor : '#000000';
-
-function isLandscape() {
-  const { width, height } = Dimensions.get('window');
-  return width > height;
-}
 
 const HAS_TEMPLATE_FN = /yroot\(|logy\(|xpow\(|ypow\(/;
 
@@ -187,7 +192,9 @@ function renderTemplateExpression(
       );
     }
   }
-  return <Text style={{ color: displayTextColor, fontSize, fontWeight }}>{formatExpression(expression) || '0'}</Text>;
+  // lineHeight tracks fontSize (see displayTextStyle) so a scaled-up size can't
+  // overflow a line box left at the default height.
+  return <Text style={{ color: displayTextColor, fontSize, lineHeight: Math.ceil(fontSize * 1.25), fontWeight }}>{formatExpression(expression) || '0'}</Text>;
 }
 
 function patchAngleToggleCaption(config: any, caption: string): any {
@@ -251,8 +258,24 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
   const speakDirect = useCallback((text: string) => { TTS.speak(text).catch(() => {}); }, []);
   const { strings } = useLocalization();
   const insets = useSafeAreaInsets();
-  const [screenHeight, setScreenHeight] = useState(Dimensions.get('window').height);
-  const [landscape, setLandscape] = useState(isLandscape());
+  // The frame, not Dimensions: react-native-safe-area-context reports the size
+  // of the view we are actually laid out in, which is what the layout has to
+  // fit. Dimensions always reports the physical device and so ignores anything
+  // that resizes the frame — split view, Stage Manager, and the dev-only screen
+  // sizer, where it would leave the keypad sized for the real screen.
+  const frame = useSafeAreaFrame();
+  const screenHeight = frame.height;
+  const landscape = frame.width > frame.height;
+  // On a phone in landscape height is the scarce resource, so the top bar's
+  // ~66pt is too much to spend on three controls. There they collapse into a
+  // menu chip on the expression line instead. Tablets keep the bar — they have
+  // the room. 600 is the phone/tablet short-side split used elsewhere (see
+  // apps/issievoice/src/screens/MainScreen.tsx).
+  const compactChrome = landscape && Math.min(frame.width, frame.height) < 600;
+  const [menuOpen, setMenuOpen] = useState(false);
+  // Measured, so the speak button can sit beside the chip whatever width the
+  // translated mode label gives it.
+  const [chipWidth, setChipWidth] = useState(0);
   const [liveConfig, setLiveConfig] = useState<any>(builtConfig);
 
   useFocusEffect(useCallback(() => {
@@ -275,14 +298,6 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
     });
   }, []));
 
-  useEffect(() => {
-    const sub = Dimensions.addEventListener('change', ({ window }) => {
-      setLandscape(window.width > window.height);
-      setScreenHeight(window.height);
-    });
-    return () => sub?.remove();
-  }, []);
-
   const calcMode: 'basic' | 'scientific' | 'both' = (() => {
     const v = liveConfig?.calcMode;
     if (v === 'basic' || v === 'scientific' || v === 'both') return v;
@@ -297,8 +312,10 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
     const scales: Record<string, number> = { xs: 1.0, small: 1.2, normal: 1.35, large: 1.55, xl: 1.8 };
     return scales[preset] ?? 1.35;
   })();
-  // The expression row uses the same size as the result.
-  const resultFontSize = Math.round(48 * displayFontScale);
+  // The expression row uses the same size as the result. This is the size the
+  // preset asks for; it is clamped to the display's real height below, once the
+  // keypad has taken its share.
+  const preferredFontSize = Math.round(48 * displayFontScale);
   // ...and the same weight, which follows the general-tab font weight setting
   // just as the size follows fontSizePreset.
   const displayFontWeight = resolveDisplayFontWeight(liveConfig?.fontWeight);
@@ -309,13 +326,9 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
   // out invisibly, measure it, then commit to one layout or the other.
   const [displayWidth, setDisplayWidth] = useState(0);
   const [combinedFits, setCombinedFits] = useState<boolean | null>(null);
-  // Re-measure whenever anything that changes the row's width changes.
-  const measureKey = `${expression} ${result} ${resultFontSize} ${displayWidth}`;
-  const measuredKey = useRef<string | null>(null);
-  if (measuredKey.current !== measureKey) {
-    measuredKey.current = measureKey;
-    if (combinedFits !== null) setCombinedFits(null);
-  }
+  // Natural width of the combined row, so compact chrome can shrink the font
+  // to fit it on one line instead of stacking into a second.
+  const [combinedWidth, setCombinedWidth] = useState(0);
 
   // Fixed, not a user setting: unlike a keyboard that opens over other content,
   // the calculator's keypad *is* the screen, so its height is a layout decision
@@ -329,20 +342,91 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
   // into circles, which reads better.
   const heightRatio = isScientific ? 0.76 : 0.64;
 
+  // Which keyset the preview will render, and so how many rows the height has
+  // to divide into. Shared with configJson below so the two can't disagree.
+  const activeKeysetId = (() => {
+    if (keyset === 'scientific_landscape_2nd') return 'scientific_landscape_2nd';
+    if (keyset === 'scientific_2nd') return 'scientific_2nd';
+    if (keyset === 'scientific') return landscape ? 'scientific_landscape' : 'scientific';
+    return landscape ? 'basic_landscape' : 'basic';
+  })();
+  const keypadRowCount =
+    builtConfig.keysets?.find((k: any) => k.id === activeKeysetId)?.rows.length ?? 5;
+
   // The keypad is a sibling of the top bar and display inside the SafeAreaView,
   // so a share of the *whole* screen overflows: the chrome above and the bottom
-  // inset still have to fit. In landscape that space is scarce (screenHeight is
-  // the short side), so measure what is actually left and take a share of that
-  // instead — TOP_CHROME covers the top bar, and insets.bottom the home
-  // indicator.
-  const TOP_CHROME = 66;
-  const landscapeAvailable = Math.max(
+  // inset still have to fit. Size the keypad from what is actually left instead
+  // — TOP_CHROME covers the top bar, insets.bottom the home indicator. In
+  // compact chrome there is no top bar, so that space goes to the keypad.
+  const TOP_CHROME = compactChrome ? 0 : 66;
+  const available = Math.max(
     0,
     screenHeight - TOP_CHROME - insets.top - insets.bottom
   );
-  const effectiveKbHeight = landscape
-    ? landscapeAvailable * 0.78
-    : screenHeight * heightRatio;
+
+  // What the display needs before the keypad may take the rest. 1.25 is the
+  // rendered line height; the rows shrink via adjustsFontSizeToFit, so this is
+  // the comfortable case rather than a hard floor. Portrait shows the
+  // expression above the result and carries the speak button below the top bar;
+  // landscape is a thin strip, where the button moves up into the bar
+  // (speakButtonRaised) and one row is all that fits. The reserve is capped at
+  // 40% of the screen so a large fontSizePreset can't starve the keypad.
+  const speakButton = readoutMode !== 'off' && !landscape ? 68 : 0;
+  const displayRows = landscape ? 1 : 2;
+  const DISPLAY_PADDING = 16; // styles.display paddingBottom
+  const LINE_HEIGHT = 1.25;   // rendered height of one text row
+  // The chip band the expression must clear — must equal displayInnerWithChip's
+  // paddingTop, or the text is sized for space the chip is sitting in.
+  const chipBand = compactChrome ? 44 : 0;
+  const displayChrome = speakButton + chipBand + DISPLAY_PADDING;
+  const displayMin = Math.min(
+    displayChrome + preferredFontSize * LINE_HEIGHT * displayRows,
+    available * 0.45
+  );
+
+  // The ratio is a *cap*, not the size: in basic it keeps the keypad from
+  // growing so tall that the 0.75-wide operator column renders as ovals rather
+  // than circles (see above). On a roomy screen the cap binds and the display
+  // gets the slack; on a short one the leftover binds and the keys compress.
+  //
+  // Rounded down to a whole number of rows: the renderer divides the height it
+  // is given evenly across the rows, so a fractional remainder would push the
+  // last row past the bottom edge and clip it.
+  const rawKbHeight = Math.min(
+    available - displayMin,
+    available * (landscape ? 0.78 : heightRatio)
+  );
+  const KEYPAD_BOTTOM_PADDING = 4; // matches the renderer's own bottom padding
+  const effectiveKbHeight =
+    Math.floor((rawKbHeight - KEYPAD_BOTTOM_PADDING) / keypadRowCount) * keypadRowCount +
+    KEYPAD_BOTTOM_PADDING;
+
+  // The display is flex:1 against the keypad's fixed height, so it ends up with
+  // whatever is left rather than the displayMin asked for — which, when the
+  // ratio cap binds, can be less. Scale the text down to what it actually got,
+  // or tall glyphs are drawn outside the box and clipped at the top.
+  const displayHeight = available - effectiveKbHeight;
+  const maxFontSize = Math.floor(
+    (displayHeight - displayChrome) / (LINE_HEIGHT * displayRows)
+  );
+  const resultFontSize = Math.max(16, Math.min(preferredFontSize, maxFontSize));
+
+  // Compact chrome has room for exactly one line, so a combined row that is too
+  // wide shrinks to fit rather than wrapping to a second row there is no height
+  // for. The measuring pass reports the row's natural width at resultFontSize,
+  // so scaling by displayWidth/combinedWidth brings it inside the display.
+  const combinedFontSize =
+    compactChrome && combinedWidth > displayWidth && displayWidth > 0
+      ? Math.max(16, Math.floor(resultFontSize * (displayWidth / combinedWidth)))
+      : resultFontSize;
+
+  // Re-measure whenever anything that changes the row's width changes.
+  const measureKey = `${expression} ${result} ${resultFontSize} ${displayWidth}`;
+  const measuredKey = useRef<string | null>(null);
+  if (measuredKey.current !== measureKey) {
+    measuredKey.current = measureKey;
+    if (combinedFits !== null) setCombinedFits(null);
+  }
 
   const configJson = useMemo(() => {
     let defaultKeyset: string;
@@ -443,9 +527,42 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
   const fadedTextStyle = { color: displayTextColor, opacity: 0.6 } as const;
 
   const showAngleIndicator = keyset === 'scientific' || keyset === 'scientific_landscape_2nd' || keyset === 'scientific_2nd';
+
+  // In compact chrome the mode chip takes the expression line's left slot, so
+  // it owns the marginRight:'auto' that pushes the expression right. The angle
+  // indicator then sits beside it rather than claiming the slot itself.
   const angleIndicator = showAngleIndicator
-    ? <Text style={[styles.angleIndicator, fadedTextStyle]}>{angleMode === 'rad' ? 'Rad' : 'Deg'}</Text>
+    ? (
+      <Text
+        style={[styles.angleIndicator, compactChrome && styles.angleIndicatorInline, fadedTextStyle]}>
+        {angleMode === 'rad' ? 'Rad' : 'Deg'}
+      </Text>
+    )
     : null;
+
+  // Replaces the top bar in compact chrome: shows the current mode and opens
+  // the menu holding Basic / Scientific / Settings. With calcMode pinned to a
+  // single mode there is nothing to choose, so the label is dropped and the
+  // chip is just the gear.
+  const modeChip = compactChrome ? (
+    /* left comes from the inset, not the display's padding: absolutely
+       positioned children lay out against the border box, so left:0 would put
+       the chip under the notch in landscape. */
+    <View
+      style={[styles.chipRow, { left: insets.left }]}
+      onLayout={e => setChipWidth(e.nativeEvent.layout.width)}>
+      <TouchableOpacity
+        style={styles.modeChip}
+        onPress={() => setMenuOpen(true)}
+        activeOpacity={0.6}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+        <Text style={[styles.modeChipText, { color: '#FFFFFF' }]}>
+          {'⚙▾'}{calcMode === 'both' ? (isScientific ? '  f(x)' : '  ÷≡') : ''}
+        </Text>
+      </TouchableOpacity>
+      {angleIndicator}
+    </View>
+  ) : null;
 
   // Shared by the one-row and two-row layouts so they can't drift apart.
   const resultText = result === 'NUMBER_TOO_BIG' ? strings.settings.numberTooBig : result;
@@ -457,12 +574,40 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
     resultFontSize,
     displayFontWeight
   );
-  const displayTextStyle = { color: displayTextColor, fontSize: resultFontSize, fontWeight: displayFontWeight };
+  // lineHeight must be set explicitly: styles.result/expression declare only a
+  // fontSize, so overriding the size here would leave the line box at its
+  // original height and clip tall glyphs. LINE_HEIGHT is the same factor the
+  // height budget above reserves, so box and budget can't disagree.
+  // height is pinned to the line box, not just lineHeight: the display is a
+  // constrained flex column, so without it the row is compressed shorter than
+  // its own text and the glyph spills past the bottom edge.
+  const displayTextStyle = {
+    color: displayTextColor,
+    fontSize: resultFontSize,
+    lineHeight: Math.ceil(resultFontSize * LINE_HEIGHT),
+    height: Math.ceil(resultFontSize * LINE_HEIGHT),
+    fontWeight: displayFontWeight,
+  };
+  // The combined "expression = result" row, shrunk to fit the display's width
+  // in compact chrome (see combinedFontSize) so it never needs a second line.
+  const combinedTextStyle = {
+    color: displayTextColor,
+    fontSize: combinedFontSize,
+    lineHeight: Math.ceil(combinedFontSize * LINE_HEIGHT),
+    height: Math.ceil(combinedFontSize * LINE_HEIGHT),
+    fontWeight: displayFontWeight,
+  };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: displayBg }]} edges={['top', 'left', 'right']}>
-      {/* Top bar */}
-      <View style={[styles.topBar, { backgroundColor: displayBg }]}>
+    /* Side insets are handled per-section rather than by the SafeAreaView: the
+       display and the keypad can have different backgrounds, and one shared
+       inset would paint the gutter beside the keypad in the display's colour,
+       leaving a visible seam down the notch side in landscape. */
+    <SafeAreaView style={[styles.container, { backgroundColor: displayBg }]} edges={['top']}>
+      {/* Top bar — replaced by the menu chip on the expression line in
+          compact chrome, where its height is better spent on the keypad. */}
+      {!compactChrome && (
+      <View style={[styles.topBar, { backgroundColor: displayBg, paddingLeft: 16 + insets.left, paddingRight: 16 + insets.right }]}>
         {calcMode === 'both' && (
           <View style={styles.segmented}>
             <TouchableOpacity
@@ -481,12 +626,25 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
           <Text style={[styles.gearIcon, { color: dimTextColor }]}>⚙</Text>
         </TouchableOpacity>
       </View>
+      )}
 
       {/* Display */}
-      <View style={[styles.display, { backgroundColor: displayBg }]}>
+      <View style={[styles.display, { backgroundColor: displayBg, paddingLeft: 24 + insets.left, paddingRight: 24 + insets.right }]}>
+        {/* Absolutely positioned like the speak button, not in the expression
+            column: that column is bottom-pinned (justifyContent: flex-end), so
+            a chip inside it gets pushed out of view when the display is short —
+            which in compact chrome is always. */}
+        {modeChip}
         {readoutMode !== 'off' && (
           <TouchableOpacity
-            style={[styles.speakButton, calcMode !== 'both' && styles.speakButtonRaised]}
+            style={[
+              styles.speakButton,
+              calcMode !== 'both' && !compactChrome && styles.speakButtonRaised,
+              // The chip owns the top-left in compact chrome, so the speak
+              // button sits to its right. Measured rather than estimated —
+              // the chip's width follows the translated mode label.
+              compactChrome && { left: chipWidth + 12, top: -6 },
+            ]}
             onPress={() => {
               const lang = language;
               const ml = mathLevel ?? 'standard';
@@ -509,7 +667,14 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
           </TouchableOpacity>
         )}
         <View
-          style={[styles.displayInner, readoutMode !== 'off' && calcMode === 'both' && styles.displayInnerWithSpeak]}
+          style={[
+            styles.displayInner,
+            readoutMode !== 'off' && calcMode === 'both' && !compactChrome && styles.displayInnerWithSpeak,
+            // The chip is absolutely positioned, so it would overlap the
+            // expression unless the column reserves its band — the same reason
+            // the speak button has displayInnerWithSpeak.
+            compactChrome && styles.displayInnerWithChip,
+          ]}
           onLayout={e => setDisplayWidth(e.nativeEvent.layout.width)}>
           {/* Measuring pass: lay the combined row out at its natural width,
               invisibly, so we can compare it against the display width. */}
@@ -517,30 +682,42 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
             <View style={styles.measureRow} pointerEvents="none">
               <View
                 style={styles.measureContent}
-                onLayout={e => setCombinedFits(e.nativeEvent.layout.width <= displayWidth)}>
+                onLayout={e => {
+                  setCombinedWidth(e.nativeEvent.layout.width);
+                  setCombinedFits(e.nativeEvent.layout.width <= displayWidth);
+                }}>
                 {expressionNode}
                 <Text style={[styles.expression, displayTextStyle, styles.inlineText]}>{' = '}{resultText}</Text>
               </View>
             </View>
           )}
-          {resultMode && combinedFits === true ? (
+          {/* Compact chrome always uses the combined row — there is no height
+              for a second line, so an over-wide row shrinks its font instead
+              (combinedFontSize) rather than wrapping. */}
+          {resultMode && (combinedFits === true || (compactChrome && combinedFits !== null)) ? (
             /* One row: expression, "=" and result together. */
             <View style={styles.expressionRow}>
-              {angleIndicator}
-              {expressionNode}
-              <Text style={[styles.expression, displayTextStyle, styles.inlineText]} numberOfLines={1}>{' = '}{resultText}</Text>
+              {!compactChrome && angleIndicator}
+              {compactChrome
+                ? renderTemplateExpression(finalizeTemplate(expression), displayTextColor, dimTextColor, false, combinedFontSize, displayFontWeight)
+                : expressionNode}
+              <Text style={[styles.expression, combinedTextStyle, styles.inlineText]} numberOfLines={1}>{' = '}{resultText}</Text>
             </View>
           ) : (
             /* Two rows: expression + "=" above, result below. Outside result
                mode this row is invisible but keeps its height, so the result
-               line doesn't jump when a result appears. */
+               line doesn't jump when a result appears — except in compact
+               chrome, where a whole reserved line is more height than the
+               layout can spare and it collapses instead. */
+            (!resultMode || combinedFits === null) && compactChrome ? null : (
             <View style={[styles.expressionRow, (!resultMode || combinedFits === null) && { opacity: 0 }]}>
-              {angleIndicator}
+              {!compactChrome && angleIndicator}
               <Text style={[styles.expression, displayTextStyle, { flexShrink: 1 }]} numberOfLines={1} adjustsFontSizeToFit>
                 {expressionNode}
               </Text>
               <Text style={[styles.expression, displayTextStyle, { alignSelf: 'center' }]}> =</Text>
             </View>
+            )
           )}
           {templateMode && !resultMode
             ? (
@@ -552,8 +729,21 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'flex-start', alignSelf: 'stretch' }}>
                 {renderTemplateExpression(expression, displayTextColor, dimTextColor, false, resultFontSize, displayFontWeight) as any}
               </View>
-            ) : resultMode && combinedFits !== false ? null : (
-          <Text style={[styles.result, displayTextStyle]} numberOfLines={1}>
+            ) : resultMode && (combinedFits !== false || compactChrome) ? null : (
+          // adjustsFontSizeToFit so a long entry shrinks to fit the width
+          // rather than truncating to an ellipsis. It needs room to shrink
+          // within, so the fixed height becomes a minHeight and lineHeight is
+          // dropped — a lineHeight larger than the shrunken font would stop
+          // the text centring in the box.
+          <Text
+            style={[
+              styles.result,
+              displayTextStyle,
+              { height: undefined, lineHeight: undefined, minHeight: Math.ceil(resultFontSize * LINE_HEIGHT) },
+            ]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.3}>
             {resultMode
               ? resultText
               : (() => {
@@ -571,7 +761,11 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
             )}
         </View>
       </View>
-      <View style={[styles.keyboardContainer, { backgroundColor: screenBg }]}>
+      {/* Full-bleed so the gutter beside the keypad is the keypad's own
+          background, with the inset applied to the keys instead — they must
+          stay clear of the notch, but the colour behind them should not
+          change at the safe-area line. */}
+      <View style={[styles.keyboardContainer, { backgroundColor: screenBg, paddingLeft: insets.left, paddingRight: insets.right }]}>
         <Animated.View style={[styles.toast, { opacity: toastOpacity }]} pointerEvents="none">
           <Text style={styles.toastText}>{toastMessage}</Text>
         </Animated.View>
@@ -584,6 +778,46 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
         />
         <View style={{ height: insets.bottom, backgroundColor: screenBg }} />
       </View>
+
+      {/* Mode menu — the compact-chrome stand-in for the top bar.
+          supportedOrientations is required or the modal misrenders in
+          landscape, which is the only place this menu appears. */}
+      <Modal
+        transparent
+        visible={menuOpen}
+        animationType="fade"
+        onRequestClose={() => setMenuOpen(false)}
+        supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']}>
+        <Pressable style={styles.menuOverlay} onPress={() => setMenuOpen(false)}>
+          <Pressable
+            style={[styles.menu, { top: insets.top + 8, left: insets.left + 16 }]}
+            onPress={e => e.stopPropagation()}>
+            {calcMode === 'both' && (
+              <>
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => { setKeyset('basic'); setMenuOpen(false); }}>
+                  <Text style={styles.menuItemText}>{'÷≡  '}{strings.settings.calcBasic}</Text>
+                  <Text style={styles.menuCheck}>{!isScientific ? '✓' : ' '}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => { setKeyset('scientific'); setMenuOpen(false); }}>
+                  <Text style={styles.menuItemText}>{'f(x)  '}{strings.settings.calcScientific}</Text>
+                  <Text style={styles.menuCheck}>{isScientific ? '✓' : ' '}</Text>
+                </TouchableOpacity>
+                <View style={styles.menuSeparator} />
+              </>
+            )}
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => { setMenuOpen(false); navigation?.navigate('Settings'); }}>
+              <Text style={styles.menuItemText}>{'⚙  '}{strings.settings.calcSettings}</Text>
+              <Text style={styles.menuCheck}>{' '}</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -631,6 +865,9 @@ const styles = StyleSheet.create({
   // Keeps the expression/result clear of the speak button's 60pt tile when the
   // display is short (landscape, compact heights).
   displayInnerWithSpeak: { paddingTop: 68 },
+  // Clears the chip band (chip height + a little breathing room). The speak
+  // button sits on the same row in compact chrome, so this covers both.
+  displayInnerWithChip: { paddingTop: 44 },
   // A rounded-square tile, so the control reads as a button rather than a glyph.
   speakButtonTile: {
     width: 60,
@@ -642,7 +879,10 @@ const styles = StyleSheet.create({
   },
   // Matches `result` (same weight/alignment); size and colour come from props.
   expression: { fontSize: 48, fontWeight: '300', color: '#FFFFFF', marginBottom: 8, textAlign: 'right', alignSelf: 'stretch' },
-  result: { fontSize: 48, fontWeight: '300', color: '#FFFFFF', textAlign: 'right', alignSelf: 'stretch' },
+  // flexShrink/flexGrow 0: the row must size to its own line height. Letting
+  // flex stretch it taller leaves the glyph sitting above the box's bottom
+  // edge, which reads as the descender being clipped.
+  result: { fontSize: 48, fontWeight: '300', color: '#FFFFFF', textAlign: 'right', alignSelf: 'stretch', flexGrow: 0, flexShrink: 0 },
   // justifyContent pushes the expression + "=" to the right edge, so the row
   // lines up with the right-aligned result below it.
   expressionRow: { flexDirection: 'row', alignItems: 'flex-end', alignSelf: 'stretch', justifyContent: 'flex-end' },
@@ -657,6 +897,54 @@ const styles = StyleSheet.create({
   // marginRight: 'auto' keeps the Rad/Deg indicator at the left edge now that
   // the row pushes its contents right.
   angleIndicator: { fontSize: 16, color: '#8E8E93', marginRight: 'auto', paddingBottom: 4 },
+  // Inside the chip row the chip already owns the left slot, so the indicator
+  // just follows it instead of pushing everything right itself.
+  angleIndicatorInline: { marginRight: 0, marginLeft: 10, paddingBottom: 0 },
+
+  // The chip row replaces the top bar, so it hugs the top of the display and
+  // leaves the expression/result rows below to grow from the bottom as before.
+  // Pinned to the display's top-left, mirroring speakButton on the same row.
+  // left: 0 sits at the display's padding edge, which already includes the
+  // safe-area inset, so the chip stays clear of the notch in landscape.
+  chipRow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    zIndex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  // Matches the segmented control it replaces (#636366 active pill), so the
+  // chip reads as the same control in a smaller space.
+  modeChip: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 12, paddingVertical: 7,
+    borderRadius: 8, backgroundColor: '#636366',
+  },
+  // Kept modest — the chip shares the display with the expression, and every
+  // point here comes out of the height this layout exists to save. 15pt is
+  // the smallest that stays comfortably tappable and legible.
+  modeChipText: { fontSize: 15, fontWeight: '600' },
+
+  menuOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' },
+  menu: {
+    position: 'absolute',
+    minWidth: 200,
+    backgroundColor: '#2C2C2E',
+    borderRadius: 12,
+    paddingVertical: 4,
+    shadowColor: '#000', shadowOpacity: 0.4,
+    shadowRadius: 12, shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
+  menuItem: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingVertical: 12,
+  },
+  menuItemText: { fontSize: 16, color: '#FFFFFF' },
+  menuCheck: { fontSize: 16, color: '#FFFFFF', marginLeft: 16, width: 16, textAlign: 'right' },
+  menuSeparator: { height: StyleSheet.hairlineWidth, backgroundColor: '#48484A', marginVertical: 4 },
+
   keyboardContainer: { backgroundColor: KB_BG },
   toast: {
     position: 'absolute', top: 8, alignSelf: 'center',

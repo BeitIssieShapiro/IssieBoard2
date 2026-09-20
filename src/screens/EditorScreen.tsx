@@ -2370,7 +2370,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       {/* Language Selector - Matching mockup design */}
       <View style={[styles.languageBar, windowWidth < 700 && styles.languageBarSmall]}>
         <View style={[styles.languageBarTitle, windowWidth < 700 && styles.languageBarTitleSmall]}>
-          <Text style={styles.languageBarIcon}>⌨️</Text>
+          <Text allowFontScaling={false} style={styles.languageBarIcon}>⌨️</Text>
           <Text allowFontScaling={false} style={styles.languageBarTitleText}>
             {windowWidth < 700
               ? strings.editor.settings
@@ -2455,7 +2455,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
             onPress={onClose}
             activeOpacity={0.7}
           >
-            <Text style={styles.closeButtonText}>✕</Text>
+            <Text allowFontScaling={false} style={styles.closeButtonText}>✕</Text>
           </TouchableOpacity>
         )}
       </View>

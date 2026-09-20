@@ -3,7 +3,7 @@ import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
 import * as ScreenSizer from '@bam.tech/react-native-screen-sizer';
-import { Alert, Text, TextInput } from 'react-native';
+import { Alert } from 'react-native';
 import MainScreen from './src/screens/MainScreen';
 import BrowseScreen from './src/screens/BrowseScreen';
 import NewSettingsScreen from './src/screens/NewSettingsScreen';
@@ -17,9 +17,9 @@ import { useIncomingURL } from '../../src/common/linking-hook';
 import { importPackage, ImportInfo } from '../../src/import-export';
 import { ImportInfoDialog } from '../../src/common/import-info-dialog';
 
-// Disable font scaling globally for accessibility keyboard app
-(Text as any).defaultProps = { ...((Text as any).defaultProps || {}), allowFontScaling: false };
-(TextInput as any).defaultProps = { ...((TextInput as any).defaultProps || {}), allowFontScaling: false };
+// Font scaling is disabled per-element via allowFontScaling={false}, not globally:
+// RN's Text is a plain function component and React 19 dropped defaultProps for
+// those, so a global shim here would silently do nothing.
 
 ScreenSizer.setup();
 

@@ -91,6 +91,7 @@ export function AboutScreen({ appName, onClose, paragraphs, visible = true }: Ab
         {(paragraphs[lang] || paragraphs['en'] || []).map((text, index) => (
           <Text
             key={index}
+            allowFontScaling={false}
             style={[
               styles.paragraph,
               { writingDirection: currentLang.dir },
@@ -100,7 +101,7 @@ export function AboutScreen({ appName, onClose, paragraphs, visible = true }: Ab
         ))}
 
         {/* Version */}
-        <Text style={[styles.versionText, { writingDirection: currentLang.dir }]}>
+        <Text allowFontScaling={false} style={[styles.versionText, { writingDirection: currentLang.dir }]}>
           {lang === 'he' ? 'גרסה' : lang === 'ar' ? 'الإصدار' : 'Version'} {version} ({buildNumber})
         </Text>
 

@@ -154,7 +154,7 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
             style={[styles.classicButton, isRTL ? styles.classicButtonAbsLeft : styles.classicButtonAbsRight]}
             onPress={onSwitchToClassic}
             activeOpacity={0.7}>
-            <Text style={styles.classicButtonText}>{strings.editor.classicView}</Text>
+            <Text allowFontScaling={false} style={styles.classicButtonText}>{strings.editor.classicView}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -201,7 +201,7 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
                   size: 18,
                 }}
               />
-              <Text style={[styles.cancelText, !isDirty && styles.cancelTextDisabled]}>{strings.common.cancel}</Text>
+              <Text allowFontScaling={false} style={[styles.cancelText, !isDirty && styles.cancelTextDisabled]}>{strings.common.cancel}</Text>
             </TouchableOpacity>
           )}
           <Animated.View style={{ opacity: saveOpacity }}>
@@ -218,7 +218,7 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
                   size: 18,
                 }}
               />
-              <Text style={[styles.saveText, !isDirty && styles.saveTextDisabled]}>{strings.common.save}</Text>
+              <Text allowFontScaling={false} style={[styles.saveText, !isDirty && styles.saveTextDisabled]}>{strings.common.save}</Text>
             </TouchableOpacity>
           </Animated.View>
 
@@ -227,7 +227,7 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
               style={styles.saveAsButton}
               onPress={onSaveAs}
               activeOpacity={0.7}>
-              <Text style={styles.saveAsText}>{strings.editor.saveAs}</Text>
+              <Text allowFontScaling={false} style={styles.saveAsText}>{strings.editor.saveAs}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -236,7 +236,7 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
       {/* Classic View in landscape: after row2, so it's rightmost (LTR) / leftmost (RTL via container row-reverse) */}
       {showClassicButton && !twoRows && (
         <TouchableOpacity style={[styles.classicButton, isRTL ?{marginInlineEnd: 25} : {marginInlineStart: 25}]} onPress={onSwitchToClassic} activeOpacity={0.7}>
-          <Text style={styles.classicButtonText}>{strings.editor.classicView}</Text>
+          <Text allowFontScaling={false} style={styles.classicButtonText}>{strings.editor.classicView}</Text>
         </TouchableOpacity>
       )}
 

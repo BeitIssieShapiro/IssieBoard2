@@ -156,23 +156,23 @@ const CalcVoiceSettingsPanel: React.FC<{ onSettingsChange?: () => void }> = ({ o
             isRTL={isRTL}
           />
           <View style={styles.separator} />
-          <Text style={[styles.sectionTitle, isRTL && { textAlign: 'right' }]}>{strings.settings.tabs.voice}</Text>
+          <Text allowFontScaling={false} style={[styles.sectionTitle, isRTL && { textAlign: 'right' }]}>{strings.settings.tabs.voice}</Text>
           <View style={[styles.pickerControl, isRTL && { flexDirection: 'row-reverse' }]}>
             <TouchableOpacity
               style={[styles.pickerDropdown, isRTL && { flexDirection: 'row-reverse' }]}
               onPress={toggleExpanded}
               activeOpacity={0.7}>
-              <Text style={[styles.pickerValue, isRTL && { textAlign: 'right' }]} numberOfLines={1}>
+              <Text allowFontScaling={false} style={[styles.pickerValue, isRTL && { textAlign: 'right' }]} numberOfLines={1}>
                 {selectedVoice ? `${selectedVoice.name} (${getLanguageDisplayName(selectedVoice.language, uiLang)})` : strings.settingsModal.none}
               </Text>
-              <Text style={[styles.pickerArrow, isRTL && { marginLeft: 0, marginRight: 8 }]}>{expanded ? '▲' : '▼'}</Text>
+              <Text allowFontScaling={false} style={[styles.pickerArrow, isRTL && { marginLeft: 0, marginRight: 8 }]}>{expanded ? '▲' : '▼'}</Text>
             </TouchableOpacity>
             {selectedVoice && (
               <TouchableOpacity
                 style={styles.testButton}
                 onPress={() => handleTest(selectedVoice)}
                 activeOpacity={0.7}>
-                <Text style={styles.testButtonText}>{s.test}</Text>
+                <Text allowFontScaling={false} style={styles.testButtonText}>{s.test}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -184,8 +184,9 @@ const CalcVoiceSettingsPanel: React.FC<{ onSettingsChange?: () => void }> = ({ o
               <View style={styles.dropdownList}>
                 {/* Language search */}
                 <View style={[styles.searchRow, isRTL && { flexDirection: 'row-reverse' }]}>
-                  <Text style={styles.searchIcon}>🔍</Text>
+                  <Text allowFontScaling={false} style={styles.searchIcon}>🔍</Text>
                   <TextInput
+                    allowFontScaling={false}
                     style={[styles.searchInput, isRTL && { textAlign: 'right' }]}
                     value={langQuery}
                     onChangeText={setLangQuery}
@@ -201,18 +202,18 @@ const CalcVoiceSettingsPanel: React.FC<{ onSettingsChange?: () => void }> = ({ o
                       style={styles.searchClear}
                       onPress={() => setLangQuery('')}
                       activeOpacity={0.7}>
-                      <Text style={styles.searchClearText}>✕</Text>
+                      <Text allowFontScaling={false} style={styles.searchClearText}>✕</Text>
                     </TouchableOpacity>
                   )}
                 </View>
 
                 {groupedVoices.length === 0 && (
-                  <Text style={styles.noResults}>{s.noLanguageMatches}</Text>
+                  <Text allowFontScaling={false} style={styles.noResults}>{s.noLanguageMatches}</Text>
                 )}
 
                 {groupedVoices.map(group => (
                   <View key={group.lang}>
-                    <Text style={styles.langHeader}>{getLanguageDisplayName(group.lang, uiLang).toUpperCase()}</Text>
+                    <Text allowFontScaling={false} style={styles.langHeader}>{getLanguageDisplayName(group.lang, uiLang).toUpperCase()}</Text>
                     {group.voices.map(v => {
                       const isSelected = voiceId === v.id;
                       return (
@@ -220,16 +221,16 @@ const CalcVoiceSettingsPanel: React.FC<{ onSettingsChange?: () => void }> = ({ o
                           <TouchableOpacity
                             style={styles.voiceInfo}
                             onPress={() => handleVoiceSelect(v)}>
-                            <Text style={[styles.voiceName, isSelected && styles.voiceNameSelected, isRTL && { textAlign: 'right' }]}>
+                            <Text allowFontScaling={false} style={[styles.voiceName, isSelected && styles.voiceNameSelected, isRTL && { textAlign: 'right' }]}>
                               {v.name}
                             </Text>
-                            <Text style={[styles.voiceLang, isRTL && { textAlign: 'right' }]}>{getLanguageDisplayName(v.language, uiLang)}</Text>
+                            <Text allowFontScaling={false} style={[styles.voiceLang, isRTL && { textAlign: 'right' }]}>{getLanguageDisplayName(v.language, uiLang)}</Text>
                           </TouchableOpacity>
                           <TouchableOpacity
                             style={styles.voiceTestBtn}
                             onPress={() => handleTest(v)}
                             activeOpacity={0.7}>
-                            <Text style={styles.voiceTestBtnText}>{s.test}</Text>
+                            <Text allowFontScaling={false} style={styles.voiceTestBtnText}>{s.test}</Text>
                           </TouchableOpacity>
                         </View>
                       );

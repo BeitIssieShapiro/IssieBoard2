@@ -136,7 +136,7 @@ const VoiceSettingsPanel: React.FC<VoiceSettingsPanelProps> = ({
     return (
       <View style={styles.pickerRow}>
         {/* Label */}
-        <Text style={[styles.pickerLabel, isRTL && { textAlign: 'right' }]}>{label}</Text>
+        <Text allowFontScaling={false} style={[styles.pickerLabel, isRTL && { textAlign: 'right' }]}>{label}</Text>
 
         {/* Current voice + test + dropdown toggle */}
         <View style={[styles.pickerControl, isRTL && { flexDirection: 'row-reverse' }]}>
@@ -144,10 +144,10 @@ const VoiceSettingsPanel: React.FC<VoiceSettingsPanelProps> = ({
             style={[styles.pickerDropdown, isRTL && { flexDirection: 'row-reverse' }]}
             onPress={() => setExpandedPicker(isExpanded ? null : language)}
             activeOpacity={0.7}>
-            <Text style={[styles.pickerValue, isRTL && { textAlign: 'right' }]} numberOfLines={1}>
+            <Text allowFontScaling={false} style={[styles.pickerValue, isRTL && { textAlign: 'right' }]} numberOfLines={1}>
               {selectedVoice?.name || strings.settingsModal.none}
             </Text>
-            <Text style={[styles.pickerArrow, isRTL && { marginLeft: 0, marginRight: 8 }]}>{isExpanded ? '\u25B2' : '\u25BC'}</Text>
+            <Text allowFontScaling={false} style={[styles.pickerArrow, isRTL && { marginLeft: 0, marginRight: 8 }]}>{isExpanded ? '\u25B2' : '\u25BC'}</Text>
           </TouchableOpacity>
 
           {selectedVoiceId ? (
@@ -155,11 +155,11 @@ const VoiceSettingsPanel: React.FC<VoiceSettingsPanelProps> = ({
               style={styles.testCurrentButton}
               onPress={() => handleTestVoice(selectedVoiceId, language)}
               activeOpacity={0.7}>
-              <Text style={styles.testCurrentButtonText}>{strings.settings.test}</Text>
+              <Text allowFontScaling={false} style={styles.testCurrentButtonText}>{strings.settings.test}</Text>
             </TouchableOpacity>
           ) : (
             <View style={[styles.testCurrentButton, styles.testCurrentButtonDisabled]}>
-              <Text style={[styles.testCurrentButtonText, styles.testCurrentButtonTextDisabled]}>{strings.settings.test}</Text>
+              <Text allowFontScaling={false} style={[styles.testCurrentButtonText, styles.testCurrentButtonTextDisabled]}>{strings.settings.test}</Text>
             </View>
           )}
         </View>
@@ -179,16 +179,16 @@ const VoiceSettingsPanel: React.FC<VoiceSettingsPanelProps> = ({
                     <TouchableOpacity
                       style={styles.dropdownItemInfo}
                       onPress={() => handleVoiceSelect(language, voice.id)}>
-                      <Text style={[styles.dropdownItemName, isSelected && styles.dropdownItemNameSelected, isRTL && { textAlign: 'right' }]}>
+                      <Text allowFontScaling={false} style={[styles.dropdownItemName, isSelected && styles.dropdownItemNameSelected, isRTL && { textAlign: 'right' }]}>
                         {voice.name}
                       </Text>
-                      <Text style={[styles.dropdownItemLang, isRTL && { textAlign: 'right' }]}>{voice.language}</Text>
+                      <Text allowFontScaling={false} style={[styles.dropdownItemLang, isRTL && { textAlign: 'right' }]}>{voice.language}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.dropdownTestButton}
                       onPress={() => handleTestVoice(voice.id, voice.language)}
                       activeOpacity={0.7}>
-                      <Text style={styles.dropdownTestButtonText}>{strings.settings.test}</Text>
+                      <Text allowFontScaling={false} style={styles.dropdownTestButtonText}>{strings.settings.test}</Text>
                     </TouchableOpacity>
                   </View>
                 );
@@ -223,7 +223,7 @@ const VoiceSettingsPanel: React.FC<VoiceSettingsPanelProps> = ({
       <View style={styles.separator} />
 
       {/* Voice Selection Section */}
-      <Text style={[styles.sectionTitle, isRTL && { textAlign: 'right' }]}>{strings.settings.tabs.voice}</Text>
+      <Text allowFontScaling={false} style={[styles.sectionTitle, isRTL && { textAlign: 'right' }]}>{strings.settings.tabs.voice}</Text>
 
       {renderVoicePicker(
         strings.settingsModal.hebrewVoice,
