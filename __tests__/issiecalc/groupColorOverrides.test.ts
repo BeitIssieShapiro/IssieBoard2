@@ -165,11 +165,15 @@ describe('real IssieCalc default config', () => {
     expect(text.allMasked).toBe(true);
   });
 
-  test('hidden spacer keys are excluded from the total', () => {
+  test('hidden spacers and large-screen variants are excluded from the total', () => {
     const raw: any[] = [];
     (basic.rows || []).forEach((r: any) => (r.keys || []).forEach((k: any) => raw.push(k)));
-    expect(raw.length).toBe(25);
+    // 20 visible + 5 spacers + 5 large-screen operator variants. The operator
+    // column is declared twice per row (see keyboards/calc.json): narrow with a
+    // spacer beside it on tablets, full width on phones.
+    expect(raw.length).toBe(30);
     expect(raw.filter(k => k.hidden).length).toBe(5);
+    expect(raw.filter(k => k.showOn?.includes('large-screen') && !k.hidden).length).toBe(5);
   });
 });
 

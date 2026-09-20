@@ -28,7 +28,7 @@ export interface GroupLike {
 
 export interface KeysetLike {
   id?: string;
-  rows?: { keys?: { value?: string; type?: string; hidden?: boolean }[] }[];
+  rows?: { keys?: { value?: string; type?: string; hidden?: boolean; showOn?: string[] }[] }[];
 }
 
 export interface OverrideReport {
@@ -84,6 +84,12 @@ function buildWinnerMap(groups: GroupLike[]): Map<string, GroupLike> {
  * `visibilityMode: 'hide'`. Counting those would understate the warning — e.g.
  * calc's basic keyset reports 25 keys but 5 are invisible spacers, so "20 of 25"
  * really meant "all visible keys".
+ *
+ * A key may also be declared once per screen size via `showOn` (IssieCalc's
+ * operator column is wider on phones than on tablets). Only one of those
+ * variants is ever on screen, so the large-screen copy is skipped and the pair
+ * counts once — this report is about which keys a group masks, not about any
+ * particular device.
  */
 function visibleKeysOf(
   keyset: KeysetLike | undefined,
@@ -94,6 +100,8 @@ function visibleKeysOf(
   for (const row of keyset.rows) {
     for (const k of row.keys ?? []) {
       if (k.hidden) continue; // explicit spacer / hidden key
+      // Screen-size variant of a key declared for both: count the pair once.
+      if (k.showOn?.length && !k.showOn.includes('mobile')) continue;
       const value = k.value ?? '';
       const type = k.type ?? '';
       if (!value && !type) continue; // structural placeholder with nothing to render

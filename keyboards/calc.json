@@ -82,12 +82,26 @@
             },
             {
               "hidden": true,
-              "width": 0.25
+              "width": 0.25,
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "value": "/",
               "caption": "÷",
-              "width": 0.75
+              "width": 0.75,
+              "showOn": [
+                "large-screen"
+              ]
+            },
+            {
+              "value": "/",
+              "caption": "÷",
+              "width": 1,
+              "showOn": [
+                "mobile"
+              ]
             }
           ]
         },
@@ -104,13 +118,28 @@
             },
             {
               "hidden": true,
-              "width": 0.25
+              "width": 0.25,
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "value": "*",
               "caption": "×",
               "fontSizePreset": "small",
-              "width": 0.75
+              "width": 0.75,
+              "showOn": [
+                "large-screen"
+              ]
+            },
+            {
+              "value": "*",
+              "caption": "×",
+              "fontSizePreset": "small",
+              "width": 1,
+              "showOn": [
+                "mobile"
+              ]
             }
           ]
         },
@@ -127,11 +156,24 @@
             },
             {
               "hidden": true,
-              "width": 0.25
+              "width": 0.25,
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "value": "-",
-              "width": 0.75
+              "width": 0.75,
+              "showOn": [
+                "large-screen"
+              ]
+            },
+            {
+              "value": "-",
+              "width": 1,
+              "showOn": [
+                "mobile"
+              ]
             }
           ]
         },
@@ -148,11 +190,24 @@
             },
             {
               "hidden": true,
-              "width": 0.25
+              "width": 0.25,
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "value": "+",
-              "width": 0.75
+              "width": 0.75,
+              "showOn": [
+                "large-screen"
+              ]
+            },
+            {
+              "value": "+",
+              "width": 1,
+              "showOn": [
+                "mobile"
+              ]
             }
           ]
         },
@@ -169,12 +224,26 @@
             },
             {
               "hidden": true,
-              "width": 0.25
+              "width": 0.25,
+              "showOn": [
+                "large-screen"
+              ]
             },
             {
               "value": "=",
               "caption": "=",
-              "width": 0.75
+              "width": 0.75,
+              "showOn": [
+                "large-screen"
+              ]
+            },
+            {
+              "value": "=",
+              "caption": "=",
+              "width": 1,
+              "showOn": [
+                "mobile"
+              ]
             }
           ]
         }

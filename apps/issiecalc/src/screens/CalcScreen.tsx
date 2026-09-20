@@ -271,7 +271,9 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
   // menu chip on the expression line instead. Tablets keep the bar — they have
   // the room. 600 is the phone/tablet short-side split used elsewhere (see
   // apps/issievoice/src/screens/MainScreen.tsx).
-  const compactChrome = landscape && Math.min(frame.width, frame.height) < 600;
+  // 600 is the phone/tablet short-side split used elsewhere in the app.
+  const isTablet = Math.min(frame.width, frame.height) >= 600;
+  const compactChrome = landscape && !isTablet;
   const [menuOpen, setMenuOpen] = useState(false);
   // Measured, so the speak button can sit beside the chip whatever width the
   // translated mode label gives it.
@@ -444,7 +446,7 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
     const patched = patchAngleToggleCaption(liveConfig, angleCaption);
     const transformed = transformConfigForPreview({ ...patched, defaultKeyset });
     return JSON.stringify(transformed);
-  }, [keyset, landscape, liveConfig, angleMode]);
+  }, [keyset, landscape, isTablet, liveConfig, angleMode]);
 
   const handleKeyPress = (event: KeyPressEvent) => {
     const { value } = event.nativeEvent;
