@@ -168,7 +168,12 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
           </TouchableOpacity>
         )}
 
-        {!(isPhone && twoRows) && (
+        {/* On a phone in portrait there is no room for the label next to the
+            dropdown, cancel and save — it squeezes them off the edge. When the
+            header collapses to one row (no language tabs, no classic button)
+            twoRows is false, so the label has to be dropped on portrait width
+            itself rather than only in the two-row layout. */}
+        {!(isPhone && (twoRows || isPortrait)) && (
           <TouchableOpacity onPress={handleSecretTap} activeOpacity={1}>
             <Text allowFontScaling={false} style={styles.profileLabel}>
               {profileLabel ?? (hideLanguageTabs ? strings.profiles.currentCalculator : strings.profiles.currentKeyboard)}

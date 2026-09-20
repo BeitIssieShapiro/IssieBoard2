@@ -308,11 +308,16 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
   const showScientific = calcMode !== 'basic';
   const isScientific = keyset === 'scientific' || keyset === 'scientific_2nd' || keyset === 'scientific_landscape_2nd';
 
-  // Scale display font sizes with fontSizePreset: xs=base, xl=1.8x
+  // Scale display font sizes with fontSizePreset: xs=base, xl=3.6x.
+  // The ratios are 2x the original table (xs 1.0 -> 2.0 ... xl 1.8 -> 3.6):
+  // the display had far more room than the old scale asked for, especially on
+  // large screens. This is only what the preset *asks* for — resultFontSize
+  // below clamps it to the height the display actually gets, so on small
+  // screens the clamp binds and the text stays as large as still fits.
   const displayFontScale = (() => {
     const preset = liveConfig?.fontSizePreset ?? 'normal';
-    const scales: Record<string, number> = { xs: 1.0, small: 1.2, normal: 1.35, large: 1.55, xl: 1.8 };
-    return scales[preset] ?? 1.35;
+    const scales: Record<string, number> = { xs: 2.0, small: 2.4, normal: 2.7, large: 3.1, xl: 3.6 };
+    return scales[preset] ?? 2.7;
   })();
   // The expression row uses the same size as the result. This is the size the
   // preset asks for; it is clamped to the display's real height below, once the
