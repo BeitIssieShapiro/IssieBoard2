@@ -18,14 +18,16 @@ export interface CalcBuiltInProfile {
   styleGroups: Omit<StyleGroup, 'id' | 'createdAt'>[];
 }
 
-const NUMBER_KEYS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'pi'];
+const NUMBER_KEYS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+// Every non-digit key in keyboards/calc.json, including the constants pi and e.
 const OPERATOR_KEYS = [
   '⌫', 'AC', '%', '.', '+/-', '/', '*', '-', '+', '=', '(', ')',
-  'x^2', 'x^3', 'x^(', '^(', '2^(', '1/(',
+  'x^2', 'x^3', 'x^(', 'y^(', '2^(', '10^(', '1/(',
   'sin(', 'cos(', 'tan(', 'asin(', 'acos(', 'atan(',
   'sinh(', 'cosh(', 'tanh(', 'asinh(', 'acosh(', 'atanh(',
-  'sqrt(', 'log(', 'ln(', 'log2(', 'logy(', '2root(', '3root(', 'yroot(',
-  'factorial(', '[2ND]', '[2ND_OFF]', '[ANGLE_TOGGLE]', 'ms', 'mr', 'rand', 'e^(',
+  'log(', 'ln(', 'log2(', 'logy(', '2root(', '3root(', 'yroot(',
+  'factorial(', '[2ND]', '[2ND_OFF]', '[ANGLE_TOGGLE]', 'ms', 'mr', 'rand',
+  'e', 'e^(', 'pi', 'EE',
 ];
 
 export const CALC_BUILT_IN_PROFILES: CalcBuiltInProfile[] = [
