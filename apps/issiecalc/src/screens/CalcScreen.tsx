@@ -18,6 +18,7 @@ import {
   resolveCalcDisplayBackground,
   resolveCalcDisplayTextColor,
 } from '../../../../src/utils/previewBackground';
+import { computeDisplayLayout, fitFontSize } from '../utils/displayLayout';
 import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 import { SPEAK_ICON_NAME, SPEAK_ICON_COLOR } from '../speakIcon';
 
@@ -32,6 +33,23 @@ const Text = ({ allowFontScaling = false, ...props }: TextProps) => (
 );
 
 const builtConfig = require('../../../../ios/IssieCalc/default_config.json');
+
+/**
+ * Debug: outline the display's boxes so the height budget can be checked against
+ * what is actually rendered on a real device.
+ *   red    = the display area the rows have to fit inside
+ *   cyan   = the expression row (top)
+ *   yellow = the result row (bottom)
+ *   green  = the combined single row, when expression and result share a line
+ * If a coloured box extends past the red one, the budget is under-reserving.
+ */
+const DEBUG_DISPLAY_BOXES = false;
+
+const debugBox = (color: string) =>
+  DEBUG_DISPLAY_BOXES ? { borderWidth: 1, borderColor: color } : null;
+
+/** The speak button's tile, matching styles.speakButtonTile. */
+const SPEAK_BUTTON_TILE = 60;
 
 const KB_BG = builtConfig.backgroundColor && builtConfig.backgroundColor !== 'default' ? builtConfig.backgroundColor : '#000000';
 
@@ -154,7 +172,15 @@ function renderTemplateExpression(
   dimColor: string,
   showCursor: boolean = true,
   fontSize: number = 48,
-  fontWeight: RNFontWeight = '300'
+  fontWeight: RNFontWeight = '300',
+  /**
+   * Appended inside the same Text as the expression (the two-row layout's
+   * trailing " ="). It has to share the text run rather than sit beside it as a
+   * sibling: adjustsFontSizeToFit scales each Text independently, so a sibling
+   * stays at full size while a long expression shrinks away from it.
+   * Templates render as nested Views and cannot merge, so they keep a sibling.
+   */
+  suffix: string = ''
 ): React.ReactNode {
   for (const cfg of TEMPLATE_CONFIGS) {
     // While the slot is being filled the marker bounds it, so a regex is safe;
@@ -175,6 +201,7 @@ function renderTemplateExpression(
           {before ? <Text style={{ color: displayTextColor, fontSize, fontWeight, textAlignVertical: 'bottom' }}>{formatExpression(before)}</Text> : null}
           {cfg.render(x, y, cursor, fontSize, displayTextColor, fontWeight)}
           {after ? <Text style={{ color: displayTextColor, fontSize, fontWeight, textAlignVertical: 'bottom' }}>{formatExpression(after)}</Text> : null}
+          {suffix ? <Text style={{ color: displayTextColor, fontSize, fontWeight, textAlignVertical: 'bottom' }}>{suffix}</Text> : null}
         </View>
       );
     }
@@ -188,13 +215,23 @@ function renderTemplateExpression(
           {before ? <Text style={{ color: displayTextColor, fontSize, fontWeight, textAlignVertical: 'bottom' }}>{formatExpression(before)}</Text> : null}
           {cfg.render(x, y, null, fontSize, displayTextColor, fontWeight)}
           {after ? <Text style={{ color: displayTextColor, fontSize, fontWeight, textAlignVertical: 'bottom' }}>{formatExpression(after)}</Text> : null}
+          {suffix ? <Text style={{ color: displayTextColor, fontSize, fontWeight, textAlignVertical: 'bottom' }}>{suffix}</Text> : null}
         </View>
       );
     }
   }
-  // lineHeight tracks fontSize (see displayTextStyle) so a scaled-up size can't
-  // overflow a line box left at the default height.
-  return <Text style={{ color: displayTextColor, fontSize, lineHeight: Math.ceil(fontSize * 1.25), fontWeight }}>{formatExpression(expression) || '0'}</Text>;
+  // No adjustsFontSizeToFit: it shrinks to the box's height as well as its
+  // width, which cancels the font preset (see displayTextStyle). The caller
+  // gives this row a fixed-height container and scales `fontSize` itself when
+  // the text is too wide, so all this Text has to do is draw at the size asked.
+  // lineHeight stays off so the glyphs sit centred in that container.
+  return (
+    <Text
+      style={{ color: displayTextColor, fontSize, fontWeight }}
+      numberOfLines={1}>
+      {formatExpression(expression) || '0'}{suffix}
+    </Text>
+  );
 }
 
 function patchAngleToggleCaption(config: any, caption: string): any {
@@ -336,6 +373,16 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
   // Natural width of the combined row, so compact chrome can shrink the font
   // to fit it on one line instead of stacking into a second.
   const [combinedWidth, setCombinedWidth] = useState(0);
+  // Unconstrained width of each display string. The rendered rows cannot report
+  // this: they set numberOfLines={1}, so iOS truncates to an ellipsis and then
+  // reports the truncated width, which always "fits" and so never triggers a
+  // shrink. Keyed by text *and* font size — a width measured at one preset says
+  // nothing about another.
+  const [naturalWidths, setNaturalWidths] = useState<Record<string, number>>({});
+  const measureNaturalWidth = useCallback((key: string, width: number) => {
+    if (!width) return;
+    setNaturalWidths(prev => (prev[key] === width ? prev : { ...prev, [key]: width }));
+  }, []);
 
   // Fixed, not a user setting: unlike a keyboard that opens over other content,
   // the calculator's keypad *is* the screen, so its height is a layout decision
@@ -371,52 +418,63 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
     screenHeight - TOP_CHROME - insets.top - insets.bottom
   );
 
-  // What the display needs before the keypad may take the rest. 1.25 is the
-  // rendered line height; the rows shrink via adjustsFontSizeToFit, so this is
-  // the comfortable case rather than a hard floor. Portrait shows the
-  // expression above the result and carries the speak button below the top bar;
-  // landscape is a thin strip, where the button moves up into the bar
-  // (speakButtonRaised) and one row is all that fits. The reserve is capped at
-  // 40% of the screen so a large fontSizePreset can't starve the keypad.
-  const speakButton = readoutMode !== 'off' && !landscape ? 68 : 0;
-  const displayRows = landscape ? 1 : 2;
+  // What the display needs before the keypad may take the rest. Portrait shows
+  // the expression above the result and carries the speak button below the top
+  // bar; landscape is a thin strip, where the button moves up into the bar
+  // (speakButtonRaised).
+  // The speak button floats over the display rather than reserving a strip: it
+  // is absolutely positioned in the top-left corner, which the right-aligned
+  // expression and result never reach, so a reserved band was empty space on
+  // every screen wide enough to clear it. Nothing to budget for.
+  const speakButton = 0;
+  // Only *compact* chrome collapses to a single row — that is the layout which
+  // actually renders one (the two-row branch returns null there). A tablet in
+  // landscape keeps both rows, so budgeting one for it sized the text for half
+  // the height it renders into and clipped the expression above the result.
+  const displayRows = compactChrome ? 1 : 2;
   const DISPLAY_PADDING = 16; // styles.display paddingBottom
-  const LINE_HEIGHT = 1.25;   // rendered height of one text row
+  const EXPRESSION_MARGIN = 8; // styles.expression marginBottom, between the rows
   // The chip band the expression must clear — must equal displayInnerWithChip's
   // paddingTop, or the text is sized for space the chip is sitting in.
   const chipBand = compactChrome ? 44 : 0;
   const displayChrome = speakButton + chipBand + DISPLAY_PADDING;
-  const displayMin = Math.min(
-    displayChrome + preferredFontSize * LINE_HEIGHT * displayRows,
-    available * 0.45
-  );
 
-  // The ratio is a *cap*, not the size: in basic it keeps the keypad from
-  // growing so tall that the 0.75-wide operator column renders as ovals rather
-  // than circles (see above). On a roomy screen the cap binds and the display
-  // gets the slack; on a short one the leftover binds and the keys compress.
-  //
-  // Rounded down to a whole number of rows: the renderer divides the height it
-  // is given evenly across the rows, so a fractional remainder would push the
-  // last row past the bottom edge and clip it.
-  const rawKbHeight = Math.min(
-    available - displayMin,
-    available * (landscape ? 0.78 : heightRatio)
-  );
+  // A row's real height is the font's, not a guess: a hardcoded factor that
+  // undershoots the font's actual line box draws the top row outside the
+  // display and clips it. So measure a "0" at the live weight (see the probe
+  // below) and size everything from that. 1.25 is only the first-frame
+  // fallback, before onLayout has reported.
+  const [lineRatio, setLineRatio] = useState(1.25);
+  const LINE_HEIGHT = lineRatio;
+  const PROBE_FONT_SIZE = 100;
+
+  // The keypad's ratio is a *cap*, not its size: in basic it keeps the keypad
+  // from growing so tall that the 0.75-wide operator column renders as ovals
+  // rather than circles (see above). The display takes the height its rows need
+  // out of the keypad, down to MIN_KB_RATIO; past that the font shrinks.
   const KEYPAD_BOTTOM_PADDING = 4; // matches the renderer's own bottom padding
-  const effectiveKbHeight =
-    Math.floor((rawKbHeight - KEYPAD_BOTTOM_PADDING) / keypadRowCount) * keypadRowCount +
-    KEYPAD_BOTTOM_PADDING;
-
-  // The display is flex:1 against the keypad's fixed height, so it ends up with
-  // whatever is left rather than the displayMin asked for — which, when the
-  // ratio cap binds, can be less. Scale the text down to what it actually got,
-  // or tall glyphs are drawn outside the box and clipped at the top.
-  const displayHeight = available - effectiveKbHeight;
-  const maxFontSize = Math.floor(
-    (displayHeight - displayChrome) / (LINE_HEIGHT * displayRows)
-  );
-  const resultFontSize = Math.max(16, Math.min(preferredFontSize, maxFontSize));
+  // Absolute, not a share of the screen: what makes a keypad usable is the size
+  // of a key under a fingertip, which does not change with the device. As a
+  // fraction it bound so early on a phone that the display was pinned to a
+  // fixed height and every font preset above the smallest resolved to the same
+  // size — the setting appeared to do nothing. 56pt is a comfortable key row.
+  const MIN_KEYPAD_ROW_HEIGHT = 56;
+  const {
+    kbHeight: effectiveKbHeight,
+    fontSize: resultFontSize,
+    displayHeight,
+  } = computeDisplayLayout({
+    available,
+    preferredFontSize,
+    lineRatio,
+    displayRows,
+    displayChrome,
+    expressionMargin: EXPRESSION_MARGIN,
+    keypadRowCount,
+    ratioCap: landscape ? 0.78 : heightRatio,
+    minKeypadRowHeight: MIN_KEYPAD_ROW_HEIGHT,
+    keypadBottomPadding: KEYPAD_BOTTOM_PADDING,
+  });
 
   // Compact chrome has room for exactly one line, so a combined row that is too
   // wide shrinks to fit rather than wrapping to a second row there is no height
@@ -581,6 +639,61 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
     resultFontSize,
     displayFontWeight
   );
+  // The two-row layout's top line: the same expression with " =" baked into the
+  // text run, so adjustsFontSizeToFit scales the sign along with the digits. As
+  // a sibling Text it kept its full size while a long expression shrank beside
+  // it, leaving a large "=" next to small digits.
+  // Width-fitting for the expression row. The measurement comes from an
+  // unconstrained copy of the row (see the probes below): the rendered row sets
+  // numberOfLines={1} and so truncates to an ellipsis *before* reporting its
+  // layout, making its reported width always "fit".
+  //
+  // The probe renders the same node the row does — not a rebuilt string — so it
+  // includes everything that takes width there: the nested Views a template
+  // (√, logᵧ, xʸ) lays out as, and the Rad/Deg indicator that sits beside the
+  // expression in scientific mode. Measuring a plain string missed both and
+  // under-reported, which is how the ellipsis survived the first fix.
+  const expressionWidthKey = `${resultFontSize}|expr|${finalizeTemplate(expression)}|${showAngleIndicator ? angleMode : ''}`;
+  // The floating speak button occupies the display's top-left corner. The rows
+  // are bottom-pinned and grow upward, so the top row reaches that corner only
+  // when the two rows are tall enough to span the display — which is exactly
+  // the large-preset case. Where they do, the button's width comes off the top
+  // row, so a long expression shrinks clear of it instead of sliding beneath.
+  const SPEAK_BUTTON_FOOTPRINT = 76; // 60pt tile + 16pt gap
+  const rowsReachTop =
+    Math.ceil(resultFontSize * LINE_HEIGHT) * 2 + EXPRESSION_MARGIN >
+    displayHeight - SPEAK_BUTTON_TILE;
+  const expressionAvailableWidth = Math.max(
+    0,
+    displayWidth -
+      (readoutMode !== 'off' && !compactChrome && rowsReachTop ? SPEAK_BUTTON_FOOTPRINT : 0)
+  );
+  const expressionFontSize = fitFontSize(
+    resultFontSize,
+    naturalWidths[expressionWidthKey],
+    expressionAvailableWidth
+  );
+  const expressionWithEquals = renderTemplateExpression(
+    finalizeTemplate(expression),
+    displayTextColor,
+    dimTextColor,
+    false,
+    expressionFontSize,
+    displayFontWeight,
+    ' ='
+  );
+  // The same row at the unshrunken size, for the probe to measure. It must use
+  // resultFontSize rather than expressionFontSize, or each shrink would feed
+  // back into the next measurement and the row would creep smaller every frame.
+  const expressionProbeNode = renderTemplateExpression(
+    finalizeTemplate(expression),
+    displayTextColor,
+    dimTextColor,
+    false,
+    resultFontSize,
+    displayFontWeight,
+    ' ='
+  );
   // lineHeight must be set explicitly: styles.result/expression declare only a
   // fontSize, so overriding the size here would leave the line box at its
   // original height and clip tall glyphs. LINE_HEIGHT is the same factor the
@@ -588,6 +701,13 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
   // height is pinned to the line box, not just lineHeight: the display is a
   // constrained flex column, so without it the row is compressed shorter than
   // its own text and the glyph spills past the bottom edge.
+  //
+  // The box is ceil(fontSize * lineRatio) — the font's own line box rounded up,
+  // so barely a point of slack. That is fine for drawing, but it is why these
+  // rows must not use adjustsFontSizeToFit: that flag shrinks text to fit the
+  // box's *height* as well as its width, sees a box the text only just fits,
+  // and scales the glyphs down by the same proportion at every font size — so
+  // the box grew with the preset while the digits inside it never did.
   const displayTextStyle = {
     color: displayTextColor,
     fontSize: resultFontSize,
@@ -595,6 +715,23 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
     height: Math.ceil(resultFontSize * LINE_HEIGHT),
     fontWeight: displayFontWeight,
   };
+  // Width-fitting for the result row, from the same unconstrained measurement
+  // the expression row uses. The height box stays at the full budgeted size:
+  // shrinking the glyphs must not change the row's share of the two-row layout.
+  const resultRowText = resultMode
+    ? resultText
+    : (formatExpression(expression) || '0') + ')'.repeat(countUnclosedParens(expression));
+  const resultRowWidthKey = `${resultFontSize}|${resultRowText}`;
+  const resultRowFontSize = fitFontSize(
+    resultFontSize,
+    naturalWidths[resultRowWidthKey],
+    displayWidth
+  );
+  const resultShrink =
+    resultRowFontSize < resultFontSize
+      ? { fontSize: resultRowFontSize, lineHeight: Math.ceil(resultFontSize * LINE_HEIGHT) }
+      : null;
+
   // The combined "expression = result" row, shrunk to fit the display's width
   // in compact chrome (see combinedFontSize) so it never needs a second line.
   const combinedTextStyle = {
@@ -611,6 +748,24 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
        inset would paint the gutter beside the keypad in the display's colour,
        leaving a visible seam down the notch side in landscape. */
     <SafeAreaView style={[styles.container, { backgroundColor: displayBg }]} edges={['top']}>
+      {/* Line-height probe: an offscreen "0" at the display's own font weight,
+          whose laid-out height gives the ratio the height budget needs. Keyed
+          on the weight so a settings change re-mounts it and re-measures.
+          Absolute + zero opacity keeps it out of the layout and out of sight;
+          it must not set lineHeight, or it would measure that instead of the
+          font's natural line box. */}
+      <Text
+        key={`probe-${displayFontWeight}`}
+        style={[styles.lineProbe, { fontSize: PROBE_FONT_SIZE, fontWeight: displayFontWeight }]}
+        onLayout={e => {
+          const ratio = e.nativeEvent.layout.height / PROBE_FONT_SIZE;
+          // Guard against a zero/absurd first layout; keep the fallback then.
+          if (ratio > 0.5 && ratio < 3 && Math.abs(ratio - lineRatio) > 0.001) {
+            setLineRatio(ratio);
+          }
+        }}>
+        0
+      </Text>
       {/* Top bar — replaced by the menu chip on the expression line in
           compact chrome, where its height is better spent on the keypad. */}
       {!compactChrome && (
@@ -676,13 +831,43 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
         <View
           style={[
             styles.displayInner,
-            readoutMode !== 'off' && calcMode === 'both' && !compactChrome && styles.displayInnerWithSpeak,
-            // The chip is absolutely positioned, so it would overlap the
-            // expression unless the column reserves its band — the same reason
-            // the speak button has displayInnerWithSpeak.
+            // No band for the speak button: it floats in the top-left corner,
+            // which the right-aligned rows never reach. The chip still gets one
+            // — in compact chrome the display is short enough that the
+            // expression would otherwise run underneath it.
             compactChrome && styles.displayInnerWithChip,
+            debugBox('red'),
           ]}
           onLayout={e => setDisplayWidth(e.nativeEvent.layout.width)}>
+          {/* Width probes: the same two strings laid out unconstrained — no
+              numberOfLines, so nothing is truncated — at the budgeted font
+              size. Their widths drive fitFontSize above. Absolutely positioned
+              and invisible, so they add no height and are never seen. */}
+          <View style={styles.widthProbe} pointerEvents="none">
+            <View
+              style={styles.widthProbeContent}
+              onLayout={e => measureNaturalWidth(expressionWidthKey, e.nativeEvent.layout.width)}>
+              {/* The angle indicator carries marginRight:'auto' to push the
+                  expression right in the real row; here that would inflate the
+                  measurement, so it is overridden to a plain gap. */}
+              {!compactChrome && showAngleIndicator ? (
+                <Text style={[styles.angleIndicator, fadedTextStyle, { marginRight: 0 }]}>
+                  {angleMode === 'rad' ? 'Rad' : 'Deg'}
+                </Text>
+              ) : null}
+              {expressionProbeNode}
+            </View>
+          </View>
+          <View style={styles.widthProbe} pointerEvents="none">
+            <View
+              style={styles.widthProbeContent}
+              onLayout={e => measureNaturalWidth(resultRowWidthKey, e.nativeEvent.layout.width)}>
+              <Text
+                style={{ fontSize: resultFontSize, fontWeight: displayFontWeight }}>
+                {resultRowText}
+              </Text>
+            </View>
+          </View>
           {/* Measuring pass: lay the combined row out at its natural width,
               invisibly, so we can compare it against the display width. */}
           {resultMode && combinedFits === null && displayWidth > 0 && (
@@ -703,7 +888,7 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
               (combinedFontSize) rather than wrapping. */}
           {resultMode && (combinedFits === true || (compactChrome && combinedFits !== null)) ? (
             /* One row: expression, "=" and result together. */
-            <View style={styles.expressionRow}>
+            <View style={[styles.expressionRow, debugBox('lime')]}>
               {!compactChrome && angleIndicator}
               {compactChrome
                 ? renderTemplateExpression(finalizeTemplate(expression), displayTextColor, dimTextColor, false, combinedFontSize, displayFontWeight)
@@ -717,12 +902,29 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
                chrome, where a whole reserved line is more height than the
                layout can spare and it collapses instead. */
             (!resultMode || combinedFits === null) && compactChrome ? null : (
-            <View style={[styles.expressionRow, (!resultMode || combinedFits === null) && { opacity: 0 }]}>
+            <View style={[styles.expressionRow, debugBox('cyan'), (!resultMode || combinedFits === null) && { opacity: 0 }]}>
               {!compactChrome && angleIndicator}
-              <Text style={[styles.expression, displayTextStyle, { flexShrink: 1 }]} numberOfLines={1} adjustsFontSizeToFit>
-                {expressionNode}
-              </Text>
-              <Text style={[styles.expression, displayTextStyle, { alignSelf: 'center' }]}> =</Text>
+              {/* A View, not a Text: the node is already a fully styled element
+                  (a Text for plain input, nested Views for templates) and
+                  carries its own height. Wrapping it in an outer Text that also
+                  set a fixed height made the inline child measure as zero and
+                  vanish. The View just bounds the width, so a long expression
+                  shrinks to fit rather than overflowing the row.
+                  The " =" is inside the node's own text run (see
+                  expressionWithEquals), not a sibling here, so it shrinks with
+                  the digits instead of staying large beside them. */}
+              {/* Height, not lineHeight: the node's Text drops lineHeight so
+                  adjustsFontSizeToFit can honour fontSize, so the row's share
+                  of the two-row budget has to be reserved out here instead.
+                  justifyContent centres the glyphs in that reserved box. */}
+              <View
+                style={{
+                  flexShrink: 1,
+                  height: Math.ceil(resultFontSize * LINE_HEIGHT),
+                  justifyContent: 'center',
+                }}>
+                {expressionWithEquals}
+              </View>
             </View>
             )
           )}
@@ -737,20 +939,20 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
                 {renderTemplateExpression(expression, displayTextColor, dimTextColor, false, resultFontSize, displayFontWeight) as any}
               </View>
             ) : resultMode && (combinedFits !== false || compactChrome) ? null : (
-          // adjustsFontSizeToFit so a long entry shrinks to fit the width
-          // rather than truncating to an ellipsis. It needs room to shrink
-          // within, so the fixed height becomes a minHeight and lineHeight is
-          // dropped — a lineHeight larger than the shrunken font would stop
-          // the text centring in the box.
+          // No adjustsFontSizeToFit: it shrinks to the box's height as well as
+          // its width, and the box is the font's own line box with barely a
+          // point to spare, so it scaled every font size down by the same
+          // proportion — the preset moved the box and never the digits.
+          // Width is handled by shrinkToWidth below, which scales the font from
+          // a measured width and leaves the height budget alone.
           <Text
             style={[
               styles.result,
               displayTextStyle,
-              { height: undefined, lineHeight: undefined, minHeight: Math.ceil(resultFontSize * LINE_HEIGHT) },
+              resultShrink,
+              debugBox('yellow'),
             ]}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.3}>
+            numberOfLines={1}>
             {resultMode
               ? resultText
               : (() => {
@@ -869,9 +1071,6 @@ const styles = StyleSheet.create({
   // moves up into it (its own height) instead of leaving a gap above the
   // display. -60 keeps it within the bar, whose height the 54pt gear sets.
   speakButtonRaised: { top: -60 },
-  // Keeps the expression/result clear of the speak button's 60pt tile when the
-  // display is short (landscape, compact heights).
-  displayInnerWithSpeak: { paddingTop: 68 },
   // Clears the chip band (chip height + a little breathing room). The speak
   // button sits on the same row in compact chrome, so this covers both.
   displayInnerWithChip: { paddingTop: 44 },
@@ -897,6 +1096,29 @@ const styles = StyleSheet.create({
   // of the column flow, and the content child lays out at its natural width so
   // we learn how wide the combined row actually wants to be.
   measureRow: { position: 'absolute', opacity: 0, left: 0, top: 0, flexDirection: 'row' },
+  // Width probe: like measureRow, but genuinely unbounded. An absolute View with
+  // only `left` set is still clipped to the parent's width, so its Text wraps or
+  // truncates at exactly the width we are trying to compare against — the probe
+  // then always "fits" and never triggers a shrink. A large negative `right`
+  // gives the child effectively infinite room to report its natural width.
+  widthProbe: {
+    position: 'absolute',
+    opacity: 0,
+    left: 0,
+    right: -10000,
+    top: 0,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  // The measured child. alignSelf keeps it at its natural width inside the
+  // oversized probe rather than stretching to fill it, and flexShrink: 0 stops
+  // anything inside from compressing — the point is what the row *wants*.
+  widthProbeContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    alignSelf: 'flex-start',
+    flexShrink: 0,
+  },
   measureContent: { flexDirection: 'row', alignItems: 'flex-end', flexShrink: 0 },
   // The " = result" text sits inline after the expression node, which may be a
   // View (templates), so it must not stretch across the row.
@@ -951,6 +1173,10 @@ const styles = StyleSheet.create({
   menuItemText: { fontSize: 16, color: '#FFFFFF' },
   menuCheck: { fontSize: 16, color: '#FFFFFF', marginLeft: 16, width: 16, textAlign: 'right' },
   menuSeparator: { height: StyleSheet.hairlineWidth, backgroundColor: '#48484A', marginVertical: 4 },
+
+  // Measured, never seen: out of the layout flow so it adds no height, and
+  // invisible/untappable so it can sit anywhere in the tree.
+  lineProbe: { position: 'absolute', opacity: 0, top: 0, left: 0 },
 
   keyboardContainer: { backgroundColor: KB_BG },
   toast: {
