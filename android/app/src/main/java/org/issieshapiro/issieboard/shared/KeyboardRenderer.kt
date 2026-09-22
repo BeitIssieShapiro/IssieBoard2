@@ -1665,6 +1665,27 @@ class KeyboardRenderer(private val context: Context) {
         val label = TextView(context).apply {
             gravity = Gravity.CENTER
 
+            // Center on the glyphs, not on the font's full line box.
+            //
+            // A TextView reserves room for the font's ascent *and* descent plus
+            // (by default) extra font padding. Key captions are overwhelmingly
+            // digits and capitals, which have no descender, so the drawn glyph
+            // sits high in that box and the caption reads as sitting low in the
+            // key. The taller the font relative to the key, the worse it looks —
+            // invisible at the old percentages, obvious at xl.
+            //
+            // Dropping the font padding removes the largest part of the error.
+            // Android-only: UILabel has no equivalent, so iOS needs no change.
+            includeFontPadding = false
+
+            // Keep every caption on one line and shrink it to fit the key's width,
+            // matching iOS (label.numberOfLines = 1, adjustsFontSizeToFitWidth,
+            // minimumScaleFactor = 0.3 — KeyboardRenderer.swift). Without this a
+            // caption too wide for its key wraps onto a second line and is clipped
+            // ("Rand", "cosh"), instead of scaling down as it does on iOS.
+            maxLines = 1
+            ellipsize = null
+
             // Log for first key to debug shift state
             if (key.value == "q") {
                 debugLog("🔤 Creating 'q' key: shiftState=$shiftState, shiftActive=${shiftState.isActive()}, caption='${key.caption}', sCaption='${key.sCaption}', displayText='$displayText'")
@@ -1704,6 +1725,26 @@ class KeyboardRenderer(private val context: Context) {
             // applies effectiveDimensionScale), so no further scaling here — applying
             // currentScale again would square it.
             textSize = finalFontSize
+
+            // Shrink-to-fit, the counterpart of iOS's adjustsFontSizeToFitWidth.
+            // Autosize takes over textSize entirely, so the size computed above
+            // becomes its maximum: a caption that fits renders at exactly the
+            // preset size, and only a too-wide one scales down. The 0.3 floor
+            // matches iOS's minimumScaleFactor.
+            //
+            // Uniform autosize only measures width when the view is height-
+            // unconstrained, which it is here (MATCH_PARENT in a fixed-height
+            // key), so this reproduces the iOS behaviour rather than also
+            // shrinking to fit height.
+            // API 26+; on 24/25 the caption simply renders at the preset size, as
+            // it did before autosize existed.
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                val maxSizeSp = finalFontSize.toInt().coerceAtLeast(2)
+                val minSizeSp = (finalFontSize * 0.3f).toInt().coerceAtLeast(1)
+                setAutoSizeTextTypeUniformWithConfiguration(
+                    minSizeSp, maxSizeSp, 1, android.util.TypedValue.COMPLEX_UNIT_SP
+                )
+            }
 
                 // Text color
                 setTextColor(if (key.textColor == Color.BLACK) Color.BLACK else key.textColor)
