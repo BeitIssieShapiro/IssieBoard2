@@ -230,8 +230,17 @@ Android:
 | `d8ae0c4` | kb height #1 - FontSizePreset, KeyboardHeightPreset enums, KeyboardDimensions calculator | 2026-03-10 |
 | `59168ac` | scale #2 (ios done) - Preview mode scaling, effectiveDimensionScale, transform-based scaling | 2026-03-10 |
 | `1ebe5d12+` | Nikkud top-row mode, shadow text context, insertNikkudMark conflict handling, isAdvanced/simpleMode | 2026-07-01 |
+| `95afd35` | Key fonts sized from the key's real rendered height; preset percentages rebased on the visible key box and widened to 0.40–0.90 | 2026-09-22 |
 
-**Files updated (latest port):**
+**Files updated (latest port — `95afd35`):**
+- `KeyboardModels.kt` - `FontSizeConstants` percentages rebased on the visible key box and widened (XS 0.40 … XL 0.90); added `DEFAULT_KEY_GAP`, `visibleKeyHeight(rowHeight:verticalGap:)`, `percentage(preset:)` and `fontSize(preset:visibleKeyHeight:isLargeKey:isMultiChar:)`; `KeyboardDimensions.calculateFontSize` now delegates to them and its private `getFontSizePercentage()` was removed
+- `KeyboardRenderer.kt` - Per-key font size now derives from the `height` passed to `createKeyButton` instead of recomputing a row height with `numberOfRows = 4`; `baseFontSize` derives from the `rowHeight` property; added `scaledVerticalGap`; dropped the extra `* currentScale` (already baked into `scaledRowHeight`); `rowHeight` now passes `currentRowCount` rather than a fixed 4, matching iOS
+
+**Android-only deviations in this port (no iOS counterpart needed):**
+- Added `pxToDp()`. Android layout dimensions are px while `textSize` is sp/dp, so the key height must be converted before the preset percentages apply. iOS needs no equivalent — UIKit points serve both.
+- `rowHeight` previously passed `numberOfRows = 4` where iOS passed `currentRowCount`. That divergence predated this change; it was corrected here because the port's premise is that the font follows the real key height.
+
+**Files updated (previous port):**
 - `KeyboardModels.kt` - Added `isAdvanced` to DiacriticItem, `nikkudMode`/`simpleMode`/`isTopRowMode`/`isTopRowAlways` to DiacriticsSettings, `adaptColorForDarkMode()` utility
 - `BaseKeyboardService.kt` - Added `onUpdateSelection`, `onNikkudStateChanged`/`onNikkudActivePersist`/`onGetCharBeforeCursor` callbacks, `insertNikkudMark()`, nikkud state persistence/restoration
 - `KeyboardEngine.kt` - Added shadow text context (`shadowTextBefore`, `seedShadowContext()`, `syncShadowContext()`), `onGetCharBeforeCursor` callback, `insertNikkudMark()`, updated `handleTextChanged()` with shadow fallback, updated `handleBackspace()` to remove hasText guard

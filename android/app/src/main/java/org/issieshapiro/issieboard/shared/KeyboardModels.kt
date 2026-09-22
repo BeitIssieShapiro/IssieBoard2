@@ -705,24 +705,31 @@ object KeyboardHeightConstants {
 }
 
 /** Configuration constants for font sizes.
- *  Font sizes scale proportionally based on row height. */
+ *  Font sizes scale proportionally based on the visible key height. */
 object FontSizeConstants {
-    // MARK: - Base Font Size Percentages (applied to row height)
+    // MARK: - Base Font Size Percentages (applied to the VISIBLE key box)
+    //
+    // These are fractions of the drawn key box (row height minus the vertical key
+    // gap on each side), not of the full row height — so 0.90 means "the cap height
+    // nearly fills the key", which is what the preset names promise.
+    //
+    // The range is deliberately wide: the previous 0.34–0.54 span (of row height)
+    // put xs and xl within ~1.6x of each other, which read as barely different.
 
-    /** XS preset: 34% of row height */
-    const val XS_PERCENTAGE: Float = 0.34f
+    /** XS preset: 40% of visible key height */
+    const val XS_PERCENTAGE: Float = 0.40f
 
-    /** Small preset: 38% of row height */
-    const val SMALL_PERCENTAGE: Float = 0.38f
+    /** Small preset: 52% of visible key height */
+    const val SMALL_PERCENTAGE: Float = 0.52f
 
-    /** Normal preset: 42% of row height - DEFAULT */
-    const val NORMAL_PERCENTAGE: Float = 0.42f
+    /** Normal preset: 65% of visible key height - DEFAULT */
+    const val NORMAL_PERCENTAGE: Float = 0.65f
 
-    /** Large preset: 48% of row height */
-    const val LARGE_PERCENTAGE: Float = 0.48f
+    /** Large preset: 78% of visible key height */
+    const val LARGE_PERCENTAGE: Float = 0.78f
 
-    /** XL preset: 54% of row height */
-    const val XL_PERCENTAGE: Float = 0.54f
+    /** XL preset: 90% of visible key height */
+    const val XL_PERCENTAGE: Float = 0.90f
 
     // MARK: - Multipliers
 
@@ -731,6 +738,57 @@ object FontSizeConstants {
 
     /** Multi-character key font multiplier (scaled down) */
     const val MULTI_CHAR_MULTIPLIER: Float = 0.7f
+
+    /** Fallback key gap, matching KeyboardRenderer's default when config.keyGap is unset. */
+    const val DEFAULT_KEY_GAP: Float = 3f
+
+    // MARK: - Font Size Calculation
+
+    /**
+     * The drawn key rect's height: the row height less the vertical gap above and
+     * below. Clamped so a pathologically small row can never yield a non-positive
+     * height (which would collapse the font size to zero).
+     */
+    fun visibleKeyHeight(rowHeight: Float, verticalGap: Float): Float {
+        return maxOf(rowHeight * 0.5f, rowHeight - verticalGap * 2)
+    }
+
+    /** Percentage of the visible key height to use for a given preset */
+    fun percentage(preset: FontSizePreset): Float {
+        return when (preset) {
+            FontSizePreset.XS -> XS_PERCENTAGE
+            FontSizePreset.SMALL -> SMALL_PERCENTAGE
+            FontSizePreset.NORMAL -> NORMAL_PERCENTAGE
+            FontSizePreset.LARGE -> LARGE_PERCENTAGE
+            FontSizePreset.XL -> XL_PERCENTAGE
+        }
+    }
+
+    /**
+     * Calculate a font size from the height of the visible key box.
+     *
+     * @param visibleKeyHeight the drawn key rect — row height minus the vertical key
+     *   gap above and below. Callers that only have a row height should subtract the
+     *   gap first via [visibleKeyHeight].
+     */
+    fun fontSize(
+        preset: FontSizePreset,
+        visibleKeyHeight: Float,
+        isLargeKey: Boolean = false,
+        isMultiChar: Boolean = false
+    ): Float {
+        var fontSize = visibleKeyHeight * percentage(preset)
+
+        if (isLargeKey) {
+            fontSize *= LARGE_KEY_MULTIPLIER
+        }
+
+        if (isMultiChar) {
+            fontSize *= MULTI_CHAR_MULTIPLIER
+        }
+
+        return fontSize
+    }
 }
 
 // MARK: - Keyboard Dimensions Calculator
@@ -800,24 +858,21 @@ data class KeyboardDimensions(
      * @param isLargeKey Whether this is a large key (shift, enter, etc.)
      * @param isMultiChar Whether this is a multi-character key (needs smaller font)
      * @return The calculated font size in sp
+     *
+     * Note: assumes the default key gap. Callers that know the configured gap
+     * should use [FontSizeConstants.fontSize] with [FontSizeConstants.visibleKeyHeight]
+     * instead.
      */
     fun calculateFontSize(rowHeight: Float, isLargeKey: Boolean = false, isMultiChar: Boolean = false): Float {
-        // 1. Get percentage for preset
-        val percentage = getFontSizePercentage()
-
-        // 2. Calculate base font size from row height
-        var fontSize = rowHeight * percentage
-
-        // 3. Apply multipliers
-        if (isLargeKey) {
-            fontSize *= FontSizeConstants.LARGE_KEY_MULTIPLIER
-        }
-
-        if (isMultiChar) {
-            fontSize *= FontSizeConstants.MULTI_CHAR_MULTIPLIER
-        }
-
-        return fontSize
+        return FontSizeConstants.fontSize(
+            preset = fontSizePreset,
+            visibleKeyHeight = FontSizeConstants.visibleKeyHeight(
+                rowHeight = rowHeight,
+                verticalGap = FontSizeConstants.DEFAULT_KEY_GAP
+            ),
+            isLargeKey = isLargeKey,
+            isMultiChar = isMultiChar
+        )
     }
 
     // MARK: - Private Helpers
@@ -835,16 +890,6 @@ data class KeyboardDimensions(
         return when (deviceType) {
             DeviceType.PHONE -> KeyboardHeightConstants.PHONE_MODIFIER
             DeviceType.TABLET -> KeyboardHeightConstants.TABLET_MODIFIER
-        }
-    }
-
-    private fun getFontSizePercentage(): Float {
-        return when (fontSizePreset) {
-            FontSizePreset.XS -> FontSizeConstants.XS_PERCENTAGE
-            FontSizePreset.SMALL -> FontSizeConstants.SMALL_PERCENTAGE
-            FontSizePreset.NORMAL -> FontSizeConstants.NORMAL_PERCENTAGE
-            FontSizePreset.LARGE -> FontSizeConstants.LARGE_PERCENTAGE
-            FontSizePreset.XL -> FontSizeConstants.XL_PERCENTAGE
         }
     }
 

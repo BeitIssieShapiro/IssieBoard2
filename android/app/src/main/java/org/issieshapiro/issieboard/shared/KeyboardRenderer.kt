@@ -255,9 +255,11 @@ class KeyboardRenderer(private val context: Context) {
                 fontSizePreset = fontPreset
             )
 
-            // Calculate row height (4 rows, with or without suggestions)
+            // Calculate row height from the keyset's actual row count, matching iOS
+            // (KeyboardRenderer.swift). Using a fixed 4 here sized every non-4-row
+            // keyset against a row height it never renders at.
             val hasSuggestions = wordSuggestionsOverrideEnabled ?: wordSuggestionsEnabled
-            val calculatedRowHeight = dimensions.calculateRowHeight(numberOfRows = 4, hasSuggestions = hasSuggestions)
+            val calculatedRowHeight = dimensions.calculateRowHeight(numberOfRows = currentRowCount, hasSuggestions = hasSuggestions)
 
             val heightPx = dpToPx(calculatedRowHeight.toInt())
 
@@ -325,6 +327,15 @@ class KeyboardRenderer(private val context: Context) {
     private val scaledKeyGap: Int
         get() = (getKeyGap() * effectiveDimensionScale).toInt()
 
+    /**
+     * Vertical gap between a key's tap area and its drawn box, scaled for preview.
+     * This is the inset used when laying out visualKeyView, so it also defines the
+     * visible key height that font sizes are derived from.
+     * Port of KeyboardRenderer.scaledVerticalGap (ios/Shared/KeyboardRenderer.swift).
+     */
+    private val scaledVerticalGap: Int
+        get() = scaledKeyGap
+
     /** Scaled corner radius */
     private val scaledCornerRadius: Float
         get() = keyCornerRadius * effectiveDimensionScale
@@ -337,29 +348,23 @@ class KeyboardRenderer(private val context: Context) {
     private val scaledKeyVerticalPadding: Int
         get() = ((getKeyGap() + dpToPx(2)) * effectiveDimensionScale).toInt()
 
-    /** Computed base font size following the same preset logic as key rendering */
+    /**
+     * Computed base font size following the same preset logic as key rendering.
+     * Derived from the `rowHeight` property so it honours the current keyset's row
+     * count and fixedRenderHeight, exactly as the rendered keys do.
+     */
     private val baseFontSize: Float
         get() {
             val fontPresetString = if (isLargeScreen) config?.fontSizePresetLarge ?: config?.fontSizePreset else config?.fontSizePreset
             val fontPreset = FontSizePreset.from(fontPresetString)
-            val heightPresetString = if (isLargeScreen) config?.heightPresetLarge ?: config?.heightPreset else config?.heightPreset
-            val heightPreset = KeyboardHeightPreset.from(heightPresetString)
 
-            val displayMetrics = context.resources.displayMetrics
-            val screenWidthDp = displayMetrics.widthPixels.toFloat() / displayMetrics.density
-            val screenHeightDp = getAvailableScreenHeightDp()
-
-            val dimensions = KeyboardDimensions(
-                screenWidth = screenWidthDp,
-                screenHeight = screenHeightDp,
-                deviceType = DeviceType.current(context),
-                heightPreset = heightPreset,
-                fontSizePreset = fontPreset
+            return FontSizeConstants.fontSize(
+                preset = fontPreset,
+                visibleKeyHeight = FontSizeConstants.visibleKeyHeight(
+                    rowHeight = pxToDp(rowHeight),
+                    verticalGap = pxToDp(scaledVerticalGap)
+                )
             )
-
-            val hasSuggestions = wordSuggestionsOverrideEnabled ?: wordSuggestionsEnabled
-            val rh = dimensions.calculateRowHeight(numberOfRows = 4, hasSuggestions = hasSuggestions)
-            return dimensions.calculateFontSize(rowHeight = rh)
         }
 
     /** Computed font weight from config (as Typeface constant) */
@@ -1676,35 +1681,29 @@ class KeyboardRenderer(private val context: Context) {
             // Determine which font preset to use: key's preset > config's preset > "normal"
             val fontPresetString = key.fontSizePreset ?: (if (isLargeScreen) config?.fontSizePresetLarge ?: config?.fontSizePreset else config?.fontSizePreset) ?: "normal"
             val fontPreset = FontSizePreset.from(fontPresetString)
-            val heightPresetString = if (isLargeScreen) config?.heightPresetLarge ?: config?.heightPreset else config?.heightPreset
-            val heightPreset = KeyboardHeightPreset.from(heightPresetString)
 
-            // Get screen dimensions in dp (available height subtracts system bars, matching iOS safe area behavior)
-            val displayMetrics = context.resources.displayMetrics
-            val screenWidthDp = displayMetrics.widthPixels.toFloat() / displayMetrics.density
-            val screenHeightDp = getAvailableScreenHeightDp()
-
-            // Create dimensions calculator
-            val dimensions = KeyboardDimensions(
-                screenWidth = screenWidthDp,
-                screenHeight = screenHeightDp,
-                deviceType = DeviceType.current(context),
-                heightPreset = heightPreset,
-                fontSizePreset = fontPreset
+            // Size the font from the box this key is ACTUALLY drawn in.
+            // `height` is the scaledRowHeight handed to us by the layout pass, so it
+            // already reflects the current keyset's row count, fixedRenderHeight
+            // (embedded previews) and effectiveDimensionScale — none of which a
+            // recomputed row height would capture. Subtracting the vertical gap gives
+            // the visible key rect, which is what the preset percentages are defined
+            // against. Converted to dp because textSize is in sp/dp, not px.
+            val keyVisibleHeight = FontSizeConstants.visibleKeyHeight(
+                rowHeight = pxToDp(height),
+                verticalGap = pxToDp(scaledVerticalGap)
+            )
+            val finalFontSize = FontSizeConstants.fontSize(
+                preset = fontPreset,
+                visibleKeyHeight = keyVisibleHeight,
+                isLargeKey = isLargeKey,
+                isMultiChar = isMultiChar
             )
 
-            // Calculate row height
-            val hasSuggestions = wordSuggestionsOverrideEnabled ?: wordSuggestionsEnabled
-            val calculatedRowHeight = dimensions.calculateRowHeight(numberOfRows = 4, hasSuggestions = hasSuggestions)
-
-            // Calculate font size from row height (result is in dp, use as sp)
-            val finalFontSize = dimensions.calculateFontSize(rowHeight = calculatedRowHeight, isLargeKey = isLargeKey, isMultiChar = isMultiChar)
-
-            // Apply scaling for preview mode
-            // Android always uses dimension-based scaling (scale all dimensions by currentScale)
-            val scaledFontSize = finalFontSize * currentScale
-
-            textSize = scaledFontSize
+            // Preview-mode scaling is already baked into `height` (scaledRowHeight
+            // applies effectiveDimensionScale), so no further scaling here — applying
+            // currentScale again would square it.
+            textSize = finalFontSize
 
                 // Text color
                 setTextColor(if (key.textColor == Color.BLACK) Color.BLACK else key.textColor)
@@ -3367,5 +3366,14 @@ class KeyboardRenderer(private val context: Context) {
             dp.toFloat(),
             context.resources.displayMetrics
         ).toInt()
+    }
+
+    /**
+     * Layout dimensions here are in px, but font sizes are set in sp/dp, so a key
+     * height has to come back to dp before the preset percentages are applied.
+     * (iOS needs no equivalent: UIKit points are used for both.)
+     */
+    private fun pxToDp(px: Int): Float {
+        return px.toFloat() / context.resources.displayMetrics.density
     }
 }
