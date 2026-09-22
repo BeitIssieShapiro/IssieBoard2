@@ -178,6 +178,7 @@ export interface ProfileDefinition {
     keyGap?: number;  // Gap between keys in points (default: 3)
     fontWeight?: 'ultraLight' | 'thin' | 'light' | 'regular' | 'medium' | 'semibold' | 'bold' | 'heavy' | 'black';
     fontSizePreset?: 'xs' | 'small' | 'normal' | 'large' | 'xl';  // Font size preset (default: 'normal')
+    calcExerciseFontSizePreset?: 'xs' | 'small' | 'normal' | 'large' | 'xl';  // IssieCalc only: size of the expression/result display. Falls back to fontSizePreset when unset.
 }
 
 // Keyboard definition (as stored in keyboard JSON files)
@@ -203,6 +204,7 @@ export interface KeyboardConfig {
     autoCorrectEnabled?: boolean;  // Whether auto-correct replaces typed word with suggestion on space (default: true)
     fontName?: string;  // Custom font name to use for character keys (e.g., 'DanaYadAlefAlefAlef-Normal'). If not set, system font is used.
     fontSizePreset?: 'xs' | 'small' | 'normal' | 'large' | 'xl';  // Font size preset (default: 'normal'). Automatically scales to device.
+    calcExerciseFontSizePreset?: 'xs' | 'small' | 'normal' | 'large' | 'xl';  // IssieCalc only: size of the expression/result display. Falls back to fontSizePreset when unset.
     heightPreset?: 'compact' | 'normal' | 'tall' | 'x-tall';  // Keyboard height preset (default: 'normal'). Automatically adapts to device and orientation.
     keyGap?: number;  // Gap between keys in points (default: 3)
     fontWeight?: 'ultraLight' | 'thin' | 'light' | 'regular' | 'medium' | 'semibold' | 'bold' | 'heavy' | 'black';  // Font weight (default: 'regular')

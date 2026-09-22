@@ -8,6 +8,13 @@ export interface CalcBuiltInProfile {
     backgroundColor?: string;
     fontSizePreset?: string;
     fontSizePreset_large?: string;
+    /**
+     * Size of the expression/result display, independent of the key captions.
+     * Left unset in the built-in profiles so they keep inheriting fontSizePreset,
+     * which is exactly how the display behaved before it had its own preset.
+     */
+    calcExerciseFontSizePreset?: string;
+    calcExerciseFontSizePreset_large?: string;
     heightPreset?: string;
     heightPreset_large?: string;
     fontWeight?: string;

@@ -345,14 +345,24 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
   const showScientific = calcMode !== 'basic';
   const isScientific = keyset === 'scientific' || keyset === 'scientific_2nd' || keyset === 'scientific_landscape_2nd';
 
-  // Scale display font sizes with fontSizePreset: xs=base, xl=3.6x.
+  // Scale display font sizes with the display preset: xs=base, xl=3.6x.
   // The ratios are 2x the original table (xs 1.0 -> 2.0 ... xl 1.8 -> 3.6):
   // the display had far more room than the old scale asked for, especially on
   // large screens. This is only what the preset *asks* for — resultFontSize
   // below clamps it to the height the display actually gets, so on small
   // screens the clamp binds and the text stays as large as still fits.
+  //
+  // The display has its own preset so the expression can be sized independently
+  // of the key captions. It falls back to the key preset when unset, which is
+  // how the display behaved before it had one — so existing configs and the
+  // built-in profiles are unaffected until the user sets it.
   const displayFontScale = (() => {
-    const preset = liveConfig?.fontSizePreset ?? 'normal';
+    const pick = (base: string, large: string) =>
+      (isTablet ? liveConfig?.[large] : undefined) ?? liveConfig?.[base];
+    const preset =
+      pick('calcExerciseFontSizePreset', 'calcExerciseFontSizePreset_large') ??
+      pick('fontSizePreset', 'fontSizePreset_large') ??
+      'normal';
     const scales: Record<string, number> = { xs: 2.0, small: 2.4, normal: 2.7, large: 3.1, xl: 3.6 };
     return scales[preset] ?? 2.7;
   })();

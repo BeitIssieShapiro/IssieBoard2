@@ -179,6 +179,7 @@ export interface Strings {
     advancedSettings: string;
     keyboardHeight: string;
     fontSize: string;
+    exerciseFontSize: string;
     fontWeight: string;
     heightCompact: string;
     heightNormal: string;
@@ -561,7 +562,8 @@ const en: Strings = {
     symbolsInSuggestionsDesc: 'Show picture symbols above word suggestions',
     advancedSettings: 'Advanced Settings',
     keyboardHeight: 'Keyboard Height',
-    fontSize: 'Font Size',
+    fontSize: 'Keys Font Size',
+    exerciseFontSize: 'Exercise Font Size',
     fontWeight: 'Font Weight',
     heightCompact: 'Compact',
     heightNormal: 'Normal',
@@ -924,7 +926,8 @@ const he: Strings = {
     symbolsInSuggestionsDesc: 'הצג סמלי תמונה מעל הצעות מילים',
     advancedSettings: 'הגדרות מתקדמות',
     keyboardHeight: 'גובה מקלדת',
-    fontSize: 'גודל גופן',
+    fontSize: 'גודל גופן המקשים',
+    exerciseFontSize: 'גודל גופן בתרגיל',
     fontWeight: 'עובי גופן',
     heightCompact: 'קומפקטי',
     heightNormal: 'רגיל',
@@ -1287,7 +1290,8 @@ const ar: Strings = {
     symbolsInSuggestionsDesc: 'عرض رموز مصورة فوق اقتراحات الكلمات',
     advancedSettings: 'إعدادات متقدمة',
     keyboardHeight: 'ارتفاع لوحة المفاتيح',
-    fontSize: 'حجم الخط',
+    fontSize: 'حجم خط المفاتيح',
+    exerciseFontSize: 'حجم خط التمرين',
     fontWeight: 'سماكة الخط',
     heightCompact: 'مضغوط',
     heightNormal: 'عادي',

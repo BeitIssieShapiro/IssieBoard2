@@ -107,6 +107,14 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
   const currentFontName = state.config.fontName;
   const hasCustomFont = !!currentFontName;
   const currentFontSizePreset = state.config.fontSizePreset || 'normal';
+  // Deliberately NOT falling back to the key preset. CalcScreen does fall back
+  // when the field is unset (so old configs keep their previous look), but a
+  // selector that mirrors the key preset would appear to move on its own every
+  // time the key size changed. 'normal' is the same value that fallback yields
+  // for a default profile, so the control still starts where the exercise
+  // actually renders.
+  const currentCalcExerciseFontSizePreset =
+    (state.config as any).calcExerciseFontSizePreset || 'normal';
   const currentHeightPreset = state.config.heightPreset || 'normal';
   const currentFontWeight = state.config.fontWeight || 'regular'; // Default to regular
   const currentKeyGap = state.config.keyGap || 3;
@@ -323,6 +331,15 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
 
   const updateFontSizePreset = (preset: string) => {
     const updatedConfig = { ...state.config, fontSizePreset: preset as 'xs' | 'small' | 'normal' | 'large' | 'xl', fontSizePreset_large: preset as 'xs' | 'small' | 'normal' | 'large' | 'xl' };
+    dispatch({
+      type: 'SET_CONFIG',
+      payload: { config: updatedConfig, styleGroups: state.styleGroups },
+    });
+    dispatch({ type: 'MARK_DIRTY' });
+  };
+
+  const updateCalcExerciseFontSizePreset = (preset: string) => {
+    const updatedConfig = { ...state.config, calcExerciseFontSizePreset: preset as 'xs' | 'small' | 'normal' | 'large' | 'xl', calcExerciseFontSizePreset_large: preset as 'xs' | 'small' | 'normal' | 'large' | 'xl' };
     dispatch({
       type: 'SET_CONFIG',
       payload: { config: updatedConfig, styleGroups: state.styleGroups },
@@ -705,6 +722,29 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
               </View>
 
               <View style={styles.separator} />
+
+              {/* Display Font Size Preset — issiecalc only: sizes the expression
+                  and result independently of the key captions. */}
+              {appContext === 'issiecalc' && (
+                <>
+                  <View style={styles.section}>
+                    <ButtonGroupRow
+                      isRTL={isRTL}
+                      title={strings.globalSettings.exerciseFontSize}
+                      options={fontSizePresetOptions.map(opt => ({
+                        id: opt.id,
+                        label: opt.label,
+                      }))}
+                      selectedId={currentCalcExerciseFontSizePreset}
+                      onSelect={(id) => {
+                        updateCalcExerciseFontSizePreset(id);
+                      }}
+                    />
+                  </View>
+
+                  <View style={styles.separator} />
+                </>
+              )}
 
               {/* Font Weight */}
               <View style={styles.section}>
