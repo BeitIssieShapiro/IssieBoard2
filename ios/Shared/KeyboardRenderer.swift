@@ -265,35 +265,22 @@ class KeyboardRenderer {
         return calculatedRowHeight
     }
 
-    /// Computed base font size following the same preset logic as key rendering
+    /// Computed base font size following the same preset logic as key rendering.
+    /// Derived from the `rowHeight` property so it honours the current keyset's row
+    /// count and fixedRenderHeight, exactly as the rendered keys do.
     private var baseFontSize: CGFloat {
-        guard let container = container else { return 24 }
+        guard container != nil else { return 24 }
 
         let configFontSizePreset = (UIDevice.current.userInterfaceIdiom == .pad ? config?.fontSizePreset_large : nil) ?? config?.fontSizePreset
         let fontPreset = FontSizePreset(rawValue: configFontSizePreset ?? "normal") ?? .normal
-        let heightPreset = KeyboardHeightPreset(rawValue: (UIDevice.current.userInterfaceIdiom == .pad ? config?.heightPreset_large : nil) ?? config?.heightPreset ?? "normal") ?? .normal
 
-        let screenBounds: CGRect
-        if let windowScene = container.window?.windowScene {
-            screenBounds = windowScene.screen.bounds
-        } else {
-            screenBounds = UIScreen.main.bounds
-        }
-        let safeAreaInsets = container.window?.safeAreaInsets ?? .zero
-        let availableHeight = screenBounds.height - safeAreaInsets.top - safeAreaInsets.bottom
-
-        let dimensions = KeyboardDimensions(
-            screenWidth: container.bounds.width,
-            screenHeight: availableHeight,
-            deviceType: .current,
-            heightPreset: heightPreset,
-            fontSizePreset: fontPreset
+        return FontSizeConstants.fontSize(
+            forPreset: fontPreset,
+            visibleKeyHeight: FontSizeConstants.visibleKeyHeight(
+                rowHeight: rowHeight,
+                verticalGap: scaledVerticalGap
+            )
         )
-
-        let hasSuggestions = wordSuggestionsOverrideEnabled ?? wordSuggestionsEnabled
-        let currentRowCount = config?.keysets.first(where: { $0.id == currentKeysetId })?.rows.count ?? 4
-        let rh = dimensions.calculateRowHeight(numberOfRows: currentRowCount, hasSuggestions: hasSuggestions)
-        return dimensions.calculateFontSize(rowHeight: rh)
     }
 
     /// Computed font weight from config
@@ -318,6 +305,17 @@ class KeyboardRenderer {
     private let keyInternalPadding: CGFloat = 3  // Visual gap between keys (internal margin)
     private let keyVerticalPadding: CGFloat = 5  // Vertical padding for visual gap between rows (2px more than horizontal)
     private static let specialKeyTypes: Set<String> = ["space", "backspace", "shift", "keyset", "nikkud", "enter", "next-keyboard", "settings", "close", "language"]
+    /// Vertical gap between a key's tap area and its drawn box, scaled for preview.
+    /// This is the inset used when laying out visualKeyView, so it also defines the
+    /// visible key height that font sizes are derived from.
+    private var scaledVerticalGap: CGFloat {
+        let gap = (UIDevice.current.userInterfaceIdiom == .pad ? config?.keyGap_large : nil)
+            .map { CGFloat($0) }
+            ?? config?.keyGap.map { CGFloat($0) }
+            ?? FontSizeConstants.defaultKeyGap
+        return gap * currentScale
+    }
+
     private var keyCornerRadius: CGFloat {
         guard config?.roundedKeys == true else { return 5 }
         let visualKeyHeight = rowHeight - keyVerticalPadding * 2
@@ -1981,37 +1979,26 @@ class KeyboardRenderer {
         let configFontSizePreset = (UIDevice.current.userInterfaceIdiom == .pad ? config?.fontSizePreset_large : nil) ?? config?.fontSizePreset
         let fontPresetString = key.fontSizePreset ?? configFontSizePreset ?? "normal"
         let fontPreset = FontSizePreset(rawValue: fontPresetString) ?? .normal
-        let heightPreset = KeyboardHeightPreset(rawValue: (UIDevice.current.userInterfaceIdiom == .pad ? config?.heightPreset_large : nil) ?? config?.heightPreset ?? "normal") ?? .normal
 
-        // Get screen dimensions
-        let screenBounds: CGRect
-        if let windowScene = container?.window?.windowScene {
-            screenBounds = windowScene.screen.bounds
-        } else {
-            screenBounds = UIScreen.main.bounds
-        }
-
-        let safeAreaInsets = container?.window?.safeAreaInsets ?? .zero
-        let availableHeight = screenBounds.height - safeAreaInsets.top - safeAreaInsets.bottom
-
-        // Create dimensions calculator
-        let dimensions = KeyboardDimensions(
-            screenWidth: container?.bounds.width ?? screenBounds.width,
-            screenHeight: availableHeight,
-            deviceType: .current,
-            heightPreset: heightPreset,
-            fontSizePreset: fontPreset
+        // Size the font from the box this key is ACTUALLY drawn in.
+        // `height` is the scaledRowHeight handed to us by the layout pass, so it already
+        // reflects the current keyset's row count, fixedRenderHeight (embedded previews)
+        // and effectiveDimensionScale — none of which a recomputed row height would capture.
+        // Subtracting the vertical gap gives the visible key rect, which is what the
+        // preset percentages are defined against.
+        let keyVisibleHeight = FontSizeConstants.visibleKeyHeight(
+            rowHeight: height,
+            verticalGap: scaledVerticalGap
+        )
+        finalFontSize = FontSizeConstants.fontSize(
+            forPreset: fontPreset,
+            visibleKeyHeight: keyVisibleHeight,
+            isLargeKey: isLargeKey,
+            isMultiChar: isMultiChar
         )
 
-        // Calculate row height
-        let hasSuggestions = wordSuggestionsOverrideEnabled ?? wordSuggestionsEnabled
-        let rowHeight = dimensions.calculateRowHeight(numberOfRows: 4, hasSuggestions: hasSuggestions)
-
-        // Calculate font size from row height
-        finalFontSize = dimensions.calculateFontSize(rowHeight: rowHeight, isLargeKey: isLargeKey, isMultiChar: isMultiChar)
-
         if isSettingsKey {
-            print("⚙️ [Settings] Using fontSizePreset: \(fontPresetString), rowHeight: \(rowHeight), finalFontSize: \(finalFontSize)")
+            print("⚙️ [Settings] Using fontSizePreset: \(fontPresetString), visibleKeyHeight: \(keyVisibleHeight), finalFontSize: \(finalFontSize)")
         }
 
         // Make nikkud diacritic mark larger for visibility
@@ -2023,10 +2010,12 @@ class KeyboardRenderer {
             print("⚙️ [Settings] FinalFontSize before scaling: \(finalFontSize)")
         }
 
-        // Apply scaling for preview mode (only if not using transform scaling)
-        // When using transform scaling, render at full size
+        // Preview-mode scaling is already baked into `height` (scaledRowHeight applies
+        // effectiveDimensionScale), so the preset-derived font size needs no further
+        // scaling here — multiplying by currentScale again would square it.
+        // The nikkud fixed size is the exception: it's a literal, not height-derived.
         let useTransformScaling = isPreviewMode && currentScale < 1.0
-        if !useTransformScaling {
+        if isNikkudKey && !useTransformScaling {
             finalFontSize = finalFontSize * currentScale
         }
 
@@ -2172,8 +2161,7 @@ class KeyboardRenderer {
         }
 
         // Get key gap from config or use defaults
-        let gap = (UIDevice.current.userInterfaceIdiom == .pad ? config?.keyGap_large : nil) ?? config?.keyGap ?? 3
-        let horizontalGap = (CGFloat(gap)) * currentScale
+        let horizontalGap = scaledVerticalGap
         let verticalGap = horizontalGap  // Same gap in both directions
 
         // Add visual key view to button (with padding for visual gap)

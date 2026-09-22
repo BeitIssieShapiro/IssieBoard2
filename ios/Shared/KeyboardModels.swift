@@ -728,22 +728,29 @@ struct KeyboardHeightConstants {
 /// Configuration constants for font sizes
 /// Font sizes scale proportionally based on row height
 struct FontSizeConstants {
-    // MARK: - Base Font Size Percentages (applied to row height)
+    // MARK: - Base Font Size Percentages (applied to the VISIBLE key box)
+    //
+    // These are fractions of the drawn key box (row height minus the vertical key
+    // gap on each side), not of the full row height — so 0.90 means "the cap height
+    // nearly fills the key", which is what the preset names promise.
+    //
+    // The range is deliberately wide: the previous 0.34–0.54 span (of row height)
+    // put xs and xl within ~1.6x of each other, which read as barely different.
 
-    /// XS preset: 34% of row height
-    static let xsPercentage: CGFloat = 0.34
+    /// XS preset: 40% of visible key height
+    static let xsPercentage: CGFloat = 0.40
 
-    /// Small preset: 38% of row height
-    static let smallPercentage: CGFloat = 0.38
+    /// Small preset: 52% of visible key height
+    static let smallPercentage: CGFloat = 0.52
 
-    /// Normal preset: 42% of row height - DEFAULT
-    static let normalPercentage: CGFloat = 0.42
+    /// Normal preset: 65% of visible key height - DEFAULT
+    static let normalPercentage: CGFloat = 0.65
 
-    /// Large preset: 48% of row height
-    static let largePercentage: CGFloat = 0.48
+    /// Large preset: 78% of visible key height
+    static let largePercentage: CGFloat = 0.78
 
-    /// XL preset: 54% of row height
-    static let xlPercentage: CGFloat = 0.54
+    /// XL preset: 90% of visible key height
+    static let xlPercentage: CGFloat = 0.90
 
     // MARK: - Multipliers
 
@@ -752,6 +759,53 @@ struct FontSizeConstants {
 
     /// Multi-character key font multiplier (scaled down)
     static let multiCharMultiplier: CGFloat = 0.7
+
+    /// Fallback key gap, matching KeyboardRenderer's default when config.keyGap is unset.
+    static let defaultKeyGap: CGFloat = 3
+
+    // MARK: - Font Size Calculation
+
+    /// The drawn key rect's height: the row height less the vertical gap above and
+    /// below. Clamped so a pathologically small row can never yield a non-positive
+    /// height (which would collapse the font size to zero).
+    static func visibleKeyHeight(rowHeight: CGFloat, verticalGap: CGFloat) -> CGFloat {
+        return max(rowHeight * 0.5, rowHeight - verticalGap * 2)
+    }
+
+    /// Percentage of the visible key height to use for a given preset
+    static func percentage(for preset: FontSizePreset) -> CGFloat {
+        switch preset {
+        case .xs:     return xsPercentage
+        case .small:  return smallPercentage
+        case .normal: return normalPercentage
+        case .large:  return largePercentage
+        case .xl:     return xlPercentage
+        }
+    }
+
+    /// Calculate a font size from the height of the visible key box.
+    ///
+    /// `visibleKeyHeight` is the drawn key rect — row height minus the vertical key
+    /// gap above and below. Callers that only have a row height should subtract the
+    /// gap first via `visibleKeyHeight(rowHeight:verticalGap:)`.
+    static func fontSize(
+        forPreset preset: FontSizePreset,
+        visibleKeyHeight: CGFloat,
+        isLargeKey: Bool = false,
+        isMultiChar: Bool = false
+    ) -> CGFloat {
+        var fontSize = visibleKeyHeight * percentage(for: preset)
+
+        if isLargeKey {
+            fontSize *= largeKeyMultiplier
+        }
+
+        if isMultiChar {
+            fontSize *= multiCharMultiplier
+        }
+
+        return fontSize
+    }
 }
 
 // MARK: - Keyboard Dimensions Calculator
@@ -835,23 +889,19 @@ struct KeyboardDimensions {
     ///   - isLargeKey: Whether this is a large key (shift, enter, etc.)
     ///   - isMultiChar: Whether this is a multi-character key (needs smaller font)
     /// - Returns: The calculated font size in points
+    /// - Note: Assumes the default key gap. Callers that know the configured gap
+    ///   should use `FontSizeConstants.fontSize(forPreset:visibleKeyHeight:...)`
+    ///   with `FontSizeConstants.visibleKeyHeight(rowHeight:verticalGap:)` instead.
     func calculateFontSize(rowHeight: CGFloat, isLargeKey: Bool = false, isMultiChar: Bool = false) -> CGFloat {
-        // 1. Get percentage for preset
-        let percentage = getFontSizePercentage()
-
-        // 2. Calculate base font size from row height
-        var fontSize = rowHeight * percentage
-
-        // 3. Apply multipliers
-        if isLargeKey {
-            fontSize *= FontSizeConstants.largeKeyMultiplier
-        }
-
-        if isMultiChar {
-            fontSize *= FontSizeConstants.multiCharMultiplier
-        }
-
-        return fontSize
+        return FontSizeConstants.fontSize(
+            forPreset: fontSizePreset,
+            visibleKeyHeight: FontSizeConstants.visibleKeyHeight(
+                rowHeight: rowHeight,
+                verticalGap: FontSizeConstants.defaultKeyGap
+            ),
+            isLargeKey: isLargeKey,
+            isMultiChar: isMultiChar
+        )
     }
 
     // MARK: - Private Helpers
@@ -873,16 +923,6 @@ struct KeyboardDimensions {
         switch deviceType {
         case .phone:  return KeyboardHeightConstants.phoneModifier
         case .tablet: return KeyboardHeightConstants.tabletModifier
-        }
-    }
-
-    private func getFontSizePercentage() -> CGFloat {
-        switch fontSizePreset {
-        case .xs:     return FontSizeConstants.xsPercentage
-        case .small:  return FontSizeConstants.smallPercentage
-        case .normal: return FontSizeConstants.normalPercentage
-        case .large:  return FontSizeConstants.largePercentage
-        case .xl:     return FontSizeConstants.xlPercentage
         }
     }
 
