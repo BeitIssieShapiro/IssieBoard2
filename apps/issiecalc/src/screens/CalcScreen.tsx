@@ -443,11 +443,29 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
   // the height it renders into and clipped the expression above the result.
   const displayRows = compactChrome ? 1 : 2;
   const DISPLAY_PADDING = 16; // styles.display paddingBottom
+  // The gap between the rounded exercise box and the top key row
+  // (styles.display marginBottom), matched to the gap under the bottom key row
+  // so the keypad sits in an even band.
+  //
+  // Neither gap is just a margin — each key is inset inside its own row by
+  // keyVerticalPadding (5pt, ios/Shared/KeyboardRenderer.swift), which is the
+  // visible space above the top row and below the bottom one. That inset is
+  // common to both, so it cancels out and only the rest has to be matched:
+  //
+  //   below the bottom row  =  5 (key inset) + 4 (renderer bottomPadding)
+  //                            + insets.bottom (home indicator)
+  //   above the top row     =  5 (key inset) + DISPLAY_GAP
+  //
+  // so DISPLAY_GAP = 4 + insets.bottom. The safe-area inset dominates on a
+  // device with a home indicator and is what made the bottom look so much
+  // larger than the top.
+  const KEYPAD_RENDERER_BOTTOM_PADDING = 4; // KeyboardRenderer.swift bottomPadding
+  const DISPLAY_GAP = KEYPAD_RENDERER_BOTTOM_PADDING + insets.bottom;
   const EXPRESSION_MARGIN = 8; // styles.expression marginBottom, between the rows
   // The chip band the expression must clear — must equal displayInnerWithChip's
   // paddingTop, or the text is sized for space the chip is sitting in.
   const chipBand = compactChrome ? 44 : 0;
-  const displayChrome = speakButton + chipBand + DISPLAY_PADDING;
+  const displayChrome = speakButton + chipBand + DISPLAY_PADDING + DISPLAY_GAP;
 
   // A row's real height is the font's, not a guess: a hardcoded factor that
   // undershoots the font's actual line box draws the top row outside the
@@ -800,8 +818,22 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
       </View>
       )}
 
-      {/* Display */}
-      <View style={[styles.display, { backgroundColor: displayBg, paddingLeft: 24 + insets.left, paddingRight: 24 + insets.right }]}>
+      {/* Display. The rounded bottom corners need the keypad's colour behind
+          them, not the display's, or the corner cut-outs show as white notches
+          against the dark keypad — so the box is inset from a screenBg backdrop
+          (styles.displayBackdrop) rather than painting to the screen edge.
+          marginBottom is the gap that separates it from the top key row. */}
+      <View style={[styles.displayBackdrop, { backgroundColor: screenBg }]}>
+        <View
+          style={[
+            styles.display,
+            {
+              backgroundColor: displayBg,
+              paddingLeft: 24 + insets.left,
+              paddingRight: 24 + insets.right,
+              marginBottom: DISPLAY_GAP,
+            },
+          ]}>
         {/* Absolutely positioned like the speak button, not in the expression
             column: that column is bottom-pinned (justifyContent: flex-end), so
             a chip inside it gets pushed out of view when the display is short —
@@ -979,6 +1011,7 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
           </Text>
             )}
         </View>
+        </View>
       </View>
       {/* Full-bleed so the gutter beside the keypad is the keypad's own
           background, with the inset applied to the keys instead — they must
@@ -1057,9 +1090,23 @@ const styles = StyleSheet.create({
   segmentTextActive: { color: '#FFFFFF' },
   gearButton: { marginLeft: 'auto' as any, width: 54, height: 54, alignItems: 'center', justifyContent: 'center' },
   gearIcon: { fontSize: 33, color: '#8E8E93' },
+  // Carries the flex:1 the display used to own, so the display still takes all
+  // the height left between the top bar and the keypad. Painted in the keypad's
+  // colour, so the gap below the display and the area outside its rounded
+  // corners read as keypad background rather than as white notches.
+  displayBackdrop: { flex: 1 },
   display: {
     flex: 1, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'flex-end',
     paddingHorizontal: 24, paddingBottom: 16,
+    // Only the bottom corners: the top edge continues the top bar's background,
+    // so rounding there would cut a notch out of a continuous surface.
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    // marginBottom — the gap to the top key row — is applied inline: it depends
+    // on the safe-area inset, so it can't live in the static stylesheet.
+    // The rounded corners have to clip the content, or a tall expression paints
+    // over them and squares the box off again.
+    overflow: 'hidden',
   },
   displayInner: {
     flex: 1,
