@@ -2,6 +2,7 @@ import {
   resolvePreviewBackground,
   resolveCalcDisplayBackground,
   resolveCalcDisplayTextColor,
+  isCalcDisplayColorClash,
   isDefaultBackground,
   DEFAULT_PREVIEW_BACKGROUND,
   CALC_FALLBACK_BACKGROUND,
@@ -110,5 +111,48 @@ describe('resolveCalcDisplayTextColor', () => {
     expect(display).toBe(kb);
     expect(resolveCalcDisplayTextColor(calcConfig.calcDisplayColor, display))
       .toBe(calcConfig.calcDisplayColor);
+  });
+});
+
+describe('isCalcDisplayColorClash', () => {
+  test('the stock white text with a white box background clashes', () => {
+    // The reported case: only the box background was set. The stock calc
+    // keyboard ships an explicit white calcDisplayColor, so the text is never
+    // auto-derived for contrast and stays white on a white box.
+    expect(isCalcDisplayColorClash('#FFFFFF', '#FFFFFF', '#1C1C1E')).toBe(true);
+  });
+
+  test('two matching swatches clash whatever the colour', () => {
+    expect(isCalcDisplayColorClash('#FF0000', '#FF0000', '#1C1C1E')).toBe(true);
+  });
+
+  test('comparison ignores case and #RGB shorthand', () => {
+    expect(isCalcDisplayColorClash('#fff', '#FFFFFF', '#1C1C1E')).toBe(true);
+    expect(isCalcDisplayColorClash('#FFFFFF', '#ffffff', '#1C1C1E')).toBe(true);
+  });
+
+  test('a default text colour never clashes — it is derived for contrast', () => {
+    expect(isCalcDisplayColorClash('', '#FFFFFF', '#1C1C1E')).toBe(false);
+    expect(isCalcDisplayColorClash('default', '#000000', '#1C1C1E')).toBe(false);
+  });
+
+  test('differing colours do not clash', () => {
+    expect(isCalcDisplayColorClash('#000000', '#FFFFFF', '#1C1C1E')).toBe(false);
+  });
+
+  test('an unset box background falls back to the keyboard background', () => {
+    // White text on a calculator whose keyboard background was set to white,
+    // with the box background left on "default", is still invisible.
+    expect(isCalcDisplayColorClash('#FFFFFF', '', '#FFFFFF')).toBe(true);
+    expect(isCalcDisplayColorClash('#FFFFFF', '', '#1C1C1E')).toBe(false);
+  });
+
+  test('the stock calculator does not warn', () => {
+    const calcConfig = require('../../ios/IssieCalc/default_config.json');
+    expect(isCalcDisplayColorClash(
+      calcConfig.calcDisplayColor,
+      calcConfig.calcDisplayBgColor,
+      calcConfig.backgroundColor,
+    )).toBe(false);
   });
 });

@@ -13,6 +13,7 @@ import { ButtonGroupRow } from '../shared/ButtonGroupRow';
 import { ToggleSwitch } from '../shared/ToggleSwitch';
 import KeyboardPreferences from '../../native/KeyboardPreferences';
 import { analyzeGroupOverrides, OverridableColor, OverrideReport } from '../../utils/groupColorOverrides';
+import { isCalcDisplayColorClash, CALC_FALLBACK_BACKGROUND, isDefaultBackground } from '../../utils/previewBackground';
 
 export interface KeyboardVariantOption {
   id: string;
@@ -254,6 +255,25 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
     );
   };
 
+  /**
+   * Exercise text invisible against its own box. Uses the resolved colours (see
+   * isCalcDisplayColorClash): the stock calc keyboard sets an explicit white
+   * exercise text colour, so picking a white box background clashes even though
+   * only one of the two swatches was ever touched.
+   *
+   * The box background itself falls back to the keyboard background, which in
+   * turn falls back to the calc host colour when left on "default" — mirroring
+   * what CalcScreen renders.
+   */
+  const calcDisplayColorClash = useMemo(() => {
+    if (appContext !== 'issiecalc') return false;
+    const cfg = state.config as any;
+    const keyboardBg = isDefaultBackground(cfg.backgroundColor)
+      ? CALC_FALLBACK_BACKGROUND
+      : cfg.backgroundColor;
+    return isCalcDisplayColorClash(cfg.calcDisplayColor, cfg.calcDisplayBgColor, keyboardBg);
+  }, [appContext, (state.config as any).calcDisplayColor, (state.config as any).calcDisplayBgColor, state.config.backgroundColor]);
+
   const updateTextColor = (color: string) => {
     const updatedConfig = { ...state.config, textColor: color } as any;
     dispatch({
@@ -453,6 +473,21 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
 
               {/* Warning that keys-groups override the colors set above */}
               {renderOverrideWarning()}
+
+              {/* Warning that the exercise text is invisible against its box */}
+              {calcDisplayColorClash && (
+                <View style={styles.overrideWarning}>
+                  <Text
+                    allowFontScaling={false}
+                    style={[
+                      styles.overrideWarningText,
+                      isRTL && { textAlign: 'right', writingDirection: 'rtl' },
+                    ]}
+                  >
+                    {'⚠ '}{strings.globalSettings.calcDisplaySameColor}
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
 

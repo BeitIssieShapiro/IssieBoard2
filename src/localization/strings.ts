@@ -153,6 +153,9 @@ export interface Strings {
     keysText: string;
     calcDisplayColor: string;
     calcDisplayBgColor: string;
+    /** Shown when the exercise text and its box background are set to the same
+     *  colour, which makes the expression invisible. */
+    calcDisplaySameColor: string;
     groupOverrideAll: string;
     groupOverrideSome: string;
     showScientific: string;
@@ -537,6 +540,7 @@ const en: Strings = {
     keysText: 'Keys Text',
     calcDisplayColor: 'Exercise Text',
     calcDisplayBgColor: 'Exercise Box Background',
+    calcDisplaySameColor: 'The exercise text and the box background are the same color, so the exercise will not be visible.',
     groupOverrideAll: 'All keys use a color from a keys-group, so changes here have no visible effect.',
     groupOverrideSome: '{{masked}} of {{total}} keys use a color from a keys-group and will not change here.',
     showScientific: 'Show Calculators',
@@ -901,6 +905,7 @@ const he: Strings = {
     keysText: 'טקסט מקשים',
     calcDisplayColor: 'טקסט תרגיל',
     calcDisplayBgColor: 'רקע תיבת תרגיל',
+    calcDisplaySameColor: 'צבע הטקסט של התרגיל וצבע רקע התיבה זהים, ולכן התרגיל לא יהיה גלוי.',
     groupOverrideAll: 'כל המקשים מקבלים צבע מקבוצת מקשים, ולכן לשינוי כאן אין השפעה.',
     groupOverrideSome: '{{masked}} מתוך {{total}} מקשים מקבלים צבע מקבוצת מקשים ולא ישתנו כאן.',
     showScientific: 'הצג מחשבונים',
@@ -1265,6 +1270,7 @@ const ar: Strings = {
     keysText: 'نص المفاتيح',
     calcDisplayColor: 'نص التمرين',
     calcDisplayBgColor: 'خلفية مربع التمرين',
+    calcDisplaySameColor: 'لون نص التمرين ولون خلفية المربع متطابقان، لذا لن يكون التمرين مرئيًا.',
     groupOverrideAll: 'جميع المفاتيح تستخدم لونًا من مجموعة مفاتيح، لذا لا تأثير للتغيير هنا.',
     groupOverrideSome: '{{masked}} من {{total}} مفاتيح تستخدم لونًا من مجموعة مفاتيح ولن تتغير هنا.',
     showScientific: 'إظهار الآلات الحاسبة',

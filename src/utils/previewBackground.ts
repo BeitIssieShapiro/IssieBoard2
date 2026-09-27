@@ -82,3 +82,36 @@ export function resolveCalcDisplayTextColor(
   }
   return '#FFFFFF';
 }
+
+/**
+ * Normalises a colour for comparison: case-insensitive, and #RGB expanded to
+ * #RRGGBB so "#fff" and "#FFFFFF" are recognised as the same colour.
+ */
+function normalizeColor(color: string): string {
+  const c = color.trim().toLowerCase();
+  const hex = c.replace('#', '');
+  if (/^[0-9a-f]{3}$/.test(hex)) {
+    return `#${hex[0]}${hex[0]}${hex[1]}${hex[1]}${hex[2]}${hex[2]}`;
+  }
+  return c.startsWith('#') ? `#${hex}` : c;
+}
+
+/**
+ * True when the exercise text would be invisible: same colour as the box behind
+ * it.
+ *
+ * Compares the *resolved* colours rather than the raw config values, because the
+ * two can clash without the user ever picking two matching swatches. The stock
+ * calc keyboard (keyboards/calc.json) ships an explicit white calcDisplayColor,
+ * so setting only the box background to white collides — the text colour is not
+ * "default" and so is never auto-derived for contrast.
+ */
+export function isCalcDisplayColorClash(
+  calcDisplayColor: string | null | undefined,
+  calcDisplayBgColor: string | null | undefined,
+  keyboardBackground: string,
+): boolean {
+  const bg = resolveCalcDisplayBackground(calcDisplayBgColor, keyboardBackground);
+  const text = resolveCalcDisplayTextColor(calcDisplayColor, bg);
+  return normalizeColor(text) === normalizeColor(bg);
+}
