@@ -31,7 +31,7 @@ import { useKeyboardSetupStatus } from '../hooks/useKeyboardSetupStatus';
 import { SetupStatusStrip } from '../components/SetupStatusStrip';
 import { AboutScreen } from '../components/AboutScreen';
 import Share from 'react-native-share';
-import { exportProfile, exportAll } from '../import-export';
+import { exportProfile, exportAll, SavedListEntry } from '../import-export';
 import { ISSIEBOARD_ABOUT, ISSIEVOICE_ABOUT } from '../components/about-content';
 
 // Import keyboard files
@@ -705,7 +705,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
           const isBuiltIn = appContext === 'issiecalc'
             ? isCalcBuiltInProfileId(saved.key)
             : isBuiltInProfileId(saved.key);
-          if (saved.language === currentLanguage && !isBuiltIn) {
+          if (saved.language === currentLanguage && !isBuiltIn && (!saved.appContext || saved.appContext === appContext)) {
             profileList.push({
               id: saved.key,
               name: saved.name,
@@ -1086,7 +1086,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       );
 
       // Add to saved list
-      let savedList: { name: string; key: string; language: string; keyboardId: string }[] = [];
+      let savedList: SavedListEntry[] = [];
       try {
         const savedListJson = await KeyboardPreferences.getProfile('saved_list');
         if (savedListJson) {
@@ -1098,7 +1098,8 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         name: newName,
         key: newProfileId,
         language: currentLanguage,
-        keyboardId: currentKeyboardId
+        keyboardId: currentKeyboardId,
+        appContext,
       });
       await KeyboardPreferences.setProfile(JSON.stringify(savedList), 'saved_list');
 
@@ -1652,7 +1653,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       await KeyboardPreferences.setProfile(JSON.stringify(profileDef), `profile_def_${newProfileId}`);
       await KeyboardPreferences.setProfile(JSON.stringify(styleGroups), `${newProfileId}_styleGroups`);
 
-      let savedList: { name: string; key: string; language: string; keyboardId: string }[] = [];
+      let savedList: SavedListEntry[] = [];
       try {
         const savedListJson = await KeyboardPreferences.getProfile('saved_list');
         if (savedListJson) savedList = JSON.parse(savedListJson);
@@ -1662,6 +1663,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         key: newProfileId,
         language: profileToClone.language,
         keyboardId: profileToClone.keyboardId,
+        appContext,
       });
       await KeyboardPreferences.setProfile(JSON.stringify(savedList), 'saved_list');
 
@@ -1696,7 +1698,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
 
         try {
           // Update saved_list
-          let savedList: { name: string; key: string; language: string; keyboardId: string }[] = [];
+          let savedList: SavedListEntry[] = [];
           try {
             const savedListJson = await KeyboardPreferences.getProfile('saved_list');
             if (savedListJson) {
@@ -1777,7 +1779,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       );
 
       // Add to saved list
-      let savedList: { name: string; key: string; language: string; keyboardId: string }[] = [];
+      let savedList: SavedListEntry[] = [];
       try {
         const savedListJson = await KeyboardPreferences.getProfile('saved_list');
         if (savedListJson) {
@@ -1789,7 +1791,8 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         name: newName,
         key: newProfileId,
         language: currentLanguage,
-        keyboardId: currentKeyboardId
+        keyboardId: currentKeyboardId,
+        appContext,
       });
       await KeyboardPreferences.setProfile(JSON.stringify(savedList), 'saved_list');
 
@@ -1852,9 +1855,9 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
 
   const handleExportProfile = async (profileId: string, profileName: string) => {
     try {
-      const zipPath = await exportProfile(profileId, profileName);
+      const zipPath = await exportProfile(profileId, profileName, appContext);
       await Share.open({
-        url: Platform.OS === 'android' ? `file://${zipPath}` : zipPath,
+        url: `file://${zipPath}`,
         type: 'application/zip',
       });
     } catch (error: any) {
@@ -1867,9 +1870,9 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
 
   const handleBackupAll = async () => {
     try {
-      const zipPath = await exportAll();
+      const zipPath = await exportAll(appContext);
       await Share.open({
-        url: Platform.OS === 'android' ? `file://${zipPath}` : zipPath,
+        url: `file://${zipPath}`,
         type: 'application/zip',
       });
     } catch (error: any) {
@@ -2901,7 +2904,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
     console.log(`📱 ✅ Saved ${saveProfileId}_styleGroups`);
 
     // Add to saved list if not already there
-    let savedList: { name: string; key: string; language: string; keyboardId: string }[] = [];
+    let savedList: SavedListEntry[] = [];
     try {
       const savedListJson = await KeyboardPreferences.getProfile('saved_list');
       if (savedListJson) {
@@ -3057,7 +3060,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
     } catch { /* ignore */ }
 
     // Add to saved list
-    let savedList: { name: string; key: string; language: string; keyboardId: string }[] = [];
+    let savedList: SavedListEntry[] = [];
     try {
       const savedListJson = await KeyboardPreferences.getProfile('saved_list');
       if (savedListJson) {
@@ -3095,7 +3098,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
     if (!profileIdToDelete) return;
 
     // Remove from saved list
-    let savedList: { name: string; key: string; language: string; keyboardId: string }[] = [];
+    let savedList: SavedListEntry[] = [];
     try {
       const savedListJson = await KeyboardPreferences.getProfile('saved_list');
       if (savedListJson) {
@@ -3271,7 +3274,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
         `${newProfileId}_styleGroups`
       );
 
-      let calcSavedList: { name: string; key: string; language: string; keyboardId: string }[] = [];
+      let calcSavedList: SavedListEntry[] = [];
       try {
         const savedListJson = await KeyboardPreferences.getProfile('saved_list');
         if (savedListJson) {
@@ -3311,7 +3314,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
       `profile_def_${newProfileId}`
     );
 
-    let savedList: { name: string; key: string; language: string; keyboardId: string }[] = [];
+    let savedList: SavedListEntry[] = [];
     try {
       const savedListJson = await KeyboardPreferences.getProfile('saved_list');
       if (savedListJson) {

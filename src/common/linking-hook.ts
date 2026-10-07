@@ -1,19 +1,16 @@
 import { Linking } from 'react-native';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 
 /**
  * Hook that listens for incoming file URLs (from "Open With" / share).
  * Handles both cold start (app launched by file) and warm start (app already running).
  */
 export function useIncomingURL(onLinkReceived: (url: string) => void) {
-  const handled = useRef<string | null>(null);
-
   useEffect(() => {
     const handleUrl = ({ url }: { url: string | null }) => {
-      if (url && url !== handled.current) {
+      if (url) {
         // Only handle file:// URLs (not issieboard:// deep links)
         if (url.startsWith('file://') || url.includes('.zip')) {
-          handled.current = url;
           onLinkReceived(url);
         }
       }

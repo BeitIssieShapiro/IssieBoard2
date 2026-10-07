@@ -11,6 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FeedbackDialog } from '@beitissieshapiro/issie-shared';
 import { getVersion, getBuildNumber } from 'react-native-device-info';
+import { getLocales } from 'react-native-localize';
 import { cardShadow, subtleShadow } from '../styles/shadows';
 
 const ACCENT = '#2563EB';
@@ -29,10 +30,12 @@ interface AboutScreenProps {
 }
 
 export function AboutScreen({ appName, onClose, paragraphs, visible = true }: AboutScreenProps) {
-  const [lang, setLang] = useState('he');
-  const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
-  const currentLang = languages.find(l => l.code === lang) || languages[1];
-  const insets = useSafeAreaInsets();
+  // Use device locale for UI chrome (button labels), independent of content tab
+  const deviceLang = getLocales()[0]?.languageCode ?? 'en';
+  const initialLang = ['he', 'ar', 'en'].includes(deviceLang) ? deviceLang : 'en';
+  const feedbackLabel = deviceLang === 'he' ? 'משוב' : deviceLang === 'ar' ? 'ملاحظات' : 'Feedback';
+
+  const [lang, setLang] = useState(initialLang);
 
   const version = getVersion();
   const buildNumber = getBuildNumber();
@@ -56,7 +59,7 @@ export function AboutScreen({ appName, onClose, paragraphs, visible = true }: Ab
           onPress={() => setShowFeedbackDialog(true)}
           activeOpacity={0.7}>
           <Text allowFontScaling={false} style={styles.feedbackButtonText}>
-            {lang === 'he' ? 'משוב' : lang === 'ar' ? 'ملاحظات' : 'Feedback'}
+            {feedbackLabel}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>

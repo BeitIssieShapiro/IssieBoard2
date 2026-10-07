@@ -54,9 +54,14 @@ export const AppNavigator: React.FC = () => {
   const handleImportURL = useCallback(async (url: string) => {
     try {
       const info: ImportInfo = { importedProfiles: [], skippedExistingProfiles: [] };
-      await importPackage(url, info);
+      await importPackage(url, info, 'issieboard');
       if (info.importedProfiles.length > 0 || info.skippedExistingProfiles.length > 0) {
         setImportResult(info);
+        // Switch to the imported profile's language so it's immediately visible
+        const firstImported = info.importedProfiles[0];
+        if (firstImported?.language && ['he', 'en', 'ar'].includes(firstImported.language)) {
+          setInitialLanguage(firstImported.language);
+        }
         setEditorKey(prev => prev + 1);
       }
     } catch (error) {
@@ -138,8 +143,8 @@ export const AppNavigator: React.FC = () => {
         } else {
           setCurrentScreen({ type: 'editor' });
         }
-        // Initialize issie-shared language for FeedbackDialog
-        loadLanguage(LANGUAGE_SETTINGS.hebrew);
+        // Initialize issie-shared language for FeedbackDialog using device locale
+        loadLanguage(LANGUAGE_SETTINGS.default);
       } catch (error) {
         console.warn('Failed to load initial settings:', error);
         // Fallback to advanced editor on error

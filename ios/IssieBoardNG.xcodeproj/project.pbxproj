@@ -174,6 +174,9 @@
 		6ADAC3832F3E0BE300C85EBD /* SystemTextDocumentProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ADAC37F2F3E0B8700C85EBD /* SystemTextDocumentProxy.swift */; };
 		6ADAC3842F3E0BE300C85EBD /* SystemTextDocumentProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ADAC37F2F3E0B8700C85EBD /* SystemTextDocumentProxy.swift */; };
 		6ADAC3852F3E0BE300C85EBD /* SystemTextDocumentProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ADAC37F2F3E0B8700C85EBD /* SystemTextDocumentProxy.swift */; };
+		6AF00002300F9C98008F5A33 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AF00001300F9C98008F5A33 /* SceneDelegate.swift */; };
+		6AF00003300F9C98008F5A33 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AF00001300F9C98008F5A33 /* SceneDelegate.swift */; };
+		6AF00004300F9C98008F5A33 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AF00001300F9C98008F5A33 /* SceneDelegate.swift */; };
 		6AFD743E2F3DB18B00EDBDAA /* en_50k.bin in Resources */ = {isa = PBXBuildFile; fileRef = 6AFD743D2F3DB18B00EDBDAA /* en_50k.bin */; };
 		6AKBNG00012F400100035455 /* KeyboardNeighbors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AKBNG00002F400100035455 /* KeyboardNeighbors.swift */; };
 		6AKBNG00022F400100035455 /* KeyboardNeighbors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AKBNG00002F400100035455 /* KeyboardNeighbors.swift */; };
@@ -189,9 +192,6 @@
 		6AWORD00032F300100035455 /* WordCompletionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AWORD00042F300100035455 /* WordCompletionManager.swift */; };
 		6CC1B57CB5BB6B0387B6D7BD /* Pods_IssieVoice.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 25E92BCD1CBA83A2720D9C21 /* Pods_IssieVoice.framework */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
-		6AF00002300F9C98008F5A33 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AF00001300F9C98008F5A33 /* SceneDelegate.swift */; };
-		6AF00003300F9C98008F5A33 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AF00001300F9C98008F5A33 /* SceneDelegate.swift */; };
-		6AF00004300F9C98008F5A33 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AF00001300F9C98008F5A33 /* SceneDelegate.swift */; };
 		B86CA35428C03D651692B75E /* Pods_IssieCalc.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7E6D616B448A4994A1C05C2C /* Pods_IssieCalc.framework */; };
 		E61BFCD793C1827ADFBC49AF /* Pods_IssieVoice.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 25E92BCD1CBA83A2720D9C21 /* Pods_IssieVoice.framework */; };
 /* End PBXBuildFile section */
@@ -295,6 +295,7 @@
 		6ADAC36E2F3DF78D00C85EBD /* TextDocumentProxyProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextDocumentProxyProtocol.swift; sourceTree = "<group>"; };
 		6ADAC3722F3DF7A200C85EBD /* KeyboardEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardEngine.swift; sourceTree = "<group>"; };
 		6ADAC37F2F3E0B8700C85EBD /* SystemTextDocumentProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemTextDocumentProxy.swift; sourceTree = "<group>"; };
+		6AF00001300F9C98008F5A33 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SceneDelegate.swift; path = IssieBoardNG/SceneDelegate.swift; sourceTree = "<group>"; };
 		6AFD743D2F3DB18B00EDBDAA /* en_50k.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = en_50k.bin; sourceTree = "<group>"; };
 		6AFD74402F3DB21C00EDBDAA /* IssieVoice-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "IssieVoice-Info.plist"; sourceTree = "<group>"; };
 		6AKBNG00002F400100035455 /* KeyboardNeighbors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardNeighbors.swift; sourceTree = "<group>"; };
@@ -304,7 +305,6 @@
 		6ASHARED0001000000035455 /* SharedAssets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = SharedAssets.xcassets; sourceTree = "<group>"; };
 		6AWORD00042F300100035455 /* WordCompletionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordCompletionManager.swift; sourceTree = "<group>"; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = IssieBoardNG/AppDelegate.swift; sourceTree = "<group>"; };
-		6AF00001300F9C98008F5A33 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SceneDelegate.swift; path = IssieBoardNG/SceneDelegate.swift; sourceTree = "<group>"; };
 		7E6D616B448A4994A1C05C2C /* Pods_IssieCalc.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_IssieCalc.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		BA31A84859E1A6DBDFBC1935 /* Pods-IssieBoard.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-IssieBoard.release.xcconfig"; path = "Target Support Files/Pods-IssieBoard/Pods-IssieBoard.release.xcconfig"; sourceTree = "<group>"; };
 		C24BBB5301C121A3DA34930C /* Pods-IssieCalc.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-IssieCalc.debug.xcconfig"; path = "Target Support Files/Pods-IssieCalc/Pods-IssieCalc.debug.xcconfig"; sourceTree = "<group>"; };

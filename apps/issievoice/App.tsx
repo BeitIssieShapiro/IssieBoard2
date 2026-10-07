@@ -28,17 +28,19 @@ const Stack = createStackNavigator();
 const App = () => {
   React.useEffect(() => {
     initializeFirebase();
-    loadLanguage(LANGUAGE_SETTINGS.hebrew);
+    loadLanguage(LANGUAGE_SETTINGS.default);
   }, []);
 
   const [importResult, setImportResult] = React.useState<ImportInfo | null>(null);
+  const [settingsKey, setSettingsKey] = React.useState(0);
 
   const handleImportURL = React.useCallback(async (url: string) => {
     try {
       const info: ImportInfo = { importedProfiles: [], skippedExistingProfiles: [] };
-      await importPackage(url, info);
+      await importPackage(url, info, 'issievoice');
       if (info.importedProfiles.length > 0 || info.skippedExistingProfiles.length > 0) {
         setImportResult(info);
+        setSettingsKey(prev => prev + 1);
       }
     } catch (error) {
       console.warn('Import failed:', error);
@@ -69,7 +71,9 @@ const App = () => {
                       }}>
                       <Stack.Screen name="Main" component={MainScreen} />
                       <Stack.Screen name="Browse" component={BrowseScreen} />
-                      <Stack.Screen name="Settings" component={NewSettingsScreen} />
+                      <Stack.Screen name="Settings">
+                        {(props) => <NewSettingsScreen {...props} key={settingsKey} />}
+                      </Stack.Screen>
                     </Stack.Navigator>
                   </NavigationContainer>
                 </ScreenSizer.Wrapper>
@@ -82,7 +86,9 @@ const App = () => {
                     }}>
                     <Stack.Screen name="Main" component={MainScreen} />
                     <Stack.Screen name="Browse" component={BrowseScreen} />
-                    <Stack.Screen name="Settings" component={NewSettingsScreen} />
+                    <Stack.Screen name="Settings">
+                      {(props) => <NewSettingsScreen {...props} key={settingsKey} />}
+                    </Stack.Screen>
                   </Stack.Navigator>
                 </NavigationContainer>
               )}

@@ -10,6 +10,7 @@ import { LocalizationProvider as VoiceLocalizationProvider } from '../issievoice
 import CalcScreen from './src/screens/CalcScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import { initializeFirebase } from '../../src/firebase-config';
+import { loadLanguage, LANGUAGE_SETTINGS } from '@beitissieshapiro/issie-shared';
 
 // Font scaling is disabled per-element (see the Text wrapper in CalcScreen), not
 // globally: RN's Text is a plain function component and React 19 dropped
@@ -22,6 +23,7 @@ const Stack = createStackNavigator();
 const App = () => {
   React.useEffect(() => {
     initializeFirebase();
+    loadLanguage(LANGUAGE_SETTINGS.default);
   }, []);
 
   return (

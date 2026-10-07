@@ -295,6 +295,7 @@ const LANG_MORE_DIGITS: Record<string, (n: number) => string> = {
 };
 
 const LANG_MINUS: Record<string, string> = { en: 'minus', he: 'מינוס', ar: 'ناقص' };
+const LANG_POINT: Record<string, string> = { en: 'point', he: 'נקודה', ar: 'فاصلة' };
 
 /**
  * An operand as it should be spoken: a number, or a constant's localized name.
@@ -314,11 +315,13 @@ function sayOperand(value: string, language: string | null, mathLevel?: MathLeve
 
 function speakableNumber(value: string, language: string | null): string {
   const prefix = (language ?? '').split('-')[0].toLowerCase();
-  if (value.startsWith('-')) {
+  const point = LANG_POINT[prefix] ?? LANG_POINT.en;
+  let result = value.replace('.', ` ${point} `);
+  if (result.startsWith('-')) {
     const minus = LANG_MINUS[prefix] ?? LANG_MINUS.en;
-    return `${minus} ${value.slice(1)}`;
+    result = `${minus} ${result.slice(1)}`;
   }
-  return value;
+  return result;
 }
 
 function formatResult(result: string, decimalDigits: number, language: string | null): string {

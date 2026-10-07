@@ -2,6 +2,10 @@ import * as RNFS from 'react-native-fs';
 import { zip, unzip } from 'react-native-zip-archive';
 import KeyboardPreferences from './native/KeyboardPreferences';
 
+export type AppContext = 'issieboard' | 'issievoice' | 'issiecalc';
+
+const KNOWN_APPS: readonly AppContext[] = ['issieboard', 'issievoice', 'issiecalc'];
+
 export interface ImportedProfileInfo {
   name: string;
   language: string;
@@ -12,10 +16,12 @@ export interface ImportInfo {
   skippedExistingProfiles: ImportedProfileInfo[];
 }
 
+export type SavedListEntry = { name: string; key: string; language: string; keyboardId: string; appContext?: AppContext };
+
 interface ExportMetadata {
   version: string;
   type: string;
-  app: string;
+  app: AppContext;
   name: string;
   language: string;
   keyboardId: string;
@@ -35,15 +41,13 @@ async function unlinkSafe(path: string): Promise<void> {
  * Export a single profile as a zip file.
  * Returns the path to the created zip file.
  */
-export async function exportProfile(profileId: string, profileName: string): Promise<string> {
-  // Read profile definition
+export async function exportProfile(profileId: string, profileName: string, appContext: AppContext = 'issieboard'): Promise<string> {
   const profileDefJson = await KeyboardPreferences.getProfile(`profile_def_${profileId}`);
   if (!profileDefJson) {
     throw new Error(`Profile not found: ${profileId}`);
   }
   const profileDef = JSON.parse(profileDefJson);
 
-  // Read style groups
   let styleGroups: any[] = [];
   try {
     const styleGroupsJson = await KeyboardPreferences.getProfile(`${profileId}_styleGroups`);
@@ -52,11 +56,10 @@ export async function exportProfile(profileId: string, profileName: string): Pro
     }
   } catch {}
 
-  // Create metadata
   const metadata: ExportMetadata = {
     version: '1.0',
     type: 'profile',
-    app: 'issieboard',
+    app: appContext,
     name: profileName,
     language: profileDef.language || '',
     keyboardId: profileDef.keyboardId || '',
@@ -64,13 +67,11 @@ export async function exportProfile(profileId: string, profileName: string): Pro
     styleGroups,
   };
 
-  // Write metadata to temp file
-  const sanitizedName = profileName.replace(/[^a-zA-Z0-9\u0590-\u05FF\u0600-\u06FF_-]/g, '_');
+  const sanitizedName = profileName.replace(/[^a-zA-Z0-9֐-׿؀-ۿ_-]/g, '_');
   const metadataFilePath = tempPath(`metadata__${sanitizedName}.json`);
   await unlinkSafe(metadataFilePath);
   await RNFS.writeFile(metadataFilePath, JSON.stringify(metadata, null, 2), 'utf8');
 
-  // Zip the metadata file
   const zipFilePath = tempPath(`keyboard__${sanitizedName}.zip`);
   await unlinkSafe(zipFilePath);
   await zip([metadataFilePath], zipFilePath);
@@ -79,24 +80,28 @@ export async function exportProfile(profileId: string, profileName: string): Pro
 }
 
 /**
- * Export all custom profiles as a zip-of-zips.
+ * Export all custom profiles for the given app as a zip-of-zips.
  * Returns the path to the created zip file.
  */
-export async function exportAll(): Promise<string> {
+export async function exportAll(appContext: AppContext = 'issieboard'): Promise<string> {
   const savedListJson = await KeyboardPreferences.getProfile('saved_list');
   if (!savedListJson) {
     throw new Error('No profiles to export');
   }
 
-  const savedList: { name: string; key: string; language: string; keyboardId: string }[] = JSON.parse(savedListJson);
-  if (savedList.length === 0) {
+  const savedList: SavedListEntry[] = JSON.parse(savedListJson);
+  const appProfiles = savedList.filter(p => !p.appContext || p.appContext === appContext);
+  if (appProfiles.length === 0) {
     throw new Error('No profiles to export');
   }
 
   const zipFiles: string[] = [];
-  for (const profile of savedList) {
+  for (const profile of appProfiles) {
     try {
-      const zipPath = await exportProfile(profile.key, profile.name);
+      // Preserve the profile's original appContext so it round-trips correctly on import.
+      // Untagged legacy profiles are treated as 'issieboard'.
+      const profileAppContext = profile.appContext || 'issieboard';
+      const zipPath = await exportProfile(profile.key, profile.name, profileAppContext);
       zipFiles.push(zipPath);
     } catch (e) {
       console.warn(`Failed to export profile ${profile.name}:`, e);
@@ -117,10 +122,14 @@ export async function exportAll(): Promise<string> {
 }
 
 /**
- * Import profiles from a zip file.
+ * Import profiles from a zip file into the given app context.
  * Handles both single profile zips and backup (zip-of-zips).
  */
-export async function importPackage(packagePath: string, importInfo: ImportInfo, subFolder: string = ''): Promise<void> {
+export async function importPackage(packagePath: string, importInfo: ImportInfo, appContext: AppContext = 'issieboard'): Promise<void> {
+  await importInternal(packagePath, importInfo, appContext, '');
+}
+
+async function importInternal(packagePath: string, importInfo: ImportInfo, appContext: AppContext, subFolder: string): Promise<void> {
   if (packagePath.startsWith('file://')) {
     packagePath = packagePath.substring(7);
   }
@@ -136,35 +145,35 @@ export async function importPackage(packagePath: string, importInfo: ImportInfo,
     const metadataStr = await RNFS.readFile(metadataItem.path, 'utf8');
     const metadata: ExportMetadata = JSON.parse(metadataStr);
 
-    if (metadata.app !== 'issieboard' || metadata.type !== 'profile') {
+    if (!(KNOWN_APPS as readonly string[]).includes(metadata.app) || metadata.type !== 'profile') {
       throw new Error('Invalid IssieBoard profile file');
     }
 
-    // Check if profile name already exists
     const savedListJson = await KeyboardPreferences.getProfile('saved_list');
-    const savedList: { name: string; key: string; language: string; keyboardId: string }[] =
-      savedListJson ? JSON.parse(savedListJson) : [];
+    const savedList: SavedListEntry[] = savedListJson ? JSON.parse(savedListJson) : [];
 
-    const exists = savedList.some(p => p.name === metadata.name);
+    // Duplicate check is scoped to the target app. Untagged legacy entries are treated
+    // as 'issieboard', so they do not block imports into other apps.
+    const exists = savedList.some(
+      p => p.name === metadata.name && (p.appContext || 'issieboard') === appContext
+    );
     if (exists) {
       importInfo.skippedExistingProfiles.push({ name: metadata.name, language: metadata.language });
       return;
     }
 
-    // Generate new unique ID
     const newId = `imported_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
     const profileDef = { ...metadata.profileDefinition, id: newId };
 
-    // Save profile definition and style groups
     await KeyboardPreferences.setProfile(JSON.stringify(profileDef), `profile_def_${newId}`);
     await KeyboardPreferences.setProfile(JSON.stringify(metadata.styleGroups || []), `${newId}_styleGroups`);
 
-    // Add to saved_list
     savedList.push({
       name: metadata.name,
       key: newId,
       language: metadata.language,
       keyboardId: metadata.keyboardId,
+      appContext,
     });
     await KeyboardPreferences.setProfile(JSON.stringify(savedList), 'saved_list');
 
@@ -174,7 +183,7 @@ export async function importPackage(packagePath: string, importInfo: ImportInfo,
     let i = 0;
     for (const item of items) {
       if (item.name.endsWith('.zip')) {
-        await importPackage(item.path, importInfo, String(i++));
+        await importInternal(item.path, importInfo, appContext, String(i++));
       }
     }
   }
