@@ -19,3 +19,16 @@ index dbbe046..703c30f 100644
  apply plugin: 'com.android.library'
  
  android {
+diff --git a/node_modules/react-native-tts/ios/TextToSpeech/TextToSpeech.m b/node_modules/react-native-tts/ios/TextToSpeech/TextToSpeech.m
+index 1e769cc..543d05c 100644
+--- a/node_modules/react-native-tts/ios/TextToSpeech/TextToSpeech.m
++++ b/node_modules/react-native-tts/ios/TextToSpeech/TextToSpeech.m
+@@ -178,7 +178,7 @@ + (BOOL)requiresMainQueueSetup
+ }
+ 
+ RCT_EXPORT_METHOD(setDefaultRate:(float)rate
+-                  skipTransform:(BOOL *)skipTransform // not used, compatibility with Android native module signature
++                  skipTransform:(NSNumber *)skipTransform // not used, compatibility with Android native module signature
+                   resolve:(RCTPromiseResolveBlock)resolve
+                   reject:(RCTPromiseRejectBlock)reject)
+ {

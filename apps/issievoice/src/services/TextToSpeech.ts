@@ -58,9 +58,7 @@ class TextToSpeechService {
 
   async setRate(rate: number): Promise<void> {
     try {
-      // Call native directly — the react-native-tts JS wrapper passes an extra boolean arg
-      // that causes a bridge type error on iOS (BOOL* vs float mismatch).
-      await NativeModules.TextToSpeech.setDefaultRate(rate);
+      await Tts.setDefaultRate(rate);
     } catch (error) {
       console.error('Failed to set rate:', error);
     }
