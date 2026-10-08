@@ -17,14 +17,9 @@ interface Voice {
 
 const CalcVoiceSettingsPanel: React.FC<{ onSettingsChange?: () => void }> = ({ onSettingsChange }) => {
   const { readoutMode, rate, pitch, voiceId, language: voiceLang, decimalDigits, mathLevel, setReadoutMode, setRate, setPitch, setVoice, setDecimalDigits, setMathLevel } = useCalcTTS();
-  const isEnglish = (voiceLang ?? '').split('-')[0].toLowerCase() === 'en';
-
-  useEffect(() => {
-    if (isEnglish && mathLevel === 'young') {
-      setMathLevel('standard');
-    }
-  }, [isEnglish, mathLevel, setMathLevel]);
   const { strings, isRTL, language: uiLang } = useLocalization();
+  const effectiveLang = (voiceLang ?? uiLang ?? '').split('-')[0].toLowerCase();
+  const isEnglish = effectiveLang === 'en';
   const s = strings.settings;
   const [voices, setVoices] = useState<Voice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -178,14 +173,6 @@ const CalcVoiceSettingsPanel: React.FC<{ onSettingsChange?: () => void }> = ({ o
               </Text>
               <Text allowFontScaling={false} style={[styles.pickerArrow, isRTL && { marginLeft: 0, marginRight: 8 }]}>{expanded ? '▲' : '▼'}</Text>
             </TouchableOpacity>
-            {selectedVoice && (
-              <TouchableOpacity
-                style={styles.testButton}
-                onPress={() => handleTest(selectedVoice)}
-                activeOpacity={0.7}>
-                <Text allowFontScaling={false} style={styles.testButtonText}>{s.test}</Text>
-              </TouchableOpacity>
-            )}
           </View>
 
           {expanded && (
