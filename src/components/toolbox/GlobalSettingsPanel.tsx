@@ -160,8 +160,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
     { id: 'regular', label: strings.globalSettings.weightRegular, value: 'regular' as const },
     { id: 'medium', label: strings.globalSettings.weightMedium, value: 'medium' as const },
     { id: 'semibold', label: strings.globalSettings.weightSemibold, value: 'semibold' as const },
-    { id: 'bold', label: strings.globalSettings.weightBold, value: 'bold' as const },
-    { id: 'heavy', label: strings.globalSettings.weightHeavy, value: 'heavy' as const },
+    { id: 'heavy', label: strings.globalSettings.weightBold, value: 'heavy' as const },
   ];
 
   /**

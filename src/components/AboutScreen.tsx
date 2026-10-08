@@ -36,6 +36,9 @@ export function AboutScreen({ appName, onClose, paragraphs, visible = true }: Ab
   const feedbackLabel = deviceLang === 'he' ? 'משוב' : deviceLang === 'ar' ? 'ملاحظات' : 'Feedback';
 
   const [lang, setLang] = useState(initialLang);
+  const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
+  const insets = useSafeAreaInsets();
+  const currentLang = languages.find(l => l.code === lang) ?? languages[0];
 
   const version = getVersion();
   const buildNumber = getBuildNumber();

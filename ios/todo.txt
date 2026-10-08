@@ -1,3 +1,13 @@
+bugs from 7-Oct:
+  V- full stop in readouts in en
+  V- in english remove the simple/jovenile mode
+  V- high-contrast default for ops
+  V- font-wieght no need for so many options remove the last
+- הוא חושב שהכפתורים של every digit ו- every number לא מספיק ברורים. לא יודעת…
+- אם אני פותחת מחשבון בעריכה ועושה שינוי - אולי לשאול לשמור כחדש או לעדכן את הנוכחי…?
+- יש משהו מוזר בקריאת הנקודה במצב שבוחרים כמה מקומות אחרי הנקודה לקרוא.
+
+
 todo:
 V- selected - don't loose the design of keys
 V- seperate visibility and desig groups

@@ -16,7 +16,14 @@ interface Voice {
 }
 
 const CalcVoiceSettingsPanel: React.FC<{ onSettingsChange?: () => void }> = ({ onSettingsChange }) => {
-  const { readoutMode, rate, pitch, voiceId, decimalDigits, mathLevel, setReadoutMode, setRate, setPitch, setVoice, setDecimalDigits, setMathLevel } = useCalcTTS();
+  const { readoutMode, rate, pitch, voiceId, language: voiceLang, decimalDigits, mathLevel, setReadoutMode, setRate, setPitch, setVoice, setDecimalDigits, setMathLevel } = useCalcTTS();
+  const isEnglish = (voiceLang ?? '').split('-')[0].toLowerCase() === 'en';
+
+  useEffect(() => {
+    if (isEnglish && mathLevel === 'young') {
+      setMathLevel('standard');
+    }
+  }, [isEnglish, mathLevel, setMathLevel]);
   const { strings, isRTL, language: uiLang } = useLocalization();
   const s = strings.settings;
   const [voices, setVoices] = useState<Voice[]>([]);
@@ -59,7 +66,7 @@ const CalcVoiceSettingsPanel: React.FC<{ onSettingsChange?: () => void }> = ({ o
     try {
       await TTS.setLanguage(voice.language);
       await TTS.setVoice(voice.id);
-      await TTS.speak('Hello');
+      await TTS.speak('1 + 2 = 3');
     } catch {}
   }, []);
 
@@ -123,14 +130,18 @@ const CalcVoiceSettingsPanel: React.FC<{ onSettingsChange?: () => void }> = ({ o
 
       {readoutMode !== 'off' && (
         <>
-          <View style={styles.separator} />
-          <ButtonGroupRow
-            title={s.calcTerminology}
-            options={mathLevelOptions}
-            selectedId={mathLevel}
-            onSelect={id => { setMathLevel(id as MathLevel); onSettingsChange?.(); }}
-            isRTL={isRTL}
-          />
+          {!isEnglish && (
+            <>
+              <View style={styles.separator} />
+              <ButtonGroupRow
+                title={s.calcTerminology}
+                options={mathLevelOptions}
+                selectedId={mathLevel}
+                onSelect={id => { setMathLevel(id as MathLevel); onSettingsChange?.(); }}
+                isRTL={isRTL}
+              />
+            </>
+          )}
           <View style={styles.separator} />
           <ButtonGroupRow
             title={s.speechSpeed}
