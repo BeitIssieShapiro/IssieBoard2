@@ -72,6 +72,12 @@ const CalcVoiceSettingsPanel: React.FC<{ onSettingsChange?: () => void }> = ({ o
     { id: 'both', label: s.calcReadoutBoth },
   ];
 
+  const readoutHints: Record<string, string> = {
+    'every-digit': s.calcReadoutEveryDigitHint,
+    'every-number': s.calcReadoutEveryNumberHint,
+    'both': s.calcReadoutBothHint,
+  };
+
   const mathLevelOptions = [
     { id: 'young', label: s.calcTerminologyYoung },
     { id: 'standard', label: s.calcTerminologyStandard },
@@ -122,6 +128,9 @@ const CalcVoiceSettingsPanel: React.FC<{ onSettingsChange?: () => void }> = ({ o
         onSelect={id => { setReadoutMode(id as any); onSettingsChange?.(); }}
         isRTL={isRTL}
       />
+      {readoutHints[readoutMode] && (
+        <Text allowFontScaling={false} style={[styles.hint, isRTL && { textAlign: 'right' }]}>{readoutHints[readoutMode]}</Text>
+      )}
 
       {readoutMode !== 'off' && (
         <>
@@ -248,6 +257,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: 16, paddingBottom: 32 },
   separator: { height: StyleSheet.hairlineWidth, backgroundColor: '#E2E8F0', marginVertical: 4 },
+  hint: { fontSize: 13, color: '#6B7280', marginTop: -4, marginBottom: 8 },
   sectionTitle: { fontSize: 14, fontWeight: '600', color: '#333', marginBottom: 8, marginTop: 4 },
   pickerControl: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   pickerDropdown: {

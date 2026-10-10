@@ -839,37 +839,6 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
             a chip inside it gets pushed out of view when the display is short —
             which in compact chrome is always. */}
         {modeChip}
-        {readoutMode !== 'off' && (
-          <TouchableOpacity
-            style={[
-              styles.speakButton,
-              calcMode !== 'both' && !compactChrome && styles.speakButtonRaised,
-              // The chip owns the top-left in compact chrome, so the speak
-              // button sits to its right. Measured rather than estimated —
-              // the chip's width follows the translated mode label.
-              compactChrome && { left: chipWidth + 12, top: -6 },
-            ]}
-            onPress={() => {
-              const lang = language;
-              const ml = mathLevel ?? 'standard';
-              const eq = getSubMap(lang, ml)['='] ?? 'equals';
-              if (resultMode && expression) {
-                const res = result === 'NUMBER_TOO_BIG' ? strings.settings.numberTooBig : result;
-                const spokenResult = speakableNumber(formatResult(res, decimalDigits, lang), lang);
-                speakDirect(`${speakExpression(expression)} ${eq} ${spokenResult}`);
-              } else {
-                const display = expression || '0';
-                speakDirect(speakExpression(display) || speakableNumber(formatExpression(display) || '0', lang));
-              }
-            }}
-            activeOpacity={0.6}>
-            {/* Reads as a button: the voice tab's green becomes the tile, with
-                the same glyph in white on top. */}
-            <View style={styles.speakButtonTile}>
-              <MyIcon info={{ name: SPEAK_ICON_NAME, type: 'Ionicons', color: '#FFFFFF', size: 41 }} />
-            </View>
-          </TouchableOpacity>
-        )}
         <View
           style={[
             styles.displayInner,
@@ -1012,6 +981,41 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
             )}
         </View>
         </View>
+        {/* Outside the display, not in it: the display clips (overflow:
+            hidden, for its rounded corners), and speakButtonRaised lifts the
+            button above the display's top edge into the top bar — inside the
+            display it was clipped away whenever calcMode wasn't 'both'. */}
+        {readoutMode !== 'off' && (
+          <TouchableOpacity
+            style={[
+              styles.speakButton,
+              calcMode !== 'both' && !compactChrome && styles.speakButtonRaised,
+              // The chip owns the top-left in compact chrome, so the speak
+              // button sits to its right. Measured rather than estimated —
+              // the chip's width follows the translated mode label.
+              compactChrome && { left: chipWidth + 12, top: -6 },
+            ]}
+            onPress={() => {
+              const lang = language;
+              const ml = mathLevel ?? 'standard';
+              const eq = getSubMap(lang, ml)['='] ?? 'equals';
+              if (resultMode && expression) {
+                const res = result === 'NUMBER_TOO_BIG' ? strings.settings.numberTooBig : result;
+                const spokenResult = speakableNumber(formatResult(res, decimalDigits, lang), lang);
+                speakDirect(`${speakExpression(expression)} ${eq} ${spokenResult}`);
+              } else {
+                const display = expression || '0';
+                speakDirect(speakExpression(display) || speakableNumber(formatExpression(display) || '0', lang));
+              }
+            }}
+            activeOpacity={0.6}>
+            {/* Reads as a button: the voice tab's green becomes the tile, with
+                the same glyph in white on top. */}
+            <View style={styles.speakButtonTile}>
+              <MyIcon info={{ name: SPEAK_ICON_NAME, type: 'Ionicons', color: '#FFFFFF', size: 41 }} />
+            </View>
+          </TouchableOpacity>
+        )}
       </View>
       {/* Full-bleed so the gutter beside the keypad is the keypad's own
           background, with the inset applied to the keys instead — they must

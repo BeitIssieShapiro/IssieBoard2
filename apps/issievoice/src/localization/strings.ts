@@ -12,6 +12,7 @@ export interface Strings {
     discard: string;
     unsavedChanges: string;
     unsavedChangesMessage: string;
+    discardChangesMessage: string;
   };
   app: {
     title: string;
@@ -86,6 +87,9 @@ export interface Strings {
     calcReadoutEveryDigit: string;
     calcReadoutEveryNumber: string;
     calcReadoutBoth: string;
+    calcReadoutEveryDigitHint: string;
+    calcReadoutEveryNumberHint: string;
+    calcReadoutBothHint: string;
     calcTerminology: string;
     calcTerminologyYoung: string;
     calcTerminologyStandard: string;
@@ -152,6 +156,7 @@ const en: Strings = {
     discard: 'Discard',
     unsavedChanges: 'Unsaved Changes',
     unsavedChangesMessage: 'You have unsaved changes. Save or discard?',
+    discardChangesMessage: 'Are you sure you want to discard all changes?',
   },
   app: {
     title: 'IssieVoice',
@@ -226,6 +231,9 @@ const en: Strings = {
     calcReadoutEveryDigit: 'Every digit',
     calcReadoutEveryNumber: 'Every number',
     calcReadoutBoth: 'Both',
+    calcReadoutEveryDigitHint: 'Announces each number key as it is typed.',
+    calcReadoutEveryNumberHint: 'Announces the complete number when you move to an operation.',
+    calcReadoutBothHint: 'Announces both individual keystrokes and completed values.',
     calcTerminology: 'Terminology',
     calcTerminologyYoung: 'Young',
     calcTerminologyStandard: 'Standard',
@@ -292,6 +300,7 @@ const he: Strings = {
     discard: 'בטל שינויים',
     unsavedChanges: 'שינויים לא שמורים',
     unsavedChangesMessage: 'יש שינויים לא שמורים. לשמור או לבטל?',
+    discardChangesMessage: 'האם אתה בטוח שברצונך לבטל את כל השינויים?',
   },
   app: {
     title: 'IssieVoice',
@@ -366,6 +375,9 @@ const he: Strings = {
     calcReadoutEveryDigit: 'כל ספרה',
     calcReadoutEveryNumber: 'כל מספר',
     calcReadoutBoth: 'שניהם',
+    calcReadoutEveryDigitHint: 'מקריא כל מקש ספרה בזמן ההקלדה.',
+    calcReadoutEveryNumberHint: 'מקריא את המספר השלם כשעוברים לפעולה.',
+    calcReadoutBothHint: 'מקריא גם כל הקשה בנפרד וגם את המספרים השלמים.',
     calcTerminology: 'מינוח',
     calcTerminologyYoung: 'צעיר',
     calcTerminologyStandard: 'סטנדרטי',
@@ -432,6 +444,7 @@ const ar: Strings = {
     discard: 'تجاهل التغييرات',
     unsavedChanges: 'تغييرات غير محفوظة',
     unsavedChangesMessage: 'لديك تغييرات غير محفوظة. حفظ أم تجاهل؟',
+    discardChangesMessage: 'هل أنت متأكد أنك تريد تجاهل كل التغييرات؟',
   },
   app: {
     title: 'IssieVoice',
@@ -506,6 +519,9 @@ const ar: Strings = {
     calcReadoutEveryDigit: 'كل رقم',
     calcReadoutEveryNumber: 'كل عدد',
     calcReadoutBoth: 'كلاهما',
+    calcReadoutEveryDigitHint: 'يقرأ كل مفتاح رقم أثناء كتابته.',
+    calcReadoutEveryNumberHint: 'يقرأ العدد الكامل عند الانتقال إلى عملية.',
+    calcReadoutBothHint: 'يقرأ كل ضغطة مفتاح على حدة والأعداد المكتملة أيضًا.',
     calcTerminology: 'المصطلحات',
     calcTerminologyYoung: 'مبتدئ',
     calcTerminologyStandard: 'قياسي',

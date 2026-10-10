@@ -58,6 +58,29 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   const navigateBack = useCallback(() => navigation.goBack(), [navigation]);
 
+  // Voice settings live in CalcTTSContext, outside the editor's config state, so the
+  // editor's discard doesn't touch them — reload them from the last saved config too.
+  const handleDiscard = useCallback(() => {
+    discardRef.current?.();
+    KeyboardPreferences.getString('keyboardConfig_issiecalc_calc').then(savedJson => {
+      let voiceSettings;
+      try { voiceSettings = savedJson ? JSON.parse(savedJson).voiceSettings : undefined; } catch {}
+      loadFromConfig(voiceSettings);
+    });
+    setIsDirty(false);
+  }, [loadFromConfig]);
+
+  const handleCancelPress = useCallback(() => {
+    Alert.alert(
+      strings.common.discard,
+      strings.common.discardChangesMessage,
+      [
+        { text: strings.common.cancel, style: 'cancel' },
+        { text: strings.common.discard, style: 'destructive', onPress: handleDiscard },
+      ]
+    );
+  }, [handleDiscard, strings]);
+
   const handleClose = useCallback(() => {
     if (!isDirty) { navigateBack(); return; }
     Alert.alert(
@@ -68,7 +91,7 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         {
           text: strings.common.discard,
           style: 'destructive',
-          onPress: () => { discardRef.current?.(); navigateBack(); },
+          onPress: () => { handleDiscard(); navigateBack(); },
         },
         {
           text: strings.common.save,
@@ -76,7 +99,7 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         },
       ]
     );
-  }, [isDirty, navigateBack, strings]);
+  }, [isDirty, navigateBack, handleDiscard, strings]);
 
   const handleTabChange = useCallback((tabId: string) => setActiveTabAndRef(tabId), [setActiveTabAndRef]);
 
@@ -147,7 +170,7 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         profileName={profileName}
         onProfilePress={() => showProfilePickerRef.current?.()}
         onSave={handleHeaderSave}
-        onDiscard={() => discardRef.current?.()}
+        onDiscard={handleCancelPress}
         isDirty={isDirty}
         activeTab={activeTab}
         canGoBack

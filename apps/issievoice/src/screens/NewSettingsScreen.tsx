@@ -171,6 +171,17 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
     );
   }, []);
 
+  const handleDiscardPress = useCallback(() => {
+    Alert.alert(
+      voiceStrings.common.discard,
+      voiceStrings.common.discardChangesMessage,
+      [
+        { text: voiceStrings.common.cancel, style: 'cancel' },
+        { text: voiceStrings.common.discard, style: 'destructive', onPress: () => discardRef.current?.() },
+      ]
+    );
+  }, [voiceStrings]);
+
   const handleTabChange = useCallback((tabId: string) => {
     const leavingKeyboard = KEYBOARD_TABS.includes(activeTab) && !KEYBOARD_TABS.includes(tabId);
     if (leavingKeyboard && isDirty) {
@@ -234,7 +245,7 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
             profileName={profileName}
             onProfilePress={() => showProfilePickerRef.current?.()}
             onSave={() => saveRef.current?.()}
-            onDiscard={() => discardRef.current?.()}
+            onDiscard={handleDiscardPress}
             isDirty={isDirty}
           />
         )}
@@ -270,7 +281,7 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
         profileName={profileName}
         onProfilePress={() => showProfilePickerRef.current?.()}
         onSave={() => saveRef.current?.()}
-        onDiscard={() => discardRef.current?.()}
+        onDiscard={handleDiscardPress}
         isDirty={isDirty}
         activeTab={activeTab}
         showFullAccessBadge={showFullAccessBadge}
