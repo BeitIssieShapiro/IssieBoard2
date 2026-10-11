@@ -70,7 +70,7 @@ describe('5 ʸ√ 3 (cube root of 5)', () => {
     // The index is not known yet when the key is pressed.
     expect(heard['yroot(']).toEqual(['root of 5']);
     // "=" names the root now that the index is known, rather than saying "3".
-    expect(heard['=']).toEqual(['cube root of 5', 'equals', '1.70 and 6 more digits']);
+    expect(heard['=']).toEqual(['cube root of 5', 'equals', '1 point 70']);
     expect(heard['yroot('].join(' ')).not.toMatch(/\by\b/);
   });
 

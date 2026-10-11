@@ -240,11 +240,11 @@ describe('results', () => {
     })).toEqual(['3 minus', '8', 'equals', 'minus 5']);
   });
 
-  it('a long decimal is truncated and the remainder counted', () => {
+  it('a long decimal is truncated and the remainder not read', () => {
     const ctx = mountTTS();
     expect(speakKeys(ctx, ['1', '/', '3', '='], {
       readoutMode: 'every-number', language: 'en-US', decimalDigits: 2,
-    })).toEqual(['1 divided by', '3', 'equals', '0.33 and 7 more digits']);
+    })).toEqual(['1 divided by', '3', 'equals', '0 point 33']);
   });
 });
 
@@ -252,36 +252,27 @@ describe('formatResult', () => {
   // Driven directly: reaching every branch through the calculator would need
   // results with an exact number of decimals, which the arithmetic decides.
   it('leaves a whole number alone', () => {
-    expect(formatResult('8', 2, 'en-US')).toBe('8');
+    expect(formatResult('8', 2)).toBe('8');
   });
 
   it('leaves a short decimal alone', () => {
-    expect(formatResult('0.5', 2, 'en-US')).toBe('0.5');
+    expect(formatResult('0.5', 2)).toBe('0.5');
   });
 
   it('leaves a decimal of exactly the allowed length alone', () => {
-    expect(formatResult('0.33', 2, 'en-US')).toBe('0.33');
+    expect(formatResult('0.33', 2)).toBe('0.33');
   });
 
   it('truncates rather than rounds, so 0.999 is not read as 1', () => {
-    expect(formatResult('0.9999', 2, 'en-US')).toBe('0.99 and 2 more digits');
+    expect(formatResult('0.9999', 2)).toBe('0.99');
   });
 
-  it('says "digit" in the singular for a single remaining digit', () => {
-    expect(formatResult('0.333', 2, 'en-US')).toBe('0.33 and 1 more digit');
+  it('reads at most 3 decimals and says nothing about the rest', () => {
+    expect(formatResult('0.3333333', 3)).toBe('0.333');
   });
 
-  it('reads every digit when the setting is "all"', () => {
-    expect(formatResult('0.3333333', -1, 'en-US')).toBe('0.3333333');
-  });
-
-  it('counts the remaining digits in Hebrew and Arabic', () => {
-    expect(formatResult('0.3333333', 2, 'he-IL')).toBe('0.33 ועוד 5 סְפָרוֹת');
-    expect(formatResult('0.3333333', 2, 'ar-SA')).toBe('0.33 و 5 أرقام إضافية');
-  });
-
-  it('can drop the decimals entirely', () => {
-    expect(formatResult('0.3333333', 0, 'en-US')).toBe('0. and 7 more digits');
+  it('can drop the decimals entirely, point included', () => {
+    expect(formatResult('0.3333333', 0)).toBe('0');
   });
 });
 

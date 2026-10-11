@@ -194,7 +194,7 @@ function buildSections(): Section[] {
         [['5', '+', '3', '*', '2', '='], 'Operator chain — no term dropped.'],
         [['1', '2', '3', '+', '4', '5', '='], 'Multi-digit numbers read whole.'],
         [['1', '.', '5', '+', '2', '='], 'Decimals read as one number.'],
-        [['1', '/', '3', '='], 'Long decimal truncated, remainder counted (default 2 digits).'],
+        [['1', '/', '3', '='], 'Long decimal truncated to 2 digits (default), the rest not read.'],
       ]),
     },
     {

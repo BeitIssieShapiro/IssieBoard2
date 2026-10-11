@@ -288,12 +288,6 @@ function extractLastOperand(expression: string): string {
   return stripOpenParen(expr);
 }
 
-const LANG_MORE_DIGITS: Record<string, (n: number) => string> = {
-  en: (n) => `and ${n} more digit${n === 1 ? '' : 's'}`,
-  he: (n) => `ועוד ${n} סְפָרוֹת`,
-  ar: (n) => `و ${n} أرقام إضافية`,
-};
-
 const LANG_MINUS: Record<string, string> = { en: 'minus', he: 'מינוס', ar: 'ناقص' };
 const LANG_POINT: Record<string, string> = { en: 'point', he: 'נקודה', ar: 'فاصلة' };
 
@@ -324,21 +318,23 @@ function speakableNumber(value: string, language: string | null): string {
   return result;
 }
 
-function formatResult(result: string, decimalDigits: number, language: string | null): string {
-  if (decimalDigits === -1) return result; // "all" — read as-is
+const MAX_DECIMAL_DIGITS = 3;
 
+/** A saved decimalDigits within 0–3; older configs may hold 4 or -1 ("all"). */
+function clampDecimalDigits(n: number | undefined): number {
+  if (n === undefined) return 2;
+  return n < 0 || n > MAX_DECIMAL_DIGITS ? MAX_DECIMAL_DIGITS : n;
+}
+
+function formatResult(result: string, decimalDigits: number): string {
   const dotIdx = result.indexOf('.');
   if (dotIdx === -1) return result; // whole number — read as-is
 
   const actualDecimals = result.length - dotIdx - 1;
   if (actualDecimals <= decimalDigits) return result; // fewer or equal digits — read as-is
 
-  // Truncate (not round) to decimalDigits
-  const truncated = result.slice(0, dotIdx + 1 + decimalDigits);
-  const extra = actualDecimals - decimalDigits;
-  const prefix = (language ?? '').split('-')[0].toLowerCase();
-  const moreFn = LANG_MORE_DIGITS[prefix] ?? LANG_MORE_DIGITS.en;
-  return `${truncated} ${moreFn(extra)}`;
+  // Truncate (not round) to decimalDigits; the remaining digits are not spoken
+  return decimalDigits === 0 ? result.slice(0, dotIdx) : result.slice(0, dotIdx + 1 + decimalDigits);
 }
 
 export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -389,7 +385,7 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const p = s.pitch ?? 1.0; pitchRef.current = p; setPitchState(p);
     const lang = s.language ?? null; languageRef.current = lang; setLanguageState(lang);
     const vid = s.voiceId ?? null; voiceIdRef.current = vid; setVoiceIdState(vid);
-    const dec = s.decimalDigits ?? 2; decimalDigitsRef.current = dec; setDecimalDigitsState(dec);
+    const dec = clampDecimalDigits(s.decimalDigits); decimalDigitsRef.current = dec; setDecimalDigitsState(dec);
     const ml = (s.mathLevel === 'young' || s.mathLevel === 'standard') ? s.mathLevel : 'standard';
     mathLevelRef.current = ml; setMathLevelState(ml);
     // Apply TTS settings only after TTS is initialized
@@ -456,7 +452,7 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
     angleMode?: 'deg' | 'rad'
   ): string => {
     if (result === 'Error') return 'error';
-    const value = speakableNumber(formatResult(result, decimalDigitsRef.current, lang), lang);
+    const value = speakableNumber(formatResult(result, decimalDigitsRef.current), lang);
     if (!angleMode || !returnsAngle(expression)) return value;
     const unit = angleMode === 'deg' ? getLangWord(LANG_DEG, lang) : getLangWord(LANG_RAD, lang);
     return `${value} ${unit}`;

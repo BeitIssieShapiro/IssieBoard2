@@ -89,7 +89,7 @@ describe('arithmetic sessions', () => {
   it('reads a decimal as one number', () => {
     const { state, said } = session(mountTTS(), ['1', '.', '5', '+', '2', '=']);
     expect(state.expression).toBe('1.5+2');
-    expect(said).toEqual(['1.5 plus', '2', 'equals', '3.5']);
+    expect(said).toEqual(['1 point 5 plus', '2', 'equals', '3 point 5']);
   });
 
   it('every-digit mode narrates each keypress of the same session', () => {

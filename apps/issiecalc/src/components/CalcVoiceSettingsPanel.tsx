@@ -100,8 +100,6 @@ const CalcVoiceSettingsPanel: React.FC<{ onSettingsChange?: () => void }> = ({ o
     { id: '1', label: '1' },
     { id: '2', label: '2' },
     { id: '3', label: '3' },
-    { id: '4', label: '4' },
-    { id: '-1', label: s.calcDecimalAll },
   ];
 
   const currentRateId = rate <= 0.3 ? 'slow' : rate >= 0.7 ? 'fast' : 'normal';

@@ -1001,7 +1001,7 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
               const eq = getSubMap(lang, ml)['='] ?? 'equals';
               if (resultMode && expression) {
                 const res = result === 'NUMBER_TOO_BIG' ? strings.settings.numberTooBig : result;
-                const spokenResult = speakableNumber(formatResult(res, decimalDigits, lang), lang);
+                const spokenResult = speakableNumber(formatResult(res, decimalDigits), lang);
                 speakDirect(`${speakExpression(expression)} ${eq} ${spokenResult}`);
               } else {
                 const display = expression || '0';

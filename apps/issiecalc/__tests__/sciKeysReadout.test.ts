@@ -130,7 +130,7 @@ describe('logarithms', () => {
   it('ln reads its result on "="', () => {
     const { result, typing } = press(['2', '0', 'ln(', '=']);
     expect(result).toBe('2.99573227');
-    expect(typing).toEqual(['ln of 20', 'equals', '2.99 and 6 more digits']);
+    expect(typing).toEqual(['ln of 20', 'equals', '2 point 99']);
   });
 
   it('log is base ten and says so by name', () => {
@@ -174,7 +174,7 @@ describe('exponentials', () => {
   it('eˣ reads its result without repeating the exponent', () => {
     const { result, typing } = press(['2', 'e^(', '=']);
     expect(result).toBe('7.3890561');
-    expect(typing).toEqual(['e to the power of 2', 'equals', '7.38 and 5 more digits']);
+    expect(typing).toEqual(['e to the power of 2', 'equals', '7 point 38']);
   });
 });
 
@@ -199,7 +199,7 @@ describe('forward trigonometry', () => {
   it('reads the result of a trig call', () => {
     const { result, typing } = press(['6', '0', 'cos(', '=']);
     expect(result).toBe('0.5');
-    expect(typing).toEqual(['cosine of 60 degrees', 'equals', '0.5']);
+    expect(typing).toEqual(['cosine of 60 degrees', 'equals', '0 point 5']);
   });
 });
 
@@ -223,7 +223,7 @@ describe('hyperbolic functions', () => {
   it('reads a hyperbolic result', () => {
     const { result, typing } = press(['1', 'sinh(', '=']);
     expect(result).toBe('1.17520119');
-    expect(typing).toEqual(['hyperbolic sine of 1', 'equals', '1.17 and 6 more digits']);
+    expect(typing).toEqual(['hyperbolic sine of 1', 'equals', '1 point 17']);
   });
 });
 
@@ -231,7 +231,7 @@ describe('inverse hyperbolic functions', () => {
   it.each([
     [['1', 'asinh('], 'inverse hyperbolic sine of 1'],
     [['1', 'acosh('], 'inverse hyperbolic cosine of 1'],
-    [['0', '.', '5', 'atanh('], 'inverse hyperbolic tangent of 0.5'],
+    [['0', '.', '5', 'atanh('], 'inverse hyperbolic tangent of 0 point 5'],
   ])('%j names the function in full', (keys, expected) => {
     const { typing, button } = press(keys as string[]);
     expect(typing).toEqual([expected]);
@@ -264,7 +264,7 @@ describe('inverse trigonometry', () => {
 
   it('follows the radian setting when naming the result', () => {
     expect(press(['1', 'atan(', '='], { angleMode: 'rad' }).typing)
-      .toEqual(['arc tangent of 1', 'equals', '0.78 and 7 more digits radians']);
+      .toEqual(['arc tangent of 1', 'equals', '0 point 78 radians']);
   });
 
   it('names the result unit in every-digit mode as well', () => {
@@ -284,7 +284,7 @@ describe('inverse trigonometry', () => {
     // The mirror of the above: sin takes the angle, so the answer is a ratio
     // and must not be given a unit.
     expect(press(['3', '0', 'sin(', '=']).typing)
-      .toEqual(['sine of 30 degrees', 'equals', '0.5']);
+      .toEqual(['sine of 30 degrees', 'equals', '0 point 5']);
   });
 });
 
@@ -299,15 +299,15 @@ describe('constants', () => {
   it('reads pi when it is part of a sum', () => {
     const { result, typing, button } = press(['2', '*', 'pi', '=']);
     expect(result).toBe('6.28318531');
-    expect(typing).toEqual(['2 times', 'pi', 'equals', '6.28 and 6 more digits']);
+    expect(typing).toEqual(['2 times', 'pi', 'equals', '6 point 28']);
     expect(button).toBe('2 times pi');
   });
 
   it('does not say the constant twice when "=" follows it', () => {
     // The key has already named it, so "=" goes straight to the answer rather
     // than reading the trailing operand again.
-    expect(press(['pi', '=']).typing).toEqual(['pi', 'equals', '3.14 and 6 more digits']);
-    expect(press(['e', '=']).typing).toEqual(['e', 'equals', '2.71 and 6 more digits']);
+    expect(press(['pi', '=']).typing).toEqual(['pi', 'equals', '3 point 14']);
+    expect(press(['e', '=']).typing).toEqual(['e', 'equals', '2 point 71']);
   });
 
   it('still reads a digit operand on "=", which nothing else has spoken', () => {
@@ -342,7 +342,7 @@ describe('percent', () => {
   it('does not push an empty utterance on "="', () => {
     // A trailing "%" leaves nothing for "=" to extract as an operand, so it
     // goes straight to the answer rather than handing TTS an empty string.
-    expect(press(['5', '0', '%', '=']).typing).toEqual(['50 percent', 'equals', '0.5']);
+    expect(press(['5', '0', '%', '=']).typing).toEqual(['50 percent', 'equals', '0 point 5']);
   });
 
   it('reads a percentage of a product without a gap', () => {
@@ -416,7 +416,7 @@ describe('every function key in Hebrew', () => {
     [['1', 'tanh('], 'טנגנס היפרבולי של 1'],
     [['1', 'asinh('], 'ארקסינוס היפרבולי של 1'],
     [['1', 'acosh('], 'ארקקוסינוס היפרבולי של 1'],
-    [['0', '.', '5', 'atanh('], 'ארקטנגנס היפרבולי של 0.5'],
+    [['0', '.', '5', 'atanh('], 'ארקטנגנס היפרבולי של 0 נקודה 5'],
     [['5', '0', '%'], '50 אחוז'],
   ])('%j reads the same both ways in Hebrew', (keys, expected) => {
     const { typing, button } = press(keys as string[], { language: 'he-IL' });
@@ -451,7 +451,7 @@ describe('every function key in Hebrew', () => {
     expect(press(['3', '-', '8', '='], { language: 'he-IL' }).typing)
       .toEqual(['3 פחות', '8', 'שָׁוֶה', 'מינוס 5']);
     expect(press(['1', '/', '3', '='], { language: 'he-IL' }).typing)
-      .toEqual(['1 חֵלְקֵי', '3', 'שָׁוֶה', '0.33 ועוד 7 סְפָרוֹת']);
+      .toEqual(['1 חֵלְקֵי', '3', 'שָׁוֶה', '0 נקודה 33']);
   });
 
   it('names both brackets in Hebrew', () => {
@@ -479,7 +479,7 @@ describe('every function key in Arabic', () => {
     [['1', 'tanh('], 'ظل زائدي من 1'],
     [['1', 'asinh('], 'جيب زائدي معكوس من 1'],
     [['1', 'acosh('], 'جيب تمام زائدي معكوس من 1'],
-    [['0', '.', '5', 'atanh('], 'ظل زائدي معكوس من 0.5'],
+    [['0', '.', '5', 'atanh('], 'ظل زائدي معكوس من 0 فاصلة 5'],
     [['5', '0', '%'], '50 بالمئة'],
   ])('%j reads the same both ways in Arabic', (keys, expected) => {
     const { typing, button } = press(keys as string[], { language: 'ar-SA' });
@@ -514,7 +514,7 @@ describe('every function key in Arabic', () => {
     expect(press(['3', '-', '8', '='], { language: 'ar-SA' }).typing)
       .toEqual(['3 ناقص', '8', 'يساوي', 'ناقص 5']);
     expect(press(['1', '/', '3', '='], { language: 'ar-SA' }).typing)
-      .toEqual(['1 مقسوم على', '3', 'يساوي', '0.33 و 7 أرقام إضافية']);
+      .toEqual(['1 مقسوم على', '3', 'يساوي', '0 فاصلة 33']);
   });
 
   it('names both brackets in Arabic', () => {

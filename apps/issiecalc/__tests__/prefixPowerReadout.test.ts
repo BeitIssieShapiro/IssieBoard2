@@ -64,7 +64,7 @@ describe('10^x / 2^x (prefix powers)', () => {
     ['10^(', '10 to the power of 3', '1000'],
     ['2^(', '2 to the power of 3', '8'],
     // Truncated to the default 2 decimal digits by the readout settings.
-    ['e^(', 'e to the power of 3', '20.08 and 5 more digits'],
+    ['e^(', 'e to the power of 3', '20 point 08'],
   ])('%s announces the whole power', (key, announced, expected) => {
     const heard = play(['3', key, '=']);
     expect(heard[key]).toEqual([announced]);
