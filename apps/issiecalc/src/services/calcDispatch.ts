@@ -63,6 +63,12 @@ function endsWithValidOperand(expr: string): boolean {
   return /[\d)]$/.test(expr);
 }
 
+/** A key that begins a new operand: a number, a constant, a bracket or a function. */
+function startsOperand(key: string): boolean {
+  return /^[\d.(]/.test(key) || key === 'pi' || key === 'e' || key === 'mr'
+    || FUNCTION_KEYS.has(key) || TEMPLATE_KEYS.has(key);
+}
+
 function isOpOrFn(val: string): boolean {
   return OPERATORS.test(val) || FUNCTIONS_RE.test(val);
 }
@@ -208,6 +214,12 @@ export function dispatch(inState: CalcState, key: string): CalcState {
     // Any other key — exit template mode, then re-dispatch
     const finalized = finalizeTemplate(state.expression);
     return dispatch({ ...state, expression: finalized, templateMode: false }, key);
+  }
+
+  // % closes its number: what follows must be an operator, "=" or ")". A new
+  // operand would be glued onto the "/100" that % evaluates to (5%6 → 5/1006).
+  if (!state.resultMode && state.expression.endsWith('%') && startsOperand(key)) {
+    return state;
   }
 
   if (key === 'AC') {
