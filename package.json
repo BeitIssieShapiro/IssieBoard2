@@ -21,6 +21,7 @@
     "open:android-sim": "~/Library/Android/sdk/emulator/emulator -avd Pixel_3a &",
     "deploy:android:issieboard": "scripts/deploy-android.sh issieboard",
     "deploy:android:issievoice": "scripts/deploy-android.sh issievoice",
+    "deploy:android:issiecalc": "scripts/deploy-android.sh issiecalc",
     "postinstall": "patch-package"
   },
   "dependencies": {

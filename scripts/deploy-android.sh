@@ -7,13 +7,13 @@ set -e
 FLAVOR=$1
 
 if [ -z "$FLAVOR" ]; then
-  echo "Usage: ./scripts/deploy-android.sh [issieboard|issievoice]"
+  echo "Usage: ./scripts/deploy-android.sh [issieboard|issievoice|issiecalc]"
   exit 1
 fi
 
 # Validate flavor
-if [ "$FLAVOR" != "issieboard" ] && [ "$FLAVOR" != "issievoice" ]; then
-  echo "Error: Flavor must be 'issieboard' or 'issievoice'"
+if [ "$FLAVOR" != "issieboard" ] && [ "$FLAVOR" != "issievoice" ] && [ "$FLAVOR" != "issiecalc" ]; then
+  echo "Error: Flavor must be 'issieboard', 'issievoice' or 'issiecalc'"
   exit 1
 fi
 
@@ -35,6 +35,9 @@ case $FLAVOR in
     ;;
   issievoice)
     PACKAGE_NAME="org.issieshapiro.issievoice"
+    ;;
+  issiecalc)
+    PACKAGE_NAME="org.issieshapiro.issiecalc"
     ;;
 esac
 
