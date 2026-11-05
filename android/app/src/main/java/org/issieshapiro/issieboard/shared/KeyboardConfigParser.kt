@@ -205,7 +205,8 @@ object KeyboardConfigParser {
             name = json.getString("name"),
             onlyFor = parseStringList(json.optJSONArray("onlyFor")),
             excludeFor = parseStringList(json.optJSONArray("excludeFor")),
-            isReplacement = if (json.has("isReplacement")) json.optBoolean("isReplacement") else null
+            isReplacement = if (json.has("isReplacement")) json.optBoolean("isReplacement") else null,
+            isAdvanced = if (json.has("isAdvanced")) json.optBoolean("isAdvanced") else null
         )
     }
     

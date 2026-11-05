@@ -638,6 +638,7 @@ class NikkudPickerController(private val context: Context) {
         val keyboardId = currentKeyboardId ?: ""
         val settings = config.diacriticsSettings?.get(keyboardId)
         val hidden = settings?.hidden ?: emptyList()
+        val isSimpleMode = settings?.simpleMode ?: true
         val applicableModifiers = getModifiersForLetter(forLetter)
         
         debugLog("🔍 generateNikkudOptions for '$forLetter':")
@@ -650,9 +651,11 @@ class NikkudPickerController(private val context: Context) {
             // Skip if hidden
             if (hidden.contains(item.id)) continue
             
+            // Skip advanced items in simple mode
+            if (isSimpleMode && item.isAdvanced == true) continue
+
             // Skip if not applicable
-            if (item.onlyFor != null && !item.onlyFor.contains(forLetter)) continue
-            if (item.excludeFor != null && item.excludeFor.contains(forLetter)) continue
+            if (!item.applies(forLetter)) continue
             
             val isReplacement = item.isReplacement ?: false
             var value: String = if (isReplacement) item.mark else forLetter

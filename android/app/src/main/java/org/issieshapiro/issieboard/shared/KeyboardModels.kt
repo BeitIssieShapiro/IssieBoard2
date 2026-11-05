@@ -141,7 +141,14 @@ data class DiacriticItem(
     val excludeFor: List<String>? = null, // If present, don't show for these letters
     val isReplacement: Boolean? = null, // If true, replaces the letter entirely
     val isAdvanced: Boolean? = null    // If true, only shown in full/custom mode (not basic)
-)
+) {
+    /** Check if this diacritic can be applied to the given letter (onlyFor / excludeFor) */
+    fun applies(to: String): Boolean {
+        if (onlyFor != null && !onlyFor.contains(to)) return false
+        if (excludeFor != null && excludeFor.contains(to)) return false
+        return true
+    }
+}
 
 /** Option for a multi-option modifier (like shin/sin) */
 data class DiacriticModifierOption(
@@ -226,6 +233,10 @@ data class DiacriticsSettings(
 
     val isTopRowAlways: Boolean
         get() = nikkudMode == "topRowAlways"
+
+    /** True for either top-row mode — nikkud is picked from the top row, never from the popup */
+    val usesTopRow: Boolean
+        get() = isTopRowMode || isTopRowAlways
 }
 
 /** Generated diacritic option for display */
@@ -488,13 +499,13 @@ object DiacriticsGenerator {
                 continue
             }
             
-            // Skip if not applicable to this letter (onlyFor check)
-            if (item.onlyFor != null && !item.onlyFor.contains(letter)) {
+            // Skip advanced items in simple mode
+            if ((settings?.simpleMode ?: true) && item.isAdvanced == true) {
                 continue
             }
-            
-            // Skip if excluded for this letter
-            if (item.excludeFor != null && item.excludeFor.contains(letter)) {
+
+            // Skip if not applicable to this letter (onlyFor / excludeFor)
+            if (!item.applies(letter)) {
                 continue
             }
             

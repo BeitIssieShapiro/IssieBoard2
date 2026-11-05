@@ -2312,7 +2312,7 @@ class KeyboardRenderer(private val context: Context) {
                 val isSpace = key.value == " "
 
                 if (nikkudActive && shouldShowDiacritics) {
-                    val isTopRowMode = config?.diacriticsSettings?.get(currentKeyboardId ?: "")?.isTopRowMode ?: false
+                    val isTopRowMode = config?.diacriticsSettings?.get(currentKeyboardId ?: "")?.usesTopRow ?: false
                     if (!isTopRowMode) {
                         // Popup mode — show picker
                         val diacriticsOptions = getDiacriticsForKey(key)
@@ -2754,61 +2754,24 @@ class KeyboardRenderer(private val context: Context) {
         val markColor = if (isEnabled) textColor else Color.LTGRAY
         val fontSize = baseFontSize * 1.26f * currentScale
 
-        // For vowel buttons: add a faded circle behind the mark (15% opacity)
-        if (baseLetter == "●") {
-            val circleColor = Color.argb((0.15f * 255).toInt(),
-                Color.red(markColor), Color.green(markColor), Color.blue(markColor))
-            val circleView = object : android.view.View(context) {
-                override fun onDraw(canvas: android.graphics.Canvas) {
-                    val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-                        color = circleColor
-                        style = android.graphics.Paint.Style.FILL
-                    }
-                    // Circle radius = 18% of the smaller dimension
-                    val radius = minOf(width, height) * 0.18f
-                    val cx = width / 2f - radius * 0.1f
-                    val cy = height / 2f - radius * 0.3f
-                    canvas.drawCircle(cx, cy, radius, paint)
-                }
-            }
-            visualKeyView.addView(circleView, FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT
-            ))
-        }
-
         val label = TextView(context).apply {
             gravity = Gravity.CENTER
             textDirection = View.TEXT_DIRECTION_LTR
             layoutDirection = View.LAYOUT_DIRECTION_LTR
             setTextSize(TypedValue.COMPLEX_UNIT_SP, fontSize)
             if (baseLetter == "●") {
-                val displayText = "ב$mark"
-                val spannable = android.text.SpannableString(displayText)
-                spannable.setSpan(
-                    android.text.style.ForegroundColorSpan(Color.TRANSPARENT),
-                    0, 1,
-                    android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-                )
-                spannable.setSpan(
-                    android.text.style.ForegroundColorSpan(markColor),
-                    1, displayText.length,
-                    android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-                )
-                setText(spannable, TextView.BufferType.SPANNABLE)
-                // ב+mark centered: the string width = ב advance + mark advance.
-                // To center the ב (so the mark hangs naturally off it), shift right by half ב width.
-                // ב advance ≈ 0.6× font size in px.
-                val betWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, fontSize * 0.6f, context.resources.displayMetrics)
-                translationX = betWidth / 2f + 1f
-                // Cholam (U+05B9) attaches top-LEFT of ב — after centering ב, shift further left
-                // so cholam lands at top-left of the circle rather than top-center.
-                if (mark == "ֹ") translationX -= betWidth * 0.6f
+                // Vowel on the dotted-circle placeholder (U+25CC), drawn as one run in one
+                // color. Splitting the string into color spans (transparent ב + visible mark)
+                // detaches the combining mark from its base on Android and misplaces it.
+                text = "\u25CC$mark"
+                setTextColor(markColor)
             } else {
                 // Modifier buttons: show the real base letter + mark normally
                 text = "$baseLetter$mark"
                 setTextColor(markColor)
             }
+            maxLines = 1
+            applyNikkudTopRowAutoSize(this, fontSize)
         }
 
         visualKeyView.addView(label, FrameLayout.LayoutParams(
@@ -2825,6 +2788,18 @@ class KeyboardRenderer(private val context: Context) {
 
         if (!isEnabled) button.alpha = 0.4f
         return button
+    }
+
+    /** Shrink a top-row label to fit its button, like iOS adjustsFontSizeToFitWidth (minimumScaleFactor 0.5).
+     *  API 26+; on 24/25 the label renders at the given size. */
+    private fun applyNikkudTopRowAutoSize(label: TextView, fontSizeSp: Float) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val maxSizeSp = fontSizeSp.toInt().coerceAtLeast(2)
+            val minSizeSp = (fontSizeSp * 0.5f).toInt().coerceAtLeast(1)
+            label.setAutoSizeTextTypeUniformWithConfiguration(
+                minSizeSp, maxSizeSp, 1, TypedValue.COMPLEX_UNIT_SP
+            )
+        }
     }
 
     private fun createDageshButton(mark: String, isEnabled: Boolean, buttonSize: Int, height: Int, gap: Int, bgColor: Int, textColor: Int): View {
@@ -2862,6 +2837,8 @@ class KeyboardRenderer(private val context: Context) {
             text = "דגש" // דגש
             setTextSize(TypedValue.COMPLEX_UNIT_SP, fontSize)
             setTextColor(markColor)
+            maxLines = 1
+            applyNikkudTopRowAutoSize(this, fontSize)
         }
 
         visualKeyView.addView(label, FrameLayout.LayoutParams(
