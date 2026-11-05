@@ -225,7 +225,13 @@ class SuggestionsBarView(private val context: Context) {
 
         debugLog("📝 SuggestionsBarView: Displaying ${currentSuggestions.size} suggestions")
 
-        val barViewHeight = if (bar.height > 0) bar.height else barHeight
+        // Before the first layout pass bar.height is 0 — use the height the renderer
+        // assigned via layoutParams, not the 40dp fallback, or pills overflow the bar
+        val barViewHeight = when {
+            bar.height > 0 -> bar.height
+            (bar.layoutParams?.height ?: 0) > 0 -> bar.layoutParams.height
+            else -> barHeight
+        }
         var barWidth = bar.width
         if (barWidth <= 0) {
             val parent = bar.parent as? View
@@ -503,7 +509,10 @@ class SuggestionsBarView(private val context: Context) {
     private fun resolveFontSize(barHeight: Float): Float {
         // Font size: use custom if set, otherwise derive from bar height (~65% of bar height)
         // Slightly larger than iOS (0.55) to compensate for Android text rendering differences
-        return customFontSize ?: (barHeight * 0.65f)
+        // Custom size follows the key font, which can be taller than the pill —
+        // cap it so the text isn't clipped by the pill's bounds
+        val maxFontSize = barHeight * 0.65f
+        return customFontSize?.coerceAtMost(maxFontSize) ?: maxFontSize
     }
 
     /** Measure text width for a given string using the label's paint */
