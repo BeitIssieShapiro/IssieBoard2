@@ -21,6 +21,11 @@ export interface BuiltInProfileTemplate {
     wordSuggestionsEnabled?: boolean;
     autoCorrectEnabled?: boolean;
     settingsButtonEnabled?: boolean;
+    // Large-screen (tablet) overrides — same values the native build defaults use
+    // (scripts/build_keyboard_configs.js), so saving a profile doesn't shrink the tablet keyboard
+    heightPreset_large?: 'compact' | 'normal' | 'tall' | 'x-tall';
+    fontWeight_large?: 'ultraLight' | 'thin' | 'light' | 'regular' | 'medium' | 'semibold' | 'bold' | 'heavy' | 'black';
+    keyGap_large?: number;
   };
   styleGroups: Omit<StyleGroup, 'id' | 'createdAt'>[];  // Style groups without runtime IDs
 }
@@ -41,6 +46,9 @@ export const BUILT_IN_PROFILES: BuiltInProfileTemplate[] = [
       heightPreset: 'normal',      // Normal keyboard height
       fontWeight: 'regular',
       keyGap: 3,
+      heightPreset_large: 'x-tall',
+      fontWeight_large: 'heavy',
+      keyGap_large: 4,
       wordSuggestionsEnabled: true,
       autoCorrectEnabled: false,
       settingsButtonEnabled: true,
@@ -61,6 +69,9 @@ export const BUILT_IN_PROFILES: BuiltInProfileTemplate[] = [
       heightPreset: 'normal',       // Normal keyboard height
       fontWeight: 'regular',
       keyGap: 3,
+      heightPreset_large: 'x-tall',
+      fontWeight_large: 'heavy',
+      keyGap_large: 4,
       wordSuggestionsEnabled: true,
       autoCorrectEnabled: false,
       settingsButtonEnabled: true,
@@ -92,6 +103,9 @@ export const BUILT_IN_PROFILES: BuiltInProfileTemplate[] = [
       heightPreset: 'tall',         // Taller keys for accessibility
       fontWeight: 'black',          // Boldest font weight
       keyGap: 6,                    // Wider gaps for visual separation
+      heightPreset_large: 'x-tall',
+      fontWeight_large: 'black',
+      keyGap_large: 8,
       wordSuggestionsEnabled: true,
       autoCorrectEnabled: false,
       settingsButtonEnabled: true,

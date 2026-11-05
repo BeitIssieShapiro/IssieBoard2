@@ -69,6 +69,7 @@ import {
   isBuiltInProfileId,
   getLocalizedProfileName
 } from '../data/builtInProfiles';
+import type { BuiltInProfileTemplate } from '../data/builtInProfiles';
 import {
   CALC_BUILT_IN_PROFILES,
   getCalcBuiltInProfile,
@@ -207,7 +208,30 @@ interface SavedProfileDefinition {
   keyGap?: number;
   keyHeight?: number;
   settingsButtonEnabled?: boolean;
+  // Large-screen (tablet) overrides; absent = same as the phone value
+  heightPreset_large?: 'compact' | 'normal' | 'tall' | 'x-tall';
+  fontSizePreset_large?: 'xs' | 'small' | 'normal' | 'large' | 'xl';
+  fontWeight_large?: 'ultraLight' | 'thin' | 'light' | 'regular' | 'medium' | 'semibold' | 'bold' | 'heavy' | 'black';
+  keyGap_large?: number;
 }
+
+/**
+ * Built-in template settings for the given app. The tablet (large-screen) defaults
+ * are meant for the IssieBoard keyboard only; IssieVoice keeps its previous look.
+ */
+const builtInTemplateConfig = (template: BuiltInProfileTemplate, appContext: AppContext) => {
+  if (appContext === 'issieboard') return template.config;
+  const { heightPreset_large, fontWeight_large, keyGap_large, ...rest } = template.config;
+  return rest;
+};
+
+/** Large-screen overrides carried between profile definitions and keyboard configs */
+const pickLargeScreenSettings = (source: any) => ({
+  heightPreset_large: source.heightPreset_large,
+  fontSizePreset_large: source.fontSizePreset_large,
+  fontWeight_large: source.fontWeight_large,
+  keyGap_large: source.keyGap_large,
+});
 
 /**
  * Extract normalized profile definition from a full config
@@ -237,6 +261,7 @@ const extractProfileDefinition = (
     fontWeight: config.fontWeight,
     keyGap: config.keyGap,
     heightPreset: config.heightPreset,
+    ...pickLargeScreenSettings(config),
     settingsButtonEnabled: config.settingsButtonEnabled,
   };
 };
@@ -289,6 +314,7 @@ const buildConfiguration = (profile: SavedProfileDefinition): KeyboardConfig => 
     fontWeight: profile.fontWeight,
     keyGap: profile.keyGap,
     heightPreset: profile.heightPreset,
+    ...pickLargeScreenSettings(profile),
     settingsButtonEnabled: profile.settingsButtonEnabled,
   } as KeyboardConfig;
 
@@ -857,7 +883,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
             version: '1.0.0',
             language: newLanguage,
             keyboardId: firstKeyboardId,
-            ...template.config,
+            ...builtInTemplateConfig(template, appContext),
             groups: [],
           };
           const createdAt = new Date().toISOString();
@@ -1176,6 +1202,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       fontWeight: state.config.fontWeight,
       keyGap: state.config.keyGap,
       heightPreset: state.config.heightPreset,
+      ...pickLargeScreenSettings(state.config),
       keysBgColor: (state.config as any).keysBgColor,
       textColor: (state.config as any).textColor,
       settingsButtonEnabled: state.config.settingsButtonEnabled,
@@ -1343,7 +1370,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
           version: '1.0.0',
           language: profile.language,
           keyboardId: profile.keyboardId,
-          ...template.config,
+          ...builtInTemplateConfig(template, appContext),
           groups: [],
         };
 
@@ -1430,7 +1457,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
                   version: '1.0.0',
                   language: currentLanguage,
                   keyboardId: firstKeyboardId,
-                  ...template.config,
+                  ...builtInTemplateConfig(template, appContext),
                   groups: [],
                 };
                 const styleGroups = template.styleGroups.map((sg: any, index: number) => ({
@@ -1628,7 +1655,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
             version: '1.0.0',
             language: profileToClone.language,
             keyboardId: profileToClone.keyboardId,
-            ...template.config,
+            ...builtInTemplateConfig(template, appContext),
             groups: [],
           };
           const createdAt = new Date().toISOString();
@@ -3164,7 +3191,7 @@ export const EditorScreen: React.FC<EditorScreenProps> = ({
             version: '1.0.0',
             language: currentLanguage,
             keyboardId: firstKeyboardId,
-            ...template.config,
+            ...builtInTemplateConfig(template, appContext),
             groups: [],
           };
 
