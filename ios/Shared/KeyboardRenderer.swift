@@ -2967,7 +2967,7 @@ class KeyboardRenderer {
             let shouldShowDiacritics = shouldShowDiacriticsPopup(for: key)
             
             if nikkudActive && shouldShowDiacritics {
-                let isTopRowMode = config?.diacriticsSettings?[currentKeyboardId ?? ""]?.isTopRowMode ?? false
+                let isTopRowMode = config?.diacriticsSettings?[currentKeyboardId ?? ""]?.usesTopRow ?? false
                 if !isTopRowMode {
                     let diacriticsOptions = getDiacriticsForKey(key)
                     if !diacriticsOptions.isEmpty {

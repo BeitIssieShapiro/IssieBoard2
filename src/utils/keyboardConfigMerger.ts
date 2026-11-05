@@ -59,6 +59,7 @@ export interface DiacriticsItem {
   onlyFor?: string[];
   excludeFor?: string[];
   isReplacement?: boolean;
+  isAdvanced?: boolean;
 }
 
 export interface DiacriticsModifier {

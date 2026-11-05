@@ -645,6 +645,7 @@ class NikkudPickerController {
         let keyboardId = currentKeyboardId ?? ""
         let settings = config.diacriticsSettings?[keyboardId]
         let hidden = settings?.hidden ?? []
+        let isSimpleMode = settings?.simpleMode ?? true
         let applicableModifiers = getModifiersForLetter(letter)
         
         debugLog("🔍 generateNikkudOptions for '\(letter)':")
@@ -657,9 +658,11 @@ class NikkudPickerController {
             // Skip if hidden
             if hidden.contains(item.id) { continue }
             
+            // Skip advanced items in simple mode
+            if isSimpleMode && item.isAdvanced == true { continue }
+
             // Skip if not applicable
-            if let onlyFor = item.onlyFor, !onlyFor.contains(letter) { continue }
-            if let excludeFor = item.excludeFor, excludeFor.contains(letter) { continue }
+            if !item.applies(to: letter) { continue }
             
             let isReplacement = item.isReplacement ?? false
             var value: String = isReplacement ? item.mark : letter

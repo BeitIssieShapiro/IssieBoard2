@@ -8,20 +8,20 @@
     "spaceCaption": ""
   },
   "diacritics": {
-    "appliesTo": ["א", "ב", "ג", "ד", "ה", "ו", "ז", "ח", "ט", "י", "כ", "ך", "ל", "מ", "ם", "נ", "ן", "ס", "ע", "פ", "ף", "צ", "ץ", "ק", "ר", "ש", "ת"],
+    "appliesTo": ["א", "ב", "ג", "ד", "ה", "ו", "ז", "ח", "ט", "י", "כ", "ך", "ל", "מ", "נ", "ס", "ע", "פ", "צ", "ק", "ר", "ש", "ת"],
     "items": [
       { "id": "plain", "mark": "", "name": "ללא" },
       { "id": "kamatz", "mark": "\u05B8", "name": "קָמָץ" },
-      { "id": "patach", "mark": "\u05B7", "name": "פַּתָח" },
-      { "id": "segol", "mark": "\u05B6", "name": "סֶגוֹל" },
-      { "id": "tzere", "mark": "\u05B5", "name": "צֵירֵי" },
-      { "id": "chirik", "mark": "\u05B4", "name": "חִירִיק" },
-      { "id": "cholam", "mark": "\u05B9", "name": "חוֹלָם", "sampleBase": "ו" },
-      { "id": "kubutz", "mark": "\u05BB", "name": "קֻבּוּץ" },
+      { "id": "patach", "mark": "\u05B7", "name": "פַּתָח", "excludeFor": ["ך"] },
+      { "id": "segol", "mark": "\u05B6", "name": "סֶגוֹל", "excludeFor": ["ך"] },
+      { "id": "tzere", "mark": "\u05B5", "name": "צֵירֵי", "excludeFor": ["ך"] },
+      { "id": "chirik", "mark": "\u05B4", "name": "חִירִיק", "excludeFor": ["ך"] },
+      { "id": "cholam", "mark": "\u05B9", "name": "חוֹלָם", "sampleBase": "ו", "excludeFor": ["ך"] },
+      { "id": "kubutz", "mark": "\u05BB", "name": "קֻבּוּץ", "excludeFor": ["ך"] },
       { "id": "shva", "mark": "\u05B0", "name": "שְׁוָא" },
-      { "id": "chatafPatach", "mark": "\u05B2", "name": "חֲטַף פַּתַח", "isAdvanced": true },
-      { "id": "chatafSegol", "mark": "\u05B1", "name": "חֲטַף סֶגוֹל", "isAdvanced": true },
-      { "id": "chatafKamatz", "mark": "\u05B3", "name": "חֲטַף קָמָץ", "isAdvanced": true },
+      { "id": "chatafPatach", "mark": "\u05B2", "name": "חֲטַף פַּתַח", "onlyFor": ["א", "ע", "ח", "ה"], "sampleBase": "א", "isAdvanced": true },
+      { "id": "chatafSegol", "mark": "\u05B1", "name": "חֲטַף סֶגוֹל", "onlyFor": ["א", "ע", "ח", "ה"], "sampleBase": "א", "isAdvanced": true },
+      { "id": "chatafKamatz", "mark": "\u05B3", "name": "חֲטַף קָמָץ", "onlyFor": ["א", "ע", "ח", "ה"], "sampleBase": "א", "isAdvanced": true },
       { "id": "cholamVav", "mark": "וֹ", "name": "חוֹלָם מָלֵא", "onlyFor": ["ו"], "isReplacement": true },
       { "id": "shuruk", "mark": "וּ", "name": "שׁוּרוּק", "onlyFor": ["ו"], "isReplacement": true }
     ],
@@ -30,7 +30,7 @@
         "id": "dagesh",
         "mark": "\u05BC",
         "name": "דָּגֵשׁ",
-        "appliesTo": ["ב", "ג", "ד", "ז", "כ", "ך", "ל", "מ", "נ", "ס", "פ", "ף", "צ", "ק", "ש", "ת"]
+        "appliesTo": ["ב", "ג", "ד", "ה", "ז", "כ", "ך", "ל", "מ", "נ", "ס", "פ", "צ", "ק", "ש", "ת"]
       },
       {
         "id": "shinSin",

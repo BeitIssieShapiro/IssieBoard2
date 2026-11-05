@@ -188,6 +188,13 @@ struct DiacriticItem: Codable {
     enum CodingKeys: String, CodingKey {
         case id, mark, name, onlyFor, excludeFor, isReplacement, isAdvanced
     }
+
+    /// Check if this diacritic can be applied to the given letter (onlyFor / excludeFor)
+    func applies(to letter: String) -> Bool {
+        if let onlyFor = onlyFor, !onlyFor.contains(letter) { return false }
+        if let excludeFor = excludeFor, excludeFor.contains(letter) { return false }
+        return true
+    }
 }
 
 /// Option for a multi-option modifier (like shin/sin)
@@ -294,6 +301,11 @@ struct DiacriticsSettings: Codable {
 
     var isTopRowAlways: Bool {
         return nikkudMode == "topRowAlways"
+    }
+
+    /// True for either top-row mode — nikkud is picked from the top row, never from the popup
+    var usesTopRow: Bool {
+        return isTopRowMode || isTopRowAlways
     }
 }
 
@@ -536,13 +548,13 @@ class DiacriticsGenerator {
                 continue
             }
             
-            // Skip if not applicable to this letter (onlyFor check)
-            if let onlyFor = item.onlyFor, !onlyFor.contains(letter) {
+            // Skip advanced items in simple mode
+            if (settings?.simpleMode ?? true) && item.isAdvanced == true {
                 continue
             }
-            
-            // Skip if excluded for this letter
-            if let excludeFor = item.excludeFor, excludeFor.contains(letter) {
+
+            // Skip if not applicable to this letter (onlyFor / excludeFor)
+            if !item.applies(to: letter) {
                 continue
             }
             
