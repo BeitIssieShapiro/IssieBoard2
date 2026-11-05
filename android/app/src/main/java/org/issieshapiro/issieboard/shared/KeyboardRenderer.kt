@@ -286,8 +286,10 @@ class KeyboardRenderer(private val context: Context) {
         }
     private val fontSize: Float = 34f
     private val largeFontSize: Float = 38f
+    // Port of iOS: the bar is 3/4 of a key row, so it grows with the keys (a fixed
+    // 32dp bar looked tiny next to tablet-size keys)
     private val suggestionsBarHeight: Int
-        get() = dpToPx(KeyboardHeightConstants.SUGGESTIONS_BAR_HEIGHT.toInt())
+        get() = (rowHeight * 0.75f).toInt()
 
     // Get key gap from config or use default
     private fun getKeyGap(): Int {
@@ -562,7 +564,7 @@ class KeyboardRenderer(private val context: Context) {
         val totalRowCount = baseRowCount + (if (nikkudTopRowActive) 1 else 0)
         val rowsHeight = (totalRowCount * dpToPx(calculatedRowHeight.toInt()))
         val spacingHeight = max(0, totalRowCount - 1) * rowSpacing
-        val suggestionsHeight = if (suggestionsEnabled) suggestionsBarHeight else 0
+        val suggestionsHeight = if (suggestionsEnabled) (dpToPx(calculatedRowHeight.toInt()) * 0.75f).toInt() else 0
         val topPadding = 0
         val bottomPadding = dpToPx(4)
 
@@ -1819,17 +1821,34 @@ class KeyboardRenderer(private val context: Context) {
                     scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
                 }
 
-                // Scale icon size: keyboard-hide is complex so use 180%, nikkud uses 24dp, others use 100%
-                // Port of iOS: key.type == "close" ? finalFontSize * 1.8 : finalFontSize
-                val iconSizeDp = when {
-                    isCloseKey -> 43
-                    isNikkudKey -> 24
-                    else -> 22  // Enter and settings icons: standard icon size
+                // Port of iOS: the icon is sized like the key's caption font, so it follows
+                // the key height and the font-size preset (a fixed size looked tiny on large
+                // keys). iOS: key.type == "close" ? finalFontSize * 1.2 : finalFontSize
+                val iconFontPresetString = key.fontSizePreset ?: (if (isLargeScreen) config?.fontSizePresetLarge ?: config?.fontSizePreset else config?.fontSizePreset) ?: "normal"
+                val iconFontSizeDp = FontSizeConstants.fontSize(
+                    preset = FontSizePreset.from(iconFontPresetString),
+                    visibleKeyHeight = FontSizeConstants.visibleKeyHeight(
+                        rowHeight = pxToDp(height),
+                        verticalGap = pxToDp(scaledVerticalGap)
+                    ),
+                    isLargeKey = listOf("shift", "backspace", "enter").contains(key.type.lowercase()),
+                    isMultiChar = finalText.length > 1
+                )
+                val iconVisibleKeyHeight = FontSizeConstants.visibleKeyHeight(
+                    rowHeight = pxToDp(height),
+                    verticalGap = pxToDp(scaledVerticalGap)
+                )
+                val iconPreset = FontSizePreset.from(iconFontPresetString)
+                val iconSizePx = when {
+                    // Port of iOS: same size as the other key icons, never below the previous fixed 24dp
+                    isNikkudKey -> dpToPx(maxOf(24f, FontSizeConstants.fontSize(iconPreset, iconVisibleKeyHeight, isMultiChar = true)).toInt())
+                    isCloseKey -> dpToPx((iconFontSizeDp * 1.2f).toInt())
+                    else -> dpToPx(iconFontSizeDp.toInt())
                 }
 
                 visualKeyView.addView(imageView, FrameLayout.LayoutParams(
-                    dpToPx(iconSizeDp),
-                    dpToPx(iconSizeDp)
+                    iconSizePx,
+                    iconSizePx
                 ).apply {
                     gravity = Gravity.CENTER
                 })

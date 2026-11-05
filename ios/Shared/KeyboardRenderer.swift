@@ -2038,8 +2038,8 @@ class KeyboardRenderer {
             visualKeyView.addSubview(imageView)
             imageView.translatesAutoresizingMaskIntoConstraints = false
 
-            // Scale icon size: keyboard-hide is complex so use 180%, others use 100%
-            let iconSize = key.type.lowercased() == "close" ? finalFontSize * 1.5 : finalFontSize
+            // Scale icon size: keyboard-hide is complex so use 120%, others use 100%
+            let iconSize = key.type.lowercased() == "close" ? finalFontSize * 1.2 : finalFontSize
 
             NSLayoutConstraint.activate([
                 imageView.centerXAnchor.constraint(equalTo: visualKeyView.centerXAnchor),
@@ -2071,11 +2071,15 @@ class KeyboardRenderer {
                 imageView.isUserInteractionEnabled = false
                 visualKeyView.addSubview(imageView)
                 imageView.translatesAutoresizingMaskIntoConstraints = false
+                // Same size as the other key icons (settings, enter) so it grows with large
+                // keys; never below the previous fixed 32pt
+                let iconFontSize = FontSizeConstants.fontSize(forPreset: fontPreset, visibleKeyHeight: keyVisibleHeight, isMultiChar: true)
+                let nikkudIconSize = max(32, iconFontSize)
                 NSLayoutConstraint.activate([
                     imageView.centerXAnchor.constraint(equalTo: visualKeyView.centerXAnchor),
                     imageView.centerYAnchor.constraint(equalTo: visualKeyView.centerYAnchor),
-                    imageView.widthAnchor.constraint(equalToConstant: 32),
-                    imageView.heightAnchor.constraint(equalToConstant: 32)
+                    imageView.widthAnchor.constraint(equalToConstant: nikkudIconSize),
+                    imageView.heightAnchor.constraint(equalToConstant: nikkudIconSize)
                 ])
             } else {
                 // Fallback to text if image not found
