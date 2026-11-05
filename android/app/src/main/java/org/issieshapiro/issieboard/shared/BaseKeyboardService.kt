@@ -66,6 +66,7 @@ abstract class BaseKeyboardService : InputMethodService() {
 
         // Load config and render SYNCHRONOUSLY before returning (like old SimpleKeyboardService)
         loadPreferences()
+        updateGlobeVisibility()
         renderKeyboard(null)
 
         return keyboardView!!
@@ -100,6 +101,9 @@ abstract class BaseKeyboardService : InputMethodService() {
         // Apply auto-shift if at beginning of sentence
         autoShiftAfterPunctuation()
         
+        // Enabled keyboards may have changed in system settings since the last show
+        updateGlobeVisibility()
+
         // Update editor context based on EditorInfo
         val editorContext = analyzeEditorContext(info)
         renderKeyboard(editorContext)
@@ -831,8 +835,61 @@ abstract class BaseKeyboardService : InputMethodService() {
     
     // MARK: - Input Method Switching
     
+    /** Enabled IssieBoard keyboards (Hebrew/English/Arabic services of this app), in system order */
+    private fun enabledIssieBoardInputMethods(): List<android.view.inputmethod.InputMethodInfo> {
+        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+        return imm.enabledInputMethodList.filter { it.packageName == packageName }
+    }
+
+    /** The globe only cycles between IssieBoard keyboards — hide it when this is the only one enabled */
+    private fun updateGlobeVisibility() {
+        val hasOtherIssieBoard = try {
+            enabledIssieBoardInputMethods().any { it.serviceName != javaClass.name }
+        } catch (e: Exception) {
+            errorLog("Failed to read enabled input methods: ${e.message}")
+            true  // Keep the globe; switching falls back to the system picker
+        }
+        renderer?.setShowGlobeButton(hasOtherIssieBoard)
+    }
+
+    /**
+     * Globe: switch to the next enabled IssieBoard keyboard, never to other keyboard apps
+     * (a user leaving by accident may have no way back, e.g. Samsung Keyboard has no globe).
+     * Falls back to the system picker when there is no other IssieBoard keyboard.
+     */
     private fun switchToNextInputMethod() {
         alwaysLog("🌐 switchToNextInputMethod called")
+        try {
+            val issieBoards = enabledIssieBoardInputMethods()
+            val currentIndex = issieBoards.indexOfFirst { it.serviceName == javaClass.name }
+            if (issieBoards.size > 1) {
+                val next = issieBoards[(currentIndex + 1).mod(issieBoards.size)]
+                alwaysLog("🌐 Switching to next IssieBoard keyboard: ${next.id}")
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                    switchInputMethod(next.id)
+                    return
+                }
+                val token = window?.window?.attributes?.token
+                if (token != null) {
+                    val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                    @Suppress("DEPRECATION")
+                    imm.setInputMethod(token, next.id)
+                    return
+                }
+            }
+            alwaysLog("🌐 No other IssieBoard keyboard to switch to — showing picker")
+            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+            imm.showInputMethodPicker()
+            return
+        } catch (e: Exception) {
+            errorLog("Failed to switch to next IssieBoard keyboard: ${e.message}")
+        }
+        switchToNextSystemInputMethod()
+    }
+
+    /** Previous behaviour: let the system pick the next keyboard (any app). Used only as an error fallback. */
+    private fun switchToNextSystemInputMethod() {
+        alwaysLog("🌐 switchToNextSystemInputMethod called")
         try {
             val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
             
