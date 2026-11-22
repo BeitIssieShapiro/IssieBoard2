@@ -21,6 +21,7 @@ import {
 import { computeDisplayLayout, fitFontSize } from '../utils/displayLayout';
 import { MyIcon } from '@beitissieshapiro/issie-shared/dist/icons';
 import { SPEAK_ICON_NAME, SPEAK_ICON_COLOR } from '../speakIcon';
+import { useHoldCountdown } from '../hooks/useHoldCountdown';
 
 // The calculator layout is size-critical: the expression and result are measured
 // and fitted to the display, and the keypad segments are fixed-height. Letting the
@@ -312,6 +313,11 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
   const isTablet = Math.min(frame.width, frame.height) >= 600;
   const compactChrome = landscape && !isTablet;
   const [menuOpen, setMenuOpen] = useState(false);
+  // Settings opens only after a 3s hold (release builds), so a child can't
+  // wander into it by accident.
+  const gearHold = useHoldCountdown(() => navigation?.navigate('Settings'));
+  const menuSettingsHold = useHoldCountdown(() => { setMenuOpen(false); navigation?.navigate('Settings'); });
+  const openInText = (n: number) => strings.settings.calcOpenIn.replace('{1}', String(n));
   // Measured, so the speak button can sit beside the chip whatever width the
   // translated mode label gives it.
   const [chipWidth, setChipWidth] = useState(0);
@@ -812,9 +818,14 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
             </TouchableOpacity>
           </View>
         )}
-        <TouchableOpacity style={styles.gearButton} onPress={() => navigation?.navigate('Settings')}>
-          <Text style={[styles.gearIcon, { color: dimTextColor }]}>⚙</Text>
-        </TouchableOpacity>
+        <View style={styles.gearRow}>
+          {gearHold.countdown !== null && (
+            <Text style={styles.countdownText}>{openInText(gearHold.countdown)}</Text>
+          )}
+          <TouchableOpacity style={styles.gearButton} {...gearHold.pressProps}>
+            <Text style={[styles.gearIcon, { color: dimTextColor }]}>⚙</Text>
+          </TouchableOpacity>
+        </View>
       </View>
       )}
 
@@ -1067,8 +1078,13 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
             )}
             <TouchableOpacity
               style={styles.menuItem}
-              onPress={() => { setMenuOpen(false); navigation?.navigate('Settings'); }}>
-              <Text style={styles.menuItemText}>{'⚙  '}{strings.settings.calcSettings}</Text>
+              {...menuSettingsHold.pressProps}>
+              <Text style={styles.menuItemText}>
+                {'⚙  '}
+                {menuSettingsHold.countdown !== null
+                  ? openInText(menuSettingsHold.countdown)
+                  : strings.settings.calcSettings}
+              </Text>
               <Text style={styles.menuCheck}>{' '}</Text>
             </TouchableOpacity>
           </Pressable>
@@ -1092,7 +1108,12 @@ const styles = StyleSheet.create({
   segmentActive: { backgroundColor: '#636366' },
   segmentText: { color: '#8E8E93', fontSize: 14, fontWeight: '500' },
   segmentTextActive: { color: '#FFFFFF' },
-  gearButton: { marginLeft: 'auto' as any, width: 54, height: 54, alignItems: 'center', justifyContent: 'center' },
+  gearRow: { marginLeft: 'auto' as any, flexDirection: 'row', alignItems: 'center' },
+  gearButton: { width: 54, height: 54, alignItems: 'center', justifyContent: 'center' },
+  countdownText: {
+    fontSize: 18, color: '#000000', backgroundColor: '#FFFFFF',
+    borderRadius: 12, overflow: 'hidden', paddingHorizontal: 10, paddingVertical: 4, marginRight: 8,
+  },
   gearIcon: { fontSize: 33, color: '#8E8E93' },
   // Carries the flex:1 the display used to own, so the display still takes all
   // the height left between the top bar and the keypad. Painted in the keypad's

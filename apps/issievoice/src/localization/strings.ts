@@ -81,6 +81,7 @@ export interface Strings {
     calcBasic: string;
     calcScientific: string;
     calcSettings: string;
+    calcOpenIn: string;
     numberTooBig: string;
     calcNeedsXFirst: string;
     calcReadoutOff: string;
@@ -224,6 +225,7 @@ const en: Strings = {
     calcBasic: 'Basic',
     calcScientific: 'Scientific',
     calcSettings: 'Settings',
+    calcOpenIn: 'Open in {1} seconds',
     numberTooBig: 'Number Too Big',
     calcNeedsXFirst: 'Enter a number first',
     calcReadoutOff: 'Off',
@@ -367,6 +369,7 @@ const he: Strings = {
     calcBasic: 'בסיסי',
     calcScientific: 'מדעי',
     calcSettings: 'הגדרות',
+    calcOpenIn: 'פתיחה בעוד {1} שניות',
     numberTooBig: 'המספר גדול מדי',
     calcNeedsXFirst: 'הכנס מספר תחילה',
     calcReadoutOff: 'כבוי',
@@ -510,6 +513,7 @@ const ar: Strings = {
     calcBasic: 'أساسي',
     calcScientific: 'علمي',
     calcSettings: 'إعدادات',
+    calcOpenIn: 'فتح خلال {1} ثانية',
     numberTooBig: 'الرقم كبير جداً',
     calcNeedsXFirst: 'أدخل رقماً أولاً',
     calcReadoutOff: 'إيقاف',
