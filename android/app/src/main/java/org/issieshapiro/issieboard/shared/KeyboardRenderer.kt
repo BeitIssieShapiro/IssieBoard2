@@ -1137,8 +1137,10 @@ class KeyboardRenderer(private val context: Context) {
         // If there's a "showOnly" rule active, check if this key is in the whitelist
         if (showOnlyKeys != null) {
             // Essential keys that are NEVER hidden by showOnly rule (only by explicit hide)
-            // These keys are critical for keyboard operation and should always remain visible
-            val essentialValues = setOf(" ", ",", ".")  // space, comma, period
+            // These keys are critical for keyboard operation and should always remain visible.
+            // Punctuation is not essential: must match transformConfigForPreview, which
+            // is what the editor preview shows (e.g. tablet's ",!" and ".?" keys).
+            val essentialValues = setOf(" ")  // space
             val essentialTypes = setOf("space", "backspace", "enter", "next-keyboard", "settings", "shift", "keyset", "nikkud", "close", "language")
 
             // Check if this is an essential key by value or type
