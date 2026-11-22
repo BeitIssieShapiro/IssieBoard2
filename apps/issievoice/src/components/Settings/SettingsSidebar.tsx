@@ -428,7 +428,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
       <View style={[styles.tabRow, isRTL && { flexDirection: 'row-reverse' }]}>
         {onGoBack && (
           <>
-            <TouchableOpacity style={[styles.tab, styles.backTab]} onPress={onGoBack} activeOpacity={0.7}>
+            <TouchableOpacity style={[styles.tab, styles.backTab]} onPress={onGoBack} activeOpacity={0.7} accessibilityLabel={backLabel}>
               <MyIcon info={{ name: backIcon, type: 'Ionicons', color: colors.primary, size: 26 }} />
             </TouchableOpacity>
             <View style={styles.dividerVertical} />
@@ -436,7 +436,8 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
         )}
 
         <TouchableOpacity
-          style={[styles.tab, keyboardActive && styles.tabActive, isRTL && { flexDirection: 'row-reverse' }]}
+          style={[styles.tab, isPhone && styles.tabIconOnly, keyboardActive && styles.tabActive, isRTL && { flexDirection: 'row-reverse' }]}
+          accessibilityLabel={tabLabels.keyboard}
           onPress={() => {
             if (!keyboardActive) {
               onTabChange('general');
@@ -457,13 +458,16 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
               }}
             />
           </View>
-          <Text allowFontScaling={false} style={[styles.tabText, keyboardActive && styles.tabTextActive]}>
-            {tabLabels.keyboard}
-          </Text>
+          {!isPhone && (
+            <Text allowFontScaling={false} style={[styles.tabText, keyboardActive && styles.tabTextActive]}>
+              {tabLabels.keyboard}
+            </Text>
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'voice' && styles.tabActive, isRTL && { flexDirection: 'row-reverse' }]}
+          style={[styles.tab, isPhone && styles.tabIconOnly, activeTab === 'voice' && styles.tabActive, isRTL && { flexDirection: 'row-reverse' }]}
+          accessibilityLabel={tabLabels.voice}
           onPress={() => onTabChange('voice')}
           activeOpacity={0.7}>
           <View
@@ -480,18 +484,21 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
               }}
             />
           </View>
-          <Text
-            allowFontScaling={false}
-            style={[
-              styles.tabText,
-              activeTab === 'voice' && styles.tabTextActive,
-            ]}>
-            {tabLabels.voice}
-          </Text>
+          {!isPhone && (
+            <Text
+              allowFontScaling={false}
+              style={[
+                styles.tabText,
+                activeTab === 'voice' && styles.tabTextActive,
+              ]}>
+              {tabLabels.voice}
+            </Text>
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'language' && styles.tabActive, isRTL && { flexDirection: 'row-reverse' }]}
+          style={[styles.tab, isPhone && styles.tabIconOnly, activeTab === 'language' && styles.tabActive, isRTL && { flexDirection: 'row-reverse' }]}
+          accessibilityLabel={tabLabels.language}
           onPress={() => onTabChange('language')}
           activeOpacity={0.7}>
           <View
@@ -508,27 +515,30 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
               }}
             />
           </View>
-          <Text
-            allowFontScaling={false}
-            style={[
-              styles.tabText,
-              activeTab === 'language' && styles.tabTextActive,
-            ]}>
-            {tabLabels.language}
-          </Text>
+          {!isPhone && (
+            <Text
+              allowFontScaling={false}
+              style={[
+                styles.tabText,
+                activeTab === 'language' && styles.tabTextActive,
+              ]}>
+              {tabLabels.language}
+            </Text>
+          )}
         </TouchableOpacity>
 
         {/* About button — pushed to the far end of the row */}
         {onAbout && (
           <View style={[styles.subTabAboutHContainer, isRTL && { flexDirection: 'row-reverse' }]}>
             <TouchableOpacity
-              style={[styles.tab, styles.aboutTab, isRTL && { flexDirection: 'row-reverse' }]}
+              style={[styles.tab, styles.aboutTab, isPhone && styles.tabIconOnly, isRTL && { flexDirection: 'row-reverse' }]}
+              accessibilityLabel={aboutLabel}
               onPress={onAbout}
               activeOpacity={0.7}>
               <View style={[styles.iconCircleSmall, { backgroundColor: colors.primary + '18' }]}>
                 <MyIcon info={{ name: 'information-circle-outline', type: 'Ionicons', color: colors.primary, size: 18 }} />
               </View>
-              <Text allowFontScaling={false} style={styles.tabText}>{aboutLabel}</Text>
+              {!isPhone && <Text allowFontScaling={false} style={styles.tabText}>{aboutLabel}</Text>}
             </TouchableOpacity>
           </View>
         )}
@@ -738,6 +748,13 @@ const styles = StyleSheet.create({
   // "About" is short — drop the tab minWidth so it hugs its label.
   aboutTab: {
     minWidth: 0,
+  },
+  // Phones in portrait: the first-level tabs show only their icons so the row fits
+  tabIconOnly: {
+    minWidth: 0,
+    paddingHorizontal: 12,
+    height: 46,
+    justifyContent: 'center',
   },
   sidebarCardText: {
     fontSize: 16,
