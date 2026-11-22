@@ -179,8 +179,16 @@ platform :ios do
     settings = keys.to_h { |key| [key, deploy_settings(APPS.fetch(key))] }
     api_key = asc_api_key(settings.values.first)
 
-    cocoapods(podfile: File.join(ROOT, 'ios/Podfile'), deployment: true)
-    get_certificates(api_key: api_key, team_id: ENV.fetch('APPLE_TEAM_ID'), output_path: File.join(ROOT, 'ios/build/signing'))
-    keys.each { |key| deploy_app(APPS.fetch(key), settings.fetch(key), api_key) }
+    # `pod install` rewrites the project file with formatting-only changes (empty
+    # lists); put it back afterwards so a deploy leaves the working tree clean.
+    project_file = File.join(IOS_PROJECT, 'project.pbxproj')
+    original_project = File.binread(project_file)
+    begin
+      cocoapods(podfile: File.join(ROOT, 'ios/Podfile'), deployment: true)
+      get_certificates(api_key: api_key, team_id: ENV.fetch('APPLE_TEAM_ID'), output_path: File.join(ROOT, 'ios/build/signing'))
+      keys.each { |key| deploy_app(APPS.fetch(key), settings.fetch(key), api_key) }
+    ensure
+      File.binwrite(project_file, original_project)
+    end
   end
 end

@@ -8,6 +8,9 @@ require 'xcodeproj'
 # Run the real lane definitions with build, signing and upload actions replaced
 # by recording stubs. Each test uses a temporary copy of the Xcode project.
 class DeploymentHarness
+  # Set by the test: the temporary project root the lanes run against
+  ROOT_FOR_TESTS = -> { Thread.current[:deploy_test_root] }
+
   class UI
     def self.user_error!(message) = raise(ArgumentError, message)
     def self.message(*) = nil
@@ -58,7 +61,11 @@ class DeploymentHarness
     when :build_app
       raise 'Archive failed' if @fail_build
       "/tmp/#{options.fetch(:output_name)}"
-    when :get_certificates, :cocoapods, :upload_to_testflight, :sh
+    when :cocoapods
+      # pod install reformats the project file
+      File.write(File.join(ROOT_FOR_TESTS.call, 'ios/IssieBoardNG.xcodeproj/project.pbxproj'), 'reformatted by pod install')
+      nil
+    when :get_certificates, :upload_to_testflight, :sh
       nil
     else
       super
@@ -91,6 +98,14 @@ class IOSDeploymentTest < Minitest::Test
     harness_class = Class.new(DeploymentHarness)
     harness_class.class_eval(source, File.join(ROOT, 'ios/fastlane/Fastfile'))
     @runner = harness_class.new
+    Thread.current[:deploy_test_root] = @directory
+  end
+
+  # The app's own Release version, so the tests survive version bumps
+  def release_version(target)
+    project = Xcodeproj::Project.open(File.join(ROOT, 'ios/IssieBoardNG.xcodeproj'))
+    release = project.targets.find { |t| t.name == target }.build_configurations.find { |c| c.name == 'Release' }
+    release.build_settings.fetch('MARKETING_VERSION')
   end
 
   def teardown
@@ -117,7 +132,7 @@ class IOSDeploymentTest < Minitest::Test
     build = @runner.calls_to(:build_app).first
     assert_equal profiles.to_h { |id| [id, "#{id} AppStore"] }, build[:export_options][:provisioningProfiles]
     # Version and build number on the command line, so the extensions match the app
-    assert_includes Shellwords.split(build[:xcargs]), 'MARKETING_VERSION=2.1.0'
+    assert_includes Shellwords.split(build[:xcargs]), "MARKETING_VERSION=#{release_version('IssieBoard')}"
     assert_includes Shellwords.split(build[:xcargs]), 'CURRENT_PROJECT_VERSION=28'
   end
 
@@ -126,7 +141,7 @@ class IOSDeploymentTest < Minitest::Test
     build = @runner.calls_to(:build_app).first
     assert_equal 'IssieVoice', build[:scheme]
     assert_equal 'Release', build[:configuration]
-    assert_includes Shellwords.split(build[:xcargs]), 'MARKETING_VERSION=1.1.0'
+    assert_includes Shellwords.split(build[:xcargs]), "MARKETING_VERSION=#{release_version('IssieVoice')}"
     assert_includes Shellwords.split(build[:xcargs]), 'CURRENT_PROJECT_VERSION=8'
     upload = @runner.calls_to(:upload_to_testflight).first
     assert_equal '/tmp/IssieVoice.ipa', upload[:ipa]
@@ -176,7 +191,8 @@ class IOSDeploymentTest < Minitest::Test
   def test_build_number_counts_the_short_version_and_the_latest_overall
     @runner.run(:beta, app: 'issievoice')
     versions = @runner.calls_to(:latest_testflight_build_number).map { |c| c[:version] }
-    assert_equal ['1.1.0', '1.1', nil], versions
+    version = release_version('IssieVoice')
+    assert_equal [version, version.sub(/(\.0)+\z/, ''), nil].uniq, versions
   end
 
   def test_check_only_reads_apple_build_information
