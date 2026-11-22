@@ -1,0 +1,2 @@
+# Three apps are built from this project; each lane passes its own app_identifier.
+team_id(ENV.fetch('APPLE_TEAM_ID', 'SKNJT9TD9G'))

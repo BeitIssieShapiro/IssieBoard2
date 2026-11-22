@@ -22,6 +22,10 @@
     "deploy:android:issieboard": "scripts/deploy-android.sh issieboard",
     "deploy:android:issievoice": "scripts/deploy-android.sh issievoice",
     "deploy:android:issiecalc": "scripts/deploy-android.sh issiecalc",
+    "deploy:ios": "bash scripts/deploy-ios.sh",
+    "deploy:ios:issieboard": "bash scripts/deploy-ios.sh beta app:issieboard",
+    "deploy:ios:issievoice": "bash scripts/deploy-ios.sh beta app:issievoice",
+    "deploy:ios:issiecalc": "bash scripts/deploy-ios.sh beta app:issiecalc",
     "postinstall": "patch-package"
   },
   "dependencies": {

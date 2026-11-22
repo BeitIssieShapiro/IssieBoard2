@@ -1,0 +1,180 @@
+require 'dotenv'
+require 'shellwords'
+require 'xcodeproj'
+require 'rbconfig'
+
+default_platform(:ios)
+
+ROOT = File.expand_path('../..', __dir__)
+IOS_PROJECT = File.join(ROOT, 'ios/IssieBoardNG.xcodeproj')
+WORKSPACE = File.join(ROOT, 'ios/IssieBoardNG.xcworkspace')
+Dotenv.load(File.join(ROOT, '.env'))
+
+# The three apps built from this project. `extensions` are the targets embedded in
+# the app, each signed with its own provisioning profile.
+APPS = {
+  'issieboard' => {
+    name: 'IssieBoard',
+    scheme: 'IssieBoardNG',
+    target: 'IssieBoard',
+    bundle_id: 'com.issieshapiro.Issieboard',
+    extensions: {
+      'IssieBoardEn' => 'com.issieshapiro.Issieboard.IssieBoardEn',
+      'IssieBoardHe' => 'com.issieshapiro.Issieboard.IssieBoardHe',
+      'IssieBoardAr' => 'com.issieshapiro.Issieboard.IssieBoardAr'
+    }
+  },
+  'issievoice' => {
+    name: 'IssieVoice',
+    scheme: 'IssieVoice',
+    target: 'IssieVoice',
+    bundle_id: 'org.issieshapiro.IssieVoice',
+    extensions: {}
+  },
+  'issiecalc' => {
+    name: 'IssieCalc',
+    scheme: 'IssieCalc',
+    target: 'IssieCalc',
+    bundle_id: 'com.issieshapiro.IssieCalc',
+    extensions: {}
+  }
+}.freeze
+
+# Apps selected by the lane's `app:` option (`app:issievoice` or `app:issievoice,issiecalc`); all by default.
+def selected_apps(options)
+  keys = options[:app].to_s.split(',').map(&:strip).reject(&:empty?)
+  keys = APPS.keys if keys.empty?
+  unknown = keys - APPS.keys
+  UI.user_error!("Unknown app: #{unknown.join(', ')}. Use one of: #{APPS.keys.join(', ')}") unless unknown.empty?
+  UI.user_error!('IOS_VERSION applies to one app: add app:<name>') if keys.size > 1 && !ENV['IOS_VERSION'].to_s.strip.empty?
+  keys
+end
+
+def deploy_settings(app)
+  required = %w[ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_PATH APPLE_TEAM_ID]
+  missing = required.select { |key| ENV[key].to_s.strip.empty? }
+  UI.user_error!("Fill these settings in #{ROOT}/.env: #{missing.join(', ')}") unless missing.empty?
+
+  key_path = File.expand_path(ENV.fetch('ASC_KEY_PATH'), ROOT)
+  UI.user_error!('ASC_KEY_PATH must point to a readable App Store Connect .p8 key') unless File.file?(key_path) && File.readable?(key_path)
+  UI.user_error!('Install JavaScript dependencies with npm ci') unless File.directory?(File.join(ROOT, 'node_modules'))
+
+  project = Xcodeproj::Project.open(IOS_PROJECT)
+  target = project.targets.find { |item| item.name == app[:target] }
+  release = target.build_configurations.find { |item| item.name == 'Release' }.build_settings
+  version = ENV['IOS_VERSION'].to_s.strip.empty? ? release.fetch('MARKETING_VERSION') : ENV.fetch('IOS_VERSION')
+  UI.user_error!('IOS_VERSION must be a numeric version such as 1.7 or 1.7.1') unless version.match?(/\A[0-9]+([.][0-9]+){0,2}\z/)
+
+  { key_path: key_path, version: version, local_build: release.fetch('CURRENT_PROJECT_VERSION').to_i }
+end
+
+def asc_api_key(settings)
+  app_store_connect_api_key(
+    key_id: ENV.fetch('ASC_KEY_ID'),
+    issuer_id: ENV.fetch('ASC_ISSUER_ID'),
+    key_filepath: settings[:key_path]
+  )
+end
+
+def latest_build_number(api_key, app, settings)
+  latest_testflight_build_number(
+    api_key: api_key,
+    app_identifier: app[:bundle_id],
+    version: settings[:version],
+    initial_build_number: 0
+  )
+end
+
+def deploy_app(app, settings, api_key)
+  build_number = [latest_build_number(api_key, app, settings), settings[:local_build]].max + 1
+  UI.message("Building #{app[:name]} #{settings[:version]} (#{build_number})")
+
+  signing_directory = File.join(ROOT, 'ios/build/signing')
+  # Target name -> [bundle id, provisioning profile name]
+  profiles = { app[:target] => app[:bundle_id] }.merge(app[:extensions]).to_h do |target, bundle_id|
+    get_provisioning_profile(
+      api_key: api_key,
+      app_identifier: bundle_id,
+      team_id: ENV.fetch('APPLE_TEAM_ID'),
+      output_path: signing_directory
+    )
+    [target, [bundle_id, lane_context[SharedValues::SIGH_NAME]]]
+  end
+
+  project_file = File.join(IOS_PROJECT, 'project.pbxproj')
+  original_project = File.binread(project_file)
+  begin
+    profiles.each do |target, (_, profile_name)|
+      update_code_signing_settings(
+        path: IOS_PROJECT,
+        targets: [target],
+        build_configurations: ['Release'],
+        use_automatic_signing: false,
+        team_id: ENV.fetch('APPLE_TEAM_ID'),
+        code_sign_identity: 'Apple Distribution',
+        profile_name: profile_name
+      )
+    end
+    ipa = build_app(
+      workspace: WORKSPACE,
+      scheme: app[:scheme],
+      configuration: 'Release',
+      export_method: 'app-store',
+      output_directory: File.join(ROOT, 'ios/build'),
+      output_name: "#{app[:name]}.ipa",
+      export_options: {
+        signingStyle: 'manual',
+        teamID: ENV.fetch('APPLE_TEAM_ID'),
+        provisioningProfiles: profiles.values.to_h
+      },
+      # Command-line settings apply to every target in the archive, so the keyboard
+      # extensions get the app's version and build number (App Store requires a match).
+      xcargs: Shellwords.join([
+        "MARKETING_VERSION=#{settings[:version]}",
+        "CURRENT_PROJECT_VERSION=#{build_number}"
+      ])
+    )
+  ensure
+    # Signing overrides apply to this archive, including when the build fails.
+    File.binwrite(project_file, original_project)
+  end
+
+  upload_to_testflight(
+    api_key: api_key,
+    app_identifier: app[:bundle_id],
+    ipa: ipa,
+    skip_waiting_for_build_processing: true
+  )
+  UI.success("Uploaded #{app[:name]} #{settings[:version]} (#{build_number}) to TestFlight")
+end
+
+platform :ios do
+  desc 'Run deployment regression tests with Apple actions stubbed'
+  lane :test do
+    sh(RbConfig.ruby, File.join(ROOT, 'ios/fastlane/tests/deploy_test.rb'))
+  end
+
+  desc 'Check deployment settings and App Store Connect access (app:<name> for one app)'
+  lane :check do |options|
+    keys = selected_apps(options)
+    sh('xcodebuild', '-version')
+    keys.each do |key|
+      app = APPS.fetch(key)
+      settings = deploy_settings(app)
+      latest = latest_build_number(asc_api_key(settings), app, settings)
+      UI.success("#{app[:name]} #{settings[:version]} deployment is configured. Latest TestFlight build: #{latest}")
+    end
+  end
+
+  desc 'Archive the apps and upload the next build of each to TestFlight (app:<name> for one app)'
+  lane :beta do |options|
+    keys = selected_apps(options)
+    # Check every app's settings before building any of them
+    settings = keys.to_h { |key| [key, deploy_settings(APPS.fetch(key))] }
+    api_key = asc_api_key(settings.values.first)
+
+    cocoapods(podfile: File.join(ROOT, 'ios/Podfile'), deployment: true)
+    get_certificates(api_key: api_key, team_id: ENV.fetch('APPLE_TEAM_ID'), output_path: File.join(ROOT, 'ios/build/signing'))
+    keys.each { |key| deploy_app(APPS.fetch(key), settings.fetch(key), api_key) }
+  end
+end
