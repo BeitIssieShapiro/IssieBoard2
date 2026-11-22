@@ -1,5 +1,7 @@
 import * as RNFS from 'react-native-fs';
 import { zip, unzip } from 'react-native-zip-archive';
+import Share from 'react-native-share';
+import { checkPackage, showPackageCheckAlert, stampPackage, type IssieAppId } from '@beitissieshapiro/issie-shared';
 import KeyboardPreferences from './native/KeyboardPreferences';
 import {
   exportVoiceData,
@@ -57,6 +59,27 @@ function tempPath(filename: string): string {
   return `${RNFS.TemporaryDirectoryPath}/${filename}`;
 }
 
+// Marks a zip as made by this app, so other Issie apps can tell (issie-shared package
+// manifest). The export works without it.
+async function stampAs(zipPath: string, appContext: AppContext, kind: string) {
+  await stampPackage(RNFS, zipPath, { app: appContext as IssieAppId, kind })
+    .catch(e => console.warn('stamp package failed:', e));
+}
+
+/**
+ * Whether an incoming file may be imported. Another Issie app's file (IssieDocs, IssieSays, ...)
+ * is rejected with a message naming it, offering to get or open that app. Files of the
+ * IssieBoard family pass: importPackage() reports profiles of a sibling app as incompatible.
+ */
+export async function checkIncomingPackage(url: string, appContext: AppContext): Promise<boolean> {
+  const path = url.startsWith('file://') ? decodeURI(url.substring(7)) : url;
+  const check = await checkPackage(RNFS, path, appContext as IssieAppId, { acceptedApps: [...KNOWN_APPS] });
+  if (check.ok) return true;
+  showPackageCheckAlert(check, path, appContext as IssieAppId,
+    p => Share.open({ url: 'file://' + p, type: 'application/zip', failOnCancel: false }));
+  return false;
+}
+
 async function unlinkSafe(path: string): Promise<void> {
   try { await RNFS.unlink(path); } catch {}
 }
@@ -99,6 +122,7 @@ export async function exportProfile(profileId: string, profileName: string, appC
   const zipFilePath = tempPath(`keyboard__${sanitizedName}.zip`);
   await unlinkSafe(zipFilePath);
   await zip([metadataFilePath], zipFilePath);
+  await stampAs(zipFilePath, appContext, 'profile');
 
   return zipFilePath;
 }
@@ -147,6 +171,7 @@ export async function exportAll(appContext: AppContext = 'issieboard'): Promise<
   const backupZipPath = tempPath(`IssieBoard Backup-${timestamp}.zip`);
   await unlinkSafe(backupZipPath);
   await zip(zipFiles, backupZipPath);
+  await stampAs(backupZipPath, appContext, 'backup');
 
   return backupZipPath;
 }

@@ -19,7 +19,7 @@ import {
 } from '../../src/localization';
 import { loadLanguage, LANGUAGE_SETTINGS } from '@beitissieshapiro/issie-shared';
 import { useIncomingURL } from '../../src/common/linking-hook';
-import { importPackage, ImportInfo, newImportInfo, hasImportResult } from '../../src/import-export';
+import { importPackage, ImportInfo, newImportInfo, hasImportResult, checkIncomingPackage } from '../../src/import-export';
 import { ImportInfoDialog } from '../../src/common/import-info-dialog';
 
 // Font scaling is disabled per-element via allowFontScaling={false}, not globally:
@@ -41,6 +41,7 @@ const App = () => {
 
   const handleImportURL = React.useCallback(async (url: string) => {
     try {
+      if (!(await checkIncomingPackage(url, 'issievoice'))) return;
       const info: ImportInfo = newImportInfo();
       await importPackage(url, info, 'issievoice');
       if (hasImportResult(info)) {

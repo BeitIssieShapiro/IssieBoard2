@@ -13,7 +13,7 @@ import SettingsScreen from './src/screens/SettingsScreen';
 import { initializeFirebase } from '../../src/firebase-config';
 import { loadLanguage, LANGUAGE_SETTINGS } from '@beitissieshapiro/issie-shared';
 import { useIncomingURL } from '../../src/common/linking-hook';
-import { importPackage, ImportInfo, newImportInfo, hasImportResult } from '../../src/import-export';
+import { importPackage, ImportInfo, newImportInfo, hasImportResult, checkIncomingPackage } from '../../src/import-export';
 import { ImportInfoDialog } from '../../src/common/import-info-dialog';
 
 // Font scaling is disabled per-element (see the Text wrapper in CalcScreen), not
@@ -35,6 +35,7 @@ const App = () => {
 
   const handleImportURL = React.useCallback(async (url: string) => {
     try {
+      if (!(await checkIncomingPackage(url, 'issiecalc'))) return;
       const info: ImportInfo = newImportInfo();
       await importPackage(url, info, 'issiecalc');
       if (hasImportResult(info)) {

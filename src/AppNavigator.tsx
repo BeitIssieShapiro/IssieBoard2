@@ -20,7 +20,7 @@ import { loadLanguage, LANGUAGE_SETTINGS } from '@beitissieshapiro/issie-shared'
 import NewSettingsScreen from '../apps/issievoice/src/screens/NewSettingsScreen';
 import { LocalizationProvider as VoiceLocalizationProvider } from '../apps/issievoice/src/context/LocalizationContext';
 import { useIncomingURL } from './common/linking-hook';
-import { importPackage, ImportInfo, newImportInfo, hasImportResult } from './import-export';
+import { importPackage, ImportInfo, newImportInfo, hasImportResult, checkIncomingPackage } from './import-export';
 import { ImportInfoDialog } from './common/import-info-dialog';
 
 type LanguageId = 'he' | 'en' | 'ar';
@@ -53,6 +53,7 @@ export const AppNavigator: React.FC = () => {
 
   const handleImportURL = useCallback(async (url: string) => {
     try {
+      if (!(await checkIncomingPackage(url, 'issieboard'))) return;
       const info: ImportInfo = newImportInfo();
       await importPackage(url, info, 'issieboard');
       if (hasImportResult(info)) {

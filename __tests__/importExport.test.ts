@@ -37,6 +37,12 @@ jest.mock('react-native-fs', () => ({
       .map(p => ({ name: p.slice(folder.length + 1), path: p })),
 }));
 
+jest.mock('react-native-share', () => ({ open: jest.fn() }));
+jest.mock('@beitissieshapiro/issie-shared', () => ({
+  checkPackage: jest.fn(async () => ({ ok: true })),
+  showPackageCheckAlert: jest.fn(),
+  stampPackage: jest.fn(async () => { }),
+}));
 jest.mock('react-native-zip-archive', () => ({
   zip: async (sources: string[], target: string) => {
     zips[target] = sources;
