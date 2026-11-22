@@ -76,13 +76,19 @@ def asc_api_key(settings)
   )
 end
 
+# Apple treats "2.1.0" and "2.1" as the same version, so builds uploaded under either
+# count; the app's latest build overall keeps numbers increasing across versions too.
 def latest_build_number(api_key, app, settings)
-  latest_testflight_build_number(
-    api_key: api_key,
-    app_identifier: app[:bundle_id],
-    version: settings[:version],
-    initial_build_number: 0
-  )
+  short = settings[:version].sub(/(\.0)+\z/, '')
+  versions = [settings[:version], short, nil].uniq
+  versions.map do |version|
+    latest_testflight_build_number(
+      api_key: api_key,
+      app_identifier: app[:bundle_id],
+      version: version,
+      initial_build_number: 0
+    ).to_i
+  end.max
 end
 
 def deploy_app(app, settings, api_key)

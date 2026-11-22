@@ -117,7 +117,7 @@ class IOSDeploymentTest < Minitest::Test
     build = @runner.calls_to(:build_app).first
     assert_equal profiles.to_h { |id| [id, "#{id} AppStore"] }, build[:export_options][:provisioningProfiles]
     # Version and build number on the command line, so the extensions match the app
-    assert_includes Shellwords.split(build[:xcargs]), 'MARKETING_VERSION=2.1'
+    assert_includes Shellwords.split(build[:xcargs]), 'MARKETING_VERSION=2.1.0'
     assert_includes Shellwords.split(build[:xcargs]), 'CURRENT_PROJECT_VERSION=28'
   end
 
@@ -126,7 +126,7 @@ class IOSDeploymentTest < Minitest::Test
     build = @runner.calls_to(:build_app).first
     assert_equal 'IssieVoice', build[:scheme]
     assert_equal 'Release', build[:configuration]
-    assert_includes Shellwords.split(build[:xcargs]), 'MARKETING_VERSION=1.1'
+    assert_includes Shellwords.split(build[:xcargs]), 'MARKETING_VERSION=1.1.0'
     assert_includes Shellwords.split(build[:xcargs]), 'CURRENT_PROJECT_VERSION=8'
     upload = @runner.calls_to(:upload_to_testflight).first
     assert_equal '/tmp/IssieVoice.ipa', upload[:ipa]
@@ -173,9 +173,15 @@ class IOSDeploymentTest < Minitest::Test
     assert_includes Shellwords.split(build[:xcargs]), 'CURRENT_PROJECT_VERSION=28'
   end
 
+  def test_build_number_counts_the_short_version_and_the_latest_overall
+    @runner.run(:beta, app: 'issievoice')
+    versions = @runner.calls_to(:latest_testflight_build_number).map { |c| c[:version] }
+    assert_equal ['1.1.0', '1.1', nil], versions
+  end
+
   def test_check_only_reads_apple_build_information
     @runner.run(:check)
-    assert_equal 3, @runner.calls_to(:latest_testflight_build_number).size
+    assert_equal %w[IssieBoard IssieVoice IssieCalc].size, @runner.calls_to(:latest_testflight_build_number).map { |c| c[:app_identifier] }.uniq.size
     assert_empty @runner.calls_to(:get_certificates)
     assert_empty @runner.calls_to(:build_app)
     assert_empty @runner.calls_to(:upload_to_testflight)
