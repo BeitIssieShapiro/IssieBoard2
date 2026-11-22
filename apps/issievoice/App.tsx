@@ -17,7 +17,7 @@ import {
   getDeviceLanguage,
   LocalizationProvider as EditorLocalizationProvider,
 } from '../../src/localization';
-import { loadLanguage, LANGUAGE_SETTINGS } from '@beitissieshapiro/issie-shared';
+import { loadLanguage, LANGUAGE_SETTINGS, IssieAlertHost } from '@beitissieshapiro/issie-shared';
 import { useIncomingURL } from '../../src/common/linking-hook';
 import { importPackage, ImportInfo, newImportInfo, hasImportResult, checkIncomingPackage } from '../../src/import-export';
 import { ImportInfoDialog } from '../../src/common/import-info-dialog';
@@ -94,6 +94,7 @@ const App = () => {
           />
         </EditorLocalizationProvider>
       )}
+      <IssieAlertHost />
     </SafeAreaProvider>
   );
 };

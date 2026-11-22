@@ -11,7 +11,7 @@ import { LocalizationProvider as VoiceLocalizationProvider } from '../issievoice
 import CalcScreen from './src/screens/CalcScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import { initializeFirebase } from '../../src/firebase-config';
-import { loadLanguage, LANGUAGE_SETTINGS } from '@beitissieshapiro/issie-shared';
+import { loadLanguage, LANGUAGE_SETTINGS, IssieAlertHost } from '@beitissieshapiro/issie-shared';
 import { useIncomingURL } from '../../src/common/linking-hook';
 import { importPackage, ImportInfo, newImportInfo, hasImportResult, checkIncomingPackage } from '../../src/import-export';
 import { ImportInfoDialog } from '../../src/common/import-info-dialog';
@@ -77,6 +77,7 @@ const App = () => {
           )}
         </LocalizationProvider>
       </ScreenSizer.Wrapper>
+      <IssieAlertHost />
     </SafeAreaProvider>
   );
 };

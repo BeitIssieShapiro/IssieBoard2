@@ -16,7 +16,7 @@ import KeyboardPreferences from './native/KeyboardPreferences';
 import { LocalizationProvider, getStrings, getDeviceLanguage } from './localization';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { initializeFirebase } from './firebase-config';
-import { loadLanguage, LANGUAGE_SETTINGS } from '@beitissieshapiro/issie-shared';
+import { loadLanguage, LANGUAGE_SETTINGS, IssieAlertHost } from '@beitissieshapiro/issie-shared';
 import NewSettingsScreen from '../apps/issievoice/src/screens/NewSettingsScreen';
 import { LocalizationProvider as VoiceLocalizationProvider } from '../apps/issievoice/src/context/LocalizationContext';
 import { useIncomingURL } from './common/linking-hook';
@@ -230,7 +230,7 @@ export const AppNavigator: React.FC = () => {
 
   // Don't render until initial settings are loaded
   if (!initialLoaded || !currentScreen) {
-    return <View style={styles.container} />;
+    return <><View style={styles.container} /><IssieAlertHost /></>;
   }
 
   if (currentScreen.type === 'classic') {
@@ -252,6 +252,7 @@ export const AppNavigator: React.FC = () => {
             onClose={() => setImportResult(null)}
           />
         )}
+        <IssieAlertHost />
       </LocalizationProvider>
     );
   }
@@ -279,6 +280,7 @@ export const AppNavigator: React.FC = () => {
           onClose={() => setImportResult(null)}
         />
       )}
+      <IssieAlertHost />
     </LocalizationProvider>
   );
 };
