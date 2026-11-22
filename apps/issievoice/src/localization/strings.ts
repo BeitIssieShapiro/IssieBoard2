@@ -20,6 +20,7 @@ export interface Strings {
   actionBar: {
     speak: string;
     speaking: string;
+    stop: string;
     clear: string;
     save: string;
     browse: string;
@@ -163,6 +164,7 @@ const en: Strings = {
   },
   actionBar: {
     speak: ' Speak',
+    stop: 'Stop',
     speaking: '🔊 Speaking...',
     clear: '🗑️ Clear',
     save: '💾 Save',
@@ -307,6 +309,7 @@ const he: Strings = {
   },
   actionBar: {
     speak: 'הקראה',
+    stop: 'עצור',
     speaking: '🔊 מקריא...',
     clear: '🗑️ נקה',
     save: '💾 שמור',
@@ -451,6 +454,7 @@ const ar: Strings = {
   },
   actionBar: {
     speak: 'تحدث',
+    stop: 'إيقاف',
     speaking: '🔊 يتحدث...',
     clear: '🗑️ مسح',
     save: '💾 حفظ',

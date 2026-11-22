@@ -59,22 +59,22 @@ class CustomTextDocumentProxy: TextDocumentProxyProtocol {
     }
 
     func insertText(_ textToInsert: String) {
-        print("📝 CustomTextDocumentProxy.insertText: '\(textToInsert)'")
+        debugLog("📝 CustomTextDocumentProxy.insertText: '\(textToInsert)'")
         onInsertText?(textToInsert)
     }
 
     func deleteBackward() {
-        print("📝 CustomTextDocumentProxy.deleteBackward")
+        debugLog("📝 CustomTextDocumentProxy.deleteBackward")
         onDeleteBackward?()
     }
 
     func deleteScalarBackward() {
-        print("📝 CustomTextDocumentProxy.deleteScalarBackward")
+        debugLog("📝 CustomTextDocumentProxy.deleteScalarBackward")
         onDeleteScalarBackward?()
     }
 
     func adjustTextPosition(byCharacterOffset offset: Int) {
-        print("📝 CustomTextDocumentProxy.adjustTextPosition: \(offset)")
+        debugLog("📝 CustomTextDocumentProxy.adjustTextPosition: \(offset)")
         onCursorMove?(offset)
     }
 

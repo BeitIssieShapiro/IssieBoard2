@@ -583,7 +583,7 @@ class KeyboardEngine(
 
         val beforeText = getCurrentText?.invoke() ?: return
 
-        Log.d(TAG, "autoShiftAfterPunctuation - text: '${beforeText.takeLast(20)}', isEmpty: ${beforeText.isEmpty()}")
+        debugLog("autoShiftAfterPunctuation - text: '${beforeText.takeLast(20)}', isEmpty: ${beforeText.isEmpty()}")
 
         // Check if text is empty
         if (beforeText.isEmpty()) {

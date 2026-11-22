@@ -23,7 +23,7 @@ const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [isDirty, setIsDirty] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [configBg, setConfigBg] = useState<string | undefined>(undefined);
-  const saveRef = useRef<(() => void) | null>(null);
+  const saveRef = useRef<(() => Promise<boolean>) | null>(null);
   const discardRef = useRef<(() => void) | null>(null);
   const showProfilePickerRef = useRef<(() => void) | null>(null);
   const configPatchRef = useRef<((config: any) => any) | null>(null);

@@ -34,7 +34,7 @@ class TrieEngine {
         }
         
         let nodeCount = data.count / nodeSize
-        print("✅ TrieEngine: Loaded '\(filename)' with \(nodeCount) nodes.")
+        debugLog("✅ TrieEngine: Loaded '\(filename)' with \(nodeCount) nodes.")
     }
     
     /// Try to load dictionary data from various locations
@@ -53,21 +53,21 @@ class TrieEngine {
                 // Try direct resource lookup
                 if let path = bundle.path(forResource: name, ofType: "bin"),
                    let data = try? Data(contentsOf: URL(fileURLWithPath: path)) {
-                    print("📚 TrieEngine: Found '\(name).bin' in bundle at \(path)")
+                    debugLog("📚 TrieEngine: Found '\(name).bin' in bundle at \(path)")
                     return data
                 }
                 
                 // Try looking in a 'dict' subdirectory
                 if let path = bundle.path(forResource: name, ofType: "bin", inDirectory: "dict"),
                    let data = try? Data(contentsOf: URL(fileURLWithPath: path)) {
-                    print("📚 TrieEngine: Found '\(name).bin' in dict directory at \(path)")
+                    debugLog("📚 TrieEngine: Found '\(name).bin' in dict directory at \(path)")
                     return data
                 }
                 
                 // Try looking in a 'dict/bin' subdirectory
                 if let path = bundle.path(forResource: name, ofType: "bin", inDirectory: "dict/bin"),
                    let data = try? Data(contentsOf: URL(fileURLWithPath: path)) {
-                    print("📚 TrieEngine: Found '\(name).bin' in dict/bin directory at \(path)")
+                    debugLog("📚 TrieEngine: Found '\(name).bin' in dict/bin directory at \(path)")
                     return data
                 }
                 
@@ -76,7 +76,7 @@ class TrieEngine {
                 let directPath = "\(bundleDir)/\(name).bin"
                 if FileManager.default.fileExists(atPath: directPath),
                    let data = try? Data(contentsOf: URL(fileURLWithPath: directPath)) {
-                    print("📚 TrieEngine: Found '\(name).bin' directly in bundle at \(directPath)")
+                    debugLog("📚 TrieEngine: Found '\(name).bin' directly in bundle at \(directPath)")
                     return data
                 }
             }
@@ -88,16 +88,16 @@ class TrieEngine {
                 let dictPath = groupContainerURL.appendingPathComponent("\(name).bin")
                 if FileManager.default.fileExists(atPath: dictPath.path),
                    let data = try? Data(contentsOf: dictPath) {
-                    print("📚 TrieEngine: Found '\(name).bin' in app group container at \(dictPath.path)")
+                    debugLog("📚 TrieEngine: Found '\(name).bin' in app group container at \(dictPath.path)")
                     return data
                 }
             }
         }
         
         // Log what was searched for debugging
-        print("📚 TrieEngine: Searched for '\(filename).bin' in:")
+        debugLog("📚 TrieEngine: Searched for '\(filename).bin' in:")
         for bundle in bundles {
-            print("   - Bundle: \(bundle.bundlePath)")
+            debugLog("   - Bundle: \(bundle.bundlePath)")
         }
         
         return nil
@@ -486,7 +486,7 @@ class TrieEngine {
         
         // Find the node for this word
         guard let nodeIndex = findNodeForPrefix(rootIndex: 0, prefix: searchWord) else {
-            print("🔍 TrieEngine.getWordIndex: '\(word)' not found in trie")
+            debugLog("🔍 TrieEngine.getWordIndex: '\(word)' not found in trie")
             return nil
         }
         
@@ -495,7 +495,7 @@ class TrieEngine {
         let isWordEnd = (flags & 0x01) != 0
         
         guard isWordEnd else {
-            print("🔍 TrieEngine.getWordIndex: '\(word)' found but not a word end")
+            debugLog("🔍 TrieEngine.getWordIndex: '\(word)' found but not a word end")
             return nil  // Not a complete word
         }
         
@@ -511,9 +511,9 @@ class TrieEngine {
         )
         
         if found {
-            print("🔍 TrieEngine.getWordIndex: '\(word)' → index \(wordCount)")
+            debugLog("🔍 TrieEngine.getWordIndex: '\(word)' → index \(wordCount)")
         } else {
-            print("🔍 TrieEngine.getWordIndex: '\(word)' traversal failed")
+            debugLog("🔍 TrieEngine.getWordIndex: '\(word)' traversal failed")
         }
         
         return found ? wordCount : nil

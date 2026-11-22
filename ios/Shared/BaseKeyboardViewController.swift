@@ -185,7 +185,7 @@ class BaseKeyboardViewController: UIInputViewController {
             suggestionsEnabled: suggestionsEnabled,
             nikkudTopRowActive: keyboardEngine.renderer.isNikkudTopRowActive
         )
-        print("📏 updateKeyboardHeight: required=\(requiredHeight), current=\(keyboardHeightConstraint?.constant ?? -1), isNikkudTopRowActive=\(keyboardEngine.renderer.isNikkudTopRowActive)")
+        debugLog("📏 updateKeyboardHeight: required=\(requiredHeight), current=\(keyboardHeightConstraint?.constant ?? -1), isNikkudTopRowActive=\(keyboardEngine.renderer.isNikkudTopRowActive)")
 
         // Always apply the height after a full re-render — config may have changed
         // the nikkud mode (topRowAlways↔topRow) which affects row count
@@ -255,7 +255,7 @@ class BaseKeyboardViewController: UIInputViewController {
 
         keyboardEngine.renderer.onNikkudStateChanged = { [weak self] in
             guard let self else { return }
-            print("🔔 onNikkudStateChanged fired — isNikkudTopRowActive=\(self.keyboardEngine.renderer.isNikkudTopRowActive)")
+            debugLog("🔔 onNikkudStateChanged fired — isNikkudTopRowActive=\(self.keyboardEngine.renderer.isNikkudTopRowActive)")
             self.updateKeyboardHeight()
         }
 
@@ -331,10 +331,10 @@ class BaseKeyboardViewController: UIInputViewController {
 
         do {
             parsedConfig = try JSONDecoder().decode(KeyboardConfig.self, from: jsonData)
-            print("⚙️ [ConfigLoad] Successfully decoded config")
-            print("⚙️ [ConfigLoad] fontSizePreset: \(parsedConfig?.fontSizePreset ?? "nil")")
-            print("⚙️ [ConfigLoad] fontName: \(parsedConfig?.fontName ?? "nil")")
-            print("⚙️ [ConfigLoad] fontWeight: \(parsedConfig?.fontWeight ?? "nil")")
+            debugLog("⚙️ [ConfigLoad] Successfully decoded config")
+            debugLog("⚙️ [ConfigLoad] fontSizePreset: \(parsedConfig?.fontSizePreset ?? "nil")")
+            debugLog("⚙️ [ConfigLoad] fontName: \(parsedConfig?.fontName ?? "nil")")
+            debugLog("⚙️ [ConfigLoad] fontWeight: \(parsedConfig?.fontWeight ?? "nil")")
             // Restore persisted nikkud state before rendering
             let persistedNikkud = preferences.getString(forKey: "nikkudActive_\(keyboardLanguage)") == "true"
             keyboardEngine.renderer.restoreNikkudActive(persistedNikkud)

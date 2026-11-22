@@ -151,7 +151,7 @@ class KeyboardEngine {
             // Prefer live proxy context; fall back to shadow buffer (empty when hardware kb active)
             let before = self.textProxy.documentContextBeforeInput ?? ""
             let source = before.isEmpty ? self.shadowTextBefore : before
-            print("🔍 onGetCharBeforeCursor: proxy='\(before.suffix(3))', shadow='\(self.shadowTextBefore.suffix(3))', source='\(source.suffix(3))'")
+            debugLog("🔍 onGetCharBeforeCursor: proxy='\(before.suffix(3))', shadow='\(self.shadowTextBefore.suffix(3))', source='\(source.suffix(3))'")
             guard !source.isEmpty else { return nil }
             let lastCluster = String(source.suffix(1))
             let result = lastCluster.unicodeScalars.first(where: {
@@ -159,7 +159,7 @@ class KeyboardEngine {
                 $0.properties.generalCategory == .uppercaseLetter ||
                 $0.properties.generalCategory == .lowercaseLetter
             }).map { String($0) } ?? String(lastCluster.unicodeScalars.first.map { String($0) } ?? "")
-            print("🔍 onGetCharBeforeCursor: lastCluster='\(lastCluster)', result='\(result)'")
+            debugLog("🔍 onGetCharBeforeCursor: lastCluster='\(lastCluster)', result='\(result)'")
             return result
         }
     }
@@ -179,7 +179,7 @@ class KeyboardEngine {
             return
         }
 
-        print("🔮 KeyboardEngine.handleTextChanged - text: '\(fullText.suffix(30))'")
+        debugLog("🔮 KeyboardEngine.handleTextChanged - text: '\(fullText.suffix(30))'")
 
         let lastChar = fullText.last
 
@@ -189,7 +189,7 @@ class KeyboardEngine {
 
         if endsWithSentenceEnd {
             // Sentence ended (e.g., "Get.") → defaults
-            print("🔮 Sentence ended → defaults")
+            debugLog("🔮 Sentence ended → defaults")
             suggestionController.resetCurrentWord()
             suggestionController.showDefaults()
         } else if endsWithSpace || fullText.hasSuffix("\n") {
@@ -200,7 +200,7 @@ class KeyboardEngine {
 
             if isNewSentence {
                 // New sentence (e.g., "Get. ") → defaults
-                print("🔮 New sentence → defaults")
+                debugLog("🔮 New sentence → defaults")
                 suggestionController.resetCurrentWord()
                 suggestionController.showDefaults()
             } else {
@@ -210,7 +210,7 @@ class KeyboardEngine {
                     let cleanWord = lastWord.trimmingCharacters(in: CharacterSet.punctuationCharacters)
 
                     if !cleanWord.isEmpty {
-                        print("🔮 Word done '\(cleanWord)' → predictions")
+                        debugLog("🔮 Word done '\(cleanWord)' → predictions")
                         suggestionController.setCurrentWordSilently(cleanWord)
                         _ = suggestionController.handleSpace()
                     } else {
@@ -224,7 +224,7 @@ class KeyboardEngine {
             }
         } else {
             // Typing word (e.g., "Get") → completions
-            print("🔮 Typing word → completions")
+            debugLog("🔮 Typing word → completions")
             suggestionController.detectCurrentWord(from: fullText)
         }
     }
@@ -283,7 +283,7 @@ class KeyboardEngine {
                     // Check if we just typed sentence-ending punctuation
                     if valueToInsert == "." || valueToInsert == "?" || valueToInsert == "!" {
                         // Sentence ended → reset and show defaults
-                        print("🔮 Sentence-ending punctuation typed → defaults")
+                        debugLog("🔮 Sentence-ending punctuation typed → defaults")
                         suggestionController.resetCurrentWord()
                         suggestionController.showDefaults()
                     } else {
@@ -548,7 +548,7 @@ class KeyboardEngine {
             return
         }
 
-        print("🔮 handleSuggestionsAfterSpace - fullText: '\(fullText.suffix(30))'")
+        debugLog("🔮 handleSuggestionsAfterSpace - fullText: '\(fullText.suffix(30))'")
 
         // Text now ends with space, check what came before
         let trimmed = fullText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -559,7 +559,7 @@ class KeyboardEngine {
 
         if isNewSentence {
             // New sentence → reset and show defaults
-            print("🔮 New sentence (ends with '\(String(describing: lastChar))') → defaults")
+            debugLog("🔮 New sentence (ends with '\(String(describing: lastChar))') → defaults")
             suggestionController.resetCurrentWord()
             suggestionController.showDefaults()
         } else {
@@ -571,7 +571,7 @@ class KeyboardEngine {
                 let cleanWord = lastWord.trimmingCharacters(in: CharacterSet.punctuationCharacters)
 
                 if !cleanWord.isEmpty {
-                    print("🔮 Word done: '\(cleanWord)' → predictions")
+                    debugLog("🔮 Word done: '\(cleanWord)' → predictions")
                     suggestionController.setCurrentWordSilently(cleanWord)
                     _ = suggestionController.handleSpace()
                 } else {
@@ -597,11 +597,11 @@ class KeyboardEngine {
 
         guard let beforeText = getCurrentText?() else { return }
 
-        print("🔍 KeyboardEngine.autoShiftAfterPunctuation - text: '\(beforeText.suffix(20))', isEmpty: \(beforeText.isEmpty)")
+        debugLog("🔍 KeyboardEngine.autoShiftAfterPunctuation - text: '\(beforeText.suffix(20))', isEmpty: \(beforeText.isEmpty)")
 
         // Check if text is empty
         if beforeText.isEmpty {
-            print("  ⇧ Empty text - activating shift")
+            debugLog("  ⇧ Empty text - activating shift")
             renderer.activateShift()
             onRenderKeyboard?()
             return
@@ -615,14 +615,14 @@ class KeyboardEngine {
 
         let shouldActivateShift = (endsWithPunctuation && endsWithSpace) || endsWithNewline
 
-        print("  endsWithSpace: \(endsWithSpace), endsWithPunctuation: \(endsWithPunctuation), shouldActivate: \(shouldActivateShift)")
+        debugLog("  endsWithSpace: \(endsWithSpace), endsWithPunctuation: \(endsWithPunctuation), shouldActivate: \(shouldActivateShift)")
 
         if shouldActivateShift && !renderer.isShiftActive() {
-            print("  ⇧ Activating shift after punctuation")
+            debugLog("  ⇧ Activating shift after punctuation")
             renderer.activateShift()
             onRenderKeyboard?()
         } else if !shouldActivateShift && renderer.isShiftActive() {
-            print("  ⇩ Deactivating shift")
+            debugLog("  ⇩ Deactivating shift")
             renderer.deactivateShift()
             onRenderKeyboard?()
         }

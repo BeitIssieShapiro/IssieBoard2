@@ -92,6 +92,8 @@
 		6AA1FD0B2F3D26FA002BD212 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 		6AAAEACB2F68BAC100085361 /* V1DataModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 6AAAEAC92F68BAC100085361 /* V1DataModel.xcdatamodeld */; };
 		6AAAEACF2F68BF1E00085361 /* V1Migration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AAAEACE2F68BF1E00085361 /* V1Migration.swift */; };
+		6AC53CFB30B2DDDD0040BC36 /* ar_predictions.bin in Resources */ = {isa = PBXBuildFile; fileRef = 6AC53CFA30B2DDDD0040BC36 /* ar_predictions.bin */; };
+		6AC53CFC30B2DDDD0040BC36 /* ar_50k.bin in Resources */ = {isa = PBXBuildFile; fileRef = 6AC53CF930B2DDDD0040BC36 /* ar_50k.bin */; };
 		6ACC1E292F2B564800F1FA30 /* TrieEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ACC1E282F2B564800F1FA30 /* TrieEngine.swift */; };
 		6ACC1E2A2F2B564800F1FA30 /* TrieEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ACC1E282F2B564800F1FA30 /* TrieEngine.swift */; };
 		6ACC1E5D2F2CDE8300F1FA30 /* IssieBoardEn.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6ACC1E562F2CDE8300F1FA30 /* IssieBoardEn.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -277,6 +279,8 @@
 		6AA1FD162F3D26FA002BD212 /* IssieVoice.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = IssieVoice.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6AAAEACA2F68BAC100085361 /* IssieBoard_NEW.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = IssieBoard_NEW.xcdatamodel; sourceTree = "<group>"; };
 		6AAAEACE2F68BF1E00085361 /* V1Migration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = V1Migration.swift; path = IssieBoardNG/V1Migration.swift; sourceTree = "<group>"; };
+		6AC53CF930B2DDDD0040BC36 /* ar_50k.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = ar_50k.bin; sourceTree = "<group>"; };
+		6AC53CFA30B2DDDD0040BC36 /* ar_predictions.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = ar_predictions.bin; sourceTree = "<group>"; };
 		6ACC1DF72F2AB0A800F1FA30 /* IssieBoardNGTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = IssieBoardNGTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6ACC1E282F2B564800F1FA30 /* TrieEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrieEngine.swift; sourceTree = "<group>"; };
 		6ACC1E562F2CDE8300F1FA30 /* IssieBoardEn.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = IssieBoardEn.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -450,6 +454,8 @@
 				6ADAC3682F3DDD2900C85EBD /* en_predictions.bin */,
 				6ADAC3642F3DDC6F00C85EBD /* he_50k.bin */,
 				6AFD743D2F3DB18B00EDBDAA /* en_50k.bin */,
+				6AC53CF930B2DDDD0040BC36 /* ar_50k.bin */,
+				6AC53CFA30B2DDDD0040BC36 /* ar_predictions.bin */,
 				6A1E33732F2216F000035455 /* IssieBoardNG-Bridging-Header.h */,
 				6APREDEF022F69000000085361 /* predefined_rules_he.json */,
 				6APREDEF042F69000000085361 /* predefined_rules_en.json */,
@@ -824,6 +830,8 @@
 				6ADAC3672F3DDC9400C85EBD /* he_predictions.bin in Resources */,
 				6AFD743E2F3DB18B00EDBDAA /* en_50k.bin in Resources */,
 				6AA1FD082F3D26FA002BD212 /* Assets.xcassets in Resources */,
+				6AC53CFB30B2DDDD0040BC36 /* ar_predictions.bin in Resources */,
+				6AC53CFC30B2DDDD0040BC36 /* ar_50k.bin in Resources */,
 				6A265B022F6F0F7700C08AE6 /* GoogleService-Info.plist in Resources */,
 				6A265A8B2F6F017700C08AE6 /* IssieVoiceSplash.storyboard in Resources */,
 				6AA1FD092F3D26FA002BD212 /* SharedAssets.xcassets in Resources */,

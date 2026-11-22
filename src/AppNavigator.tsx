@@ -13,7 +13,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { View, StyleSheet, Linking, Alert, Platform } from 'react-native';
 import { ClassicEditorScreen } from './screens/ClassicEditorScreen';
 import KeyboardPreferences from './native/KeyboardPreferences';
-import { LocalizationProvider } from './localization';
+import { LocalizationProvider, getStrings, getDeviceLanguage } from './localization';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { initializeFirebase } from './firebase-config';
 import { loadLanguage, LANGUAGE_SETTINGS } from '@beitissieshapiro/issie-shared';
@@ -66,7 +66,8 @@ export const AppNavigator: React.FC = () => {
       }
     } catch (error) {
       console.warn('Import failed:', error);
-      Alert.alert('Import Failed', 'This file is not a valid IssieBoard keyboard file.');
+      const { importExport } = getStrings(getDeviceLanguage());
+      Alert.alert(importExport.importFailed, importExport.invalidFile);
     }
   }, []);
 

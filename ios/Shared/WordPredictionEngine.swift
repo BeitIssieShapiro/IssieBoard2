@@ -65,7 +65,7 @@ class WordPredictionEngine {
         }
         
         let entryCount = getUInt32(at: 4)
-        print("✅ WordPredictionEngine: Loaded '\(filename)_predictions' with \(entryCount) source words.")
+        debugLog("✅ WordPredictionEngine: Loaded '\(filename)_predictions' with \(entryCount) source words.")
     }
     
     /// Try to load prediction data from various locations
@@ -82,14 +82,14 @@ class WordPredictionEngine {
                 // Try direct resource lookup
                 if let path = bundle.path(forResource: name, ofType: "bin"),
                    let data = try? Data(contentsOf: URL(fileURLWithPath: path)) {
-                    print("📚 WordPredictionEngine: Found '\(name).bin' at \(path)")
+                    debugLog("📚 WordPredictionEngine: Found '\(name).bin' at \(path)")
                     return data
                 }
                 
                 // Try dict/bin subdirectory
                 if let path = bundle.path(forResource: name, ofType: "bin", inDirectory: "dict/bin"),
                    let data = try? Data(contentsOf: URL(fileURLWithPath: path)) {
-                    print("📚 WordPredictionEngine: Found '\(name).bin' in dict/bin at \(path)")
+                    debugLog("📚 WordPredictionEngine: Found '\(name).bin' in dict/bin at \(path)")
                     return data
                 }
                 
@@ -98,7 +98,7 @@ class WordPredictionEngine {
                 let directPath = "\(bundleDir)/\(name).bin"
                 if FileManager.default.fileExists(atPath: directPath),
                    let data = try? Data(contentsOf: URL(fileURLWithPath: directPath)) {
-                    print("📚 WordPredictionEngine: Found '\(name).bin' in bundle at \(directPath)")
+                    debugLog("📚 WordPredictionEngine: Found '\(name).bin' in bundle at \(directPath)")
                     return data
                 }
             }
@@ -110,7 +110,7 @@ class WordPredictionEngine {
                 let predPath = groupContainerURL.appendingPathComponent("\(name).bin")
                 if FileManager.default.fileExists(atPath: predPath.path),
                    let data = try? Data(contentsOf: predPath) {
-                    print("📚 WordPredictionEngine: Found '\(name).bin' in app group at \(predPath.path)")
+                    debugLog("📚 WordPredictionEngine: Found '\(name).bin' in app group at \(predPath.path)")
                     return data
                 }
             }
@@ -128,7 +128,7 @@ class WordPredictionEngine {
     /// - Returns: Array of predictions sorted by probability
     func getPredictions(afterWord word: String, limit: Int = 6) -> [Prediction] {
         guard let trieEngine = trieEngine else {
-            print("⚠️ WordPredictionEngine: No TrieEngine available")
+            debugLog("⚠️ WordPredictionEngine: No TrieEngine available")
             return []
         }
         

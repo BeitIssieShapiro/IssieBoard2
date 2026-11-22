@@ -624,7 +624,8 @@ function copyDictionaryFiles() {
   console.log('\nCopying dictionary files...');
 
   const dictSourceDir = path.join(__dirname, '..', 'dict', 'bin');
-  const iosMainAppDir = path.join(IOS_DIR, 'IssieBoardNG');
+  // The app targets' resources reference ios/<lang>_50k.bin (the IssieBoardNG group has no folder of its own)
+  const iosMainAppDir = IOS_DIR;
 
   const dictFiles = ['he_50k.bin', 'en_50k.bin', 'ar_50k.bin'];
 

@@ -39,7 +39,7 @@ class WordSuggestionController {
     /// Set the current language for suggestions
     /// - Parameter language: Language code (e.g., "en", "he", "ar")
     func setLanguage(_ language: String) {
-        print("🔤 WordSuggestionController: Setting language to '\(language)'")
+        debugLog("🔤 WordSuggestionController: Setting language to '\(language)'")
         if self.currentLanguage != language {
             self.currentLanguage = language
             
@@ -63,7 +63,7 @@ class WordSuggestionController {
 
         // Append to current word
         currentWord += character
-        print("🔤 handleCharacterTyped: '\(character)' - currentWord now: '\(currentWord)'")
+        debugLog("🔤 handleCharacterTyped: '\(character)' - currentWord now: '\(currentWord)'")
 
         // Get suggestions for current word
         updateSuggestions()
@@ -74,7 +74,7 @@ class WordSuggestionController {
     /// Handle space key - reset current word and show predictions
     /// - Returns: The previous word that was being typed
     func handleSpace() -> String {
-        print("🔮 WordSuggestionController.handleSpace() called - currentWord: '\(currentWord)'")
+        debugLog("🔮 WordSuggestionController.handleSpace() called - currentWord: '\(currentWord)'")
 
         guard suggestionsEnabled else {
             let oldWord = currentWord
@@ -87,7 +87,7 @@ class WordSuggestionController {
             let result = WordCompletionManager.shared.getSuggestionsStructured(for: currentWord, language: currentLanguage)
             if result.hasFuzzyOnly, let bestMatch = result.bestFuzzyMatch {
                 // Auto-correct would happen here in the keyboard extension
-                print("🔤 WordSuggestionController: Auto-correct would replace '\(currentWord)' with '\(bestMatch)'")
+                debugLog("🔤 WordSuggestionController: Auto-correct would replace '\(currentWord)' with '\(bestMatch)'")
             }
         }
 
@@ -96,14 +96,14 @@ class WordSuggestionController {
 
         // Get predictions for next word
         if !currentWord.isEmpty {
-            print("🔮 Getting predictions after word: '\(currentWord)'")
+            debugLog("🔮 Getting predictions after word: '\(currentWord)'")
             // Get word predictions based on last word
             let predictions = WordCompletionManager.shared.getWordPredictions(
                 afterWord: currentWord,
                 language: currentLanguage
             )
 
-            print("🔮 Got \(predictions.count) predictions: \(predictions)")
+            debugLog("🔮 Got \(predictions.count) predictions: \(predictions)")
 
             // Save as lastCompletedWord before resetting
             lastCompletedWord = currentWord
@@ -114,21 +114,21 @@ class WordSuggestionController {
 
             // Show predictions
             if !predictions.isEmpty {
-                print("🔮 Showing predictions via renderer")
+                debugLog("🔮 Showing predictions via renderer")
                 renderer?.updateSuggestions(predictions)
             } else {
                 // Show default suggestions if no predictions available
-                print("🔮 No predictions, showing defaults (currentWord is now empty)")
+                debugLog("🔮 No predictions, showing defaults (currentWord is now empty)")
                 showDefaults()
             }
         } else {
             // If no current word, show defaults
-            print("🔮 currentWord is empty, showing defaults")
+            debugLog("🔮 currentWord is empty, showing defaults")
             currentWord = ""
             showDefaults()
         }
 
-        print("🔮 WordSuggestionController.handleSpace() complete - currentWord: '\(currentWord)'")
+        debugLog("🔮 WordSuggestionController.handleSpace() complete - currentWord: '\(currentWord)'")
 
         return oldWord
     }
@@ -148,7 +148,7 @@ class WordSuggestionController {
             // We just emptied currentWord - check if we should show predictions
             // This happens when backspacing "get k" → "get " (removing 'k')
             if !lastCompletedWord.isEmpty {
-                print("⌫ handleBackspace: currentWord now empty but have lastCompletedWord='\(lastCompletedWord)', showing predictions")
+                debugLog("⌫ handleBackspace: currentWord now empty but have lastCompletedWord='\(lastCompletedWord)', showing predictions")
                 // Get predictions for the last completed word
                 let predictions = WordCompletionManager.shared.getWordPredictions(
                     afterWord: lastCompletedWord,
@@ -156,7 +156,7 @@ class WordSuggestionController {
                 )
 
                 if !predictions.isEmpty {
-                    print("⌫ Showing predictions: \(predictions)")
+                    debugLog("⌫ Showing predictions: \(predictions)")
                     renderer?.updateSuggestions(predictions)
                 } else {
                     showDefaults()
@@ -297,7 +297,7 @@ class WordSuggestionController {
     /// Extract current word from text
     /// - Parameter text: The full text
     func detectCurrentWord(from text: String) {
-        print("🔍 detectCurrentWord called with text: '\(text)'")
+        debugLog("🔍 detectCurrentWord called with text: '\(text)'")
 
         guard !text.isEmpty else {
             currentWord = ""
@@ -313,12 +313,12 @@ class WordSuggestionController {
 
         if let lastWord = components.last, !lastWord.isEmpty {
             currentWord = lastWord
-            print("🔍 detectCurrentWord - set currentWord to: '\(currentWord)' - calling updateSuggestions()")
+            debugLog("🔍 detectCurrentWord - set currentWord to: '\(currentWord)' - calling updateSuggestions()")
             updateSuggestions()
         } else {
             currentWord = ""
             if suggestionsEnabled {
-                print("🔍 detectCurrentWord - no word found, showing defaults")
+                debugLog("🔍 detectCurrentWord - no word found, showing defaults")
                 showDefaults()
             }
         }

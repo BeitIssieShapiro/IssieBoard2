@@ -13,6 +13,7 @@ jest.mock('../../issievoice/src/services/TextToSpeech', () => ({
   __esModule: true,
   default: {
     initialize: () => Promise.resolve(),
+    stop: () => Promise.resolve(),
     speak: () => Promise.resolve(),
     setLanguage: () => Promise.resolve(),
     setVoice: () => Promise.resolve(),

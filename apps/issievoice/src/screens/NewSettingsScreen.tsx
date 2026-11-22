@@ -67,14 +67,15 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
   const [isDirty, setIsDirty] = useState(false);
   const showProfilePickerRef = useRef<(() => void) | null>(null);
   const changeLanguageRef = useRef<((lang: 'en' | 'he' | 'ar') => void) | null>(null);
-  const saveRef = useRef<(() => void) | null>(null);
+  const saveRef = useRef<(() => Promise<boolean>) | null>(null);
   const autoSaveRef = useRef<(() => void) | null>(null);
   const discardRef = useRef<(() => void) | null>(null);
 
-  // Auto-save when app goes to background or is closed
+  // Auto-save when the app goes to the background. Not on 'inactive': iOS sends that
+  // for Control Center, notifications and incoming calls, where the user hasn't left.
   useEffect(() => {
     const sub = AppState.addEventListener('change', (nextState) => {
-      if (nextState === 'background' || nextState === 'inactive') {
+      if (nextState === 'background') {
         autoSaveRef.current?.();
       }
     });
@@ -161,15 +162,22 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
 
   const confirmUnsavedChanges = useCallback((onDiscard: () => void) => {
     Alert.alert(
-      'Unsaved Changes',
-      'You have unsaved keyboard changes. What would you like to do?',
+      voiceStrings.common.unsavedChanges,
+      voiceStrings.common.unsavedChangesMessage,
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Discard', style: 'destructive', onPress: onDiscard },
-        { text: 'Save', onPress: () => { saveRef.current?.(); onDiscard(); } },
+        { text: voiceStrings.common.cancel, style: 'cancel' },
+        { text: voiceStrings.common.discard, style: 'destructive', onPress: onDiscard },
+        {
+          text: voiceStrings.common.save,
+          // Leave only once really saved: on a built-in profile save opens Save As
+          // instead, and leaving now would close it and lose the changes.
+          onPress: async () => {
+            if (await saveRef.current?.()) onDiscard();
+          },
+        },
       ]
     );
-  }, []);
+  }, [voiceStrings]);
 
   const handleDiscardPress = useCallback(() => {
     Alert.alert(
@@ -185,7 +193,13 @@ const NewSettingsScreen: React.FC<NewSettingsScreenProps> = ({ navigation, route
   const handleTabChange = useCallback((tabId: string) => {
     const leavingKeyboard = KEYBOARD_TABS.includes(activeTab) && !KEYBOARD_TABS.includes(tabId);
     if (leavingKeyboard && isDirty) {
-      confirmUnsavedChanges(() => setActiveTab(tabId));
+      // The editor unmounts on the voice/language tabs, so whether its changes were
+      // saved or discarded, nothing is left unsaved — clear the flag, or the
+      // back button would ask to save again from a tab that has no Save.
+      confirmUnsavedChanges(() => {
+        setIsDirty(false);
+        setActiveTab(tabId);
+      });
     } else {
       setActiveTab(tabId);
     }

@@ -64,7 +64,7 @@ class CustomTextDocumentProxy : TextDocumentProxyProtocol {
         }
 
     override fun insertText(text: String) {
-        Log.d(TAG, "insertText: '$text'")
+        debugLog("insertText: '$text'")
         onInsertText?.invoke(text)
     }
 

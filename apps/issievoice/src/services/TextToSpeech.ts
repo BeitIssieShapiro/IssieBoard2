@@ -33,6 +33,13 @@ class TextToSpeechService {
       console.error('TTS not available:', error);
       this.initialized = true;
     }
+    // Speaking is the whole point of these apps (for IssieVoice it is the user's
+    // voice), so it must not be muted by the ringer switch. iOS-only; a no-op elsewhere.
+    try {
+      await Tts.setIgnoreSilentSwitch('ignore');
+    } catch (error) {
+      console.error('Failed to ignore the silent switch:', error);
+    }
   }
 
   async speak(text: string): Promise<void> {
@@ -106,6 +113,10 @@ class TextToSpeechService {
     Tts.addEventListener('tts-start', callback);
   }
 
+  onTtsCancel(callback: () => void): void {
+    Tts.addEventListener('tts-cancel', callback);
+  }
+
   /**
    * The tts-progress payload differs by platform:
    *
@@ -124,6 +135,7 @@ class TextToSpeechService {
   removeAllListeners(): void {
     Tts.removeAllListeners('tts-finish');
     Tts.removeAllListeners('tts-start');
+    Tts.removeAllListeners('tts-cancel');
     Tts.removeAllListeners('tts-progress');
   }
 }

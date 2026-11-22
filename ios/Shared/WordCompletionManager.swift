@@ -66,7 +66,7 @@ class WordCompletionManager {
     // MARK: - Initialization
     
     private init() {
-        print("📚 WordCompletionManager initialized")
+        debugLog("📚 WordCompletionManager initialized")
     }
     
     // MARK: - Public API
@@ -74,19 +74,19 @@ class WordCompletionManager {
     /// Set the current language for word completion
     /// - Parameter languageCode: Language code (e.g., "en", "he", "ar")
     func setLanguage(_ languageCode: String) {
-        print("📚 WordCompletionManager: Setting language to '\(languageCode)'")
+        debugLog("📚 WordCompletionManager: Setting language to '\(languageCode)'")
         // Only update if language is actually changing
         if currentLanguage != languageCode {
             currentLanguage = languageCode
 
             // Pre-load the engine for this language if not already loaded
             if let engine = getEngine(for: languageCode) {
-                print("📚 WordCompletionManager: Engine loaded successfully for '\(languageCode)'")
+                debugLog("📚 WordCompletionManager: Engine loaded successfully for '\(languageCode)'")
                 // Test a simple lookup to ensure it's working
                 let testSuggestions = engine.getSuggestions(for: "t", limit: 3)
-                print("📚 WordCompletionManager: Test lookup for 't' returned: \(testSuggestions)")
+                debugLog("📚 WordCompletionManager: Test lookup for 't' returned: \(testSuggestions)")
             } else {
-                print("⚠️ WordCompletionManager: Failed to load engine for '\(languageCode)'")
+                debugLog("⚠️ WordCompletionManager: Failed to load engine for '\(languageCode)'")
             }
             
             // Clear any cached engines for other languages to reduce memory usage
@@ -94,11 +94,11 @@ class WordCompletionManager {
                 if lang != languageCode {
                     engines.removeValue(forKey: lang)
                     predictionEngines.removeValue(forKey: lang)
-                    print("📚 WordCompletionManager: Cleared cached engine for '\(lang)' to save memory")
+                    debugLog("📚 WordCompletionManager: Cleared cached engine for '\(lang)' to save memory")
                 }
             }
             
-            print("📚 WordCompletionManager: Language successfully set to '\(languageCode)'")
+            debugLog("📚 WordCompletionManager: Language successfully set to '\(languageCode)'")
         }
     }
     
@@ -110,12 +110,12 @@ class WordCompletionManager {
         guard !prefix.isEmpty else {
             // Return default suggestions when no prefix (nothing typed yet)
             let defaults = getDefaultSuggestions()
-            print("📚 WordCompletionManager: Empty prefix, returning default suggestions: \(defaults)")
+            debugLog("📚 WordCompletionManager: Empty prefix, returning default suggestions: \(defaults)")
             return defaults
         }
         
         guard let language = currentLanguage else {
-            print("📚 WordCompletionManager: No language set, returning empty suggestions")
+            debugLog("📚 WordCompletionManager: No language set, returning empty suggestions")
             return []
         }
         
@@ -132,11 +132,11 @@ class WordCompletionManager {
         guard !prefix.isEmpty else {
             // Return default suggestions when no prefix (nothing typed yet)
             let defaults = getDefaultSuggestions()
-            print("📚 WordCompletionManager: Empty prefix, returning default suggestions: \(defaults)")
+            debugLog("📚 WordCompletionManager: Empty prefix, returning default suggestions: \(defaults)")
             return defaults
         }
         
-        print("📚 WordCompletionManager: Getting suggestions for prefix '\(prefix)' with explicitly requested language '\(languageCode)'")
+        debugLog("📚 WordCompletionManager: Getting suggestions for prefix '\(prefix)' with explicitly requested language '\(languageCode)'")
         return getSuggestionsWithFuzzy(for: prefix, language: languageCode)
     }
     
@@ -165,7 +165,7 @@ class WordCompletionManager {
         }
         
         guard let engine = getEngine(for: language) else {
-            print("⚠️ WordCompletionManager: No engine available for '\(language)' - this should not happen!")
+            debugLog("⚠️ WordCompletionManager: No engine available for '\(language)' - this should not happen!")
             return SuggestionResult(
                 suggestions: [],
                 hasFuzzyOnly: false,
@@ -177,17 +177,17 @@ class WordCompletionManager {
         // Normalize prefix to lowercase for dictionary lookup (dictionaries are lowercase)
         let normalizedPrefix = prefix.lowercased()
 
-        print("📚 WordCompletionManager: Querying engine for prefix '\(prefix)' (normalized: '\(normalizedPrefix)') in '\(language)' (length: \(prefix.count))")
+        debugLog("📚 WordCompletionManager: Querying engine for prefix '\(prefix)' (normalized: '\(normalizedPrefix)') in '\(language)' (length: \(prefix.count))")
 
         // Step 1: Check if prefix is an EXACT word in dictionary (prioritize exact matches)
         let isExactWord = engine.wordExists(normalizedPrefix)
         if isExactWord {
-            print("📚 WordCompletionManager: '\(normalizedPrefix)' is an exact word in dictionary - will prioritize")
+            debugLog("📚 WordCompletionManager: '\(normalizedPrefix)' is an exact word in dictionary - will prioritize")
         }
 
         // Step 2: Try prefix-based suggestions
         let exactSuggestions = engine.getSuggestions(for: normalizedPrefix, limit: maxSuggestions + 4)
-        print("📚 WordCompletionManager: Engine returned \(exactSuggestions.count) exact suggestions: \(exactSuggestions)")
+        debugLog("📚 WordCompletionManager: Engine returned \(exactSuggestions.count) exact suggestions: \(exactSuggestions)")
         
         // Filter out single-letter suggestions
         var filteredExact = exactSuggestions.filter { $0.count > 1 }
@@ -196,26 +196,26 @@ class WordCompletionManager {
         var prefixStrippedSuggestions: [String] = []
         if language == "he" && filteredExact.count <= fuzzyTriggerThreshold {
             prefixStrippedSuggestions = getPrefixStrippedSuggestions(for: normalizedPrefix, engine: engine)
-            print("📚 WordCompletionManager: Hebrew prefix stripping returned \(prefixStrippedSuggestions.count) suggestions: \(prefixStrippedSuggestions)")
+            debugLog("📚 WordCompletionManager: Hebrew prefix stripping returned \(prefixStrippedSuggestions.count) suggestions: \(prefixStrippedSuggestions)")
         }
 
         // Step 4: If exact word match, ensure it's in suggestions even if not in top results
         if isExactWord && normalizedPrefix.count > 1 && !filteredExact.contains(normalizedPrefix) {
             // Insert the exact match at the beginning
             filteredExact.insert(normalizedPrefix, at: 0)
-            print("📚 WordCompletionManager: Added exact match '\(normalizedPrefix)' to suggestions")
+            debugLog("📚 WordCompletionManager: Added exact match '\(normalizedPrefix)' to suggestions")
         }
 
         // Step 5: If exact matches are sufficient (including prefix-stripped), return them
         let combinedExact = filteredExact + prefixStrippedSuggestions.filter { !filteredExact.contains($0) }
 
-        print("📚 WordCompletionManager: combinedExact count: \(combinedExact.count), normalizedPrefix.count: \(normalizedPrefix.count)")
+        debugLog("📚 WordCompletionManager: combinedExact count: \(combinedExact.count), normalizedPrefix.count: \(normalizedPrefix.count)")
 
         // For single-letter prefixes, return results only if we have them
         // Don't do fuzzy search on single letters (doesn't make sense)
         if normalizedPrefix.count < 2 {
             if combinedExact.isEmpty {
-                print("📚 WordCompletionManager: No exact matches for single-letter prefix '\(normalizedPrefix)' - returning defaults")
+                debugLog("📚 WordCompletionManager: No exact matches for single-letter prefix '\(normalizedPrefix)' - returning defaults")
                 // Return default suggestions instead of empty
                 let defaults = WordCompletionManager.getDefaultSuggestions(for: language)
                 return SuggestionResult(
@@ -241,7 +241,7 @@ class WordCompletionManager {
                 restoreCase(suggestion: suggestion, originalPrefix: prefix)
             }
 
-            print("📚 WordCompletionManager: Returning \(finalSuggestions.count) suggestions for single-letter prefix '\(prefix)': \(finalSuggestions)")
+            debugLog("📚 WordCompletionManager: Returning \(finalSuggestions.count) suggestions for single-letter prefix '\(prefix)': \(finalSuggestions)")
 
             return SuggestionResult(
                 suggestions: finalSuggestions,
@@ -276,7 +276,7 @@ class WordCompletionManager {
         }
         
         // Step 6: Exact matches insufficient, try fuzzy search
-        print("📚 WordCompletionManager: Few exact matches (\(combinedExact.count)), trying fuzzy search with budget \(fuzzyErrorBudget)")
+        debugLog("📚 WordCompletionManager: Few exact matches (\(combinedExact.count)), trying fuzzy search with budget \(fuzzyErrorBudget)")
 
         // Get keyboard neighbors for fuzzy search
         let neighbors = KeyboardNeighbors.neighbors(for: language)
@@ -288,7 +288,7 @@ class WordCompletionManager {
             neighbors: neighbors,
             limit: maxSuggestions + 4
         )
-        print("📚 WordCompletionManager: Fuzzy search returned \(fuzzySuggestions.count) suggestions: \(fuzzySuggestions)")
+        debugLog("📚 WordCompletionManager: Fuzzy search returned \(fuzzySuggestions.count) suggestions: \(fuzzySuggestions)")
         
         // Determine if we have ONLY fuzzy matches (no exact matches)
         let hasFuzzyOnly = combinedExact.isEmpty && !fuzzySuggestions.isEmpty
@@ -330,7 +330,7 @@ class WordCompletionManager {
             }
         }
         
-        print("📚 WordCompletionManager: After merging fuzzy results: \(merged.count) total suggestions")
+        debugLog("📚 WordCompletionManager: After merging fuzzy results: \(merged.count) total suggestions")
 
         // Return top N results
         let lowercaseSuggestions = Array(merged.prefix(maxSuggestions))
@@ -340,7 +340,7 @@ class WordCompletionManager {
             restoreCase(suggestion: suggestion, originalPrefix: prefix)
         }
 
-        print("📚 WordCompletionManager: Returning \(finalSuggestions.count) suggestions for '\(prefix)': \(finalSuggestions), hasFuzzyOnly: \(hasFuzzyOnly), bestFuzzy: \(bestFuzzyMatch ?? "none")")
+        debugLog("📚 WordCompletionManager: Returning \(finalSuggestions.count) suggestions for '\(prefix)': \(finalSuggestions), hasFuzzyOnly: \(hasFuzzyOnly), bestFuzzy: \(bestFuzzyMatch ?? "none")")
 
         return SuggestionResult(
             suggestions: finalSuggestions,
@@ -393,7 +393,7 @@ class WordCompletionManager {
                 // The original word with prefix is likely valid
                 // Add the original word as a suggestion (prefix + root)
                 suggestions.append(word)
-                print("📚 WordCompletionManager: Hebrew prefix '\(firstChar)' + root '\(strippedWord)' found in dictionary")
+                debugLog("📚 WordCompletionManager: Hebrew prefix '\(firstChar)' + root '\(strippedWord)' found in dictionary")
             }
             
             // Also get suggestions for the stripped prefix
@@ -421,7 +421,7 @@ class WordCompletionManager {
     
     /// Preload dictionaries for all available languages
     func preloadAllDictionaries() {
-        print("📚 WordCompletionManager: Preloading all dictionaries...")
+        debugLog("📚 WordCompletionManager: Preloading all dictionaries...")
         for (languageCode, _) in languageMap {
             _ = getEngine(for: languageCode)
         }
@@ -429,7 +429,7 @@ class WordCompletionManager {
     
     /// Clear cached engines to free memory
     func clearCache() {
-        print("📚 WordCompletionManager: Clearing engine cache")
+        debugLog("📚 WordCompletionManager: Clearing engine cache")
         engines.removeAll()
     }
     
@@ -463,14 +463,14 @@ class WordCompletionManager {
         
         // Get the dictionary filename for this language
         guard let filename = languageMap[languageCode] else {
-            print("📚 WordCompletionManager: No dictionary mapping for '\(languageCode)'")
+            debugLog("📚 WordCompletionManager: No dictionary mapping for '\(languageCode)'")
             return nil
         }
         
         // Try to load the engine
         if let engine = TrieEngine(filename: filename) {
             engines[languageCode] = engine
-            print("📚 WordCompletionManager: Loaded engine for '\(languageCode)'")
+            debugLog("📚 WordCompletionManager: Loaded engine for '\(languageCode)'")
             
             // Also try to load prediction engine for this language
             _ = getPredictionEngine(for: languageCode, trieEngine: engine)
@@ -478,7 +478,7 @@ class WordCompletionManager {
             return engine
         }
         
-        print("📚 WordCompletionManager: Failed to load engine for '\(languageCode)'")
+        debugLog("📚 WordCompletionManager: Failed to load engine for '\(languageCode)'")
         return nil
     }
     
@@ -491,18 +491,18 @@ class WordCompletionManager {
         
         // Get the dictionary filename for this language
         guard let filename = languageMap[languageCode] else {
-            print("📚 WordCompletionManager: No dictionary mapping for '\(languageCode)'")
+            debugLog("📚 WordCompletionManager: No dictionary mapping for '\(languageCode)'")
             return nil
         }
         
         // Try to load the prediction engine
         if let predictionEngine = WordPredictionEngine(filename: filename, trieEngine: trieEngine) {
             predictionEngines[languageCode] = predictionEngine
-            print("📚 WordCompletionManager: Loaded prediction engine for '\(languageCode)'")
+            debugLog("📚 WordCompletionManager: Loaded prediction engine for '\(languageCode)'")
             return predictionEngine
         }
         
-        print("📚 WordCompletionManager: Prediction engine not available for '\(languageCode)' (this is optional)")
+        debugLog("📚 WordCompletionManager: Prediction engine not available for '\(languageCode)' (this is optional)")
         return nil
     }
     
@@ -515,7 +515,7 @@ class WordCompletionManager {
     /// - Returns: Array of predicted next words
     func getWordPredictions(afterWord word: String, limit: Int = 4) -> [String] {
         guard let language = currentLanguage else {
-            print("📚 WordCompletionManager: No language set for predictions")
+            debugLog("📚 WordCompletionManager: No language set for predictions")
             return []
         }
         
@@ -537,7 +537,7 @@ class WordCompletionManager {
         let predictions = predictionEngine.getPredictions(afterWord: word, limit: limit)
         let words = predictions.map { $0.word }
         
-        print("📚 WordCompletionManager: Predictions after '\(word)': \(words)")
+        debugLog("📚 WordCompletionManager: Predictions after '\(word)': \(words)")
         return words
     }
     

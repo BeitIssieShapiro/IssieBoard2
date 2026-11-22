@@ -143,7 +143,6 @@ export function evaluate(
     // Guard: prevent large integers reaching React Native Text (locale comma rendering)
     if (abs >= 1e12) return 'NUMBER_TOO_BIG';
     return String(snapped);
-    return String(rounded);
   } catch {
     return 'Error';
   }

@@ -20,9 +20,23 @@ index dbbe046..703c30f 100644
  
  android {
 diff --git a/node_modules/react-native-tts/ios/TextToSpeech/TextToSpeech.m b/node_modules/react-native-tts/ios/TextToSpeech/TextToSpeech.m
-index 1e769cc..543d05c 100644
+index 1e769cc..5a76c30 100644
 --- a/node_modules/react-native-tts/ios/TextToSpeech/TextToSpeech.m
 +++ b/node_modules/react-native-tts/ios/TextToSpeech/TextToSpeech.m
+@@ -94,11 +94,11 @@ + (BOOL)requiresMainQueueSetup
+     resolve([NSNumber numberWithUnsignedLong:utterance.hash]);
+ }
+ 
+-RCT_EXPORT_METHOD(stop:(BOOL *)onWordBoundary resolve:(RCTPromiseResolveBlock)resolve reject:(__unused RCTPromiseRejectBlock)reject)
++RCT_EXPORT_METHOD(stop:(NSNumber *)onWordBoundary resolve:(RCTPromiseResolveBlock)resolve reject:(__unused RCTPromiseRejectBlock)reject)
+ {
+     AVSpeechBoundary boundary;
+ 
+-    if(onWordBoundary != NULL && onWordBoundary) {
++    if([onWordBoundary boolValue]) {
+         boundary = AVSpeechBoundaryWord;
+     } else {
+         boundary = AVSpeechBoundaryImmediate;
 @@ -178,7 +178,7 @@ + (BOOL)requiresMainQueueSetup
  }
  

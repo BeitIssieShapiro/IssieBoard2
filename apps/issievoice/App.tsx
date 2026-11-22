@@ -12,6 +12,7 @@ import {TTSProvider} from './src/context/TTSContext';
 import {LocalizationProvider} from './src/context/LocalizationContext';
 import {NotificationProvider} from './src/context/NotificationContext';
 import { initializeFirebase } from '../../src/firebase-config';
+import { getStrings, getDeviceLanguage } from '../../src/localization';
 import { loadLanguage, LANGUAGE_SETTINGS } from '@beitissieshapiro/issie-shared';
 import { useIncomingURL } from '../../src/common/linking-hook';
 import { importPackage, ImportInfo } from '../../src/import-export';
@@ -44,11 +45,24 @@ const App = () => {
       }
     } catch (error) {
       console.warn('Import failed:', error);
-      Alert.alert('Import Failed', 'This file is not a valid IssieBoard keyboard file.');
+      const { importExport } = getStrings(getDeviceLanguage());
+      Alert.alert(importExport.importFailed, importExport.invalidFile);
     }
   }, []);
 
   useIncomingURL(handleImportURL);
+
+  const navigator = (
+    <NavigationContainer>
+      <Stack.Navigator initialRouteName="Main" screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="Main" component={MainScreen} />
+        <Stack.Screen name="Browse" component={BrowseScreen} />
+        <Stack.Screen name="Settings">
+          {(props) => <NewSettingsScreen {...props} key={settingsKey} />}
+        </Stack.Screen>
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
 
   return (
     <SafeAreaProvider>
@@ -57,41 +71,10 @@ const App = () => {
           <TTSProvider>
             <TextProvider>
               {__DEV__ ? (
-                <ScreenSizer.Wrapper
-                  devices={[
-                    ...ScreenSizer.defaultDevices.all,
-                    'hostDevice',
-                  ]}
-                >
-                  <NavigationContainer>
-                    <Stack.Navigator
-                      initialRouteName="Main"
-                      screenOptions={{
-                        headerShown: false,
-                      }}>
-                      <Stack.Screen name="Main" component={MainScreen} />
-                      <Stack.Screen name="Browse" component={BrowseScreen} />
-                      <Stack.Screen name="Settings">
-                        {(props) => <NewSettingsScreen {...props} key={settingsKey} />}
-                      </Stack.Screen>
-                    </Stack.Navigator>
-                  </NavigationContainer>
+                <ScreenSizer.Wrapper devices={[...ScreenSizer.defaultDevices.all, 'hostDevice']}>
+                  {navigator}
                 </ScreenSizer.Wrapper>
-              ) : (
-                <NavigationContainer>
-                  <Stack.Navigator
-                    initialRouteName="Main"
-                    screenOptions={{
-                      headerShown: false,
-                    }}>
-                    <Stack.Screen name="Main" component={MainScreen} />
-                    <Stack.Screen name="Browse" component={BrowseScreen} />
-                    <Stack.Screen name="Settings">
-                      {(props) => <NewSettingsScreen {...props} key={settingsKey} />}
-                    </Stack.Screen>
-                  </Stack.Navigator>
-                </NavigationContainer>
-              )}
+              ) : navigator}
             </TextProvider>
           </TTSProvider>
         </NotificationProvider>

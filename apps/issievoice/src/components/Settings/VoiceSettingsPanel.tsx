@@ -98,6 +98,7 @@ const VoiceSettingsPanel: React.FC<VoiceSettingsPanelProps> = ({
 
   const handleTestVoice = useCallback(async (voiceId: string, langPrefix: string) => {
     try {
+      await TTS.stop();
       await TTS.setVoice(voiceId);
       await TTS.speak(getTestText(langPrefix));
     } catch (error) {

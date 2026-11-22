@@ -463,7 +463,8 @@ interface EditorScreenInnerProps {
   /** Description text shown at the top of the headless panel for the active tab */
   tabDescription?: string;
   /** Ref to expose save function to parent */
-  saveRef?: React.MutableRefObject<(() => void) | null>;
+  /** Resolves true once saved; false when it opened Save As instead, or failed. */
+  saveRef?: React.MutableRefObject<(() => Promise<boolean>) | null>;
   /** Ref to expose silent auto-save (background/quit) — handles built-in by saving as a copy */
   autoSaveRef?: React.MutableRefObject<(() => void) | null>;
   /** Ref to expose discard (restore to last saved state) to parent */
@@ -975,7 +976,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   }, [currentLanguage, setupStatus, handleLanguageChange, strings.setup]);
 
   // Handle keyboard variant change (within same language) - update current profile's keyboard
-  const handleSave = useCallback(async () => {
+  const handleSave = useCallback(async (): Promise<boolean> => {
     // Check if this is a built-in (read-only) profile
     const currentProfile = profiles.find(p => p.id === currentProfileId);
     const isBuiltInProfile = currentProfile?.isBuiltIn || isCalcBuiltInProfileId(currentProfileId);
@@ -983,7 +984,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     if (isBuiltInProfile) {
       // For built-in profiles, open Save As modal instead
       setShowSaveAsModal(true);
-      return;
+      return false;
     }
 
     // For custom profiles, save directly
@@ -997,13 +998,15 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
       if (appContext === 'issiecalc' && onClose) {
         onClose();
       }
+      return true;
     } catch (error) {
       console.error('Save failed:', error);
       showToast('✗ ' + strings.alerts.failedToSaveProfile);
+      return false;
     } finally {
       setSaving(false);
     }
-  }, [state.config, state.styleGroups, onSave, showToast, currentProfileId, profiles, dispatch, strings.alerts.profileSaved, strings.alerts.failedToSaveProfile]);
+  }, [state.config, state.styleGroups, state.styleGroupsCleared, onSave, showToast, currentProfileId, profiles, dispatch, strings.alerts.profileSaved, strings.alerts.failedToSaveProfile, appContext, onClose]);
 
   // Expose save function to parent via ref
   useEffect(() => {
@@ -1017,17 +1020,15 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     };
   }, [saveRef, handleSave]);
 
-  // Silent auto-save for background/quit: saves directly without opening any modal
+  // Silent auto-save when the app goes to the background. Only the user's own
+  // profiles: a built-in can't be overwritten, and silently creating a copy of it
+  // (and making that the live keyboard) is not something the user asked for.
   const handleAutoSave = useCallback(async () => {
     if (!state.isDirty) return;
     const currentProfile = profiles.find(p => p.id === currentProfileId);
-    if (currentProfile?.isBuiltIn || isCalcBuiltInProfileId(currentProfileId)) {
-      const copyName = `${currentProfileName} Copy`;
-      await handleSaveAs(copyName);
-    } else {
-      await handleSave();
-    }
-  }, [state.isDirty, profiles, currentProfileId, currentProfileName, handleSaveAs, handleSave]);
+    if (currentProfile?.isBuiltIn || isCalcBuiltInProfileId(currentProfileId)) return;
+    await handleSave();
+  }, [state.isDirty, profiles, currentProfileId, handleSave]);
 
   useEffect(() => {
     if (autoSaveRef) {
@@ -1245,7 +1246,8 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
           {
             text: strings.alerts.saveFirst,
             onPress: async () => {
-              await handleSave();
+              // Not saved when Save As opened instead (built-in profile): stay put
+              if (!(await handleSave())) return;
               setShowProfilePicker(false);
               loadProfileInternal(profile);
             }
@@ -1615,7 +1617,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
           {
             text: strings.alerts.saveFirst,
             onPress: async () => {
-              await handleSave();
+              if (!(await handleSave())) return;
               openModal();
             },
           },
@@ -2600,7 +2602,8 @@ interface EditorScreenProps {
   changeLanguageRef?: React.MutableRefObject<((lang: LanguageId) => void) | null>;
   headless?: boolean;
   activeTab?: string;
-  saveRef?: React.MutableRefObject<(() => void) | null>;
+  /** Resolves true once saved; false when it opened Save As instead, or failed. */
+  saveRef?: React.MutableRefObject<(() => Promise<boolean>) | null>;
   /** Ref to expose silent auto-save (background/quit) — handles built-in by saving as a copy */
   autoSaveRef?: React.MutableRefObject<(() => void) | null>;
   /** Ref to expose discard (restore to last saved state) to parent */

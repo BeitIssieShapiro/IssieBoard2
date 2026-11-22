@@ -28,7 +28,7 @@ class KeyboardPreferences {
         self.userDefaults = UserDefaults(suiteName: KeyboardPreferences.appGroupIdentifier)
         
         if userDefaults == nil {
-            print("⚠️ Failed to initialize App Group UserDefaults. Make sure App Groups capability is enabled.")
+            debugLog("⚠️ Failed to initialize App Group UserDefaults. Make sure App Groups capability is enabled.")
         }
     }
     
@@ -122,14 +122,14 @@ class KeyboardPreferences {
 
         if let jsonData = try? JSONSerialization.data(withJSONObject: dimensions, options: []),
            let jsonString = String(data: jsonData, encoding: .utf8) {
-            print("📐 [KeyboardPreferences] Saving dimensions JSON: \(jsonString)")
+            debugLog("📐 [KeyboardPreferences] Saving dimensions JSON: \(jsonString)")
             userDefaults?.set(jsonString, forKey: Keys.keyboardDimensions)
             let syncSuccess = userDefaults?.synchronize() ?? false
-            print("📐 [KeyboardPreferences] UserDefaults sync success: \(syncSuccess)")
+            debugLog("📐 [KeyboardPreferences] UserDefaults sync success: \(syncSuccess)")
 
             // Post Darwin notification for cross-process communication
             // This works between app and keyboard extension
-            print("📐 [KeyboardPreferences] Posting Darwin notification...")
+            debugLog("📐 [KeyboardPreferences] Posting Darwin notification...")
             CFNotificationCenterPostNotification(
                 CFNotificationCenterGetDarwinNotifyCenter(),
                 CFNotificationName("com.issieboard.dimensionsChanged" as CFString),
@@ -137,7 +137,7 @@ class KeyboardPreferences {
                 nil,
                 true
             )
-            print("📐 [KeyboardPreferences] Darwin notification posted")
+            debugLog("📐 [KeyboardPreferences] Darwin notification posted")
 
             // Also post regular notification for in-process listeners
             DispatchQueue.main.async {
@@ -146,7 +146,7 @@ class KeyboardPreferences {
                     object: nil,
                     userInfo: dimensions
                 )
-                print("📐 [KeyboardPreferences] Regular notification posted")
+                debugLog("📐 [KeyboardPreferences] Regular notification posted")
             }
         }
     }
@@ -176,12 +176,12 @@ class KeyboardPreferences {
     // MARK: - Debugging
     
     func printAllPreferences() {
-        print("📱 Keyboard Preferences:")
-        print("  App Group: \(KeyboardPreferences.appGroupIdentifier)")
-        print("  Current Profile: \(currentProfile ?? "none")")
-        print("  Selected Language: \(selectedLanguage ?? "none")")
-        print("  Last Update: \(Date(timeIntervalSince1970: lastUpdateTime))")
-        print("  Has Config: \(getKeyboardConfigJSON() != nil)")
+        debugLog("📱 Keyboard Preferences:")
+        debugLog("  App Group: \(KeyboardPreferences.appGroupIdentifier)")
+        debugLog("  Current Profile: \(currentProfile ?? "none")")
+        debugLog("  Selected Language: \(selectedLanguage ?? "none")")
+        debugLog("  Last Update: \(Date(timeIntervalSince1970: lastUpdateTime))")
+        debugLog("  Has Config: \(getKeyboardConfigJSON() != nil)")
     }
     
     // MARK: - Clear Preferences
@@ -199,7 +199,7 @@ class KeyboardPreferences {
         defaults.synchronize()
         notifyPreferencesChanged()
         
-        print("🗑️ Cleared all \(dictionary.keys.count) preference keys")
+        debugLog("🗑️ Cleared all \(dictionary.keys.count) preference keys")
     }
 }
 
@@ -240,7 +240,7 @@ class KeyboardPreferenceObserver {
         if currentUpdateTime > lastKnownUpdateTime {
             lastKnownUpdateTime = currentUpdateTime
             
-            print("🔄 Keyboard preferences changed at \(Date(timeIntervalSince1970: currentUpdateTime))")
+            debugLog("🔄 Keyboard preferences changed at \(Date(timeIntervalSince1970: currentUpdateTime))")
             preferences.printAllPreferences()
             
             onChange()

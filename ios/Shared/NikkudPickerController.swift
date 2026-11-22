@@ -697,13 +697,13 @@ class NikkudPickerController {
     // MARK: - Actions
     
     @objc private func nikkudOptionTapped(_ sender: UIButton) {
-        print("🎯 Nikkud option tapped: \(sender.accessibilityIdentifier ?? "nil")")
+        debugLog("🎯 Nikkud option tapped: \(sender.accessibilityIdentifier ?? "nil")")
         debugLog("🎯 Nikkud option tapped: \(sender.accessibilityIdentifier ?? "nil")")
         if let value = sender.accessibilityIdentifier {
-            print("🎯 Calling onNikkudSelected callback with value: '\(value)'")
+            debugLog("🎯 Calling onNikkudSelected callback with value: '\(value)'")
             onNikkudSelected?(value)
         } else {
-            print("🎯 ⚠️ No value found in accessibilityIdentifier!")
+            debugLog("🎯 ⚠️ No value found in accessibilityIdentifier!")
         }
         dismiss()
     }

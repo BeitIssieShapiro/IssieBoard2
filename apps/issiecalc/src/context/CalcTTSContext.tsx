@@ -321,6 +321,27 @@ function speakableNumber(value: string, language: string | null): string {
   return result;
 }
 
+const LANG_ERROR: Record<string, string> = { en: 'error', he: 'שגיאה', ar: 'خطأ' };
+const LANG_TOO_BIG: Record<string, string> = { en: 'number too big', he: 'המספר גדול מדי', ar: 'الرقم كبير جداً' };
+const LANG_TIMES_TEN_POW: Record<string, string> = { en: 'times ten to the power of', he: 'כפול עשר בחזקת', ar: 'في عشرة أس' };
+
+/**
+ * How a calculator result is spoken, in the voice's language: the error and
+ * too-big markers become words, E-notation ("1.5E+9") becomes "1.5 times ten to
+ * the power of 9", and decimals are cut to the user's setting.
+ */
+function speakableResult(result: string, language: string | null, decimalDigits: number): string {
+  if (result === 'Error') return getLangWord(LANG_ERROR, language);
+  if (result === 'NUMBER_TOO_BIG') return getLangWord(LANG_TOO_BIG, language);
+  const sci = result.match(/^(-?[\d.]+)E([+-])(\d+)$/);
+  if (sci) {
+    const [, mantissa, sign, exponent] = sci;
+    const exp = sign === '-' ? speakableNumber(`-${exponent}`, language) : exponent;
+    return `${speakableNumber(formatResult(mantissa, decimalDigits), language)} ${getLangWord(LANG_TIMES_TEN_POW, language)} ${exp}`;
+  }
+  return speakableNumber(formatResult(result, decimalDigits), language);
+}
+
 /** The device's language as a full locale ("he-IL"), for picking its voice. */
 function deviceLanguageTag(): string {
   const lang = getDeviceLanguage();
@@ -383,8 +404,10 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
   useEffect(() => {
     TTS.initialize().then(() => {
       initializedRef.current = true;
-      // Only apply language and voice after init — rate/pitch are not re-applied on startup
-      // (setDefaultRate has a known iOS TurboModule signature issue when called outside user action)
+      // Apply the saved settings once TTS is up. setDefaultRate's iOS TurboModule
+      // signature issue is fixed in patches/react-native-tts+4.1.1.patch.
+      TTS.setRate(rateRef.current);
+      TTS.setPitch(pitchRef.current);
       if (languageRef.current) TTS.setLanguage(languageRef.current).catch(() => {});
       if (voiceIdRef.current) TTS.setVoice(voiceIdRef.current).catch(() => {});
     }).catch(() => {});
@@ -420,6 +443,8 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
     mathLevelRef.current = ml; setMathLevelState(ml);
     // Apply TTS settings only after TTS is initialized
     if (initializedRef.current) {
+      TTS.setRate(r);
+      TTS.setPitch(p);
       if (lang) TTS.setLanguage(lang).catch(() => {});
       if (vid) TTS.setVoice(vid).catch(() => {});
     }
@@ -463,14 +488,33 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
     mathLevelRef.current = level; setMathLevelState(level);
   }, []);
 
-  const speak = useCallback((text: string) => {
-    TTS.speak(text).catch(() => {});
+  // The second half of a speakWithPause, still waiting for its pause to end
+  const pendingSpeechRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Each readout replaces the one still playing, so fast typing never builds a
+  // backlog of speech that lags behind the display. Not awaited: native calls run
+  // in the order they are made, so the stop lands before the next speak.
+  const interrupt = useCallback(() => {
+    if (pendingSpeechRef.current) {
+      clearTimeout(pendingSpeechRef.current);
+      pendingSpeechRef.current = null;
+    }
+    TTS.stop();
   }, []);
 
+  const speak = useCallback((text: string) => {
+    interrupt();
+    TTS.speak(text).catch(() => {});
+  }, [interrupt]);
+
   const speakWithPause = useCallback((before: string, after: string, pauseMs = 500) => {
+    interrupt();
     TTS.speak(before).catch(() => {});
-    setTimeout(() => { TTS.speak(after).catch(() => {}); }, pauseMs);
-  }, []);
+    pendingSpeechRef.current = setTimeout(() => {
+      pendingSpeechRef.current = null;
+      TTS.speak(after).catch(() => {});
+    }, pauseMs);
+  }, [interrupt]);
 
   /**
    * How the answer is spoken: "error", or the number trimmed to the user's
@@ -483,8 +527,8 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
     expression: string,
     angleMode?: 'deg' | 'rad'
   ): string => {
-    if (result === 'Error') return 'error';
-    const value = speakableNumber(formatResult(result, decimalDigitsRef.current), lang);
+    const value = speakableResult(result, lang, decimalDigitsRef.current);
+    if (result === 'Error' || result === 'NUMBER_TOO_BIG') return value;
     if (!angleMode || !returnsAngle(expression)) return value;
     const unit = angleMode === 'deg' ? getLangWord(LANG_DEG, lang) : getLangWord(LANG_RAD, lang);
     return `${value} ${unit}`;
@@ -643,7 +687,7 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
 // POSTFIX_FUNCTIONS/LANG_OF/getLangWord are shared with CalcScreen's
 // speakExpression so the speak button phrases calls ("cube root of 8",
 // "5 factorial") exactly as the per-key readout above does.
-export { getSubMap, speakableNumber, formatResult, getLangWord, POSTFIX_FUNCTIONS, LANG_OF, SELF_CONNECTING_FUNCTIONS, getRootOrdinal };
+export { getSubMap, speakableNumber, speakableResult, formatResult, getLangWord, POSTFIX_FUNCTIONS, LANG_OF, SELF_CONNECTING_FUNCTIONS, getRootOrdinal };
 
 export function useCalcTTS(): CalcTTSContextValue {
   const ctx = useContext(CalcTTSContext);

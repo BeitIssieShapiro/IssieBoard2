@@ -31,7 +31,7 @@ private class TransformAwareContainerView: UIView {
 
         // Check if point is in bounds (untransformed coordinate space)
         guard bounds.contains(point) else {
-            print("🔍 Hit test: point \(point) outside bounds \(bounds)")
+            debugLog("🔍 Hit test: point \(point) outside bounds \(bounds)")
             return nil
         }
 
@@ -39,12 +39,12 @@ private class TransformAwareContainerView: UIView {
         for subview in subviews.reversed() {
             let convertedPoint = subview.convert(point, from: self)
             if let hitView = subview.hitTest(convertedPoint, with: event) {
-                print("🔍 Hit test: found view at \(point) -> \(type(of: hitView))")
+                debugLog("🔍 Hit test: found view at \(point) -> \(type(of: hitView))")
                 return hitView
             }
         }
 
-        print("🔍 Hit test: no subview hit at \(point)")
+        debugLog("🔍 Hit test: no subview hit at \(point)")
         return nil
     }
 }
@@ -229,7 +229,7 @@ class KeyboardRenderer {
         // Use available height (safe area) instead of full screen height
         let screenHeight = availableHeight
 
-        print("📐 [rowHeight] screenBounds: \(screenBounds), safeAreaInsets: \(safeAreaInsets), screenHeight: \(screenHeight), preset: \(preset)")
+        debugLog("📐 [rowHeight] screenBounds: \(screenBounds), safeAreaInsets: \(safeAreaInsets), screenHeight: \(screenHeight), preset: \(preset)")
 
         // Get font size preset from config (defaults to .normal)
         let fontPreset: FontSizePreset
@@ -260,7 +260,7 @@ class KeyboardRenderer {
 
         let calculatedRowHeight = dimensions.calculateRowHeight(numberOfRows: currentRowCount, hasSuggestions: hasSuggestions)
 
-        print("📐 [rowHeight] calculated: \(calculatedRowHeight)")
+        debugLog("📐 [rowHeight] calculated: \(calculatedRowHeight)")
 
         return calculatedRowHeight
     }
@@ -572,7 +572,7 @@ class KeyboardRenderer {
 
         let totalHeight = rowsHeight + spacingHeight + suggestionsHeight + topPadding + bottomPadding
 
-        print("📐 [calculateKeyboardHeight] preset: \(preset), rowHeight: \(calculatedRowHeight), rows: \(totalRowCount), nikkudTopRow: \(nikkudTopRowActive), total: \(totalHeight)")
+        debugLog("📐 [calculateKeyboardHeight] preset: \(preset), rowHeight: \(calculatedRowHeight), rows: \(totalRowCount), nikkudTopRow: \(nikkudTopRowActive), total: \(totalHeight)")
 
         return totalHeight
     }
@@ -596,7 +596,7 @@ class KeyboardRenderer {
     /// Set selected key IDs for visual highlighting
     /// Key IDs are in format "keysetId:rowIndex:keyIndex", e.g., "abc:0:3"
     func setSelectedKeys(_ keyIds: Set<String>) {
-        print("🎯 KeyboardRenderer setSelectedKeys: \(keyIds.count) keys")
+        debugLog("🎯 KeyboardRenderer setSelectedKeys: \(keyIds.count) keys")
         selectedKeyIds = keyIds
     }
     
@@ -605,7 +605,7 @@ class KeyboardRenderer {
     ///   - suggestions: Array of suggested words (max 4)
     ///   - highlightIndex: Optional index of the suggestion to highlight (for fuzzy match indication)
     func updateSuggestions(_ suggestions: [String], highlightIndex: Int? = nil) {
-        print("📝 KeyboardRenderer updateSuggestions: \(suggestions), highlight: \(highlightIndex?.description ?? "none")")
+        debugLog("📝 KeyboardRenderer updateSuggestions: \(suggestions), highlight: \(highlightIndex?.description ?? "none")")
         currentSuggestions = suggestions
         suggestionHighlightIndex = highlightIndex
         updateSuggestionsBar()
@@ -626,7 +626,7 @@ class KeyboardRenderer {
     func setShowGlobeButton(_ show: Bool) {
         if showGlobeButton != show {
             showGlobeButton = show
-            print("🌐 setShowGlobeButton: \(show)")
+            debugLog("🌐 setShowGlobeButton: \(show)")
             rerender()
         }
     }
@@ -709,7 +709,7 @@ class KeyboardRenderer {
     func setWordSuggestionsEnabled(_ enabled: Bool?) {
         if wordSuggestionsOverrideEnabled != enabled {
             wordSuggestionsOverrideEnabled = enabled
-            print("📝 setWordSuggestionsEnabled override: \(String(describing: enabled))")
+            debugLog("📝 setWordSuggestionsEnabled override: \(String(describing: enabled))")
             // Don't rerender here - let the controller call renderKeyboard when ready
         }
     }
@@ -727,21 +727,21 @@ class KeyboardRenderer {
         defer {
             isRendering = wasRendering
             if !wasRendering && !isPreviewMode {
-                print("📐 renderKeyboard defer: firing onNikkudStateChanged, isNikkudTopRowActive=\(isNikkudTopRowActive), isPreviewMode=\(isPreviewMode)")
+                debugLog("📐 renderKeyboard defer: firing onNikkudStateChanged, isNikkudTopRowActive=\(isNikkudTopRowActive), isPreviewMode=\(isPreviewMode)")
                 onNikkudStateChanged?()
             }
         }
         let currentWidth = container.bounds.width
-        print("📐 RENDER START =================")
-        print("📐 RENDER: container.bounds.width = \(currentWidth), lastRenderedWidth = \(lastRenderedWidth)")
-        print("⚙️ [Config] fontSizePreset from config: \(config.fontSizePreset ?? "nil")")
-        print("⚙️ [Config] fontName from config: \(config.fontName ?? "nil")")
-        print("⚙️ [Config] fontWeight from config: \(config.fontWeight ?? "nil")")
-        print("⚙️ [Config] backgroundColor from config: \(config.backgroundColor ?? "nil")")
-        print("⚙️ [Config] textColor from config: \(config.textColor ?? "nil")")
-        print("⚙️ [Config] keysBgColor from config: \(config.keysBgColor ?? "nil")")
-        print("📐 RENDER CALL STACK:")
-        Thread.callStackSymbols.prefix(10).forEach { print("  \($0)") }
+        debugLog("📐 RENDER START =================")
+        debugLog("📐 RENDER: container.bounds.width = \(currentWidth), lastRenderedWidth = \(lastRenderedWidth)")
+        debugLog("⚙️ [Config] fontSizePreset from config: \(config.fontSizePreset ?? "nil")")
+        debugLog("⚙️ [Config] fontName from config: \(config.fontName ?? "nil")")
+        debugLog("⚙️ [Config] fontWeight from config: \(config.fontWeight ?? "nil")")
+        debugLog("⚙️ [Config] backgroundColor from config: \(config.backgroundColor ?? "nil")")
+        debugLog("⚙️ [Config] textColor from config: \(config.textColor ?? "nil")")
+        debugLog("⚙️ [Config] keysBgColor from config: \(config.keysBgColor ?? "nil")")
+        debugLog("📐 RENDER CALL STACK:")
+        Thread.callStackSymbols.prefix(10).forEach { debugLog("  \($0)") }
 
         // Calculate scale if in preview mode with maxHeight
         if isPreviewMode, let maxHeight = previewMaxHeight, maxHeight > 0 {
@@ -765,10 +765,10 @@ class KeyboardRenderer {
                     maxHeight: maxHeight
                 )
 
-                print("📏 Preview scaling: fullHeight=\(fullKeyboardHeight), maxHeight=\(maxHeight), scale=\(currentScale)")
+                debugLog("📏 Preview scaling: fullHeight=\(fullKeyboardHeight), maxHeight=\(maxHeight), scale=\(currentScale)")
             } else {
                 currentScale = 1.0  // No valid height, use full size
-                print("⚠️ Preview scaling: Invalid keyboard height, using scale=1.0")
+                debugLog("⚠️ Preview scaling: Invalid keyboard height, using scale=1.0")
             }
         } else {
             currentScale = 1.0  // Full size for actual keyboard or no maxHeight
@@ -823,7 +823,7 @@ class KeyboardRenderer {
             if self.currentKeyboardId == nil {
                 self.currentKeyboardId = keyboards.first
             }
-            print("📱 Current keyboard ID set to: \(self.currentKeyboardId ?? "nil") (keyset: \(self.currentKeysetId))")
+            debugLog("📱 Current keyboard ID set to: \(self.currentKeyboardId ?? "nil") (keyset: \(self.currentKeysetId))")
         }
 
         // If nikkud is disabled in config, reset active state so it doesn't linger
@@ -869,10 +869,10 @@ class KeyboardRenderer {
         // If override is set, use it; otherwise use config value
         if let override = wordSuggestionsOverrideEnabled {
             wordSuggestionsEnabled = override
-            print("📝 Word suggestions enabled: \(wordSuggestionsEnabled) (from controller override)")
+            debugLog("📝 Word suggestions enabled: \(wordSuggestionsEnabled) (from controller override)")
         } else {
             wordSuggestionsEnabled = config.isWordSuggestionsEnabled
-            print("📝 Word suggestions enabled: \(wordSuggestionsEnabled) (from config)")
+            debugLog("📝 Word suggestions enabled: \(wordSuggestionsEnabled) (from config)")
         }
         
         // Show suggestions bar in real keyboard, hide in preview (preview sends to React Native)
@@ -961,10 +961,10 @@ class KeyboardRenderer {
         let effectiveHorizontalPadding = 4 * effectiveScale
 
         let availableWidth = container.bounds.width - (8 * effectiveScale)
-        print("📐 AVAILABLE WIDTH = \(availableWidth), useTransformScaling: \(useTransformScaling)")
-        print("📐 CURRENT SCALE = \(currentScale), effectiveScale: \(effectiveScale)")
-        print("📐 RENDER END ===================")
-        print("🎯 END OF RENDER: shiftState = \(shiftState)")
+        debugLog("📐 AVAILABLE WIDTH = \(availableWidth), useTransformScaling: \(useTransformScaling)")
+        debugLog("📐 CURRENT SCALE = \(currentScale), effectiveScale: \(effectiveScale)")
+        debugLog("📐 RENDER END ===================")
+        debugLog("🎯 END OF RENDER: shiftState = \(shiftState)")
         
         // Nikkud top row — rendered before normal rows when top-row mode is active
         let nikkudSettings = config.diacriticsSettings?[currentKeyboardId ?? ""]
@@ -988,7 +988,7 @@ class KeyboardRenderer {
             rowsContainer.addSubview(rowView)
 
             rowView.frame = CGRect(x: effectiveHorizontalPadding, y: currentY, width: availableWidth, height: effectiveRowHeight)
-            print("📐 [Row \(rowIndex)] y: \(currentY), height: \(effectiveRowHeight), frame: \(rowView.frame)")
+            debugLog("📐 [Row \(rowIndex)] y: \(currentY), height: \(effectiveRowHeight), frame: \(rowView.frame)")
             currentY += effectiveRowHeight + effectiveRowSpacing
         }
 
@@ -1029,7 +1029,7 @@ class KeyboardRenderer {
                 bar.transform = CGAffineTransform(scaleX: currentScale, y: currentScale)
             }
 
-            print("📐 Applied transform - scale: \(currentScale), containerHeight: \(containerHeight), heightShift: \(heightShift), contentHeight: \(contentHeight)")
+            debugLog("📐 Applied transform - scale: \(currentScale), containerHeight: \(containerHeight), heightShift: \(heightShift), contentHeight: \(contentHeight)")
         } else {
             rowsContainer.layer.anchorPoint = CGPoint(x: 0.5, y: 0.5)
             rowsContainer.transform = .identity
@@ -1102,7 +1102,7 @@ class KeyboardRenderer {
         struct MarkEntry { let mark: String; let baseLetter: String; let isEnabled: Bool }
         var modifierMarks: [MarkEntry] = []
         let charBeforeCursor = onGetCharBeforeCursor?() ?? ""
-        print("🎹 buildNikkudTopRow: currentKeyboardId=\(currentKeyboardId ?? "nil"), modifierCount=\(diacriticsDefinition.getModifiers().count)")
+        debugLog("🎹 buildNikkudTopRow: currentKeyboardId=\(currentKeyboardId ?? "nil"), modifierCount=\(diacriticsDefinition.getModifiers().count)")
         for modifier in diacriticsDefinition.getModifiers() {
             guard !disabledModifiers.contains(modifier.id) else { continue }
 
@@ -1294,7 +1294,7 @@ class KeyboardRenderer {
 
     @objc private func nikkudTopRowButtonTapped(_ sender: UIButton) {
         guard let mark = sender.accessibilityIdentifier, !mark.isEmpty else { return }
-        print("🎹 Nikkud top-row tapped: '\(mark)'")
+        debugLog("🎹 Nikkud top-row tapped: '\(mark)'")
         onNikkudSelected?(mark)
     }
 
@@ -1302,19 +1302,19 @@ class KeyboardRenderer {
     func updateNikkudTopRowModifierStates() {
         guard let container = container,
               let diacriticsDefinition = config?.getDiacritics(for: currentKeyboardId) else {
-            print("🔄 updateNikkudTopRowModifierStates: GUARD FAILED — container=\(container != nil), diacritics=\(config?.getDiacritics(for: currentKeyboardId) != nil)")
+            debugLog("🔄 updateNikkudTopRowModifierStates: GUARD FAILED — container=\(container != nil), diacritics=\(config?.getDiacritics(for: currentKeyboardId) != nil)")
             return
         }
 
         let charBefore = onGetCharBeforeCursor?() ?? ""
-        print("🔄 updateNikkudTopRowModifierStates: charBefore='\(charBefore)'")
+        debugLog("🔄 updateNikkudTopRowModifierStates: charBefore='\(charBefore)'")
 
         // Find the nikkud top row view — it's nested inside rowsContainer
         guard let topRowView = container.viewWithTag(nikkudTopRowTag) else {
-            print("🔄 updateNikkudTopRowModifierStates: TOP ROW VIEW NOT FOUND (tag \(nikkudTopRowTag))")
+            debugLog("🔄 updateNikkudTopRowModifierStates: TOP ROW VIEW NOT FOUND (tag \(nikkudTopRowTag))")
             return
         }
-        print("🔄 updateNikkudTopRowModifierStates: topRowView found, subviews=\(topRowView.subviews.count)")
+        debugLog("🔄 updateNikkudTopRowModifierStates: topRowView found, subviews=\(topRowView.subviews.count)")
 
         let modifiers = diacriticsDefinition.getModifiers()
         let disabledModifiers = config?.diacriticsSettings?[currentKeyboardId ?? ""]?.disabledModifiers ?? []
@@ -1572,7 +1572,7 @@ class KeyboardRenderer {
 
             // Debug log for language key
             if parsedKey.type == "language" {
-                print("🌐 FOUND LANGUAGE KEY: label=\(parsedKey.label), hidden=\(parsedKey.hidden), width=\(key.width ?? 0)")
+                debugLog("🌐 FOUND LANGUAGE KEY: label=\(parsedKey.label), hidden=\(parsedKey.hidden), width=\(key.width ?? 0)")
             }
             
             // Skip language/next-keyboard keys based on:
@@ -1784,7 +1784,7 @@ class KeyboardRenderer {
 
         // Debug log for language key
         if keyType == "language" {
-            print("🌐 CREATING LANGUAGE KEY VIEW: width=\(width), height=\(height), label=\(key.label)")
+            debugLog("🌐 CREATING LANGUAGE KEY VIEW: width=\(width), height=\(height), label=\(key.label)")
         }
         
         // For backspace key, use gesture recognizer for reliable long-press detection
@@ -1847,7 +1847,7 @@ class KeyboardRenderer {
             let nikkudActsAsSpace = keyType == "nikkud" && isNikkudActingAsSpace()
             let actsAsSpace = keyType == "space" || key.value == " " || nikkudActsAsSpace
             if actsAsSpace {
-                print("🔧 SPACE KEY: Adding long-press gesture recognizer (keyType='\(keyType)', value='\(key.value)', onCursorMove=\(onCursorMove != nil))")
+                debugLog("🔧 SPACE KEY: Adding long-press gesture recognizer (keyType='\(keyType)', value='\(key.value)', onCursorMove=\(onCursorMove != nil))")
                 let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(spaceLongPressed(_:)))
                 longPressGesture.minimumPressDuration = 0.5
                 // Allow the finger to travel without the recognizer cancelling —
@@ -1947,7 +1947,7 @@ class KeyboardRenderer {
             if let returnState = keysetButtonReturnState[currentKeysetId],
                key.keysetValue == returnState.returnValue {
                 // This button points to the return destination - show the return label
-                print("🔄 Keyset button '\(key.keysetValue)' in return mode, showing label: '\(returnState.returnLabel)'")
+                debugLog("🔄 Keyset button '\(key.keysetValue)' in return mode, showing label: '\(returnState.returnLabel)'")
                 finalText = returnState.returnLabel
             }
         }
@@ -1998,7 +1998,7 @@ class KeyboardRenderer {
         )
 
         if isSettingsKey {
-            print("⚙️ [Settings] Using fontSizePreset: \(fontPresetString), visibleKeyHeight: \(keyVisibleHeight), finalFontSize: \(finalFontSize)")
+            debugLog("⚙️ [Settings] Using fontSizePreset: \(fontPresetString), visibleKeyHeight: \(keyVisibleHeight), finalFontSize: \(finalFontSize)")
         }
 
         // Make nikkud diacritic mark larger for visibility
@@ -2007,7 +2007,7 @@ class KeyboardRenderer {
         }
 
         if isSettingsKey {
-            print("⚙️ [Settings] FinalFontSize before scaling: \(finalFontSize)")
+            debugLog("⚙️ [Settings] FinalFontSize before scaling: \(finalFontSize)")
         }
 
         // Preview-mode scaling is already baked into `height` (scaledRowHeight applies
@@ -2311,7 +2311,7 @@ class KeyboardRenderer {
             return
         }
         
-        print("🔑 Key long-pressed: type='\(key.type)', value='\(key.value)'")
+        debugLog("🔑 Key long-pressed: type='\(key.type)', value='\(key.value)'")
         keyLongPressAction(for: key)
     }
 
@@ -2322,16 +2322,16 @@ class KeyboardRenderer {
         // Handle nikkud key - only activate if currently inactive
         if key.type.lowercased() == "nikkud" {
             if !nikkudActive {
-                print("   → Activating NIKKUD mode after 0.5 sec press")
+                debugLog("   → Activating NIKKUD mode after 0.5 sec press")
                 nikkudActive = true
                 onNikkudActivePersist?(true)
                 rerender()
             } else {
-                print("   → NIKKUD already active, ignoring long-press")
+                debugLog("   → NIKKUD already active, ignoring long-press")
             }
         } else {
             // For other keys (keyset), emit the long-press selection event for edit mode
-            print("   → Emitting long-press selection event")
+            debugLog("   → Emitting long-press selection event")
             onKeyLongPress?(key)
         }
     }
@@ -2340,7 +2340,7 @@ class KeyboardRenderer {
     @objc private func spaceLongPressed(_ gesture: UILongPressGestureRecognizer) {
         switch gesture.state {
         case .began:
-            print("🔄 Space long-press BEGAN - entering cursor move mode")
+            debugLog("🔄 Space long-press BEGAN - entering cursor move mode")
             cursorMoveMode = true
             cursorMoveDidMove = false
             cursorMoveStartPoint = gesture.location(in: gesture.view)
@@ -2348,7 +2348,7 @@ class KeyboardRenderer {
             
             // Lock text direction at the start of the session based on first non-whitespace character
             cursorMoveDirectionIsRTL = onGetTextDirection?() ?? isCurrentKeyboardRTL()
-            print("🔄 Direction locked: isRTL=\(cursorMoveDirectionIsRTL)")
+            debugLog("🔄 Direction locked: isRTL=\(cursorMoveDirectionIsRTL)")
             
             // Clear suggestions while in cursor mode
             clearSuggestions()
@@ -2380,7 +2380,7 @@ class KeyboardRenderer {
                     offset = -offset
                 }
                 
-                print("🔄 Cursor move: deltaX=\(deltaX), accumulated=\(cursorMoveAccumulatedDistance), isRTL=\(cursorMoveDirectionIsRTL), moving \(offset) characters")
+                debugLog("🔄 Cursor move: deltaX=\(deltaX), accumulated=\(cursorMoveAccumulatedDistance), isRTL=\(cursorMoveDirectionIsRTL), moving \(offset) characters")
                 
                 // Move cursor via callback
                 onCursorMove?(offset)
@@ -2393,7 +2393,7 @@ class KeyboardRenderer {
             }
             
         case .ended, .cancelled, .failed:
-            print("🔄 Space long-press ENDED - exiting cursor move mode (didMove=\(cursorMoveDidMove))")
+            debugLog("🔄 Space long-press ENDED - exiting cursor move mode (didMove=\(cursorMoveDidMove))")
             cursorMoveMode = false
             // Suppress the button's trailing .touchUpInside so ending the swipe
             // does not also insert a space.
@@ -2408,7 +2408,7 @@ class KeyboardRenderer {
                let encoded = nikkudLongPressKeyInfo,
                let keyInfo = decodeKeyInfo(encoded),
                let key = parseKeyFromInfo(keyInfo) {
-                print("🔄 No movement — treating as nikkud long-press")
+                debugLog("🔄 No movement — treating as nikkud long-press")
                 keyLongPressAction(for: key)
             }
             cursorMoveDidMove = false
@@ -2837,61 +2837,61 @@ class KeyboardRenderer {
     }
     
     private func handleKeyClick(_ key: ParsedKey, keyView: UIButton) {
-        print("🔑 Key clicked: type='\(key.type)', value='\(key.value)'")
+        debugLog("🔑 Key clicked: type='\(key.type)', value='\(key.value)'")
         
         switch key.type.lowercased() {
         case "backspace":
-            print("   → Backspace tap")
+            debugLog("   → Backspace tap")
             // In selection mode, emit for selection
             // In normal mode, call delete callback
             if onKeyLongPress != nil {
-                print("   → Selection mode: emitting key press")
+                debugLog("   → Selection mode: emitting key press")
                 onKeyPress?(key)
             } else {
-                print("   → Normal mode: calling delete callback")
+                debugLog("   → Normal mode: calling delete callback")
                 onDeleteCharacter?()
             }
             return
         
         case "shift":
             // Handle shift with double-click for lock
-            print("   → Handling SHIFT")
+            debugLog("   → Handling SHIFT")
             handleShiftTap()
             
         case "nikkud":
             // When nikkud is active, a tap always deactivates it (even in selection/preview mode)
             if nikkudActive {
-                print("   → Handling NIKKUD tap (deactivating)")
+                debugLog("   → Handling NIKKUD tap (deactivating)")
                 nikkudActive = false
                 onNikkudActivePersist?(false)
                 rerender()
             } else if onKeyLongPress != nil {
                 // Selection mode and nikkud inactive: emit key press for selection
-                print("   → Selection mode: emitting key press for nikkud")
+                debugLog("   → Selection mode: emitting key press for nikkud")
                 onKeyPress?(key)
                 return
             } else {
                 // Normal mode, nikkud inactive: short tap = space if layout is narrow
                 if let spaceInfo = findSpaceKeyInfo(),
                    spaceInfo.width < lastRenderedRegularKeyWidth * 6 {
-                    print("   → Nikkud short-tap: forwarding as space (spaceWidth=\(spaceInfo.width), threshold=\(lastRenderedRegularKeyWidth * 6))")
+                    debugLog("   → Nikkud short-tap: forwarding as space (spaceWidth=\(spaceInfo.width), threshold=\(lastRenderedRegularKeyWidth * 6))")
                     onKeyPress?(spaceInfo.key)
                 } else {
-                    print("   → Ignoring quick tap on NIKKUD (wide layout or no space key)")
+                    debugLog("   → Ignoring quick tap on NIKKUD (wide layout or no space key)")
                 }
             }
             
         case "keyset":
             // Switch keyset and re-render internally
             // Supports return state: first press goes to keysetValue, second press returns to returnKeysetValue
-            print("   → Handling KEYSET: keysetValue='\(key.keysetValue)', returnKeysetValue='\(key.returnKeysetValue)', returnKeysetLabel='\(key.returnKeysetLabel)'")
+            debugLog("   → Handling KEYSET: keysetValue='\(key.keysetValue)', returnKeysetValue='\(key.returnKeysetValue)', returnKeysetLabel='\(key.returnKeysetLabel)'")
             
             if !key.keysetValue.isEmpty {
                 // Check if we're in "return mode" for this keyset
                 if let returnState = keysetButtonReturnState[currentKeysetId],
                    key.returnKeysetValue == returnState.returnValue {
                     // We're in return mode - pressing should return to the original keyset
-                    print("   → Return mode detected! Returning to '\(returnState.returnValue)'")
+                    debugLog("   → Return mode detected! Returning to '\(returnState.returnValue)'")
                     keysetButtonReturnState.removeValue(forKey: currentKeysetId)
                     switchKeyset(returnState.returnValue)
                 } else {
@@ -2899,7 +2899,7 @@ class KeyboardRenderer {
                     if !key.returnKeysetValue.isEmpty && !key.returnKeysetLabel.isEmpty {
                         // Store the return state for when we're on the target keyset
                         keysetButtonReturnState[key.keysetValue] = (returnValue: key.returnKeysetValue, returnLabel: key.returnKeysetLabel)
-                        print("   → Storing return state for '\(key.keysetValue)': return to '\(key.returnKeysetValue)'")
+                        debugLog("   → Storing return state for '\(key.keysetValue)': return to '\(key.returnKeysetValue)'")
                     }
                     switchKeyset(key.keysetValue)
                 }
@@ -2910,58 +2910,58 @@ class KeyboardRenderer {
             // In preview mode, switch language and emit event
             // In actual keyboard mode, handleInputModeList handles everything via .allTouchEvents
             if onKeyLongPress != nil {
-                print("   → Selection mode: emitting key press")
+                debugLog("   → Selection mode: emitting key press")
                 onKeyPress?(key)
             } else if onHandleInputModeList == nil {
-                print("   → Preview mode: switching language and emitting event")
+                debugLog("   → Preview mode: switching language and emitting event")
                 switchLanguage()
                 // Emit key press so React can sync its state
-                print("   → Emitting onKeyPress for next-keyboard to React")
+                debugLog("   → Emitting onKeyPress for next-keyboard to React")
                 onKeyPress?(key)
             }
             
         case "close":
-            print("   → Handling CLOSE")
+            debugLog("   → Handling CLOSE")
             // In selection mode, emit key press for selection
             // In normal mode, call the dismiss callback
             if onKeyLongPress != nil {
-                print("   → Selection mode: emitting key press")
+                debugLog("   → Selection mode: emitting key press")
                 onKeyPress?(key)
             } else {
                 onDismissKeyboard?()
             }
             
         case "settings":
-            print("   → Handling SETTINGS")
+            debugLog("   → Handling SETTINGS")
             // In selection mode, emit key press for selection
             // In normal mode, call the settings callback
             if onKeyLongPress != nil {
-                print("   → Selection mode: emitting key press")
+                debugLog("   → Selection mode: emitting key press")
                 onKeyPress?(key)
             } else {
                 onOpenSettings?()
             }
 
         case "language":
-            print("   → Handling LANGUAGE SWITCH")
+            debugLog("   → Handling LANGUAGE SWITCH")
             // In selection mode, emit key press for selection
             // In normal mode, call the language switch callback
             if onKeyLongPress != nil {
-                print("   → Selection mode: emitting key press")
+                debugLog("   → Selection mode: emitting key press")
                 onKeyPress?(key)
             } else {
                 onLanguageSwitch?()
             }
 
         case "event":
-            print("   → Handling EVENT key: \(key.value)")
+            debugLog("   → Handling EVENT key: \(key.value)")
             // Event-only keys - just emit the key press to container
             // Container (React Native) will handle the action
             onKeyPress?(key)
 
         default:
             // For regular keys, check if nikkud popup should be shown
-            print("   → Handling DEFAULT key")
+            debugLog("   → Handling DEFAULT key")
             
             // Check if this is a space key (value == " ")
             // Space keys should NOT reset shift here - they're handled by controller's handleSpaceKey
@@ -3020,12 +3020,12 @@ class KeyboardRenderer {
         
         // Check if we have a current letter being edited
         guard !currentNikkudLetter.isEmpty else {
-            print("📱 refreshNikkudPickerIfOpen: No current letter, just re-rendering keyboard")
+            debugLog("📱 refreshNikkudPickerIfOpen: No current letter, just re-rendering keyboard")
             rerender()
             return
         }
         
-        print("📱 refreshNikkudPickerIfOpen: Refreshing picker for letter '\(currentNikkudLetter)'")
+        debugLog("📱 refreshNikkudPickerIfOpen: Refreshing picker for letter '\(currentNikkudLetter)'")
         
         // Re-show the picker with updated options (this will replace the existing one)
         showNikkudPickerInternal(forLetter: currentNikkudLetter, anchorView: container)
@@ -3222,7 +3222,7 @@ class KeyboardRenderer {
         
         if currentTime - lastShiftClickTime < doubleClickThreshold {
             // Double-click: toggle between locked and inactive
-            print("   → Shift double-click detected")
+            debugLog("   → Shift double-click detected")
             if shiftState == .locked {
                 shiftState = .inactive
             } else {
@@ -3234,7 +3234,7 @@ class KeyboardRenderer {
         }
         
         lastShiftClickTime = currentTime
-        print("   → New shift state: \(shiftState)")
+        debugLog("   → New shift state: \(shiftState)")
         rerender()
     }
     
@@ -3246,24 +3246,24 @@ class KeyboardRenderer {
     /// Activate shift (set to active state, not locked)
     /// This is called from the controller when auto-shift should activate
     func activateShift() {
-        print("🎯 KeyboardRenderer.activateShift() called, current state: \(shiftState)")
+        debugLog("🎯 KeyboardRenderer.activateShift() called, current state: \(shiftState)")
         if shiftState == .inactive {
             shiftState = .active
-            print("🎯 Shift state set to .active")
+            debugLog("🎯 Shift state set to .active")
         } else {
-            print("🎯 Shift already active/locked, not changing")
+            debugLog("🎯 Shift already active/locked, not changing")
         }
     }
     
     /// Deactivate shift (set to inactive state)
     /// This is called from the controller when auto-shift should deactivate
     func deactivateShift() {
-        print("🎯 KeyboardRenderer.deactivateShift() called, current state: \(shiftState)")
+        debugLog("🎯 KeyboardRenderer.deactivateShift() called, current state: \(shiftState)")
         if shiftState == .active {
             shiftState = .inactive
-            print("🎯 Shift state set to .inactive")
+            debugLog("🎯 Shift state set to .inactive")
         } else {
-            print("🎯 Shift not in active state (is \(shiftState)), not changing")
+            debugLog("🎯 Shift not in active state (is \(shiftState)), not changing")
         }
     }
     
@@ -3299,23 +3299,23 @@ class KeyboardRenderer {
         
         // Check if the target keyset exists in the config
         let allKeysetIds = config.keysets.map { $0.id }
-        print("switchKeyset: switching to '\(keysetValue)', available: \(allKeysetIds)")
+        debugLog("switchKeyset: switching to '\(keysetValue)', available: \(allKeysetIds)")
         
         if allKeysetIds.contains(keysetValue) {
-            print("switchKeyset: switching from '\(currentKeysetId)' to '\(keysetValue)'")
+            debugLog("switchKeyset: switching from '\(currentKeysetId)' to '\(keysetValue)'")
             currentKeysetId = keysetValue
             shiftState = .inactive
             nikkudActive = false
             rerender()
         } else {
-            print("⚠️ Keyset not found: '\(keysetValue)'. Available: \(allKeysetIds)")
+            debugLog("⚠️ Keyset not found: '\(keysetValue)'. Available: \(allKeysetIds)")
         }
     }
     
     // MARK: - Language Switching
     
     func switchLanguage() {
-        print("🌐 Language button tapped - cycling to next language")
+        debugLog("🌐 Language button tapped - cycling to next language")
         
         guard let config = config else {
             print("❌ No config available")
@@ -3324,8 +3324,8 @@ class KeyboardRenderer {
         
         // Get all keyset IDs
         let allKeysetIds = config.keysets.map { $0.id }
-        print("   All keysets: \(allKeysetIds.joined(separator: ", "))")
-        print("   Current keyset: \(currentKeysetId)")
+        debugLog("   All keysets: \(allKeysetIds.joined(separator: ", "))")
+        debugLog("   Current keyset: \(currentKeysetId)")
         
         // Determine current keyset type (abc, 123, or #+=)
         let currentKeysetType: String
@@ -3345,14 +3345,14 @@ class KeyboardRenderer {
             currentKeysetType = "abc"
         }
         
-        print("   Current keyset type: \(currentKeysetType)")
+        debugLog("   Current keyset type: \(currentKeysetType)")
         
         // Find all keysets of the same type across different keyboards
         let sameTypeKeysets = allKeysetIds.filter { keysetId in
             keysetId == currentKeysetType || keysetId.hasSuffix("_\(currentKeysetType)")
         }
         
-        print("   Same type keysets (\(currentKeysetType)): \(sameTypeKeysets.joined(separator: ", "))")
+        debugLog("   Same type keysets (\(currentKeysetType)): \(sameTypeKeysets.joined(separator: ", "))")
         
         if sameTypeKeysets.count > 1 {
             // Find current position
@@ -3361,7 +3361,7 @@ class KeyboardRenderer {
                 let nextIndex = (currentIndex + 1) % sameTypeKeysets.count
                 let nextKeysetId = sameTypeKeysets[nextIndex]
                 
-                print("   Switching from \(currentKeysetId) to \(nextKeysetId)")
+                debugLog("   Switching from \(currentKeysetId) to \(nextKeysetId)")
                 currentKeysetId = nextKeysetId
                 shiftState = .inactive  // Reset shift (including locked) on language change
                 
@@ -3371,10 +3371,10 @@ class KeyboardRenderer {
                 // Re-render internally
                 rerender()
             } else {
-                print("⚠️ Current keyset not found in same-type list")
+                debugLog("⚠️ Current keyset not found in same-type list")
             }
         } else {
-            print("   Only one keyboard available for type \(currentKeysetType)")
+            debugLog("   Only one keyboard available for type \(currentKeysetType)")
         }
     }
 }

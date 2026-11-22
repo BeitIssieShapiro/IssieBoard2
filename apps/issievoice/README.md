@@ -95,7 +95,7 @@ apps/issievoice/
 
 ## Next Steps
 
-See `ISSIEVOICE_STRUCTURE.md` in the repo root for the complete development plan and implementation roadmap.
+See `docs/archive/ISSIEVOICE_STRUCTURE.md` for the complete development plan and implementation roadmap.
 
 ## Related Projects
 

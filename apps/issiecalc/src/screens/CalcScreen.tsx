@@ -5,7 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { KeyboardPreview, KeyPressEvent } from '../../../../src/components/KeyboardPreview';
 import { useCalc } from '../context/CalcContext';
 import { dispatch, CalcState, finalizeTemplate, readoutArgs } from '../services/calcDispatch';
-import { useCalcTTS, getSubMap, speakableNumber, formatResult } from '../context/CalcTTSContext';
+import { useCalcTTS, getSubMap, speakableNumber, speakableResult } from '../context/CalcTTSContext';
 import { speakExpression as speakExpressionText } from '../services/speakExpression';
 import { matchTemplateCall } from '../services/templateCall';
 import { formatExpression } from '../services/formatExpression';
@@ -293,7 +293,7 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
     [language, mathLevel]
   );
 
-  const speakDirect = useCallback((text: string) => { TTS.speak(text).catch(() => {}); }, []);
+  const speakDirect = useCallback((text: string) => { TTS.stop(); TTS.speak(text).catch(() => {}); }, []);
   const { strings } = useLocalization();
   const insets = useSafeAreaInsets();
   // The frame, not Dimensions: react-native-safe-area-context reports the size
@@ -664,7 +664,9 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
   ) : null;
 
   // Shared by the one-row and two-row layouts so they can't drift apart.
-  const resultText = result === 'NUMBER_TOO_BIG' ? strings.settings.numberTooBig : result;
+  const resultText = result === 'NUMBER_TOO_BIG' ? strings.settings.numberTooBig
+    : result === 'Error' ? strings.common.error
+    : result;
   const expressionNode = renderTemplateExpression(
     finalizeTemplate(expression),
     displayTextColor,
@@ -1011,8 +1013,7 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
               const ml = mathLevel ?? 'standard';
               const eq = getSubMap(lang, ml)['='] ?? 'equals';
               if (resultMode && expression) {
-                const res = result === 'NUMBER_TOO_BIG' ? strings.settings.numberTooBig : result;
-                const spokenResult = speakableNumber(formatResult(res, decimalDigits), lang);
+                const spokenResult = speakableResult(result, lang, decimalDigits);
                 speakDirect(`${speakExpression(expression)} ${eq} ${spokenResult}`);
               } else {
                 const display = expression || '0';

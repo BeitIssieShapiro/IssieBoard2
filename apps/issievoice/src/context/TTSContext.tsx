@@ -1,5 +1,6 @@
-import React, {createContext, useContext, useEffect, useState, ReactNode} from 'react';
+import React, {createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode} from 'react';
 import TTS, {TTSSettings, TtsProgressEvent} from '../services/TextToSpeech';
+import KeyboardPreferences from '../../../../src/native/KeyboardPreferences';
 
 interface SpokenRange {
   location: number;
@@ -46,12 +47,13 @@ interface TTSContextType {
   spokenRange: SpokenRange | null;
   settings: TTSSettings;
   updateSettings: (settings: Partial<TTSSettings>) => Promise<void>;
-  setLanguage: (lang: string) => Promise<void>;
   getAvailableVoices: () => Promise<any[]>;
-  setVoice: (voiceId: string) => Promise<void>;
 }
 
 const TTSContext = createContext<TTSContextType | undefined>(undefined);
+
+const RATE_KEY = 'issievoice_rate';
+const PITCH_KEY = 'issievoice_pitch';
 
 // Helper function to detect if text contains Hebrew characters
 const hasHebrewCharacters = (text: string): boolean => {
@@ -61,7 +63,6 @@ const hasHebrewCharacters = (text: string): boolean => {
 
 // Helper function to detect if text contains Arabic characters
 const hasArabicCharacters = (text: string): boolean => /[\u0600-\u06FF]/.test(text);
-
 
 export const TTSProvider = ({children}: {children: ReactNode}) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -74,13 +75,26 @@ export const TTSProvider = ({children}: {children: ReactNode}) => {
   });
 
   useEffect(() => {
-    // Initialize TTS
+    const clearSpeaking = () => {
+      setIsSpeaking(false);
+      setSpokenRange(null);
+      setSpokenText(null);
+    };
+
     const initTTS = async () => {
       try {
         await TTS.initialize();
-        // Set initial language explicitly
-        await TTS.setLanguage(settings.language);
-        console.log('🗣️ TTS initialized with language:', settings.language);
+        // Restore the saved rate and pitch, so a user who needs slow speech
+        // doesn't get "normal" back on every launch.
+        const savedRate = parseFloat((await KeyboardPreferences.getString(RATE_KEY)) ?? '');
+        const savedPitch = parseFloat((await KeyboardPreferences.getString(PITCH_KEY)) ?? '');
+        if (Number.isFinite(savedRate)) await TTS.setRate(savedRate);
+        if (Number.isFinite(savedPitch)) await TTS.setPitch(savedPitch);
+        setSettings(prev => ({
+          ...prev,
+          ...(Number.isFinite(savedRate) ? {rate: savedRate} : {}),
+          ...(Number.isFinite(savedPitch) ? {pitch: savedPitch} : {}),
+        }));
       } catch (error) {
         console.error('TTS initialization error:', error);
       }
@@ -90,11 +104,8 @@ export const TTSProvider = ({children}: {children: ReactNode}) => {
 
     // Set up listeners
     TTS.onTtsStart(() => setIsSpeaking(true));
-    TTS.onTtsFinish(() => {
-      setIsSpeaking(false);
-      setSpokenRange(null);
-      setSpokenText(null);
-    });
+    TTS.onTtsFinish(clearSpeaking);
+    TTS.onTtsCancel(clearSpeaking);
     TTS.onTtsProgress((event) => {
       setSpokenRange(toCharacterRange(event));
     });
@@ -104,7 +115,14 @@ export const TTSProvider = ({children}: {children: ReactNode}) => {
     };
   }, []);
 
-  const speak = async (text: string, languageMode: 'en-only' | 'he-only' | 'detect' = 'detect', englishVoice?: string, hebrewVoice?: string, arabicVoice?: string) => {
+  const stop = useCallback(async () => {
+    await TTS.stop();
+    setIsSpeaking(false);
+    setSpokenRange(null);
+    setSpokenText(null);
+  }, []);
+
+  const speak = useCallback(async (text: string, languageMode: 'en-only' | 'he-only' | 'detect' = 'detect', englishVoice?: string, hebrewVoice?: string, arabicVoice?: string) => {
     if (!text.trim()) return;
 
     try {
@@ -114,68 +132,49 @@ export const TTSProvider = ({children}: {children: ReactNode}) => {
       if (languageMode === 'en-only') {
         languageToUse = 'en-US';
         voiceToUse = englishVoice;
-        console.log(`🗣️ Language mode: English only, voice: ${voiceToUse || 'default'}`);
       } else if (languageMode === 'he-only') {
         languageToUse = 'he-IL';
         voiceToUse = hebrewVoice;
-        console.log(`🗣️ Language mode: Hebrew only, voice: ${voiceToUse || 'default'}`);
+      } else if (hasHebrewCharacters(text)) {
+        languageToUse = 'he-IL';
+        voiceToUse = hebrewVoice;
+      } else if (hasArabicCharacters(text)) {
+        languageToUse = 'ar-SA';
+        voiceToUse = arabicVoice;
       } else {
-        // Auto-detect language based on text content
-        const textHasHebrew = hasHebrewCharacters(text);
-        const textHasArabic = hasArabicCharacters(text);
-
-        if (textHasHebrew) {
-          languageToUse = 'he-IL';
-          voiceToUse = hebrewVoice;
-        } else if (textHasArabic) {
-          languageToUse = 'ar-SA';
-          voiceToUse = arabicVoice;
-        } else {
-          languageToUse = 'en-US';
-          voiceToUse = englishVoice;
-        }
-
-        console.log(`🗣️ Auto-detecting TTS language: hasHebrew=${textHasHebrew}, hasArabic=${textHasArabic}, using=${languageToUse}`);
+        languageToUse = 'en-US';
+        voiceToUse = englishVoice;
       }
 
-      // Set the language before speaking if it's different
-      if (settings.language !== languageToUse) {
-        await TTS.setLanguage(languageToUse);
-        setSettings(prev => ({...prev, language: languageToUse}));
-      }
+      // A new utterance replaces whatever is playing instead of queueing behind it.
+      await stop();
 
-      // Set the voice if specified
-      if (voiceToUse && settings.voice !== voiceToUse) {
+      // Always apply language then voice: the native module has a single default
+      // voice that setLanguage overwrites (and the voice test in settings changes),
+      // so a cached "already set" check would speak with the wrong voice.
+      await TTS.setLanguage(languageToUse);
+      if (voiceToUse) {
         await TTS.setVoice(voiceToUse);
-        setSettings(prev => ({...prev, voice: voiceToUse}));
       }
+      setSettings(prev => ({...prev, language: languageToUse, voice: voiceToUse}));
 
-      await TTS.speak(text);
       setSpokenText(text);
+      await TTS.speak(text);
     } catch (error) {
       console.error('Failed to speak:', error);
       setIsSpeaking(false);
     }
-  };
+  }, [stop]);
 
-  const stop = async () => {
-    try {
-      await TTS.stop();
-      setIsSpeaking(false);
-      setSpokenRange(null);
-      setSpokenText(null);
-    } catch (error) {
-      console.error('Failed to stop:', error);
-    }
-  };
-
-  const updateSettings = async (newSettings: Partial<TTSSettings>) => {
+  const updateSettings = useCallback(async (newSettings: Partial<TTSSettings>) => {
     try {
       if (newSettings.rate !== undefined) {
         await TTS.setRate(newSettings.rate);
+        await KeyboardPreferences.setString(RATE_KEY, String(newSettings.rate));
       }
       if (newSettings.pitch !== undefined) {
         await TTS.setPitch(newSettings.pitch);
+        await KeyboardPreferences.setString(PITCH_KEY, String(newSettings.pitch));
       }
       if (newSettings.language !== undefined) {
         await TTS.setLanguage(newSettings.language);
@@ -183,46 +182,21 @@ export const TTSProvider = ({children}: {children: ReactNode}) => {
       if (newSettings.voice !== undefined) {
         await TTS.setVoice(newSettings.voice);
       }
-
       setSettings(prev => ({...prev, ...newSettings}));
     } catch (error) {
       console.error('Failed to update settings:', error);
     }
-  };
+  }, []);
 
-  const getAvailableVoices = async () => {
-    return await TTS.getAvailableVoices();
-  };
+  const getAvailableVoices = useCallback(() => TTS.getAvailableVoices(), []);
 
-  const setVoice = async (voiceId: string) => {
-    console.log(`🗣️ Setting TTS voice: ${voiceId}`);
-    await updateSettings({ voice: voiceId });
-  };
-
-  // Helper function to set language (maps language codes to TTS language codes)
-  const setLanguage = async (lang: string): Promise<void> => {
-    const languageMap: Record<string, string> = {
-      'en': 'en-US',
-      'he': 'he-IL',
-      'ar': 'ar-SA',
-    };
-
-    const ttsLang = languageMap[lang] || 'en-US';
-
-    console.log(`🗣️ setLanguage called: ${lang} -> ${ttsLang} (current: ${settings.language})`);
-
-    // Skip update if it's the same language after mapping
-    if (settings.language === ttsLang) {
-      console.log(`🗣️ Skipping - already set to ${ttsLang}`);
-      return; // Don't update if it's effectively the same language
-    }
-
-    console.log(`🗣️ Actually updating TTS language to: ${ttsLang}`);
-    await updateSettings({ language: ttsLang });
-  };
+  const value = useMemo(
+    () => ({speak, stop, isSpeaking, spokenText, spokenRange, settings, updateSettings, getAvailableVoices}),
+    [speak, stop, isSpeaking, spokenText, spokenRange, settings, updateSettings, getAvailableVoices],
+  );
 
   return (
-    <TTSContext.Provider value={{speak, stop, isSpeaking, spokenText, spokenRange, settings, updateSettings, setLanguage, getAvailableVoices, setVoice}}>
+    <TTSContext.Provider value={value}>
       {children}
     </TTSContext.Provider>
   );
