@@ -309,9 +309,18 @@ class KeyboardPreferences {
     }
   }
 
-  /** Not implemented on Android yet (iOS first) — callers fall back to the language alone. */
-  async getDefaultTTSVoice(_languageTag: string): Promise<{ id: string; name: string; language: string } | null> {
-    return null;
+  /**
+   * The voice the TTS engine uses by default for a language (e.g. "he-IL").
+   * Null when no installed voice speaks it.
+   */
+  async getDefaultTTSVoice(languageTag: string): Promise<{ id: string; name: string; language: string } | null> {
+    try {
+      const { KeyboardSetupModule } = NativeModules;
+      if (!KeyboardSetupModule?.getDefaultTTSVoice) return null;
+      return await KeyboardSetupModule.getDefaultTTSVoice(languageTag);
+    } catch {
+      return null;
+    }
   }
 }
 

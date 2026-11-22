@@ -231,8 +231,17 @@ Android:
 | `59168ac` | scale #2 (ios done) - Preview mode scaling, effectiveDimensionScale, transform-based scaling | 2026-03-10 |
 | `1ebe5d12+` | Nikkud top-row mode, shadow text context, insertNikkudMark conflict handling, isAdvanced/simpleMode | 2026-07-01 |
 | `95afd35` | Key fonts sized from the key's real rendered height; preset percentages rebased on the visible key box and widened to 0.40–0.90 | 2026-09-22 |
+| `6f21143` | IssieCalc: default TTS voice of the device language when readout is turned on (`getDefaultTTSVoice`) | 2026-11-22 |
 
-**Files updated (latest port — `95afd35`):**
+**Files updated (latest port — `6f21143`):**
+- `shared/KeyboardSetupModule.kt` - Added `getDefaultTTSVoice(languageTag)`, ported from `ios/IssieBoardNG/KeyboardPreferencesModule.swift`, with the same fallback chain (locale → language's main region → any voice of the language)
+- `src/native/KeyboardPreferences.android.ts` - `getDefaultTTSVoice` calls the native method instead of returning null
+
+**Android-only deviations in this port:**
+- Lives in `KeyboardSetupModule` because Android has no `KeyboardPreferencesModule`; it is the module that already ports the iOS module's `getKeyboardSetupStatus`.
+- iOS asks `AVSpeechSynthesisVoice(language:)`; Android sets the locale on a short-lived `TextToSpeech` engine and reads back `tts.voice`. The voice id is `Voice.name`, which is what react-native-tts lists and accepts. Not-installed voices are skipped, and the legacy `iw` code is treated as `he`.
+
+**Files updated (previous port — `95afd35`):**
 - `KeyboardModels.kt` - `FontSizeConstants` percentages rebased on the visible key box and widened (XS 0.40 … XL 0.90); added `DEFAULT_KEY_GAP`, `visibleKeyHeight(rowHeight:verticalGap:)`, `percentage(preset:)` and `fontSize(preset:visibleKeyHeight:isLargeKey:isMultiChar:)`; `KeyboardDimensions.calculateFontSize` now delegates to them and its private `getFontSizePercentage()` was removed
 - `KeyboardRenderer.kt` - Per-key font size now derives from the `height` passed to `createKeyButton` instead of recomputing a row height with `numberOfRows = 4`; `baseFontSize` derives from the `rowHeight` property; added `scaledVerticalGap`; dropped the extra `* currentScale` (already baked into `scaledRowHeight`); `rowHeight` now passes `currentRowCount` rather than a fixed 4, matching iOS
 
