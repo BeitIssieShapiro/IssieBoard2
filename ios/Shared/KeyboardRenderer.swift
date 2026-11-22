@@ -1450,8 +1450,10 @@ class KeyboardRenderer {
         if let showOnly = showOnlyKeys {
             // Essential keys that are NEVER hidden by showOnly rule (only by explicit hide)
             // These keys are critical for keyboard operation and should always remain visible
-            // unless the user explicitly creates a hide rule for them
-            let essentialValues: Set<String> = [" ", ",", "."]  // space, comma, period
+            // unless the user explicitly creates a hide rule for them.
+            // Punctuation is not essential: must match transformConfigForPreview, which
+            // is what the editor preview shows (e.g. iPad's ",!" and ".?" keys).
+            let essentialValues: Set<String> = [" "]  // space
             let essentialTypes: Set<String> = ["space", "backspace", "enter", "next-keyboard", "settings", "shift", "keyset", "nikkud", "close", "language"]
 
             // Check if this is an essential key by value or type

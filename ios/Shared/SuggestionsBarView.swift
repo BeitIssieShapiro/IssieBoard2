@@ -92,11 +92,23 @@ class SuggestionsBarView {
         scroll.alwaysBounceHorizontal = true
         scroll.frame = bar.bounds
         scroll.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        Self.hideScrollEdgeEffects(scroll)
         bar.addSubview(scroll)
 
         barView = bar
         scrollView = scroll
         return bar
+    }
+
+    /// iOS 26 blurs scroll view edges ("scroll edge effect"); in the keyboard the
+    /// top edge lands on the suggestion pills and smears them.
+    private static func hideScrollEdgeEffects(_ scroll: UIScrollView) {
+        if #available(iOS 26.0, *) {
+            scroll.topEdgeEffect.isHidden = true
+            scroll.bottomEdgeEffect.isHidden = true
+            scroll.leftEdgeEffect.isHidden = true
+            scroll.rightEdgeEffect.isHidden = true
+        }
     }
 
     /// Update suggestions to display
@@ -130,6 +142,7 @@ class SuggestionsBarView {
             scroll.alwaysBounceHorizontal = true
             scroll.frame = bar.bounds
             scroll.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            Self.hideScrollEdgeEffects(scroll)
             bar.addSubview(scroll)
             scrollView = scroll
         }
