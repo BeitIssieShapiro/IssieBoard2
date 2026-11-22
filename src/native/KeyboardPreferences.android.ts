@@ -308,6 +308,11 @@ class KeyboardPreferences {
       return { isAdded: null, hasFullAccess: null };
     }
   }
+
+  /** Not implemented on Android yet (iOS first) — callers fall back to the language alone. */
+  async getDefaultTTSVoice(_languageTag: string): Promise<{ id: string; name: string; language: string } | null> {
+    return null;
+  }
 }
 
 export default new KeyboardPreferences();

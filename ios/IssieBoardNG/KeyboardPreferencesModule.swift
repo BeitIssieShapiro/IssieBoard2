@@ -1,5 +1,6 @@
 import Foundation
 import React
+import AVFoundation
 
 @objc(KeyboardPreferencesModule)
 class KeyboardPreferencesModule: RCTEventEmitter {
@@ -285,6 +286,40 @@ class KeyboardPreferencesModule: RCTEventEmitter {
         resolver([
             "isAdded": isAdded,
             "hasFullAccess": hasFullAccess,
+        ])
+    }
+
+    // MARK: - Text-to-speech
+
+    /// The voice iOS itself uses for `languageTag` (e.g. "he-IL" -> Carmit), i.e.
+    /// what AVSpeechSynthesisVoice(language:) picks, honouring the user's choice in
+    /// Settings > Accessibility > Spoken Content. react-native-tts can apply this by
+    /// language but never reports which voice it is, so the app can't show or save it.
+    /// Resolves {id, name, language}, or null when no voice speaks that language.
+    @objc
+    func getDefaultTTSVoice(_ languageTag: String, resolver: RCTPromiseResolveBlock, rejecter: RCTPromiseRejectBlock) {
+        let prefix = (languageTag.split(whereSeparator: { $0 == "-" || $0 == "_" }).first.map(String.init) ?? languageTag).lowercased()
+        func speaksLanguage(_ voice: AVSpeechSynthesisVoice?) -> AVSpeechSynthesisVoice? {
+            guard let voice = voice, voice.language.lowercased().hasPrefix(prefix) else { return nil }
+            return voice
+        }
+        // A locale like "en-IL" has no voices of its own, so fall back to the
+        // language's main region, then to any voice of that language.
+        let mainRegion = ["en": "en-US", "he": "he-IL", "ar": "ar-001"][prefix]
+        let anyVoice = AVSpeechSynthesisVoice.speechVoices().first(where: { $0.language.lowercased().hasPrefix(prefix) })
+        let voice = speaksLanguage(AVSpeechSynthesisVoice(language: languageTag))
+            ?? mainRegion.flatMap { speaksLanguage(AVSpeechSynthesisVoice(language: $0)) }
+            ?? anyVoice.flatMap { speaksLanguage(AVSpeechSynthesisVoice(language: $0.language)) }
+            ?? anyVoice
+
+        guard let voice = voice else {
+            resolver(NSNull())
+            return
+        }
+        resolver([
+            "id": voice.identifier,
+            "name": voice.name,
+            "language": voice.language,
         ])
     }
 }

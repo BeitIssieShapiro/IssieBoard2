@@ -66,4 +66,9 @@ RCT_EXTERN_METHOD(getKeyboardSetupStatus:(NSString *)language
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
 
+// Text-to-speech
+RCT_EXTERN_METHOD(getDefaultTTSVoice:(NSString *)languageTag
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+
 @end

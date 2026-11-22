@@ -38,6 +38,12 @@ export interface KeyboardSetupStatus {
   hasFullAccess: boolean | null; // null = keyboard never launched
 }
 
+export interface DefaultTTSVoice {
+  id: string;
+  name: string;
+  language: string;
+}
+
 export interface SetResult {
   success: boolean;
   [key: string]: any;
@@ -361,6 +367,15 @@ class KeyboardPreferences {
       return { isAdded: null, hasFullAccess: null };
     }
     return KeyboardPreferencesModule.getKeyboardSetupStatus(language);
+  }
+
+  /**
+   * The voice iOS uses by default for a language (e.g. Carmit for "he-IL").
+   * Null when no installed voice speaks it.
+   */
+  async getDefaultTTSVoice(languageTag: string): Promise<DefaultTTSVoice | null> {
+    if (!KeyboardPreferencesModule?.getDefaultTTSVoice) return null;
+    return KeyboardPreferencesModule.getDefaultTTSVoice(languageTag);
   }
 }
 

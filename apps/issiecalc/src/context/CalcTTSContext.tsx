@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
+import * as RNLocalize from 'react-native-localize';
 import TTS from '../../../issievoice/src/services/TextToSpeech';
+import KeyboardPreferences from '../../../../src/native/KeyboardPreferences';
+import { getDeviceLanguage } from '../../../../src/localization';
 
 export type ReadoutMode = 'off' | 'every-digit' | 'every-number' | 'both';
 export type MathLevel = 'young' | 'standard';
@@ -318,6 +321,16 @@ function speakableNumber(value: string, language: string | null): string {
   return result;
 }
 
+/** The device's language as a full locale ("he-IL"), for picking its voice. */
+function deviceLanguageTag(): string {
+  const lang = getDeviceLanguage();
+  const locale = RNLocalize.getLocales().find(l => {
+    const code = l.languageCode.toLowerCase();
+    return code === lang || (lang === 'he' && code === 'iw');
+  });
+  return locale?.languageTag ?? lang;
+}
+
 const MAX_DECIMAL_DIGITS = 3;
 
 /** A saved decimalDigits within 0–3; older configs may hold 4 or -1 ("all"). */
@@ -377,6 +390,23 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }).catch(() => {});
   }, []);
 
+  // With no voice chosen, iOS speaks with whatever voice matches the region
+  // setting, which for a Hebrew iPad can be an odd one. So the first time readout
+  // is on without a voice, pick the device language's own default voice (Carmit
+  // for Hebrew) and keep it as the chosen voice, so Settings shows and saves it.
+  const applyDefaultVoice = useCallback(async () => {
+    const tag = deviceLanguageTag();
+    const voice = await KeyboardPreferences.getDefaultTTSVoice(tag).catch(() => null);
+    if (voiceIdRef.current) return; // the user picked one meanwhile
+    const lang = voice?.language ?? tag;
+    languageRef.current = lang; setLanguageState(lang);
+    TTS.setLanguage(lang).catch(() => {});
+    if (voice) {
+      voiceIdRef.current = voice.id; setVoiceIdState(voice.id);
+      TTS.setVoice(voice.id).catch(() => {});
+    }
+  }, []);
+
   const loadFromConfig = useCallback((settings: Partial<VoiceSettings> | undefined) => {
     const s = settings ?? {};
     const mode = (['off','every-digit','every-number','both'] as ReadoutMode[]).includes(s.readoutMode as ReadoutMode) ? s.readoutMode! : 'off';
@@ -393,7 +423,8 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (lang) TTS.setLanguage(lang).catch(() => {});
       if (vid) TTS.setVoice(vid).catch(() => {});
     }
-  }, []);
+    if (mode !== 'off' && !vid) applyDefaultVoice();
+  }, [applyDefaultVoice]);
 
   const getVoiceSettings = useCallback((): VoiceSettings => ({
     readoutMode: readoutModeRef.current,
@@ -407,7 +438,8 @@ export const CalcTTSProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const setReadoutMode = useCallback((mode: ReadoutMode) => {
     readoutModeRef.current = mode; setReadoutModeState(mode);
-  }, []);
+    if (mode !== 'off' && !voiceIdRef.current) applyDefaultVoice();
+  }, [applyDefaultVoice]);
 
   const setRate = useCallback((r: number) => {
     rateRef.current = r; setRateState(r); TTS.setRate(r);
