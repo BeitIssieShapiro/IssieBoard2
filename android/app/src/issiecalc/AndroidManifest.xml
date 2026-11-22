@@ -24,7 +24,33 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
+        <!-- Open zip files from file managers -->
+        <intent-filter>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <data android:scheme="content" android:mimeType="application/zip" />
+            <data android:scheme="file" android:mimeType="application/zip" />
+            <data android:scheme="content" android:mimeType="application/octet-stream" />
+        </intent-filter>
+        <!-- Receive shared zip files -->
+        <intent-filter>
+            <action android:name="android.intent.action.SEND" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <data android:mimeType="application/zip" />
+            <data android:mimeType="application/octet-stream" />
+        </intent-filter>
       </activity>
+
+      <!-- FileProvider for sharing files -->
+      <provider
+          android:name="androidx.core.content.FileProvider"
+          android:authorities="${applicationId}.provider"
+          android:exported="false"
+          android:grantUriPermissions="true">
+          <meta-data
+              android:name="android.support.FILE_PROVIDER_PATHS"
+              android:resource="@xml/file_paths" />
+      </provider>
 
     </application>
 

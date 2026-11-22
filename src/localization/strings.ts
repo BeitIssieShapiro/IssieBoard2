@@ -382,6 +382,12 @@ export interface Strings {
     importedProfiles: string;
     skippedProfiles: string;
     skippedNote: string;
+    skippedNoteCalculators: string;
+    importedCalculators: string;
+    skippedIncompatible: string;
+    skippedIncompatibleNote: string;
+    importedSentences: string;
+    exportFailed: string;
     importFailed: string;
     invalidFile: string;
     ok: string;
@@ -747,6 +753,12 @@ const en: Strings = {
     importedProfiles: 'Imported Keyboards',
     skippedProfiles: 'Skipped (already exist)',
     skippedNote: 'Keyboards with existing names were skipped.',
+    skippedNoteCalculators: 'Calculators with existing names were skipped.',
+    importedCalculators: 'Imported Calculators',
+    skippedIncompatible: 'Skipped (made for another app)',
+    skippedIncompatibleNote: 'Calculators can only be imported into IssieCalc, and keyboards only into IssieBoard or IssieVoice.',
+    importedSentences: 'Saved sentences added',
+    exportFailed: 'Export failed',
     importFailed: 'Import Failed',
     invalidFile: 'This file is not a valid IssieBoard keyboard file.',
     ok: 'OK',
@@ -1112,6 +1124,12 @@ const he: Strings = {
     importedProfiles: 'מקלדות שיובאו',
     skippedProfiles: 'דולגו (כבר קיימות)',
     skippedNote: 'מקלדות עם שמות קיימים דולגו.',
+    skippedNoteCalculators: 'מחשבונים עם שמות קיימים דולגו.',
+    importedCalculators: 'מחשבונים שיובאו',
+    skippedIncompatible: 'דולגו (שייכים לאפליקציה אחרת)',
+    skippedIncompatibleNote: 'מחשבונים ניתן לייבא רק ל-IssieCalc, ומקלדות רק ל-IssieBoard או ל-IssieVoice.',
+    importedSentences: 'משפטים שמורים שנוספו',
+    exportFailed: 'הייצוא נכשל',
     importFailed: 'הייבוא נכשל',
     invalidFile: 'קובץ זה אינו קובץ מקלדת תקין של IssieBoard.',
     ok: 'אישור',
@@ -1477,6 +1495,12 @@ const ar: Strings = {
     importedProfiles: 'لوحات المفاتيح المستوردة',
     skippedProfiles: 'تم تخطيها (موجودة بالفعل)',
     skippedNote: 'تم تخطي لوحات المفاتيح ذات الأسماء الموجودة.',
+    skippedNoteCalculators: 'تم تخطي الآلات الحاسبة ذات الأسماء الموجودة.',
+    importedCalculators: 'الآلات الحاسبة المستوردة',
+    skippedIncompatible: 'تم تخطيها (مخصصة لتطبيق آخر)',
+    skippedIncompatibleNote: 'يمكن استيراد الآلات الحاسبة إلى IssieCalc فقط، ولوحات المفاتيح إلى IssieBoard أو IssieVoice فقط.',
+    importedSentences: 'الجمل المحفوظة المضافة',
+    exportFailed: 'فشل التصدير',
     importFailed: 'فشل الاستيراد',
     invalidFile: 'هذا الملف ليس ملف لوحة مفاتيح IssieBoard صالحًا.',
     ok: 'موافق',

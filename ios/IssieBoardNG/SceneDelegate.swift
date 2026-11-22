@@ -47,31 +47,27 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
     print("🎯 Loading module: \(moduleName)")
 
-    // A launch URL arrives in the connection options rather than in
-    // launchOptions, so cold-start file imports are prepared here.
-    var initialProps: [AnyHashable: Any] = [:]
-    var launchURL: URL?
-    if let urlContext = connectionOptions.urlContexts.first {
-      let url = urlContext.url
-      if url.isFileURL, let tempURL = appDelegate.securelyCopyToTemp(url: url) {
-        initialProps["url"] = tempURL.absoluteString
-        launchURL = tempURL
+    // A launch URL arrives in the connection options rather than in launchOptions.
+    // A file (an opened keyboard / backup) is handed to React Native as the launch
+    // URL, which is what `Linking.getInitialURL()` reads: a 'url' event sent now
+    // would be lost, since JS isn't listening yet.
+    var launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+    if let url = connectionOptions.urlContexts.first?.url {
+      if url.isFileURL {
+        if let tempURL = appDelegate.securelyCopyToTemp(url: url) {
+          launchOptions = [.url: tempURL]
+        }
       } else {
-        launchURL = url
+        handle(url: url, options: [:])
       }
     }
 
     factory.startReactNative(
       withModuleName: moduleName,
       in: window,
-      initialProperties: initialProps.isEmpty ? nil : initialProps,
-      launchOptions: nil
+      initialProperties: nil,
+      launchOptions: launchOptions
     )
-
-    // Seed RCTLinkingManager so `Linking.getInitialURL()` resolves on cold start.
-    if let launchURL {
-      handle(url: launchURL, options: [:])
-    }
   }
 
   func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {

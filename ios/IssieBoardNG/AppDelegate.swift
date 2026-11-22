@@ -63,6 +63,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
       let sanitizedFileName = fileName.replacingOccurrences(of: "/", with: "-")
       let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(sanitizedFileName)
 
+      // Already our temp copy: removing the "old" copy below would delete the source
+      if url.standardizedFileURL.path == tempURL.standardizedFileURL.path {
+        return url
+      }
+
       if FileManager.default.fileExists(atPath: tempURL.path) {
         try FileManager.default.removeItem(at: tempURL)
       }

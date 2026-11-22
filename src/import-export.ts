@@ -1,6 +1,11 @@
 import * as RNFS from 'react-native-fs';
 import { zip, unzip } from 'react-native-zip-archive';
 import KeyboardPreferences from './native/KeyboardPreferences';
+import {
+  exportVoiceData,
+  importVoiceData,
+  VOICE_DATA_FILE_PREFIX,
+} from '../apps/issievoice/src/services/voiceBackup';
 
 export type AppContext = 'issieboard' | 'issievoice' | 'issiecalc';
 
@@ -14,7 +19,26 @@ export interface ImportedProfileInfo {
 export interface ImportInfo {
   importedProfiles: ImportedProfileInfo[];
   skippedExistingProfiles: ImportedProfileInfo[];
+  // Made for another kind of app: a calculator offered to a keyboard app or vice versa
+  skippedIncompatibleProfiles: ImportedProfileInfo[];
+  // IssieVoice saved sentences added from a backup
+  importedSentences: number;
 }
+
+export function newImportInfo(): ImportInfo {
+  return { importedProfiles: [], skippedExistingProfiles: [], skippedIncompatibleProfiles: [], importedSentences: 0 };
+}
+
+/** True when an import produced anything worth reporting to the user. */
+export function hasImportResult(info: ImportInfo): boolean {
+  return info.importedProfiles.length > 0
+    || info.skippedExistingProfiles.length > 0
+    || info.skippedIncompatibleProfiles.length > 0
+    || info.importedSentences > 0;
+}
+
+// IssieBoard and IssieVoice share keyboards; IssieCalc profiles are calculators.
+const isCalc = (app: AppContext) => app === 'issiecalc';
 
 export type SavedListEntry = { name: string; key: string; language: string; keyboardId: string; appContext?: AppContext };
 
@@ -85,13 +109,12 @@ export async function exportProfile(profileId: string, profileName: string, appC
  */
 export async function exportAll(appContext: AppContext = 'issieboard'): Promise<string> {
   const savedListJson = await KeyboardPreferences.getProfile('saved_list');
-  if (!savedListJson) {
-    throw new Error('No profiles to export');
-  }
+  const savedList: SavedListEntry[] = savedListJson ? JSON.parse(savedListJson) : [];
+  // Untagged legacy profiles belong to IssieBoard, not to every app's backup
+  const appProfiles = savedList.filter(p => (p.appContext || 'issieboard') === appContext);
 
-  const savedList: SavedListEntry[] = JSON.parse(savedListJson);
-  const appProfiles = savedList.filter(p => !p.appContext || p.appContext === appContext);
-  if (appProfiles.length === 0) {
+  const voiceData = appContext === 'issievoice' ? await exportVoiceData() : null;
+  if (appProfiles.length === 0 && !voiceData) {
     throw new Error('No profiles to export');
   }
 
@@ -106,6 +129,13 @@ export async function exportAll(appContext: AppContext = 'issieboard'): Promise<
     } catch (e) {
       console.warn(`Failed to export profile ${profile.name}:`, e);
     }
+  }
+
+  if (voiceData) {
+    const voiceDataPath = tempPath(`${VOICE_DATA_FILE_PREFIX}issievoice.json`);
+    await unlinkSafe(voiceDataPath);
+    await RNFS.writeFile(voiceDataPath, JSON.stringify(voiceData), 'utf8');
+    zipFiles.push(voiceDataPath);
   }
 
   if (zipFiles.length === 0) {
@@ -131,7 +161,9 @@ export async function importPackage(packagePath: string, importInfo: ImportInfo,
 
 async function importInternal(packagePath: string, importInfo: ImportInfo, appContext: AppContext, subFolder: string): Promise<void> {
   if (packagePath.startsWith('file://')) {
-    packagePath = packagePath.substring(7);
+    // The URL is percent-encoded: backup names have spaces and keyboard names may be
+    // Hebrew or Arabic, so the raw string is not the file's real path.
+    packagePath = decodeURIComponent(packagePath.substring(7));
   }
 
   const unzipTarget = tempPath(`imported${subFolder ? '/' + subFolder : ''}`);
@@ -154,6 +186,12 @@ async function importInternal(packagePath: string, importInfo: ImportInfo, appCo
 
     // Duplicate check is scoped to the target app. Untagged legacy entries are treated
     // as 'issieboard', so they do not block imports into other apps.
+    const profileApp = metadata.app;
+    if (isCalc(profileApp) !== isCalc(appContext)) {
+      importInfo.skippedIncompatibleProfiles.push({ name: metadata.name, language: metadata.language });
+      return;
+    }
+
     const exists = savedList.some(
       p => p.name === metadata.name && (p.appContext || 'issieboard') === appContext
     );
@@ -181,10 +219,22 @@ async function importInternal(packagePath: string, importInfo: ImportInfo, appCo
   } else {
     // Zip-of-zips (backup) — recursively import each inner zip
     let i = 0;
+    let recognized = false;
     for (const item of items) {
       if (item.name.endsWith('.zip')) {
+        recognized = true;
         await importInternal(item.path, importInfo, appContext, String(i++));
+      } else if (item.name.startsWith(VOICE_DATA_FILE_PREFIX)) {
+        recognized = true;
+        if (appContext === 'issievoice') {
+          const voiceData = JSON.parse(await RNFS.readFile(item.path, 'utf8'));
+          importInfo.importedSentences += await importVoiceData(voiceData);
+        }
       }
+    }
+    // Any other zip is not ours: say so instead of silently doing nothing
+    if (!recognized && !subFolder) {
+      throw new Error('Invalid IssieBoard profile file');
     }
   }
 }

@@ -12,10 +12,14 @@ import {TTSProvider} from './src/context/TTSContext';
 import {LocalizationProvider} from './src/context/LocalizationContext';
 import {NotificationProvider} from './src/context/NotificationContext';
 import { initializeFirebase } from '../../src/firebase-config';
-import { getStrings, getDeviceLanguage } from '../../src/localization';
+import {
+  getStrings,
+  getDeviceLanguage,
+  LocalizationProvider as EditorLocalizationProvider,
+} from '../../src/localization';
 import { loadLanguage, LANGUAGE_SETTINGS } from '@beitissieshapiro/issie-shared';
 import { useIncomingURL } from '../../src/common/linking-hook';
-import { importPackage, ImportInfo } from '../../src/import-export';
+import { importPackage, ImportInfo, newImportInfo, hasImportResult } from '../../src/import-export';
 import { ImportInfoDialog } from '../../src/common/import-info-dialog';
 
 // Font scaling is disabled per-element via allowFontScaling={false}, not globally:
@@ -33,15 +37,17 @@ const App = () => {
   }, []);
 
   const [importResult, setImportResult] = React.useState<ImportInfo | null>(null);
-  const [settingsKey, setSettingsKey] = React.useState(0);
+  const [importKey, setImportKey] = React.useState(0);
 
   const handleImportURL = React.useCallback(async (url: string) => {
     try {
-      const info: ImportInfo = { importedProfiles: [], skippedExistingProfiles: [] };
+      const info: ImportInfo = newImportInfo();
       await importPackage(url, info, 'issievoice');
-      if (info.importedProfiles.length > 0 || info.skippedExistingProfiles.length > 0) {
+      if (hasImportResult(info)) {
         setImportResult(info);
-        setSettingsKey(prev => prev + 1);
+        // Remount the screens so settings, saved sentences and favorites show what
+        // was imported (the typed text lives above the navigator and is kept)
+        setImportKey(prev => prev + 1);
       }
     } catch (error) {
       console.warn('Import failed:', error);
@@ -53,13 +59,11 @@ const App = () => {
   useIncomingURL(handleImportURL);
 
   const navigator = (
-    <NavigationContainer>
+    <NavigationContainer key={importKey}>
       <Stack.Navigator initialRouteName="Main" screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Main" component={MainScreen} />
         <Stack.Screen name="Browse" component={BrowseScreen} />
-        <Stack.Screen name="Settings">
-          {(props) => <NewSettingsScreen {...props} key={settingsKey} />}
-        </Stack.Screen>
+        <Stack.Screen name="Settings" component={NewSettingsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
@@ -80,10 +84,14 @@ const App = () => {
         </NotificationProvider>
       </LocalizationProvider>
       {importResult && (
-        <ImportInfoDialog
-          importInfo={importResult}
-          onClose={() => setImportResult(null)}
-        />
+        // The dialog is shared with IssieBoard and uses the editor's strings
+        <EditorLocalizationProvider>
+          <ImportInfoDialog
+            importInfo={importResult}
+            appContext="issievoice"
+            onClose={() => setImportResult(null)}
+          />
+        </EditorLocalizationProvider>
       )}
     </SafeAreaProvider>
   );

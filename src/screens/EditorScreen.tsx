@@ -1892,7 +1892,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
     } catch (error: any) {
       if (error?.message !== 'User did not share') {
         console.warn('Export failed:', error);
-        Alert.alert(strings.common.error, strings.importExport.importFailed);
+        Alert.alert(strings.common.error, strings.importExport.exportFailed);
       }
     }
   };
@@ -1910,7 +1910,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         if ((error as Error)?.message?.includes('No profiles')) {
           Alert.alert(strings.common.error, strings.importExport.noProfilesToExport);
         } else {
-          Alert.alert(strings.common.error, strings.importExport.importFailed);
+          Alert.alert(strings.common.error, strings.importExport.exportFailed);
         }
       }
     }

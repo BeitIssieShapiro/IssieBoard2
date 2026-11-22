@@ -20,7 +20,7 @@ import { loadLanguage, LANGUAGE_SETTINGS } from '@beitissieshapiro/issie-shared'
 import NewSettingsScreen from '../apps/issievoice/src/screens/NewSettingsScreen';
 import { LocalizationProvider as VoiceLocalizationProvider } from '../apps/issievoice/src/context/LocalizationContext';
 import { useIncomingURL } from './common/linking-hook';
-import { importPackage, ImportInfo } from './import-export';
+import { importPackage, ImportInfo, newImportInfo, hasImportResult } from './import-export';
 import { ImportInfoDialog } from './common/import-info-dialog';
 
 type LanguageId = 'he' | 'en' | 'ar';
@@ -53,9 +53,9 @@ export const AppNavigator: React.FC = () => {
 
   const handleImportURL = useCallback(async (url: string) => {
     try {
-      const info: ImportInfo = { importedProfiles: [], skippedExistingProfiles: [] };
+      const info: ImportInfo = newImportInfo();
       await importPackage(url, info, 'issieboard');
-      if (info.importedProfiles.length > 0 || info.skippedExistingProfiles.length > 0) {
+      if (hasImportResult(info)) {
         setImportResult(info);
         // Switch to the imported profile's language so it's immediately visible
         const firstImported = info.importedProfiles[0];
@@ -247,6 +247,7 @@ export const AppNavigator: React.FC = () => {
         {importResult && (
           <ImportInfoDialog
             importInfo={importResult}
+          appContext="issieboard"
             onClose={() => setImportResult(null)}
           />
         )}
@@ -273,6 +274,7 @@ export const AppNavigator: React.FC = () => {
       {importResult && (
         <ImportInfoDialog
           importInfo={importResult}
+          appContext="issieboard"
           onClose={() => setImportResult(null)}
         />
       )}

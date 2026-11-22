@@ -1,10 +1,11 @@
 import React from 'react';
-import { Modal, View, Text, StyleSheet, ScrollView, TouchableOpacity, I18nManager } from 'react-native';
-import { ImportInfo, ImportedProfileInfo } from '../import-export';
+import { Modal, View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { AppContext, ImportInfo, ImportedProfileInfo } from '../import-export';
 import { useLocalization } from '../localization';
 
 interface Props {
   importInfo: ImportInfo;
+  appContext: AppContext;
   onClose: () => void;
 }
 
@@ -14,9 +15,10 @@ const languageKeyMap: Record<string, 'hebrew' | 'english' | 'arabic'> = {
   ar: 'arabic',
 };
 
-export const ImportInfoDialog: React.FC<Props> = ({ importInfo, onClose }) => {
-  const { strings } = useLocalization();
-  const isRTL = I18nManager.isRTL;
+export const ImportInfoDialog: React.FC<Props> = ({ importInfo, appContext, onClose }) => {
+  // Follows the app's language: the layout itself is not flipped to RTL
+  const { strings, isRTL } = useLocalization();
+  const isCalc = appContext === 'issiecalc';
   const s = strings.importExport;
 
   const formatItem = (item: ImportedProfileInfo): string => {
@@ -27,9 +29,9 @@ export const ImportInfoDialog: React.FC<Props> = ({ importInfo, onClose }) => {
 
   const renderSection = (title: string, data: ImportedProfileInfo[]) => (
     <View style={styles.section}>
-      <Text allowFontScaling={false} style={styles.sectionTitle}>{title} ({data.length})</Text>
+      <Text allowFontScaling={false} style={[styles.sectionTitle, isRTL && styles.rtlText]}>{title} ({data.length})</Text>
       {data.map((item, index) => (
-        <Text allowFontScaling={false} key={index} style={styles.item}>
+        <Text allowFontScaling={false} key={index} style={[styles.item, isRTL && styles.rtlText]}>
           {isRTL ? `${formatItem(item)} •` : `• ${formatItem(item)}`}
         </Text>
       ))}
@@ -48,12 +50,27 @@ export const ImportInfoDialog: React.FC<Props> = ({ importInfo, onClose }) => {
           <Text allowFontScaling={false} style={styles.title}>{s.importSuccessTitle}</Text>
           <View style={styles.separator} />
           <ScrollView style={{ maxHeight: 400 }}>
-            {renderSection(s.importedProfiles, importInfo.importedProfiles)}
+            {(importInfo.importedProfiles.length > 0 || importInfo.importedSentences === 0) &&
+              renderSection(isCalc ? s.importedCalculators : s.importedProfiles, importInfo.importedProfiles)}
+            {importInfo.importedSentences > 0 && (
+              <View style={styles.section}>
+                <Text allowFontScaling={false} style={[styles.sectionTitle, isRTL && styles.rtlText]}>
+                  {s.importedSentences} ({importInfo.importedSentences})
+                </Text>
+              </View>
+            )}
             {importInfo.skippedExistingProfiles.length > 0 &&
               renderSection(s.skippedProfiles, importInfo.skippedExistingProfiles)}
+            {importInfo.skippedIncompatibleProfiles.length > 0 &&
+              renderSection(s.skippedIncompatible, importInfo.skippedIncompatibleProfiles)}
           </ScrollView>
           {importInfo.skippedExistingProfiles.length > 0 && (
-            <Text allowFontScaling={false} style={styles.note}>{s.skippedNote}</Text>
+            <Text allowFontScaling={false} style={[styles.note, isRTL && styles.rtlText]}>
+              {isCalc ? s.skippedNoteCalculators : s.skippedNote}
+            </Text>
+          )}
+          {importInfo.skippedIncompatibleProfiles.length > 0 && (
+            <Text allowFontScaling={false} style={[styles.note, isRTL && styles.rtlText]}>{s.skippedIncompatibleNote}</Text>
           )}
           <View style={styles.buttonRow}>
             <TouchableOpacity style={styles.okButton} onPress={onClose} activeOpacity={0.7}>
@@ -104,6 +121,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginHorizontal: 8,
     marginVertical: 2,
+  },
+  rtlText: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
   },
   note: {
     fontSize: 14,
