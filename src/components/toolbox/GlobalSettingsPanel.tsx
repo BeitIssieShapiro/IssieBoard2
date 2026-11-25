@@ -5,6 +5,8 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Platform,
+  useWindowDimensions,
 } from 'react-native';
 import { useEditor } from '../../context/EditorContext';
 import { useLocalization } from '../../localization';
@@ -107,7 +109,16 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
   const autoCorrectEnabled = state.config.autoCorrectEnabled === true;
   const currentFontName = state.config.fontName;
   const hasCustomFont = !!currentFontName;
-  const currentFontSizePreset = state.config.fontSizePreset || 'normal';
+  // On large screens (iPad; Android at least 600dp wide) the keyboard uses the `_large` settings when the
+  // keyboard has them (the built-in ones do: taller, heavier, wider gaps): the controls show those, not the
+  // phone values. Changing a setting sets both.
+  const { width: windowWidth } = useWindowDimensions();
+  const isLargeScreen = Platform.OS === 'ios' ? Platform.isPad : windowWidth >= 600;
+  const deviceValue = <K extends string>(key: K): any => {
+    const config = state.config as any;
+    return isLargeScreen ? (config[`${key}_large`] ?? config[key]) : config[key];
+  };
+  const currentFontSizePreset = deviceValue('fontSizePreset') || 'normal';
   // Deliberately NOT falling back to the key preset. CalcScreen does fall back
   // when the field is unset (so old configs keep their previous look), but a
   // selector that mirrors the key preset would appear to move on its own every
@@ -116,9 +127,9 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
   // actually renders.
   const currentCalcExerciseFontSizePreset =
     (state.config as any).calcExerciseFontSizePreset || 'normal';
-  const currentHeightPreset = state.config.heightPreset || 'normal';
-  const currentFontWeight = state.config.fontWeight || 'regular'; // Default to regular
-  const currentKeyGap = state.config.keyGap || 3;
+  const currentHeightPreset = deviceValue('heightPreset') || 'normal';
+  const currentFontWeight = deviceValue('fontWeight') || 'regular'; // Default to regular
+  const currentKeyGap = deviceValue('keyGap') || 3;
   const settingsButtonEnabled = state.config.settingsButtonEnabled !== false;
 
   // Font size presets
