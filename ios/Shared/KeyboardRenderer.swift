@@ -671,8 +671,9 @@ class KeyboardRenderer {
         // Scale down to fit
         let scale = maxHeight / keyboardHeight
 
-        // Clamp between 0.5 (min) and 1.0 (max - never upscale)
-        return min(max(scale, 0.5), 1.0)
+        // Never upscale. No lower clamp: a floor (was 0.5) let tall keyboards — e.g. with the
+        // nikkud top row always on — overflow the preview area.
+        return min(scale, 1.0)
     }
     
     /// Check if currently in cursor movement mode
@@ -1074,6 +1075,12 @@ class KeyboardRenderer {
 
     private let nikkudTopRowTag = 8001
     private let nikkudModifierButtonTagBase = 9001 // tag = 9001 + buttonIndex
+    private let nikkudShurukButtonTag = 8002
+
+    /// Shuruk (וּ) is a replacement item, so it can't be applied as a plain mark;
+    /// in the top row it's a button that's enabled only right after a ו
+    /// (like the shin/sin dots). The engine also ignores it when not after ו.
+    private static let shurukValue = "\u{05D5}\u{05BC}"
 
     /// Build the nikkud top-row view showing all visible nikkud signs as tappable square buttons.
     private func buildNikkudTopRow(availableWidth: CGFloat, height: CGFloat) -> UIView {
@@ -1087,15 +1094,20 @@ class KeyboardRenderer {
         let settings = config?.diacriticsSettings?[currentKeyboardId ?? ""]
         let hidden = settings?.hidden ?? []
         let disabledModifiers = settings?.disabledModifiers ?? []
-        let isSimpleMode = settings?.simpleMode ?? true
 
-        // Filter vowel items: plain, replacements, hidden, and advanced (in basic/simple mode)
+        // Filter vowel items: plain, replacements, hidden, and advanced.
+        // Advanced (chataf) items are never shown in the top row — "Full" is too many keys for
+        // one row, so the editor blocks Full with the top row; this also covers older configs.
         let items = diacriticsDefinition.items.filter { item in
             guard item.id != "plain" else { return false }
             guard item.isReplacement != true else { return false }
             guard !hidden.contains(item.id) else { return false }
-            if isSimpleMode && item.isAdvanced == true { return false }
+            guard item.isAdvanced != true else { return false }
             return true
+        }
+        // Shuruk is a replacement (וּ); shown as its own button
+        let showShuruk = diacriticsDefinition.items.contains {
+            $0.mark == Self.shurukValue && $0.isReplacement == true && !hidden.contains($0.id)
         }
 
         // Build modifier marks: always show all enabled modifiers, but disable those that don't apply
@@ -1126,7 +1138,8 @@ class KeyboardRenderer {
             }
         }
 
-        let totalButtons = items.count + modifierMarks.count
+        let shurukCount = showShuruk ? 1 : 0
+        let totalButtons = items.count + shurukCount + modifierMarks.count
         guard totalButtons > 0 else { return rowView }
 
         let gap: CGFloat = scaledKeyGap
@@ -1274,9 +1287,18 @@ class KeyboardRenderer {
             rowView.addSubview(makeButton(mark: item.mark, index: index, baseLetter: "●", isEnabled: true))
         }
 
+        // Shuruk button (after vowels): the real וּ glyph, enabled only after ו
+        if showShuruk {
+            let isEnabled = charBeforeCursor.isEmpty || charBeforeCursor == "\u{05D5}"
+            let btn = makeButton(mark: "\u{05BC}", index: items.count, baseLetter: "\u{05D5}", isEnabled: isEnabled)
+            btn.accessibilityIdentifier = Self.shurukValue
+            btn.tag = nikkudShurukButtonTag
+            rowView.addSubview(btn)
+        }
+
         // Modifier buttons (after vowels, with enabled/disabled state)
         for (offset, entry) in modifierMarks.enumerated() {
-            let idx = items.count + offset
+            let idx = items.count + shurukCount + offset
             let btn: UIButton
             if entry.mark == "\u{05BC}" {
                 // Dagesh: show "דגש" word label instead of a glyph
@@ -1316,6 +1338,22 @@ class KeyboardRenderer {
         }
         debugLog("🔄 updateNikkudTopRowModifierStates: topRowView found, subviews=\(topRowView.subviews.count)")
 
+        let enabledColor: UIColor = UIColor { tc in tc.userInterfaceStyle == .dark ? .white : .black }
+        func setEnabled(_ btn: UIButton, _ enabled: Bool) {
+            btn.isEnabled = enabled
+            btn.alpha = enabled ? 1.0 : 0.4
+            // Restore label textColor — UILabel doesn't auto-update with isEnabled
+            btn.subviews.forEach { visualView in
+                visualView.subviews.compactMap { $0 as? UILabel }.forEach { label in
+                    label.textColor = enabled ? enabledColor : UIColor.systemGray3
+                }
+            }
+        }
+
+        if let shurukBtn = topRowView.viewWithTag(nikkudShurukButtonTag) as? UIButton {
+            setEnabled(shurukBtn, charBefore.isEmpty || charBefore == "\u{05D5}")
+        }
+
         let modifiers = diacriticsDefinition.getModifiers()
         let disabledModifiers = config?.diacriticsSettings?[currentKeyboardId ?? ""]?.disabledModifiers ?? []
 
@@ -1332,15 +1370,7 @@ class KeyboardRenderer {
             let markCount = modifier.options?.count ?? (modifier.mark != nil ? 1 : 0)
             for _ in 0..<markCount {
                 if let btn = topRowView.viewWithTag(nikkudModifierButtonTagBase + modifierIndex) as? UIButton {
-                    btn.isEnabled = applies
-                    btn.alpha = applies ? 1.0 : 0.4
-                    // Restore label textColor — UILabel doesn't auto-update with isEnabled
-                    let enabledColor: UIColor = UIColor { tc in tc.userInterfaceStyle == .dark ? .white : .black }
-                    btn.subviews.compactMap { $0 as? UIView }.forEach { visualView in
-                        visualView.subviews.compactMap { $0 as? UILabel }.forEach { label in
-                            label.textColor = applies ? enabledColor : UIColor.systemGray3
-                        }
-                    }
+                    setEnabled(btn, applies)
                 }
                 modifierIndex += 1
             }

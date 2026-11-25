@@ -22,7 +22,6 @@
       { "id": "chatafPatach", "mark": "\u05B2", "name": "חֲטַף פַּתַח", "onlyFor": ["א", "ע", "ח", "ה"], "sampleBase": "א", "isAdvanced": true },
       { "id": "chatafSegol", "mark": "\u05B1", "name": "חֲטַף סֶגוֹל", "onlyFor": ["א", "ע", "ח", "ה"], "sampleBase": "א", "isAdvanced": true },
       { "id": "chatafKamatz", "mark": "\u05B3", "name": "חֲטַף קָמָץ", "onlyFor": ["א", "ע", "ח", "ה"], "sampleBase": "א", "isAdvanced": true },
-      { "id": "cholamVav", "mark": "וֹ", "name": "חוֹלָם מָלֵא", "onlyFor": ["ו"], "isReplacement": true },
       { "id": "shuruk", "mark": "וּ", "name": "שׁוּרוּק", "onlyFor": ["ו"], "isReplacement": true }
     ],
     "modifiers": [

@@ -105,7 +105,7 @@ class KeyboardEngine {
         }
 
         renderer.onNikkudSelected = { [weak self] value in
-            self?.insertNikkudMark(value)
+            guard self?.insertNikkudMark(value) == true else { return }
             _ = self?.suggestionController.handleSpace()
         }
 
@@ -408,7 +408,9 @@ class KeyboardEngine {
     /// - Vowels (U+05B0–U+05BB, U+05C7) are mutually exclusive — replace existing vowel
     /// - Dagesh (U+05BC) toggles: if already present remove it, otherwise add it
     /// - Shin/sin dots (U+05C1/U+05C2) replace each other
-    private func insertNikkudMark(_ mark: String) {
+    /// Returns false when the tap was ignored (nothing inserted).
+    @discardableResult
+    private func insertNikkudMark(_ mark: String) -> Bool {
         let hebrewVowels: Set<UInt32> = [
             0x05B0, 0x05B1, 0x05B2, 0x05B3, 0x05B4,
             0x05B5, 0x05B6, 0x05B7, 0x05B8, 0x05B9,
@@ -418,9 +420,23 @@ class KeyboardEngine {
         let shinDot: UInt32 = 0x05C1
         let sinDot:  UInt32 = 0x05C2
 
+        // Shuruk from the nikkud top row (וּ): replace the preceding ו (and any marks on it).
+        // Not after a ו → ignore the tap.
+        if mark == "\u{05D5}\u{05BC}" {
+            let proxyBefore = textProxy.documentContextBeforeInput ?? ""
+            let before = proxyBefore.isEmpty ? shadowTextBefore : proxyBefore
+            guard let last = before.last, last.unicodeScalars.first?.value == 0x05D5 else {
+                debugLog("🎹 Shuruk ignored — no ו before cursor")
+                return false
+            }
+            for _ in last.unicodeScalars { textProxy.deleteScalarBackward() }
+            textProxy.insertText(mark)
+            return true
+        }
+
         guard let incomingScalar = mark.unicodeScalars.first else {
             textProxy.insertText(mark)
-            return
+            return true
         }
         let inVal = incomingScalar.value
 
@@ -431,12 +447,12 @@ class KeyboardEngine {
 
         guard isVowel || isDagesh || isShinSin else {
             textProxy.insertText(mark)
-            return
+            return true
         }
 
         guard let before = textProxy.documentContextBeforeInput, !before.isEmpty else {
             textProxy.insertText(mark)
-            return
+            return true
         }
 
         let lastCluster = String(before.suffix(1))
@@ -454,7 +470,7 @@ class KeyboardEngine {
 
         guard let existingIndex = conflictIndex else {
             textProxy.insertText(mark)
-            return
+            return true
         }
 
         let scalarsAfter = scalars.count - 1 - existingIndex
@@ -475,10 +491,11 @@ class KeyboardEngine {
         let existingVal = scalars[existingIndex]
         let isSameMark = existingVal == inVal
         if isDagesh && isSameMark {
-            return // toggled off
+            return true // toggled off
         }
 
         textProxy.insertText(mark)
+        return true
     }
 
     private func handleSpaceKey() {

@@ -547,6 +547,8 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   const { state, setMode, setConfig, markDirty, dispatch } = useEditor();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [testText, setTestText] = useState('');
+  // Height of the headless editor area (settings panel + preview), below the app header
+  const [headlessAreaHeight, setHeadlessAreaHeight] = useState(0);
   const [saving, setSaving] = useState(false);
   const [settingActive, setSettingActive] = useState(false);
   const [showProfilePicker, setShowProfilePicker] = useState(false);
@@ -1933,7 +1935,10 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
   // Headless mode: only render toolbox + modals, no header/canvas/profile row
   if (headless) {
     return (
-      <View style={{ flex: 1, direction: isRTL ? "rtl" : "ltr" }}>
+      <View
+        style={{ flex: 1, direction: isRTL ? "rtl" : "ltr" }}
+        onLayout={(e) => setHeadlessAreaHeight(e.nativeEvent.layout.height)}
+      >
         {/* Toast Notification */}
         {toastMessage && (
           <Animated.View style={[styles.toast, { opacity: toastOpacity }]}>
@@ -1970,9 +1975,15 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
         {/* Keyboard preview in rounded raised container */}
         {(() => {
           const isPhoneLandscape = windowWidth > windowHeight && windowWidth < 900;
+          // Tablet: the preview card takes a share of the area below the header —
+          // 60% in portrait, 50% in landscape (24 = the card's vertical margins + inner margin)
+          const tabletPreviewShare = windowWidth > windowHeight ? 0.5 : 0.6;
+          const tabletPreviewH = headlessAreaHeight > 0
+            ? headlessAreaHeight * tabletPreviewShare - 24
+            : windowHeight * 0.4;
           const previewH = windowWidth > windowHeight
-            ? (isPhoneLandscape ? windowHeight * 0.25 : windowHeight / 3)
-            : windowHeight / 4;
+            ? (isPhoneLandscape ? windowHeight * 0.25 : isTablet ? tabletPreviewH : windowHeight / 3)
+            : (isTablet ? tabletPreviewH : windowHeight / 4);
           return (
             <View style={[styles.headlessPreview, { backgroundColor: (() => {
               const bg = state.config.backgroundColor;

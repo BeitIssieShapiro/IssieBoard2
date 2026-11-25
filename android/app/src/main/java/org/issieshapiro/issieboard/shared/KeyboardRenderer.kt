@@ -670,8 +670,9 @@ class KeyboardRenderer(private val context: Context) {
         // Scale down to fit
         val scale = maxHeight.toFloat() / keyboardHeight.toFloat()
 
-        // Clamp between 0.5 (min) and 1.0 (max - never upscale)
-        return min(max(scale, 0.5f), 1.0f)
+        // Never upscale. No lower clamp: a floor (was 0.5) let tall keyboards — e.g. with the
+        // nikkud top row always on — overflow the preview area.
+        return min(scale, 1.0f)
     }
 
     /** Set whether word suggestions are enabled (override config setting) */
@@ -2674,15 +2675,20 @@ class KeyboardRenderer(private val context: Context) {
         val settings = config?.diacriticsSettings?.get(currentKeyboardId ?: "")
         val hidden = settings?.hidden ?: emptyList()
         val disabledModifiers = settings?.disabledModifiers ?: emptyList()
-        val isSimpleMode = settings?.simpleMode ?: true
 
-        // Filter vowel items: plain, replacements, hidden, and advanced (in basic/simple mode)
+        // Filter vowel items: plain, replacements, hidden, and advanced.
+        // Advanced (chataf) items are never shown in the top row — "Full" is too many keys for
+        // one row, so the editor blocks Full with the top row; this also covers older configs.
         val items = diacriticsDefinition.items.filter { item ->
             if (item.id == "plain") return@filter false
             if (item.isReplacement == true) return@filter false
             if (hidden.contains(item.id)) return@filter false
-            if (isSimpleMode && item.isAdvanced == true) return@filter false
+            if (item.isAdvanced == true) return@filter false
             true
+        }
+        // Shuruk is a replacement (וּ); shown as its own button
+        val showShuruk = diacriticsDefinition.items.any {
+            it.mark == SHURUK_VALUE && it.isReplacement == true && !hidden.contains(it.id)
         }
 
         // Build modifier marks: always show all enabled modifiers, but disable those that don't apply
@@ -2707,7 +2713,8 @@ class KeyboardRenderer(private val context: Context) {
             }
         }
 
-        val totalButtons = items.size + modifierMarks.size
+        val shurukCount = if (showShuruk) 1 else 0
+        val totalButtons = items.size + shurukCount + modifierMarks.size
         if (totalButtons == 0) return rowView
 
         val gap = scaledKeyGap
@@ -2729,6 +2736,14 @@ class KeyboardRenderer(private val context: Context) {
             rowView.addView(btn)
         }
 
+        // Shuruk button (after vowels): the real וּ glyph. Always enabled (like the modifiers on
+        // Android); the engine ignores the tap unless the letter before the cursor is ו.
+        if (showShuruk) {
+            val btn = createNikkudTopRowButton("\u05BC", "\u05D5", true, buttonSize, height, gap, bgColor, textColor,
+                tapValue = SHURUK_VALUE)
+            rowView.addView(btn)
+        }
+
         // Modifier buttons (after vowels, with enabled/disabled state)
         for ((offset, entry) in modifierMarks.withIndex()) {
             val btn: View = if (entry.mark == "ּ") {
@@ -2744,12 +2759,12 @@ class KeyboardRenderer(private val context: Context) {
         return rowView
     }
 
-    private fun createNikkudTopRowButton(mark: String, baseLetter: String, isEnabled: Boolean, buttonSize: Int, height: Int, gap: Int, bgColor: Int, textColor: Int): View {
+    private fun createNikkudTopRowButton(mark: String, baseLetter: String, isEnabled: Boolean, buttonSize: Int, height: Int, gap: Int, bgColor: Int, textColor: Int, tapValue: String = mark): View {
         val button = FrameLayout(context).apply {
             layoutParams = LinearLayout.LayoutParams(buttonSize, height)
             setOnClickListener {
                 if (isEnabled) {
-                    onNikkudSelected?.invoke(mark)
+                    onNikkudSelected?.invoke(tapValue)
                 }
             }
             setOnTouchListener { _, event ->
@@ -3395,6 +3410,9 @@ class KeyboardRenderer(private val context: Context) {
         private const val NIKKUD_TOP_ROW_TAG = 8001
         /** Base tag for nikkud modifier buttons (tag = 9001 + buttonIndex) */
         private const val NIKKUD_MODIFIER_BUTTON_TAG_BASE = 9001
+        /** Shuruk (וּ) is a replacement item, so it can't be applied as a plain mark —
+         *  the top-row button sends this value and the engine replaces the preceding ו. */
+        private const val SHURUK_VALUE = "\u05D5\u05BC"
         /** Key types that are not regular character keys (for lastRenderedRegularKeyWidth tracking) */
         private val SPECIAL_KEY_TYPES: Set<String> = setOf("space", "backspace", "shift", "keyset", "nikkud", "enter", "next-keyboard", "settings", "close", "language")
     }

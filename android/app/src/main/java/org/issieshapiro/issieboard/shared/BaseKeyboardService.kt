@@ -172,8 +172,9 @@ abstract class BaseKeyboardService : InputMethodService() {
             }
             
             onNikkudSelected = { value ->
-                insertNikkudMark(value)
-                suggestionController?.handleSpace()
+                if (insertNikkudMark(value)) {
+                    suggestionController?.handleSpace()
+                }
             }
 
             onNikkudStateChanged = {
@@ -575,11 +576,28 @@ abstract class BaseKeyboardService : InputMethodService() {
      * - Shin/sin dots (U+05C1/U+05C2) replace each other
      * Port of ios/Shared/KeyboardEngine.swift insertNikkudMark()
      */
-    private fun insertNikkudMark(mark: String) {
-        val ic = currentInputConnection ?: run {
-            // Fallback: just commit the mark
-            currentInputConnection?.commitText(mark, 1)
-            return
+    private fun insertNikkudMark(mark: String): Boolean {
+        val ic = currentInputConnection ?: return false
+
+        // Shuruk from the nikkud top row (וּ): replace the preceding ו (and any marks on it).
+        // Not after a ו → ignore the tap.
+        if (mark == "\u05D5\u05BC") {
+            val beforeText = ic.getTextBeforeCursor(10, 0)?.toString() ?: ""
+            var lastCluster = ""
+            if (beforeText.isNotEmpty()) {
+                val breaker = java.text.BreakIterator.getCharacterInstance()
+                breaker.setText(beforeText)
+                breaker.last()
+                val start = breaker.previous()
+                lastCluster = if (start == java.text.BreakIterator.DONE) beforeText else beforeText.substring(start)
+            }
+            if (lastCluster.isEmpty() || lastCluster.codePointAt(0) != 0x05D5) {
+                debugLog("🎹 Shuruk ignored — no ו before cursor")
+                return false
+            }
+            ic.deleteSurroundingText(lastCluster.length, 0)
+            ic.commitText(mark, 1)
+            return true
         }
 
         val hebrewVowels: Set<Int> = setOf(
@@ -594,7 +612,7 @@ abstract class BaseKeyboardService : InputMethodService() {
         val incomingScalar = mark.codePoints().toArray().firstOrNull()
         if (incomingScalar == null) {
             ic.commitText(mark, 1)
-            return
+            return true
         }
         val inVal = incomingScalar
 
@@ -605,13 +623,13 @@ abstract class BaseKeyboardService : InputMethodService() {
 
         if (!isVowel && !isDagesh && !isShinSin) {
             ic.commitText(mark, 1)
-            return
+            return true
         }
 
         val before = ic.getTextBeforeCursor(10, 0)?.toString()
         if (before.isNullOrEmpty()) {
             ic.commitText(mark, 1)
-            return
+            return true
         }
 
         // Get the last grapheme cluster
@@ -627,7 +645,7 @@ abstract class BaseKeyboardService : InputMethodService() {
 
         if (conflictIndex == null) {
             ic.commitText(mark, 1)
-            return
+            return true
         }
 
         val scalarsAfter = scalars.size - 1 - conflictIndex
@@ -646,10 +664,11 @@ abstract class BaseKeyboardService : InputMethodService() {
         val existingVal = scalars[conflictIndex]
         val isSameMark = existingVal == inVal
         if (isDagesh && isSameMark) {
-            return // toggled off
+            return true // toggled off
         }
 
         ic.commitText(mark, 1)
+        return true
     }
     
     private fun handleSuggestionSelected(suggestion: String) {

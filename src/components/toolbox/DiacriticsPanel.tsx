@@ -86,6 +86,8 @@ export const DiacriticsPanel: React.FC = () => {
   const isSimpleMode = settings.simpleMode ?? true;
   const isTopRowMode = settings.nikkudMode === 'topRow';
   const isTopRowAlways = settings.nikkudMode === 'topRowAlways';
+  // "Full" is too many keys for one row, so Full and the top row are mutually exclusive
+  const usesTopRow = isTopRowMode || isTopRowAlways;
   
   // Determine current mode based on settings — computed directly so it resets on cancel
   const currentMode: NikkudMode = (() => {
@@ -222,7 +224,7 @@ export const DiacriticsPanel: React.FC = () => {
         title={strings.diacritics.enableNikkud}
         options={[
           { id: 'basic', label: strings.diacritics.basic },
-          { id: 'full', label: strings.diacritics.full },
+          { id: 'full', label: strings.diacritics.full, disabled: usesTopRow },
           { id: 'custom', label: strings.diacritics.custom },
           { id: 'none', label: strings.common.none },
         ]}
@@ -246,8 +248,8 @@ export const DiacriticsPanel: React.FC = () => {
             title={strings.diacritics.inputMode}
             options={[
               { id: 'popup', label: strings.diacritics.popup },
-              { id: 'topRow', label: strings.diacritics.topRow },
-              { id: 'topRowAlways', label: strings.diacritics.topRowAlways },
+              { id: 'topRow', label: strings.diacritics.topRow, disabled: currentMode === 'full' },
+              { id: 'topRowAlways', label: strings.diacritics.topRowAlways, disabled: currentMode === 'full' },
             ]}
             selectedId={isTopRowAlways ? 'topRowAlways' : isTopRowMode ? 'topRow' : 'popup'}
             onSelect={(id) => {

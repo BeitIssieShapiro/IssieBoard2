@@ -100,8 +100,9 @@ class KeyboardEngine(
         }
 
         renderer.onNikkudSelected = { value ->
-            insertNikkudMark(value)
-            suggestionController.handleSpace()
+            if (insertNikkudMark(value)) {
+                suggestionController.handleSpace()
+            }
         }
 
         renderer.onSuggestionSelected = { suggestion ->
@@ -495,7 +496,7 @@ class KeyboardEngine(
      * - Shin/sin dots (U+05C1/U+05C2) replace each other
      * Port of ios/Shared/KeyboardEngine.swift insertNikkudMark()
      */
-    private fun insertNikkudMark(mark: String) {
+    private fun insertNikkudMark(mark: String): Boolean {
         val hebrewVowels: Set<Int> = setOf(
             0x05B0, 0x05B1, 0x05B2, 0x05B3, 0x05B4,
             0x05B5, 0x05B6, 0x05B7, 0x05B8, 0x05B9,
@@ -505,10 +506,25 @@ class KeyboardEngine(
         val shinDot = 0x05C1
         val sinDot = 0x05C2
 
+        // Shuruk from the nikkud top row (וּ): replace the preceding ו (and any marks on it).
+        // Not after a ו → ignore the tap.
+        if (mark == "\u05D5\u05BC") {
+            val proxyBefore = textProxy.documentContextBeforeInput ?: ""
+            val before = if (proxyBefore.isEmpty()) shadowTextBefore else proxyBefore
+            val lastCluster = lastGraphemeCluster(before)
+            if (lastCluster.isEmpty() || lastCluster.codePointAt(0) != 0x05D5) {
+                debugLog("🎹 Shuruk ignored — no ו before cursor")
+                return false
+            }
+            repeat(lastCluster.codePointCount(0, lastCluster.length)) { textProxy.deleteScalarBackward() }
+            textProxy.insertText(mark)
+            return true
+        }
+
         val incomingScalar = mark.codePoints().toArray().firstOrNull()
         if (incomingScalar == null) {
             textProxy.insertText(mark)
-            return
+            return true
         }
         val inVal = incomingScalar
 
@@ -519,23 +535,19 @@ class KeyboardEngine(
 
         if (!isVowel && !isDagesh && !isShinSin) {
             textProxy.insertText(mark)
-            return
+            return true
         }
 
         val before = textProxy.documentContextBeforeInput
         if (before.isNullOrEmpty()) {
             textProxy.insertText(mark)
-            return
+            return true
         }
 
         // Get the last grapheme cluster — the base letter together with any combining
         // marks already on it. takeLast(1) would grab a single UTF-16 char, which for a
         // vocalized letter is just the trailing mark, so no conflict would ever be found.
-        val breaker = java.text.BreakIterator.getCharacterInstance()
-        breaker.setText(before)
-        breaker.last()
-        val clusterStart = breaker.previous()
-        val lastCluster = before.substring(clusterStart)
+        val lastCluster = lastGraphemeCluster(before)
         val scalars = lastCluster.codePoints().toArray()
 
         // Find an existing mark in the same conflict group
@@ -547,7 +559,7 @@ class KeyboardEngine(
 
         if (conflictIndex == null) {
             textProxy.insertText(mark)
-            return
+            return true
         }
 
         val scalarsAfter = scalars.size - 1 - conflictIndex
@@ -568,10 +580,21 @@ class KeyboardEngine(
         val existingVal = scalars[conflictIndex]
         val isSameMark = existingVal == inVal
         if (isDagesh && isSameMark) {
-            return // toggled off
+            return true // toggled off
         }
 
         textProxy.insertText(mark)
+        return true
+    }
+
+    /** The last grapheme cluster of [text] (base letter + its combining marks), or "" */
+    private fun lastGraphemeCluster(text: String): String {
+        if (text.isEmpty()) return ""
+        val breaker = java.text.BreakIterator.getCharacterInstance()
+        breaker.setText(text)
+        breaker.last()
+        val clusterStart = breaker.previous()
+        return if (clusterStart == java.text.BreakIterator.DONE) text else text.substring(clusterStart)
     }
 
     // MARK: - Auto Behaviors
