@@ -294,6 +294,8 @@ export interface Strings {
   };
   canvas: {
     preview: string;
+    /** shown over the preview when it is scaled down to fit (all tabs but Advanced) */
+    previewScaled: string;
   };
   addProfileModal: {
     title: string;
@@ -665,6 +667,7 @@ const en: Strings = {
   },
   canvas: {
     preview: 'Preview',
+    previewScaled: 'Scaled {{percent}}% · view full size in \'Advanced\'',
   },
   addProfileModal: {
     title: 'Add New Keyboard',
@@ -1036,6 +1039,7 @@ const he: Strings = {
   },
   canvas: {
     preview: 'תצוגה מקדימה',
+    previewScaled: 'מוקטן ל-{{percent}}% · גודל מלא ב״מתקדם״',
   },
   addProfileModal: {
     title: 'הוסף מקלדת חדשה',
@@ -1407,6 +1411,7 @@ const ar: Strings = {
   },
   canvas: {
     preview: 'معاينة',
+    previewScaled: 'مصغّر {{percent}}% · الحجم الكامل في «متقدم»',
   },
   addProfileModal: {
     title: 'إضافة لوحة مفاتيح جديدة',

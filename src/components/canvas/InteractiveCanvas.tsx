@@ -316,6 +316,10 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
   // Advanced tab: same. Other tabs: fixed height container, native scales KB to fit via maxHeight.
   const useRealisticHeight = activeTab === 'advanced' || appContext === 'issiecalc';
   const effectiveHeight = (useRealisticHeight && keyboardHeight > 0) ? keyboardHeight : height;
+  // the preview is drawn smaller than the real keyboard (it is taller than the room given to it)
+  const previewScaled = !useRealisticHeight && keyboardHeight > 0 && keyboardHeight > height + 1;
+  // (the native preview shrinks the keyboard by the room it has over the keyboard's own height)
+  const scalePercent = previewScaled ? Math.round((height / keyboardHeight) * 100) : 100;
 
   return (
     <View style={{ flexDirection: isLandscape && !hideHeader ? "row" : "column", minHeight: hideHeader ? effectiveHeight : height + 20 }}>
@@ -372,6 +376,11 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({ onTestInpu
           onKeyPress={handleKeyPress}
           onHeightChange={handleHeightChange}
         />
+        {previewScaled && (
+          <View pointerEvents="none" style={styles.scaledBadge} testID="preview-scaled-badge">
+            <Text allowFontScaling={false} style={styles.scaledBadgeText}>{strings.canvas.previewScaled.replace('{{percent}}', String(scalePercent))}</Text>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -432,6 +441,20 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     width: 100,
     textAlign: "center"
+  },
+  scaledBadge: {
+    position: 'absolute',
+    top: 4,
+    end: 8,
+    backgroundColor: 'rgba(55, 65, 81, 0.75)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  scaledBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'white',
   },
   languageBadgeText: {
     fontSize: 12,
