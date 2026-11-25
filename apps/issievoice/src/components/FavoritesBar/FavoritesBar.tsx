@@ -344,6 +344,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ onFavoritePress, navigation
     return (
       <TouchableOpacity
         key={item.favorite.id}
+        testID={`favorite-${item.sentence.text}`}
         style={[
           styles.favoriteButton,
           { height: itemH, width },

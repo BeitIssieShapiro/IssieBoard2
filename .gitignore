@@ -100,3 +100,5 @@ releases/
 .env
 
 release-admin-creds.json
+# Detox e2e screenshots and logs
+artifacts/

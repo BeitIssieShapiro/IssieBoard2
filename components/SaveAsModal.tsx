@@ -82,6 +82,7 @@ const SaveAsModal = ({ visible, onClose, onSaveAs, originalName, existingNames }
 
             <Text style={styles.label}>{strings.saveAsModal.nameLabel}</Text>
             <TextInput
+              testID="save-as-name"
               style={[styles.input, error ? styles.inputError : null]}
               value={profileName}
               onChangeText={(text) => {
@@ -104,6 +105,7 @@ const SaveAsModal = ({ visible, onClose, onSaveAs, originalName, existingNames }
               </TouchableOpacity>
               <View style={styles.buttonDivider} />
               <TouchableOpacity
+                testID="save-as-confirm"
                 style={[styles.button, isSaveDisabled && styles.buttonDisabled]}
                 onPress={handleSaveAs}
                 disabled={isSaveDisabled}

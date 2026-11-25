@@ -172,7 +172,7 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation}) => {
     return text.trim().split(/\s+/)[0] || text.substring(0, 15);
   };
 
-  const renderSentenceItem = ({item}: {item: SavedSentence}) => {
+  const renderSentenceItem = ({item, index}: {item: SavedSentence; index: number}) => {
     const isFavorite = favoriteIds.has(item.id);
     const hasCustomDisplay = item.icon || item.caption;
 
@@ -180,7 +180,7 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation}) => {
       <View style={[styles.sentenceCard, isLandscape && styles.sentenceCardLandscape]}>
         <TouchableOpacity
           style={styles.sentenceTextContainer}
-          onPress={() => handleSpeakPress(item)}
+          testID={`sentence-text-${index}`} onPress={() => handleSpeakPress(item)}
           activeOpacity={0.7}>
 
           {hasCustomDisplay ? (
@@ -208,35 +208,35 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation}) => {
         <View style={styles.actionButtons}>
           <TouchableOpacity
             style={styles.actionBtn}
-            onPress={() => handleEditCaptionIcon(item)}
+            testID={`sentence-edit-${index}`} onPress={() => handleEditCaptionIcon(item)}
             activeOpacity={0.7}>
             <MyIcon info={{ name: 'create-outline', type: 'Ionicons', color: colors.primary, size: 18 }} />
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.actionBtn}
-            onPress={() => handleInsertText(item)}
+            testID={`sentence-insert-${index}`} onPress={() => handleInsertText(item)}
             activeOpacity={0.7}>
             <MyIcon info={{ name: 'add-circle-outline', type: 'Ionicons', color: colors.primary, size: 18 }} />
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.actionBtn, styles.actionBtnSpeak]}
-            onPress={() => handleSpeakPress(item)}
+            testID={`sentence-speak-${index}`} onPress={() => handleSpeakPress(item)}
             activeOpacity={0.7}>
             <MyIcon info={{ name: 'volume-high-outline', type: 'Ionicons', color: '#FFFFFF', size: 18 }} />
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.actionBtn, isFavorite ? styles.actionBtnFavoriteActive : styles.actionBtnFavorite]}
-            onPress={() => handleToggleFavorite(item)}
+            testID={`sentence-favorite-${index}`} onPress={() => handleToggleFavorite(item)}
             activeOpacity={0.7}>
             <MyIcon info={{ name: isFavorite ? 'star' : 'star-outline', type: 'Ionicons', color: isFavorite ? '#FFFFFF' : '#F59E0B', size: 18 }} />
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.actionBtn, styles.actionBtnDelete]}
-            onPress={() => handleDeletePress(item)}
+            testID={`sentence-delete-${index}`} onPress={() => handleDeletePress(item)}
             activeOpacity={0.7}>
             <MyIcon info={{ name: 'trash-outline', type: 'Ionicons', color: colors.error, size: 18 }} />
           </TouchableOpacity>
@@ -272,6 +272,7 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation}) => {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
+          testID="browse-back-btn"
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}>
           <MyIcon info={{ name: isRTL ? 'arrow-forward' : 'arrow-back', type: 'Ionicons', color: '#FFFFFF', size: 20 }} />
@@ -282,6 +283,7 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation}) => {
         <View style={{ flex: 1 }} />
         <TouchableOpacity
           style={[styles.headerButton, sentences.length === 0 && styles.headerButtonDisabled]}
+          testID="browse-clear-all-btn"
           onPress={handleClearAll}
           disabled={sentences.length === 0}
           activeOpacity={0.7}>
@@ -296,11 +298,16 @@ const BrowseScreen: React.FC<BrowseScreenProps> = ({navigation}) => {
         </TouchableOpacity>
       </View>
 
+      {/* e2e tests (dev builds only) */}
+      {__DEV__ && <View testID="browse-state" pointerEvents="none" accessible
+        accessibilityLabel={`saved:${sentences.length} shown:${filteredSentences.length} favorites:${favoriteIds.size}`}
+        style={{ position: 'absolute', left: 0, top: 0, width: 1, height: 1, opacity: 0.01 }} />}
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <View style={[styles.searchInputWrapper, isRTL && { direction: 'rtl' }]}>
           <MyIcon info={{ name: 'search', type: 'Ionicons', color: colors.textLight, size: 18 }} />
           <TextInput
+            testID="browse-search"
             style={[styles.searchInput, isRTL && { textAlign: 'right', writingDirection: 'rtl' }]}
             placeholder={strings.browse.search}
             placeholderTextColor={colors.textLight}

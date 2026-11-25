@@ -2043,6 +2043,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
                   contentContainerStyle={styles.profilePillList}
                   renderItem={({ item }) => (
                     <TouchableOpacity
+                      testID={`profile-${item.name}`}
                       style={[
                         styles.profilePill,
                         item.id === currentProfileId && styles.profilePillActive,
@@ -2089,6 +2090,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
                       </TouchableOpacity>
                       {!item.isBuiltIn && (
                         <TouchableOpacity
+                          testID={`profile-delete-${item.name}`}
                           style={styles.profilePillDelete}
                           onPress={() => {
                             handleDeleteProfile(item);
@@ -2355,6 +2357,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
                     ]}
                   >
                     <TouchableOpacity
+                      testID={`profile-${item.name}`}
                       style={styles.profilePillMain}
                       onPress={() => {
                         handleSetActiveForProfile(item);
@@ -2385,6 +2388,7 @@ const EditorScreenInner: React.FC<EditorScreenInnerProps> = ({
                           onPress={() => handleRenameProfile(item)}
                         />
                         <ActionButton
+                          testID={`profile-delete-${item.name}`}
                           label={strings.common.delete}
                           color="red"
                           onPress={() => handleDeleteProfile(item)}

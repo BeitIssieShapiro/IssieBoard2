@@ -112,7 +112,7 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
       {!(hideLanguageTabs && twoRows && !showClassicButton) && (
       <View style={[styles.row1, twoRows && styles.row1TwoRows, isRTL && { flexDirection: 'row-reverse' }]}>
         {canGoBack && !twoRows && (
-          <TouchableOpacity style={styles.backButton} onPress={onGoBack} activeOpacity={0.7}>
+          <TouchableOpacity style={styles.backButton} testID="editor-back-btn" onPress={onGoBack} activeOpacity={0.7}>
             <MyIcon info={{ name: isRTL ? 'arrow-forward' : 'arrow-back', type: 'Ionicons', color: '#FFFFFF', size: 20 }} />
           </TouchableOpacity>
         )}
@@ -124,7 +124,7 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
               <TouchableOpacity
                 key={lang.id}
                 style={[styles.languageTab, isActive && styles.languageTabActive]}
-                onPress={() => onLanguageChange(lang.id)}
+                testID={`editor-lang-${lang.id}`} onPress={() => onLanguageChange(lang.id)}
                 activeOpacity={0.7}>
                 <Text
                   allowFontScaling={false}
@@ -163,7 +163,7 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
       {/* Row 2 (portrait) / remaining inline (landscape): profile label + dropdown + cancel + save */}
       <View style={[styles.row2, twoRows && styles.row2TwoRows, isRTL && { flexDirection: 'row-reverse' }]}>
         {canGoBack && twoRows && (
-          <TouchableOpacity style={styles.backButton} onPress={onGoBack} activeOpacity={0.7}>
+          <TouchableOpacity style={styles.backButton} testID="editor-back-btn" onPress={onGoBack} activeOpacity={0.7}>
             <MyIcon info={{ name: isRTL ? 'arrow-forward' : 'arrow-back', type: 'Ionicons', color: '#FFFFFF', size: 20 }} />
           </TouchableOpacity>
         )}
@@ -182,7 +182,7 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
         )}
         <TouchableOpacity
           style={[styles.profileButton, isRTL && { flexDirection: 'row-reverse' }, isGeneralTab && styles.profileButtonHero]}
-          onPress={onProfilePress}
+          testID="editor-profile-btn" onPress={onProfilePress}
           activeOpacity={0.7}>
           <MyIcon info={{ name: 'keyboard-settings-outline', type: 'MDI', color: colors.primary, size: isGeneralTab ? 28 : 22 }} />
           <Text allowFontScaling={false} style={[styles.profileName, isRTL && { textAlign: 'right' }, isGeneralTab && styles.profileNameHero]} numberOfLines={1} ellipsizeMode="tail">
@@ -195,7 +195,7 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
           {onDiscard && (
             <TouchableOpacity
               style={[styles.cancelButton, !isDirty && styles.cancelButtonDisabled]}
-              onPress={onDiscard}
+              testID="editor-discard-btn" onPress={onDiscard}
               disabled={!isDirty}
               activeOpacity={0.7}>
               <MyIcon
@@ -212,7 +212,7 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
           <Animated.View style={{ opacity: saveOpacity }}>
             <TouchableOpacity
               style={[styles.saveButton, !isDirty && styles.saveButtonDisabled]}
-              onPress={onSave}
+              testID="editor-save-btn" onPress={onSave}
               disabled={!isDirty}
               activeOpacity={0.7}>
               <MyIcon
@@ -230,7 +230,7 @@ const KeyboardHeader: React.FC<KeyboardHeaderProps> = ({
           {onSaveAs && (
             <TouchableOpacity
               style={styles.saveAsButton}
-              onPress={onSaveAs}
+              testID="editor-save-as-btn" onPress={onSaveAs}
               activeOpacity={0.7}>
               <Text allowFontScaling={false} style={styles.saveAsText}>{strings.editor.saveAs}</Text>
             </TouchableOpacity>

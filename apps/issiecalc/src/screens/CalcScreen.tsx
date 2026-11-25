@@ -802,6 +802,10 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
         }}>
         0
       </Text>
+      {/* e2e tests (dev builds only) read the calculator's state from this hidden view's label */}
+      {__DEV__ && <View testID="calc-state" pointerEvents="none" accessible
+        accessibilityLabel={`expression:${encodeURIComponent(expression)} result:${encodeURIComponent(result)} resultMode:${resultMode ? 1 : 0} keyset:${keyset} angle:${angleMode} memory:${encodeURIComponent(memory)}`}
+        style={{ position: 'absolute', left: 0, top: 0, width: 1, height: 1, opacity: 0.01 }} />}
       {/* Top bar — replaced by the menu chip on the expression line in
           compact chrome, where its height is better spent on the keypad. */}
       {!compactChrome && (
@@ -809,11 +813,13 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
         {calcMode === 'both' && (
           <View style={styles.segmented}>
             <TouchableOpacity
+              testID="calc-mode-basic"
               style={[styles.segment, keyset === 'basic' && styles.segmentActive]}
               onPress={() => setKeyset('basic')}>
               <Text style={[styles.segmentText, keyset === 'basic' && styles.segmentTextActive, { color: dimTextColor }, keyset === 'basic' && { color: displayTextColor }]}>{'÷≡  '}{strings.settings.calcBasic}</Text>
             </TouchableOpacity>
             <TouchableOpacity
+              testID="calc-mode-scientific"
               style={[styles.segment, (keyset === 'scientific' || keyset === 'scientific_landscape_2nd' || keyset === 'scientific_2nd') && styles.segmentActive]}
               onPress={() => setKeyset('scientific')}>
               <Text style={[styles.segmentText, (keyset === 'scientific' || keyset === 'scientific_landscape_2nd' || keyset === 'scientific_2nd') && styles.segmentTextActive, { color: dimTextColor }, (keyset === 'scientific' || keyset === 'scientific_landscape_2nd' || keyset === 'scientific_2nd') && { color: displayTextColor }]}>{'f(x)  '}{strings.settings.calcScientific}</Text>
@@ -824,7 +830,7 @@ const CalcScreen: React.FC<CalcScreenProps> = ({ navigation }) => {
           {gearHold.countdown !== null && (
             <Text style={styles.countdownText}>{openInText(gearHold.countdown)}</Text>
           )}
-          <TouchableOpacity style={styles.gearButton} {...gearHold.pressProps}>
+          <TouchableOpacity testID="calc-settings-btn" style={styles.gearButton} {...gearHold.pressProps}>
             <Text style={[styles.gearIcon, { color: dimTextColor }]}>⚙</Text>
           </TouchableOpacity>
         </View>

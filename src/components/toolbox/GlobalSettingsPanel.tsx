@@ -566,6 +566,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
                   </Text>
                 </View>
                 <ToggleSwitch
+                  testID="feature-word-suggestions"
                   value={wordSuggestionsEnabled}
                   onChange={updateWordSuggestions}
                   labelOn=""
@@ -582,6 +583,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
                   </Text>
                 </View>
                 <ToggleSwitch
+                  testID="feature-auto-correct"
                   value={autoCorrectEnabled}
                   onChange={updateAutoCorrect}
                   labelOn=""
@@ -601,6 +603,7 @@ export const GlobalSettingsPanel: React.FC<GlobalSettingsPanelProps> = ({
                       </Text>
                     </View>
                     <ToggleSwitch
+                  testID="feature-settings-button"
                       value={settingsButtonEnabled}
                       onChange={updateSettingsButton}
                       labelOn=""

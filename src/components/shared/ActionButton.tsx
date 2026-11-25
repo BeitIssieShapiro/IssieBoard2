@@ -7,6 +7,7 @@ export interface ActionButtonProps {
   color: 'green' | 'blue' | 'red' | 'gray';
   disabled?: boolean;
   icon?: string;
+  testID?: string;
 }
 
 export const ActionButton: React.FC<ActionButtonProps> = ({ 
@@ -14,7 +15,8 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
   onPress, 
   color, 
   disabled,
-  icon 
+  icon,
+  testID,
 }) => {
   const colorStyles = {
     green: styles.actionButtonGreen,
@@ -25,6 +27,7 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
 
   return (
     <TouchableOpacity
+      testID={testID}
       style={[styles.actionButton, colorStyles[color], disabled && styles.actionButtonDisabled]}
       onPress={onPress}
       disabled={disabled}

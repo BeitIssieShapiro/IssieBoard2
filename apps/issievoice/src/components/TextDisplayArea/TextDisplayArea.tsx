@@ -189,6 +189,7 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1
       {/* Delete button - top-start, Save button - top-end */}
       <TouchableOpacity
         style={[styles.topButton, styles.bottomButton, styles.deleteButton, isRTL ? { right: 8 } : { left: 8 }, !text.length && styles.topButtonDisabled]}
+        testID="voice-clear-btn"
         onPress={handleClear}
         activeOpacity={0.7}
         disabled={!text.length}>
@@ -196,6 +197,7 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.topButton, styles.saveButton, isRTL ? { left: 8 } : { right: 8 }, !text.length && styles.topButtonDisabled]}
+        testID="voice-save-btn"
         onPress={onSave}
         activeOpacity={0.7}
         disabled={!text.length}>
@@ -203,6 +205,7 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.topButton, styles.browseButton, isRTL ? { left: 8 } : { right: 8 }]}
+        testID="voice-browse-btn"
         onPress={onBrowse}
         activeOpacity={0.7}>
         <MyIcon info={{ name: 'list-sharp', type: 'Ionicons', color: colors.primary, size: 32 }} />

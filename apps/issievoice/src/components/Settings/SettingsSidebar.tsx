@@ -103,6 +103,7 @@ const TabItem: React.FC<{
       isActive && styles.sidebarCardActive,
       disabled && { opacity: 0.35 },
     ]}
+    testID={`settings-tab-${tab.id}`}
     onPress={onPress}
     activeOpacity={0.7}
     disabled={disabled}>
@@ -181,7 +182,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
         {onGoBack && (
           <TouchableOpacity
             style={[styles.backCard, isPhoneVoice ? styles.backCardExtraCompact : isPhone && styles.backCardCompact, isRTL && { flexDirection: 'row-reverse' }]}
-            onPress={onGoBack}
+            testID="settings-back-btn" onPress={onGoBack}
             activeOpacity={0.7}>
             <View style={[isPhoneVoice ? styles.iconCircleExtraCompact : styles.iconCircleCompact, styles.backIconCircle]}>
               <MyIcon info={{ name: backIcon, type: 'Ionicons', color: colors.primary, size: isPhoneVoice ? 20 : 24 }} />
@@ -202,7 +203,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
         {!keyboardOnly && (
           <TouchableOpacity
             style={[styles.groupHeader, isPhoneVoice ? styles.groupHeaderExtraCompact : isPhone && styles.groupHeaderCompact, isRTL && { flexDirection: 'row-reverse' }]}
-            onPress={() => onTabChange('general')}
+            testID="settings-tab-keyboard" onPress={() => onTabChange('general')}
             activeOpacity={0.7}>
             <View style={[isPhoneVoice ? styles.iconCircleExtraCompact : isPhone ? styles.iconCircleCompact : styles.iconCircle, { backgroundColor: colors.primary + '18' }]}>
               <MyIcon
@@ -281,7 +282,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
           <View style={styles.subTabAboutVContainer}>
             <TouchableOpacity
               style={[styles.sidebarCard, isPhone && styles.sidebarCardCompact, isPhoneVoice && styles.sidebarCardExtraCompact, isRTL && { flexDirection: 'row-reverse' }]}
-              onPress={onAbout}
+              testID="settings-about-btn" onPress={onAbout}
               activeOpacity={0.7}>
               <View style={[isPhoneVoice ? styles.iconCircleExtraCompact : isPhone ? styles.iconCircleCompact : styles.iconCircle, { backgroundColor: colors.primary + '18' }]}>
                 <MyIcon info={{ name: 'information-circle-outline', type: 'Ionicons', color: colors.primary, size: isPhoneVoice ? 16 : isPhone ? 19 : 22 }} />
@@ -306,7 +307,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
         <View style={[styles.subTabRow, isRTL && { flexDirection: 'row-reverse' }]}>
           {onGoBack && (
             <>
-              <TouchableOpacity style={styles.subTabIconOnly} onPress={onGoBack} activeOpacity={0.7}>
+              <TouchableOpacity style={styles.subTabIconOnly} testID="settings-back-btn" onPress={onGoBack} activeOpacity={0.7}>
                 <View style={styles.iconCircleTiny}>
                   <MyIcon info={{ name: backIcon, type: 'Ionicons', color: colors.primary, size: 20 }} />
                 </View>
@@ -321,7 +322,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
               <TouchableOpacity
                 key={tab.id}
                 style={[isPhone ? styles.subTabIconOnly : styles.subTab, isActive && styles.subTabActive, isRTL && { flexDirection: 'row-reverse' }]}
-                onPress={() => onTabChange(tab.id)}
+                testID={`settings-tab-${tab.id}`} onPress={() => onTabChange(tab.id)}
                 activeOpacity={0.7}
                 disabled={isDisabled}>
                 <View
@@ -371,7 +372,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
             <TouchableOpacity
               key={tab.id}
               style={[isPhone ? styles.subTabIconOnly : styles.subTab, activeTab === tab.id && styles.subTabActive, isRTL && { flexDirection: 'row-reverse' }]}
-              onPress={() => onTabChange(tab.id)}
+              testID={`settings-tab-${tab.id}`} onPress={() => onTabChange(tab.id)}
               activeOpacity={0.7}>
               <View
                 style={[
@@ -403,7 +404,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
             <View style={[styles.subTabAboutHContainer, isRTL && { flexDirection: "row-reverse" }]}>
               <TouchableOpacity
                 style={[isPhone ? styles.subTabIconOnly : styles.subTab, isRTL && { flexDirection: 'row-reverse' }]}
-                onPress={onAbout}
+                testID="settings-about-btn" onPress={onAbout}
                 activeOpacity={0.7}>
                 <View style={[styles.iconCircleTiny, { backgroundColor: colors.primary + '18' }]}>
                   <MyIcon info={{ name: 'information-circle-outline', type: 'Ionicons', color: colors.primary, size: 16 }} />
@@ -428,7 +429,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
       <View style={[styles.tabRow, isRTL && { flexDirection: 'row-reverse' }]}>
         {onGoBack && (
           <>
-            <TouchableOpacity style={[styles.tab, styles.backTab]} onPress={onGoBack} activeOpacity={0.7} accessibilityLabel={backLabel}>
+            <TouchableOpacity style={[styles.tab, styles.backTab]} testID="settings-back-btn" onPress={onGoBack} activeOpacity={0.7} accessibilityLabel={backLabel}>
               <MyIcon info={{ name: backIcon, type: 'Ionicons', color: colors.primary, size: 26 }} />
             </TouchableOpacity>
             <View style={styles.dividerVertical} />
@@ -468,7 +469,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
         <TouchableOpacity
           style={[styles.tab, isPhone && styles.tabIconOnly, activeTab === 'voice' && styles.tabActive, isRTL && { flexDirection: 'row-reverse' }]}
           accessibilityLabel={tabLabels.voice}
-          onPress={() => onTabChange('voice')}
+          testID="settings-tab-voice" onPress={() => onTabChange('voice')}
           activeOpacity={0.7}>
           <View
             style={[
@@ -499,7 +500,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
         <TouchableOpacity
           style={[styles.tab, isPhone && styles.tabIconOnly, activeTab === 'language' && styles.tabActive, isRTL && { flexDirection: 'row-reverse' }]}
           accessibilityLabel={tabLabels.language}
-          onPress={() => onTabChange('language')}
+          testID="settings-tab-language" onPress={() => onTabChange('language')}
           activeOpacity={0.7}>
           <View
             style={[
@@ -533,7 +534,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
             <TouchableOpacity
               style={[styles.tab, styles.aboutTab, isPhone && styles.tabIconOnly, isRTL && { flexDirection: 'row-reverse' }]}
               accessibilityLabel={aboutLabel}
-              onPress={onAbout}
+              testID="settings-about-btn" onPress={onAbout}
               activeOpacity={0.7}>
               <View style={[styles.iconCircleSmall, { backgroundColor: colors.primary + '18' }]}>
                 <MyIcon info={{ name: 'information-circle-outline', type: 'Ionicons', color: colors.primary, size: 18 }} />
@@ -554,7 +555,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
               <TouchableOpacity
                 key={tab.id}
                 style={[isPhone ? styles.subTabIconOnly : styles.subTab, isActive && styles.subTabActive, isRTL && { flexDirection: 'row-reverse' }]}
-                onPress={() => onTabChange(tab.id)}
+                testID={`settings-tab-${tab.id}`} onPress={() => onTabChange(tab.id)}
                 activeOpacity={0.7}
                 disabled={isDisabled}>
                 <View

@@ -143,6 +143,9 @@ const buildDefaultConfig = (language: KbLanguage): any => {
 const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
   const { currentText, setText, setCursorPosition, moveCursorBy, getCursorPosition } = useText();
   const { speak, stop, isSpeaking } = useTTS();
+  // e2e tests (dev builds only): how many times speaking started
+  const [speakCount, setSpeakCount] = useState(0);
+  useEffect(() => { if (__DEV__ && isSpeaking) setSpeakCount(c => c + 1); }, [isSpeaking]);
   const { language: deviceLanguage, strings } = useLocalization();
   const { showNotification } = useNotification();
   const [keyboardConfig, setKeyboardConfig] = useState<string>('');
@@ -467,10 +470,15 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* e2e tests (dev builds only) read the screen's state from this hidden view's label */}
+      {__DEV__ && <View testID="voice-state" pointerEvents="none" accessible
+        accessibilityLabel={`text:${encodeURIComponent(currentText)} speaking:${isSpeaking ? 1 : 0} spoken:${speakCount} lang:${currentLanguage}`}
+        style={{ position: 'absolute', left: 0, top: 0, width: 1, height: 1, opacity: 0.01 }} />}
       <View style={[styles.content, { paddingBottom: keyboardHeight + 24 }]}>
         {/* Header Bar */}
         <View style={[styles.headerBar, isRTL && { flexDirection: 'row-reverse' }]}>
           <TouchableOpacity
+            testID="voice-menu-btn"
             style={styles.menuButton}
             onPress={() => navigation.navigate('Settings', { initialLanguage: currentLanguage })}
             activeOpacity={0.7}>
@@ -497,6 +505,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
             {!speakButtonInKeyboard && (
             <View style={[styles.speakFabWrapper, isRTL && { right: undefined, left: 14 }]} pointerEvents="box-none">
               <TouchableOpacity
+                testID="voice-speak-btn"
                 style={[styles.speakFab, isRTL && { flexDirection: 'row-reverse' }]}
                 onPress={handleSpeak}
                 activeOpacity={0.7}>
@@ -528,6 +537,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ navigation }) => {
           {/* IssieBoard Custom Keyboard */}
           <View style={{ height: keyboardHeight }}>
             <KeyboardPreview
+              testID="voice-keyboard"
               style={[styles.keyboard, { height: keyboardHeight }]}
               configJson={keyboardConfig}
               language={currentLanguage}

@@ -40,6 +40,7 @@ interface OpenSettingsEvent {
 
 interface KeyboardPreviewProps {
   style?: StyleProp<ViewStyle>;
+  testID?: string;
   configJson?: string;
   /** JSON array of selected key IDs for visual highlighting, e.g., '["abc:0:3", "abc:1:2"]' */
   selectedKeys?: string;

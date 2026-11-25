@@ -15,6 +15,7 @@ interface ToggleSwitchProps {
   labelOff?: string;
   disabled?: boolean;
   size?: 'small' | 'medium' | 'large';
+  testID?: string;
 }
 
 export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
@@ -24,6 +25,7 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
   labelOff: labelOffProp,
   disabled = false,
   size = 'medium',
+  testID,
 }) => {
   const { strings } = useLocalization();
   const labelOn = labelOnProp ?? strings.common.on;
@@ -50,6 +52,7 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
       </Text>
       
       <TouchableOpacity
+        testID={testID}
         activeOpacity={0.8}
         onPress={() => !disabled && onChange(!value)}
         disabled={disabled}
