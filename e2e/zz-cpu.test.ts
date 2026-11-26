@@ -14,11 +14,13 @@ describe('cpu', () => {
   it('suggestions on/off', async () => {
     await launch(); await device.disableSynchronization();
     await waitFor(element(by.id('editor-lang-en')).atIndex(0)).toExist().withTimeout(20000);
-    // Dismiss any iOS system popover that may appear at startup (e.g. from UIViewControllerBasedStatusBarAppearance)
+    // Dismiss any iOS system popover that may appear at startup (e.g. from UIViewControllerBasedStatusBarAppearance).
+    // The popover arrives ~6 s after launch (after the RN bridge renders), so wait up to 8 s for it; then
+    // wait for it to disappear before proceeding so the next tap is not blocked.
     try {
-      await waitFor(element(by.id('PopoverDismissRegion')).atIndex(0)).toExist().withTimeout(3000);
+      await waitFor(element(by.id('PopoverDismissRegion')).atIndex(0)).toExist().withTimeout(8000);
       await element(by.id('PopoverDismissRegion')).atIndex(0).tap();
-      await sleep(500);
+      await waitFor(element(by.id('PopoverDismissRegion')).atIndex(0)).not.toExist().withTimeout(3000);
     } catch {}
     await element(by.id('editor-lang-en')).atIndex(0).tap();
     await sleep(5000);
