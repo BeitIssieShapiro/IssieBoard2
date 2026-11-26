@@ -18,6 +18,21 @@ describe('IssieVoice', () => {
   beforeAll(async () => {
     await launch();
     await voice('the main screen', () => true, 20000);
+    // On RN 0.88.1 iPad a UIDimmingView (PopoverDismissRegion) may appear during startup.
+    // The popover bubble sits at screen center, so tap the DimmingView's exposed top-left
+    // corner (element-local {825, 1185} ≡ screen {5, 5} for frame -820 -1180; 2460 3540).
+    try {
+      await waitFor(element(by.id('PopoverDismissRegion')).atIndex(0)).toExist().withTimeout(8000);
+      await element(by.id('PopoverDismissRegion')).atIndex(0).tap({ x: 825, y: 1185 });
+      await sleep(500);
+      for (let i = 0; i < 10; i++) {
+        try {
+          await waitFor(element(by.id('PopoverDismissRegion')).atIndex(0)).toExist().withTimeout(2000);
+          await element(by.id('PopoverDismissRegion')).atIndex(0).tap({ x: 825, y: 1185 });
+          await sleep(500);
+        } catch { break; }
+      }
+    } catch { /* no popover */ }
   });
 
   it('starts empty, with the keyboard', async () => {
