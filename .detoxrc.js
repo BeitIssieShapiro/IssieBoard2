@@ -24,8 +24,8 @@ for (const [name, { scheme, flavor }] of Object.entries(APPS)) {
     build: `cd android && ./gradlew :app:assemble${cap(flavor)}Debug :app:assemble${cap(flavor)}DebugAndroidTest -DtestBuildType=debug && cd ..`,
     reversePorts: [8081],
   };
-  configurations[`${name}.ipad`] = { device: 'ipad', app: `ios.${name}` };
-  configurations[`${name}.iphone`] = { device: 'iphone', app: `ios.${name}` };
+  configurations[`${name}.ipad`] = { device: 'ipad', app: `ios.${name}`, behavior: { init: { reinstallApp: false } } };
+  configurations[`${name}.iphone`] = { device: 'iphone', app: `ios.${name}`, behavior: { init: { reinstallApp: false } } };
   configurations[`${name}.android.phone`] = { device: 'androidPhone', app: `android.${name}` };
   configurations[`${name}.android.tablet`] = { device: 'androidTablet', app: `android.${name}` };
   configurations[`${name}.android.device`] = { device: 'attached', app: `android.${name}` };

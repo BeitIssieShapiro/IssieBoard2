@@ -13,6 +13,20 @@ describe('IssieCalc', () => {
   beforeAll(async () => {
     await launch();
     await calc('the calculator', () => true, 20000);
+    // On RN 0.88.1 iPad a UIDimmingView (PopoverDismissRegion) may appear during startup.
+    // Tap the DimmingView's exposed top-left corner (element-local {825, 1185} ≡ screen {5, 5}).
+    try {
+      await waitFor(element(by.id('PopoverDismissRegion')).atIndex(0)).toExist().withTimeout(8000);
+      await element(by.id('PopoverDismissRegion')).atIndex(0).tap({ x: 825, y: 1185 });
+      await sleep(500);
+      for (let i = 0; i < 10; i++) {
+        try {
+          await waitFor(element(by.id('PopoverDismissRegion')).atIndex(0)).toExist().withTimeout(2000);
+          await element(by.id('PopoverDismissRegion')).atIndex(0).tap({ x: 825, y: 1185 });
+          await sleep(500);
+        } catch { break; }
+      }
+    } catch { /* no popover */ }
   });
 
   beforeEach(async () => {
