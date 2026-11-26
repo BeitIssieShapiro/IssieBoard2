@@ -16,6 +16,7 @@ describe('cpu', () => {
     await waitFor(element(by.id('editor-lang-en')).atIndex(0)).toExist().withTimeout(20000);
     // Dismiss any iOS system popover that may appear at startup (e.g. from UIViewControllerBasedStatusBarAppearance)
     try {
+      await waitFor(element(by.id('PopoverDismissRegion')).atIndex(0)).toExist().withTimeout(3000);
       await element(by.id('PopoverDismissRegion')).atIndex(0).tap();
       await sleep(500);
     } catch {}
