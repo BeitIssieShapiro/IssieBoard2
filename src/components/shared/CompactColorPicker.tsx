@@ -41,7 +41,7 @@ export const CompactColorPicker: React.FC<CompactColorPickerProps> = ({
   const [customColor, setCustomColor] = useState(value || '#FF5733');
   const [customColors, setCustomColors] = useState<string[]>([]);
   const [buttonLayout, setButtonLayout] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
-  const buttonRef = useRef<View>(null);
+  const buttonRef = useRef<React.ComponentRef<typeof View>>(null);
 
   // Get screen dimensions
   const screenHeight = Dimensions.get('window').height;

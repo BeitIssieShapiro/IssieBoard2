@@ -31,7 +31,7 @@ const TextDisplayArea: React.FC<TextDisplayAreaProps> = ({ text, screenWidth = 1
   const { setText, cursorPosition, setCursorPosition, pendingSelection, clearPendingSelection } = useText();
   const { isSpeaking, spokenRange, spokenText } = useTTS();
   const { strings, isRTL, language } = useLocalization();
-  const textInputRef = useRef<TextInput>(null);
+  const textInputRef = useRef<React.ComponentRef<typeof TextInput>>(null);
   const [selection, setSelection] = useState<{ start: number; end: number } | undefined>(undefined);
   // True while the user has a non-empty range selected by touch. Used to avoid
   // yanking focus (and thus the selection) out from under them on re-render.
