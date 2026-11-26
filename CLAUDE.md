@@ -220,3 +220,21 @@ When changing the JSON config structure:
 4. Add `dict/bin/<lang>_predictions.bin` to iOS/Android projects
 5. System automatically uses predictions when available
 
+## E2E Tests (Detox)
+
+Full docs: `e2e/README.md`. Quick reference:
+
+**Tests:** `board.test.ts` (IssieBoard), `voice.test.ts` (IssieVoice), `calc.test.ts` (IssieCalc), `zz-cpu.test.ts` (CPU/suggestion stress), `board-ime.test.ts` (Android system keyboard).
+
+**Run all iPad tests** (Metro must be running on port 8081):
+```
+npm run e2e:ipad          # all three apps: board, voice, calc
+npx detox test -c voice.ipad   # single app
+```
+
+**Key implementation notes:**
+- Apps are launched with `-e2e 1` as an iOS launch arg. `index.js` reads this via `Settings.get('e2e')` from react-native and suppresses the dev warning banner.
+- IssieBoard keeps a native timer running (word suggestions), so its suite calls `device.disableSynchronization()` and waits manually rather than relying on Detox idle detection.
+- On RN 0.88.1, a `UIDimmingView` / `PopoverDismissRegion` popover can appear on first launch. Tests dismiss it by tapping `{ x: 825, y: 1185 }` (top-left corner of the element, away from the bubble) rather than the default center tap.
+- `testTimeout` is 1800000 ms (30 min) to cover cold Hermes bytecode evaluation on a fresh simulator install. Subsequent runs with a warm cache complete in 1–2 min.
+
