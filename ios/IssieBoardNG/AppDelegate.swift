@@ -23,8 +23,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     V1Migration().migrateIfNeeded()
 
-    RNFBAppCheckModule.sharedInstance()
-    FirebaseApp.configure()
+    if !UserDefaults.standard.bool(forKey: "IS_DETOX_TEST") {
+      RNFBAppCheckModule.sharedInstance()
+      FirebaseApp.configure()
+    }
 
     // The window is created by SceneDelegate, which also starts React Native —
     // required by the iOS 27 SDK's scene-based life cycle.
