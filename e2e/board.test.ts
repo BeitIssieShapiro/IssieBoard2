@@ -32,13 +32,21 @@ async function start() {
   await launch();
   await device.disableSynchronization();
   await waitFor(element(by.id('editor-lang-en')).atIndex(0)).toExist().withTimeout(20000);
-  // Dismiss any iOS system popover that may appear at startup (e.g. from UIViewControllerBasedStatusBarAppearance).
-  // The popover arrives ~6 s after launch (after the RN bridge renders), so wait up to 8 s for it; then
-  // wait for it to disappear before proceeding so the next tap is not blocked.
+  // On RN 0.88.1 iPad, a UIDimmingView (PopoverDismissRegion) may appear one or more times
+  // during startup (Dev Menu or status-bar popovers). Wait up to 8 s for the first one (the
+  // whole startup window); after each tap wait 500 ms then loop with a 2 s timeout until
+  // no more appear. The whole block is a no-op when there is no popover.
   try {
     await waitFor(element(by.id('PopoverDismissRegion')).atIndex(0)).toExist().withTimeout(8000);
     await element(by.id('PopoverDismissRegion')).atIndex(0).tap();
-    await waitFor(element(by.id('PopoverDismissRegion')).atIndex(0)).not.toExist().withTimeout(3000);
+    await sleep(500);
+    for (let i = 0; i < 10; i++) {
+      try {
+        await waitFor(element(by.id('PopoverDismissRegion')).atIndex(0)).toExist().withTimeout(2000);
+        await element(by.id('PopoverDismissRegion')).atIndex(0).tap();
+        await sleep(500);
+      } catch { break; }
+    }
   } catch {}
   await sleep(500);
 }
