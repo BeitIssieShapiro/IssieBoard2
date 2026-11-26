@@ -38,8 +38,8 @@ module.exports = {
   },
   apps,
   devices: {
-    ipad: { type: 'ios.simulator', device: { type: process.env.DETOX_IPAD || 'iPad (A16)' } },
-    iphone: { type: 'ios.simulator', device: { type: process.env.DETOX_IPHONE || 'iPhone 17' } },
+    ipad: { type: 'ios.simulator', device: process.env.DETOX_IPAD_ID ? { id: process.env.DETOX_IPAD_ID } : { type: process.env.DETOX_IPAD || 'iPad (A16)' } },
+    iphone: { type: 'ios.simulator', device: process.env.DETOX_IPHONE_ID ? { id: process.env.DETOX_IPHONE_ID } : { type: process.env.DETOX_IPHONE || 'iPhone 17' } },
     androidPhone: { type: 'android.emulator', device: { avdName: process.env.DETOX_AVD_PHONE || 'IssieTest' } },
     androidTablet: { type: 'android.emulator', device: { avdName: process.env.DETOX_AVD_TABLET || 'IssieTablet' } },
     // a phone or tablet connected over USB, or an emulator already running (adb devices)
