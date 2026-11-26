@@ -32,6 +32,11 @@ async function start() {
   await launch();
   await device.disableSynchronization();
   await waitFor(element(by.id('editor-lang-en')).atIndex(0)).toExist().withTimeout(20000);
+  // Dismiss any iOS system popover that may appear at startup (e.g. from UIViewControllerBasedStatusBarAppearance)
+  try {
+    await element(by.id('PopoverDismissRegion')).atIndex(0).tap();
+    await sleep(500);
+  } catch {}
   await sleep(1500);
 }
 
