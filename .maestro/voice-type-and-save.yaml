@@ -1,0 +1,26 @@
+# IssieVoice: type on the embedded keyboard, speak, save the sentence and find it in Browse.
+appId: ${APP_ID}
+env:
+  APP_ID: org.issieshapiro.IssieVoice
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: "voice-keyboard"
+    timeout: 15000
+- tapOn: "h"
+- tapOn: "i"
+- tapOn:
+    id: "voice-speak-btn"
+- tapOn:
+    id: "voice-save-btn"
+- tapOn:
+    id: "voice-browse-btn"
+- assertVisible:
+    id: "sentence-text-0"
+- tapOn:
+    id: "sentence-insert-0"
+- tapOn:
+    id: "voice-clear-btn"
+- takeScreenshot: voice-browse
