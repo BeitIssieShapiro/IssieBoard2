@@ -1,7 +1,6 @@
 # IssieVoice: type on the embedded keyboard, speak, save the sentence and find it in Browse.
-appId: ${APP_ID}
-env:
-  APP_ID: org.issieshapiro.IssieVoice
+# iOS by default; Android: maestro test -e APP_ID=org.issieshapiro.issievoice ...
+appId: ${APP_ID || "org.issieshapiro.IssieVoice"}
 ---
 - launchApp:
     clearState: true

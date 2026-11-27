@@ -1,7 +1,6 @@
 # IssieCalc: 2 + 3 = shows 5.
-appId: ${APP_ID}
-env:
-  APP_ID: com.issieshapiro.IssieCalc
+# iOS by default; Android: maestro test -e APP_ID=org.issieshapiro.issiecalc ...
+appId: ${APP_ID || "com.issieshapiro.IssieCalc"}
 ---
 - launchApp:
     clearState: true

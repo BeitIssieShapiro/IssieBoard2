@@ -1,7 +1,7 @@
 # IssieBoard configurator: turn word suggestions off, save the profile under a new name, see it in the list.
-appId: ${APP_ID}
+# iOS by default; Android: maestro test -e APP_ID=org.issieshapiro.issieboard ...
+appId: ${APP_ID || "com.issieshapiro.Issieboard"}
 env:
-  APP_ID: com.issieshapiro.Issieboard
   PROFILE: Maestro profile
 ---
 - launchApp:
@@ -10,12 +10,37 @@ env:
     visible:
       id: "editor-profile-btn"
     timeout: 15000
+# the features show in a tab on narrower screens (the Android tablet)
+- runFlow:
+    when:
+      notVisible:
+        id: "feature-word-suggestions"
+    commands:
+      - tapOn:
+          id: "settings-tab-features"
 - tapOn:
     id: "feature-word-suggestions"
-- tapOn:
-    id: "editor-save-as-btn"
+# "Save As" shows for a saved keyboard; on a built-in one (as after clearState) "Save" asks for the name
+- runFlow:
+    when:
+      visible:
+        id: "editor-save-as-btn"
+    commands:
+      - tapOn:
+          id: "editor-save-as-btn"
+- runFlow:
+    when:
+      notVisible:
+        id: "save-as-name"
+    commands:
+      - tapOn:
+          id: "editor-save-btn"
 - tapOn:
     id: "save-as-name"
+# (the field may hold a suggested name; Android drops letters typed before it has focus)
+- waitForAnimationToEnd:
+    timeout: 3000
+- eraseText
 - inputText: ${PROFILE}
 - tapOn:
     id: "save-as-confirm"
