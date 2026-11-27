@@ -1,0 +1,26 @@
+# IssieBoard configurator: turn word suggestions off, save the profile under a new name, see it in the list.
+appId: ${APP_ID}
+env:
+  APP_ID: com.issieshapiro.Issieboard
+  PROFILE: Maestro profile
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: "editor-profile-btn"
+    timeout: 15000
+- tapOn:
+    id: "feature-word-suggestions"
+- tapOn:
+    id: "editor-save-as-btn"
+- tapOn:
+    id: "save-as-name"
+- inputText: ${PROFILE}
+- tapOn:
+    id: "save-as-confirm"
+- tapOn:
+    id: "editor-profile-btn"
+- assertVisible:
+    id: "profile-${PROFILE}"
+- takeScreenshot: board-profile-saved

@@ -1,0 +1,15 @@
+# IssieCalc: 2 + 3 = shows 5.
+appId: ${APP_ID}
+env:
+  APP_ID: com.issieshapiro.IssieCalc
+---
+- launchApp:
+    clearState: true
+- waitForAnimationToEnd:
+    timeout: 10000
+- tapOn: "2"
+- tapOn: "+"
+- tapOn: "3"
+- tapOn: "="
+- assertVisible: "5"
+- takeScreenshot: calc-result
