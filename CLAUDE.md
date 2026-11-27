@@ -226,7 +226,7 @@ Full docs: `e2e/README.md`. Quick reference:
 
 **Tests:** `board.test.ts` (IssieBoard), `voice.test.ts` (IssieVoice), `calc.test.ts` (IssieCalc), `zz-cpu.test.ts` (CPU/suggestion stress), `board-ime.test.ts` (Android system keyboard).
 
-**Run all iPad tests** (Metro must be running on port 8081):
+**Run all iPad tests** (Metro must be running on port 8081, or set `METRO_PORT` to test against a Metro on another port, e.g. from a git worktree; Android bakes the port into the build, so rebuild after changing it):
 ```
 npm run e2e:ipad          # all three apps: board, voice, calc
 npx detox test -c voice.ipad   # single app
@@ -236,5 +236,9 @@ npx detox test -c voice.ipad   # single app
 - Apps are launched with `-e2e 1` as an iOS launch arg. `index.js` reads this via `Settings.get('e2e')` from react-native and suppresses the dev warning banner.
 - IssieBoard keeps a native timer running (word suggestions), so its suite calls `device.disableSynchronization()` and waits manually rather than relying on Detox idle detection.
 - On RN 0.88.1, a `UIDimmingView` / `PopoverDismissRegion` popover can appear on first launch. Tests dismiss it by tapping `{ x: 825, y: 1185 }` (top-left corner of the element, away from the bubble) rather than the default center tap.
-- `testTimeout` is 1800000 ms (30 min) to cover cold Hermes bytecode evaluation on a fresh simulator install. Subsequent runs with a warm cache complete in 1–2 min.
+- **Startup hang = two copies of react-native in the bundle.** `issie-shared` has its own dev copy of `react-native` in its `node_modules`; if Metro bundles it the app dies at startup and Detox waits forever. `metro.config.js` blocks `issie-shared/node_modules` and resolves everything from this app's `node_modules` — keep it that way. (An earlier "cold Hermes takes 15–60 min" theory was wrong; `testTimeout` is 180000 ms.)
+- **RN 0.88 removed `InteractionManager`**: any call throws a redbox that covers the app (tests then fail as "not hittable"). `@react-navigation/stack` ≥ 7.12.2 no longer uses it, and `patches/rn-emoji-keyboard+1.7.0.patch` replaces it with `requestIdleCallback`.
+- **Text input: `typeText`, not `replaceText`.** On the new architecture `replaceText` sets the native text without firing `onChangeText`, so React state keeps the old value.
+- **Android can lose a tap** right after another UI change: tests tap again until the expected state shows, or relaunch between steps that change the same keyboard.
+- Saved keyboards live in shared (app-group) storage that survives a reinstall: leftovers from a failed run can affect the next one (`board.test.ts` deletes its `E2E Keyboard` profiles first).
 

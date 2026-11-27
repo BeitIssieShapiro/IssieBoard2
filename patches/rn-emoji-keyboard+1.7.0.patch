@@ -36,10 +36,31 @@ index f6f5df8..4d4c5a7 100644
        </View>
      </View>
 diff --git a/node_modules/rn-emoji-keyboard/src/components/EmojiCategory.tsx b/node_modules/rn-emoji-keyboard/src/components/EmojiCategory.tsx
-index 6869a04..18a9d34 100644
+index 6869a04..620ed12 100644
 --- a/node_modules/rn-emoji-keyboard/src/components/EmojiCategory.tsx
 +++ b/node_modules/rn-emoji-keyboard/src/components/EmojiCategory.tsx
-@@ -169,10 +169,16 @@ export const EmojiCategory = React.memo(
+@@ -14,7 +14,6 @@ import { useKeyboardStore } from '../store/useKeyboardStore'
+ import { parseEmoji } from '../utils/parseEmoji'
+ import { removeSkinToneModifier } from '../utils/skinToneSelectorUtils'
+ import { useKeyboard } from '../hooks/useKeyboard'
+-import { InteractionManager } from 'react-native'
+ 
+ const emptyEmoji: JsonEmoji = {
+   emoji: '',
+@@ -147,9 +146,9 @@ export const EmojiCategory = React.memo(
+ 
+     const [maxIndex, setMaxIndex] = React.useState(0)
+ 
+-    // with InteractionManager we can show emojis after interaction is finished
+-    // It helps with delay during category change animation
+-    InteractionManager.runAfterInteractions(() => {
++    // show the emojis once the UI is idle: it helps with delay during category change animation
++    // (InteractionManager was removed from react-native 0.88)
++    requestIdleCallback(() => {
+       if (maxIndex === 0 && data.length) {
+         setMaxIndex(minimalEmojisAmountToDisplay)
+       }
+@@ -169,10 +168,16 @@ export const EmojiCategory = React.memo(
  
      const flatListData = data.slice(0, maxIndex)
  
@@ -57,7 +78,7 @@ index 6869a04..18a9d34 100644
              {translation[title]}
            </Text>
          )}
-@@ -183,6 +189,8 @@ export const EmojiCategory = React.memo(
+@@ -183,6 +188,8 @@ export const EmojiCategory = React.memo(
              onEndReachedThreshold={0.3}
              keyExtractor={keyExtractor}
              numColumns={numberOfColumns}

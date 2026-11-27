@@ -2,6 +2,9 @@
 // e2e tests for the three apps (IssieBoard, IssieVoice, IssieCalc) on iPad, iPhone, an Android phone and
 // an Android tablet. Configurations are named <app>.<device>, e.g. voice.ipad, calc.android.tablet.
 // Device names can be overridden: DETOX_IPAD, DETOX_IPHONE, DETOX_AVD_PHONE, DETOX_AVD_TABLET, DETOX_ADB_NAME.
+// METRO_PORT (default 8081) runs the tests against a Metro on another port, e.g. from a git worktree while
+// the main checkout's Metro keeps 8081. Android bakes the port into the build, so rebuild after changing it.
+const METRO_PORT = Number(process.env.METRO_PORT || 8081);
 const APPS = {
   board: { scheme: 'IssieBoardNG', flavor: 'issieboard' },
   voice: { scheme: 'IssieVoice', flavor: 'issievoice' },
@@ -16,16 +19,18 @@ for (const [name, { scheme, flavor }] of Object.entries(APPS)) {
     type: 'ios.app',
     binaryPath: `ios/build/Build/Products/Debug-iphonesimulator/${scheme}.app`,
     build: `npm run build:keyboards && xcodebuild -workspace ios/IssieBoardNG.xcworkspace -scheme ${scheme} -configuration Debug -sdk iphonesimulator -derivedDataPath ios/build | (command -v xcpretty >/dev/null && xcpretty || cat)`,
+
+    launchArgs: { RCT_jsLocation: `localhost:${METRO_PORT}` },
   };
   apps[`android.${name}`] = {
     type: 'android.apk',
     binaryPath: `android/app/build/outputs/apk/${flavor}/debug/app-${flavor}-debug.apk`,
     testBinaryPath: `android/app/build/outputs/apk/androidTest/${flavor}/debug/app-${flavor}-debug-androidTest.apk`,
-    build: `cd android && ./gradlew :app:assemble${cap(flavor)}Debug :app:assemble${cap(flavor)}DebugAndroidTest -DtestBuildType=debug && cd ..`,
-    reversePorts: [8081],
+    build: `cd android && ./gradlew :app:assemble${cap(flavor)}Debug :app:assemble${cap(flavor)}DebugAndroidTest -DtestBuildType=debug -PreactNativeDevServerPort=${METRO_PORT} && cd ..`,
+    reversePorts: [METRO_PORT],
   };
-  configurations[`${name}.ipad`] = { device: 'ipad', app: `ios.${name}`, behavior: { init: { reinstallApp: false } } };
-  configurations[`${name}.iphone`] = { device: 'iphone', app: `ios.${name}`, behavior: { init: { reinstallApp: false } } };
+  configurations[`${name}.ipad`] = { device: 'ipad', app: `ios.${name}` };
+  configurations[`${name}.iphone`] = { device: 'iphone', app: `ios.${name}` };
   configurations[`${name}.android.phone`] = { device: 'androidPhone', app: `android.${name}` };
   configurations[`${name}.android.tablet`] = { device: 'androidTablet', app: `android.${name}` };
   configurations[`${name}.android.device`] = { device: 'attached', app: `android.${name}` };

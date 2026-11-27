@@ -25,6 +25,22 @@ async function featuresTab() {
   await sleep(500);
 }
 
+// Turns word suggestions off. Android can lose the toggle's tap, and the suggestions can drop for a moment
+// while the preview redraws: tapped again until they stay gone.
+async function suggestionsOff() {
+  await waitFor(suggestion()).toExist().withTimeout(8000);
+  for (let i = 0; i < 3; i++) {
+    await tapIdWhenFree('feature-word-suggestions');
+    await waitFor(suggestion()).not.toExist().withTimeout(8000);
+    await sleep(2000);
+    try {
+      await waitFor(suggestion()).not.toExist().withTimeout(500);
+      return;
+    } catch { /* back again: the tap was lost */ }
+  }
+  throw new Error('word suggestions did not turn off');
+}
+
 // With word suggestions off the app keeps a native timer running and is never idle, and Detox would wait
 // for it (even to turn its waiting back on): its waiting is off for this suite, which waits for each
 // result itself.
@@ -101,9 +117,7 @@ describe('IssieBoard', () => {
 
   it('turns word suggestions off: the preview drops them, and Cancel brings them back', async () => {
     await featuresTab();
-    await waitFor(suggestion()).toExist().withTimeout(8000);
-    await tapIdWhenFree('feature-word-suggestions');
-    await waitFor(suggestion()).not.toExist().withTimeout(8000);
+    await suggestionsOff();
     await tapIdWhenFree('editor-discard-btn');
     // "Discard all changes?"
     await tapDialogButton(/^(Discard|בטל שינויים|ביטול שינויים|تجاهل)$/i);
@@ -111,13 +125,18 @@ describe('IssieBoard', () => {
   });
 
   it('saves the change as a new keyboard, kept after a restart; then deletes it', async () => {
+    // a fresh start: on Android the previous test's Discard can still be reloading the keyboard, and turns
+    // the change made here back
+    await start();
     await featuresTab();
-    await tapIdWhenFree('feature-word-suggestions');
-    await waitFor(suggestion()).not.toExist().withTimeout(8000);
+    await suggestionsOff();
     // the built-in keyboard is saved as a copy, with a name
     await tapIdWhenFree('editor-save-btn');
     await waitFor(element(by.id('save-as-name'))).toExist().withTimeout(5000);
-    await element(by.id('save-as-name')).replaceText(KEYBOARD);
+    // typed, not replaceText: on the new architecture replaceText sets the native text without onChangeText,
+    // and the dialog would save its suggested name ("My Default")
+    await element(by.id('save-as-name')).clearText();
+    await element(by.id('save-as-name')).typeText(KEYBOARD);
     await element(by.id('save-as-name')).tapReturnKey(); // (saves; the button misses taps while the keyboard is up)
     // the dialog can stay open after saving (and then say the name is in use): closed; the save is checked
     // below, in the keyboards list and after a restart
